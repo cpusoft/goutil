@@ -1,2 +1,2 @@
-# go-util
+# goutil
 some common util in golang
