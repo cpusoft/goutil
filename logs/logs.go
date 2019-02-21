@@ -1,4 +1,4 @@
-package log
+package logs
 
 import (
 	"encoding/json"
@@ -6,7 +6,8 @@ import (
 	"os"
 	"time"
 
-	. "conf"
+	conf "github.com/cpusoft/goutil/conf"
+	util "github.com/cpusoft/goutil/util"
 )
 
 /*
@@ -21,8 +22,8 @@ import (
 */
 func init() {
 
-	logLevel := Configure.String("logs::level")
-	logName := Configure.String("logs::name")
+	logLevel := conf.String("logs::level")
+	logName := conf.String("logs::name")
 	//fmt.Println("log", logLevel, logName)
 
 	var logLevelInt int = belogs.LevelInformational

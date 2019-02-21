@@ -6,16 +6,16 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "strconv"
 
-	. "conf"
+	conf "github.com/cpusoft/goutil/conf"
 )
 
 var ConnDb = &sql.DB{}
 
 func InitMySql() {
-	user := Configure.String("mysql::user")
-	password := Configure.String("mysql::password")
-	server := Configure.String("mysql::server")
-	database := Configure.String("mysql::database")
+	user := conf.String("mysql::user")
+	password := conf.String("mysql::password")
+	server := conf.String("mysql::server")
+	database := conf.String("mysql::database")
 
 	openSql := user + ":" + password + "@tcp(" + server + ")/" + database
 	belogs.Info("openSql is ", openSql)
