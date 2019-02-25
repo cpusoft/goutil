@@ -25,3 +25,8 @@ func init() {
 func String(key string) string {
 	return Configure.String(key)
 }
+
+func Int(key string) int {
+	i, _ := Configure.Int(key)
+	return i
+}
