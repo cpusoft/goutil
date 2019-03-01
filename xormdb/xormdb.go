@@ -1,9 +1,6 @@
 package xormdb
 
 import (
-	_ "encoding/json"
-	_ "strconv"
-
 	belogs "github.com/astaxie/beego/logs"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/core"

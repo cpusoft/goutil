@@ -1,9 +1,10 @@
 package util
 
 import (
-	config "github.com/astaxie/beego/config"
+	"fmt"
 	"os"
 
+	config "github.com/astaxie/beego/config"
 	util "github.com/cpusoft/goutil/util"
 )
 
@@ -18,8 +19,12 @@ func init() {
 		}
 		fmt.Println("conf:", *Configure)
 	*/
-	Configure, _ = config.NewConfig("ini", util.GetParentPath()+string(os.PathSeparator)+"conf"+string(os.PathSeparator)+"project.conf")
-
+	var err error
+	Configure, err = config.NewConfig("ini", util.GetParentPath()+string(os.PathSeparator)+"conf"+string(os.PathSeparator)+"project.conf")
+	if err != nil {
+		fmt.Println("conf init err: ", err)
+	}
+	fmt.Println("conf init Configure: ", Configure)
 }
 
 func String(key string) string {
