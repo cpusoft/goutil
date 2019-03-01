@@ -53,4 +53,5 @@ func init() {
 	logConfigStr, _ := json.Marshal(logConfig)
 	//fmt.Println("log:logConfigStr", string(logConfigStr))
 	belogs.SetLogger(belogs.AdapterFile, string(logConfigStr))
+
 }
