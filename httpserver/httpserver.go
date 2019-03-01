@@ -5,9 +5,6 @@ import (
 
 	belogs "github.com/astaxie/beego/logs"
 	"github.com/cpusoft/go-json-rest/rest"
-
-	_ "github.com/cpusoft/goutil/conf"
-	_ "github.com/cpusoft/goutil/logs"
 )
 
 func ListenAndServer(port string, router *rest.App) {
