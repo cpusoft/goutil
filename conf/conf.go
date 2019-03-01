@@ -24,7 +24,7 @@ func init() {
 	if err != nil {
 		fmt.Println("conf init err: ", err)
 	}
-	fmt.Println("conf init Configure: ", Configure)
+
 }
 
 func String(key string) string {

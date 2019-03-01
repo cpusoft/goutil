@@ -7,7 +7,7 @@ import (
 	"github.com/cpusoft/go-json-rest/rest"
 )
 
-func ListenAndServer(port string, router *rest.App) {
+func ListenAndServe(port string, router *rest.App) {
 
 	api := rest.NewApi()
 	MyAccessProdStack := rest.AccessProdStack

@@ -52,7 +52,7 @@ func UpdateInsideTx(sqlStr string, args ...interface{}) error {
 	}
 	defer TxCommitOrRollback(tx)
 
-	belogs.Info("UpdateWithTx():" + sqlStr)
+	belogs.Debug("UpdateWithTx():" + sqlStr)
 	_, err = tx.Exec(sqlStr, args...)
 	if err != nil {
 		panic(err)
@@ -63,7 +63,7 @@ func UpdateInsideTx(sqlStr string, args ...interface{}) error {
 
 // 在update内部不事务性，在调用方有大量的操作需要一个事务完成时，调用方自己实现事务,传入事务的tx参数
 func UpdateOutsideTx(tx *sql.Tx, sqlStr string, args ...interface{}) error {
-	belogs.Info("UpdateNoTx():" + sqlStr)
+	belogs.Debug("UpdateNoTx():" + sqlStr)
 	_, err := tx.Exec(sqlStr, args...)
 	return err
 }
