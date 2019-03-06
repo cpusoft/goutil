@@ -1,6 +1,8 @@
 package httpclient
 
 import (
+	"bytes"
+	"errors"
 	"net/url"
 	"time"
 
@@ -12,33 +14,41 @@ const (
 	DefaultTimeout   = 5
 )
 
-func Get(urlStr string) (resp gorequest.Response, body string, errors []error) {
+func Get(urlStr string) (resp gorequest.Response, body string, err error) {
 	url, err := url.Parse(urlStr)
 	if err != nil {
-		errs := make([]error, 0)
-		errs[0] = err
-		return nil, "", errs
+		return nil, "", err
 	}
-	return gorequest.New().Get(urlStr).
+	return errorsToerror(gorequest.New().Get(urlStr).
 		Timeout(DefaultTimeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
-		End()
+		End())
 
 }
 
-func Post(urlStr string, postJson string) (resp gorequest.Response, body string, errors []error) {
+func Post(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
 	url, err := url.Parse(urlStr)
 	if err != nil {
-		errs := make([]error, 0)
-		errs[0] = err
-		return nil, "", errs
+		return nil, "", err
 	}
-	return gorequest.New().Post(urlStr).
+	return errorsToerror(gorequest.New().Post(urlStr).
 		Timeout(DefaultTimeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Send(postJson).
-		End()
+		End())
 
+}
+
+func errorsToerror(resps gorequest.Response, bodys string, errs []error) (resp gorequest.Response, body string, err error) {
+	if errs != nil && len(errs) > 0 {
+		buffer := bytes.NewBufferString("")
+		for _, er := range errs {
+			buffer.WriteString(er.Error())
+			buffer.WriteString("; ")
+		}
+		return resps, bodys, errors.New(buffer.String())
+	}
+	return resps, bodys, nil
 }
