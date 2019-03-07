@@ -34,7 +34,7 @@ func InitMySql() error {
 		belogs.Error("Ping failed: ", err)
 		return err
 	}
-	engine.ShowSQL(true)
+
 	//设置连接池的空闲数大小
 	engine.SetMaxIdleConns(maxidleconns)
 	//设置最大打开连接数
