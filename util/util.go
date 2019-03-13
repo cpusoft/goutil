@@ -39,5 +39,5 @@ func ToString(a interface{}) string {
 	if v, p := a.(float64); p {
 		return strconv.FormatFloat(v, 'f', -1, 32)
 	}
-	return "change to String error"
+	return ""
 }

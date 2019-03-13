@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"bytes"
+	"crypto/tls"
 	"errors"
 	"net/url"
 	"time"
@@ -26,7 +27,21 @@ func Get(urlStr string) (resp gorequest.Response, body string, err error) {
 		End())
 
 }
+func GetTLS(urlStr string) (resp gorequest.Response, body string, err error) {
+	url, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, "", err
+	}
+	config := &tls.Config{InsecureSkipVerify: true}
 
+	return errorsToerror(gorequest.New().Get(urlStr).
+		TLSClientConfig(config).
+		Timeout(DefaultTimeout*time.Minute).
+		Set("User-Agent", DefaultUserAgent).
+		Set("Referrer", url.Host).
+		End())
+
+}
 func Post(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
 	url, err := url.Parse(urlStr)
 	if err != nil {
@@ -40,7 +55,21 @@ func Post(urlStr string, postJson string) (resp gorequest.Response, body string,
 		End())
 
 }
+func PostTLS(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
+	url, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, "", err
+	}
+	config := &tls.Config{InsecureSkipVerify: true}
+	return errorsToerror(gorequest.New().Post(urlStr).
+		TLSClientConfig(config).
+		Timeout(DefaultTimeout*time.Minute).
+		Set("User-Agent", DefaultUserAgent).
+		Set("Referrer", url.Host).
+		Send(postJson).
+		End())
 
+}
 func errorsToerror(resps gorequest.Response, bodys string, errs []error) (resp gorequest.Response, body string, err error) {
 	if errs != nil && len(errs) > 0 {
 		buffer := bytes.NewBufferString("")
