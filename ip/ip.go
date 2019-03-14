@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func DigitalFormatToStandard(ip string) string {
+func RtrFormatToIp(ip string) string {
 
 	// ipv4
 	ips := []byte(ip)
@@ -27,7 +27,7 @@ func DigitalFormatToStandard(ip string) string {
 	return ""
 }
 
-func StandardFormatToDigital(ip string) string {
+func IpToRtrFormat(ip string) string {
 	formatIp := ""
 
 	// format  ipv4
