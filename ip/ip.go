@@ -4,19 +4,21 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	belogs "github.com/astaxie/beego/logs"
 )
 
-func RtrFormatToIp(ip string) string {
+func RtrFormatToIp(ips []byte) string {
 
 	// ipv4
-	ips := []byte(ip)
-	if len(ip) == 8 {
+	belogs.Debug("RtrFormatToIp():ips: %+v:", ips)
+	if len(ips) == 8 {
 		ip0, _ := strconv.ParseInt(string(ips[0:2]), 16, 0)
 		ip1, _ := strconv.ParseInt(string(ips[2:4]), 16, 0)
 		ip2, _ := strconv.ParseInt(string(ips[4:6]), 16, 0)
 		ip3, _ := strconv.ParseInt(string(ips[6:8]), 16, 0)
 		return fmt.Sprintf("%d.%d.%d.%d", ip0, ip1, ip2, ip3)
-	} else if len(ip) == 32 {
+	} else if len(ips) == 32 {
 		ip0 := string(ips[0:4])
 		ip1 := string(ips[4:8])
 		ip2 := string(ips[8:12])
