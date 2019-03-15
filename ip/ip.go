@@ -12,7 +12,7 @@ import (
 func RtrFormatToIp(rtrIp []byte) string {
 
 	// ipv4
-	belogs.Debug("RtrFormatToIp():rtrIp: %+v:", rtrIp)
+	belogs.Debug("RtrFormatToIp():rtrIp: %+v:", rtrIp, "   len(rtrIp):", len(rtrIp))
 	var ip string
 	if len(rtrIp) == 8 {
 		b0, _ := strconv.ParseInt(string(rtrIp[0:2]), 16, 0)
