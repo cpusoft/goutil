@@ -14,36 +14,36 @@ func RtrFormatToIp(rtrIp []byte) string {
 	// ipv4
 	belogs.Debug("RtrFormatToIp():rtrIp: %+v:", rtrIp, "   len(rtrIp):", len(rtrIp))
 	var ip string
-	if len(rtrIp) == 8 {
-		b0, _ := strconv.ParseInt(string(rtrIp[0:2]), 16, 0)
-		b1, _ := strconv.ParseInt(string(rtrIp[2:4]), 16, 0)
-		b2, _ := strconv.ParseInt(string(rtrIp[4:6]), 16, 0)
-		b3, _ := strconv.ParseInt(string(rtrIp[6:8]), 16, 0)
+	if len(rtrIp) == 4 {
+		b0, _ := strconv.ParseInt(string(rtrIp[0:1]), 16, 0)
+		b1, _ := strconv.ParseInt(string(rtrIp[1:2]), 16, 0)
+		b2, _ := strconv.ParseInt(string(rtrIp[2:3]), 16, 0)
+		b3, _ := strconv.ParseInt(string(rtrIp[3:4]), 16, 0)
 		ip = fmt.Sprintf("%d.%d.%d.%d", b0, b1, b2, b3)
 		belogs.Debug("RtrFormatToIp():ipv4:ip:", ip)
 		return ip
-	} else if len(rtrIp) == 32 {
+	} else if len(rtrIp) == 16 {
 		var buffer bytes.Buffer
-		buffer.Write(rtrIp[0:4])
+		buffer.Write(rtrIp[0:2])
 		buffer.WriteString(":")
-		buffer.Write(rtrIp[4:8])
+		buffer.Write(rtrIp[2:4])
 		buffer.WriteString(":")
-		buffer.Write(rtrIp[8:12])
+		buffer.Write(rtrIp[4:6])
 		buffer.WriteString(":")
-		buffer.Write(rtrIp[12:16])
+		buffer.Write(rtrIp[6:8])
 		buffer.WriteString(":")
-		buffer.Write(rtrIp[16:20])
+		buffer.Write(rtrIp[8:10])
 		buffer.WriteString(":")
-		buffer.Write(rtrIp[20:24])
+		buffer.Write(rtrIp[10:12])
 		buffer.WriteString(":")
-		buffer.Write(rtrIp[24:28])
+		buffer.Write(rtrIp[12:14])
 		buffer.WriteString(":")
-		buffer.Write(rtrIp[28:32])
+		buffer.Write(rtrIp[14:16])
 		ip = (buffer.String())
 		belogs.Debug("RtrFormatToIp():ipv6:ip:", ip)
 		return ip
 	}
-
+	belogs.Error("RtrFormatToIp():is not ipv4 or ipv6:", rtrIp)
 	return ""
 }
 
