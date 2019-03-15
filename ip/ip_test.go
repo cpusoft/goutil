@@ -23,12 +23,12 @@ func TestIpToRtrFormat(t *testing.T) {
 }
 
 func TestRtrFormatToIp(t *testing.T) {
-	dig := "13635B00"
+	dig := []byte{80, 128, 0, 0}
 	fmt.Println(len([]byte(dig)))
-	str := ip.RtrFormatToIp([]byte(dig))
+	str := ip.RtrFormatToIp(dig)
 	fmt.Println(str)
 
-	dig = "20010DB8000000000000000000000000"
-	str = ip.RtrFormatToIp([]byte(dig))
+	dig = []byte{32, 1, 7, 248, 0, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	str = ip.RtrFormatToIp(dig)
 	fmt.Println(str)
 }

@@ -1,7 +1,6 @@
 package ip
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -15,31 +14,20 @@ func RtrFormatToIp(rtrIp []byte) string {
 	belogs.Debug("RtrFormatToIp():rtrIp: %+v:", rtrIp, "   len(rtrIp):", len(rtrIp))
 	var ip string
 	if len(rtrIp) == 4 {
-		b0, _ := strconv.ParseInt(string(rtrIp[0:1]), 16, 0)
-		b1, _ := strconv.ParseInt(string(rtrIp[1:2]), 16, 0)
-		b2, _ := strconv.ParseInt(string(rtrIp[2:3]), 16, 0)
-		b3, _ := strconv.ParseInt(string(rtrIp[3:4]), 16, 0)
-		ip = fmt.Sprintf("%d.%d.%d.%d", b0, b1, b2, b3)
+		ip = fmt.Sprintf("%d.%d.%d.%d", rtrIp[0], rtrIp[1], rtrIp[2], rtrIp[3])
 		belogs.Debug("RtrFormatToIp():ipv4:ip:", ip)
 		return ip
 	} else if len(rtrIp) == 16 {
-		var buffer bytes.Buffer
-		buffer.Write(rtrIp[0:2])
-		buffer.WriteString(":")
-		buffer.Write(rtrIp[2:4])
-		buffer.WriteString(":")
-		buffer.Write(rtrIp[4:6])
-		buffer.WriteString(":")
-		buffer.Write(rtrIp[6:8])
-		buffer.WriteString(":")
-		buffer.Write(rtrIp[8:10])
-		buffer.WriteString(":")
-		buffer.Write(rtrIp[10:12])
-		buffer.WriteString(":")
-		buffer.Write(rtrIp[12:14])
-		buffer.WriteString(":")
-		buffer.Write(rtrIp[14:16])
-		ip = (buffer.String())
+
+		ip = fmt.Sprintf("%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+			rtrIp[0], rtrIp[1],
+			rtrIp[2], rtrIp[3],
+			rtrIp[4], rtrIp[5],
+			rtrIp[6], rtrIp[7],
+			rtrIp[8], rtrIp[9],
+			rtrIp[10], rtrIp[11],
+			rtrIp[12], rtrIp[13],
+			rtrIp[14], rtrIp[15])
 		belogs.Debug("RtrFormatToIp():ipv6:ip:", ip)
 		return ip
 	}
