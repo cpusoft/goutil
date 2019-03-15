@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/parnurzeal/gorequest"
@@ -15,7 +16,17 @@ const (
 	DefaultTimeout   = 30
 )
 
-func Get(urlStr string) (resp gorequest.Response, body string, err error) {
+func Get(protocol string, address string, port int, path string) (gorequest.Response, string, error) {
+	if protocol == "http" {
+		return GetHttp(protocol + "://" + address + ":" + strconv.Itoa(port) + path)
+	} else if protocol == "https" {
+		return GetHttps(protocol + "://" + address + ":" + strconv.Itoa(port) + path)
+	} else {
+		return nil, "", errors.New("unknown protocol")
+	}
+}
+
+func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
@@ -27,7 +38,7 @@ func Get(urlStr string) (resp gorequest.Response, body string, err error) {
 		End())
 
 }
-func GetTLS(urlStr string) (resp gorequest.Response, body string, err error) {
+func GetHttps(urlStr string) (resp gorequest.Response, body string, err error) {
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
@@ -42,7 +53,18 @@ func GetTLS(urlStr string) (resp gorequest.Response, body string, err error) {
 		End())
 
 }
-func Post(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
+
+func Post(protocol string, address string, port int, path string, postJson string) (gorequest.Response, string, error) {
+	if protocol == "http" {
+		return PostHttp(protocol+"://"+address+":"+strconv.Itoa(port)+path, postJson)
+	} else if protocol == "https" {
+		return PostHttps(protocol+"://"+address+":"+strconv.Itoa(port)+path, postJson)
+	} else {
+		return nil, "", errors.New("unknown protocol")
+	}
+}
+
+func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
@@ -55,7 +77,7 @@ func Post(urlStr string, postJson string) (resp gorequest.Response, body string,
 		End())
 
 }
-func PostTLS(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
+func PostHttps(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
