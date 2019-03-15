@@ -1,6 +1,7 @@
 package ip
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,22 +9,39 @@ import (
 	belogs "github.com/astaxie/beego/logs"
 )
 
-func RtrFormatToIp(ips []byte) string {
+func RtrFormatToIp(rtrIp []byte) string {
 
 	// ipv4
-	belogs.Debug("RtrFormatToIp():ips: %+v:", ips)
-	if len(ips) == 8 {
-		ip0, _ := strconv.ParseInt(string(ips[0:2]), 16, 0)
-		ip1, _ := strconv.ParseInt(string(ips[2:4]), 16, 0)
-		ip2, _ := strconv.ParseInt(string(ips[4:6]), 16, 0)
-		ip3, _ := strconv.ParseInt(string(ips[6:8]), 16, 0)
-		return fmt.Sprintf("%d.%d.%d.%d", ip0, ip1, ip2, ip3)
-	} else if len(ips) == 32 {
-		ip0 := string(ips[0:4])
-		ip1 := string(ips[4:8])
-		ip2 := string(ips[8:12])
-		ip3 := string(ips[12:16])
-		return fmt.Sprintf("%s:%s:%s:%s", ip0, ip1, ip2, ip3)
+	belogs.Debug("RtrFormatToIp():rtrIp: %+v:", rtrIp)
+	var ip string
+	if len(rtrIp) == 8 {
+		b0, _ := strconv.ParseInt(string(rtrIp[0:2]), 16, 0)
+		b1, _ := strconv.ParseInt(string(rtrIp[2:4]), 16, 0)
+		b2, _ := strconv.ParseInt(string(rtrIp[4:6]), 16, 0)
+		b3, _ := strconv.ParseInt(string(rtrIp[6:8]), 16, 0)
+		ip = fmt.Sprintf("%d.%d.%d.%d", b0, b1, b2, b3)
+		belogs.Debug("RtrFormatToIp():ipv4:ip:", ip)
+		return ip
+	} else if len(rtrIp) == 32 {
+		var buffer bytes.Buffer
+		buffer.Write(rtrIp[0:4])
+		buffer.WriteString(":")
+		buffer.Write(rtrIp[4:8])
+		buffer.WriteString(":")
+		buffer.Write(rtrIp[8:12])
+		buffer.WriteString(":")
+		buffer.Write(rtrIp[12:16])
+		buffer.WriteString(":")
+		buffer.Write(rtrIp[16:20])
+		buffer.WriteString(":")
+		buffer.Write(rtrIp[20:24])
+		buffer.WriteString(":")
+		buffer.Write(rtrIp[24:28])
+		buffer.WriteString(":")
+		buffer.Write(rtrIp[28:32])
+		ip = (buffer.String())
+		belogs.Debug("RtrFormatToIp():ipv6:ip:", ip)
+		return ip
 	}
 
 	return ""
