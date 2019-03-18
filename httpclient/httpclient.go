@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	belogs "github.com/astaxie/beego/logs"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -27,6 +28,7 @@ func Get(protocol string, address string, port int, path string) (gorequest.Resp
 }
 
 func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("GetHttp():url:", urlStr)
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
@@ -39,6 +41,7 @@ func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
 
 }
 func GetHttps(urlStr string) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("GetHttps():url:", urlStr)
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
@@ -65,6 +68,7 @@ func Post(protocol string, address string, port int, path string, postJson strin
 }
 
 func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("PostHttp():url:", urlStr, "    len(postJson):", len(postJson))
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
@@ -78,6 +82,7 @@ func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body str
 
 }
 func PostHttps(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("PostHttps():url:", urlStr, "    len(postJson):", len(postJson))
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
