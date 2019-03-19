@@ -18,7 +18,7 @@ func InitMySql() {
 	database := conf.String("mysql::database")
 
 	openSql := user + ":" + password + "@tcp(" + server + ")/" + database
-	belogs.Info("InitMySql(): server is :", server)
+	belogs.Info("InitMySql(): server is :", server, database)
 
 	db, err := sql.Open("mysql", openSql) //sql.Open("mysql", "rpstir:Rpstir-123@tcp(192.168.138.135:3306)/rpstir")
 	if err != nil {
