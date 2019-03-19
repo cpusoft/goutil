@@ -21,7 +21,7 @@ func InitMySql() error {
 	maxopenconns := conf.Int("mysql::maxopenconns")
 
 	openSql := user + ":" + password + "@tcp(" + server + ")/" + database
-	belogs.Info("InitMySql() is: ", openSql)
+	belogs.Info("InitMySql(): server is: ", server, database)
 
 	//连接数据库
 	engine, err := xorm.NewEngine("mysql", openSql)
