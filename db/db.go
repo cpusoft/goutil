@@ -11,6 +11,7 @@ import (
 
 var ConnDb = &sql.DB{}
 
+// Obsolete, suggest use "github.com/cpusoft/goutil/xormdb
 func InitMySql() {
 	user := conf.String("mysql::user")
 	password := conf.String("mysql::password")
@@ -42,7 +43,7 @@ func TxCommitOrRollback(tx *sql.Tx) {
 	}
 }
 
-// 在update内部实现事务性，但如果调用方有大量的操作需要一个事务完成时，这样就不好了
+// update sql, controll transaction in func
 func UpdateInsideTx(sqlStr string, args ...interface{}) error {
 	// need drop
 	tx, err := ConnDb.Begin()
@@ -61,7 +62,7 @@ func UpdateInsideTx(sqlStr string, args ...interface{}) error {
 
 }
 
-// 在update内部不事务性，在调用方有大量的操作需要一个事务完成时，调用方自己实现事务,传入事务的tx参数
+// // update sql, controll transaction out func
 func UpdateOutsideTx(tx *sql.Tx, sqlStr string, args ...interface{}) error {
 	belogs.Debug("UpdateNoTx():" + sqlStr)
 	_, err := tx.Exec(sqlStr, args...)

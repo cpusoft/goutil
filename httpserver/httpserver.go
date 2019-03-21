@@ -7,6 +7,7 @@ import (
 	"github.com/cpusoft/go-json-rest/rest"
 )
 
+// setup Http Server, listen on port
 func ListenAndServe(port string, router *rest.App) {
 
 	api := rest.NewApi()
@@ -20,6 +21,7 @@ func ListenAndServe(port string, router *rest.App) {
 	belogs.Emergency(http.ListenAndServe(port, api.MakeHandler()))
 }
 
+// setup Https Server, listen on port. need crt and key files
 func ListenAndServeTLS(port string, crtFile string, keyFile string, router *rest.App) {
 
 	api := rest.NewApi()

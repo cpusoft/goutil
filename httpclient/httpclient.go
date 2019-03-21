@@ -17,6 +17,8 @@ const (
 	DefaultTimeout   = 30
 )
 
+// Http/Https Get Method,
+// protocol: "http" or "https"
 func Get(protocol string, address string, port int, path string) (gorequest.Response, string, error) {
 	if protocol == "http" {
 		return GetHttp(protocol + "://" + address + ":" + strconv.Itoa(port) + path)
@@ -27,6 +29,7 @@ func Get(protocol string, address string, port int, path string) (gorequest.Resp
 	}
 }
 
+// Http Get Method, complete url
 func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
 	belogs.Debug("GetHttp():url:", urlStr)
 	url, err := url.Parse(urlStr)
@@ -40,6 +43,8 @@ func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
 		End())
 
 }
+
+// Https Get Method, complete url
 func GetHttps(urlStr string) (resp gorequest.Response, body string, err error) {
 	belogs.Debug("GetHttps():url:", urlStr)
 	url, err := url.Parse(urlStr)
@@ -57,6 +62,8 @@ func GetHttps(urlStr string) (resp gorequest.Response, body string, err error) {
 
 }
 
+// Http/Https Post Method,
+// protocol: "http" or "https"
 func Post(protocol string, address string, port int, path string, postJson string) (gorequest.Response, string, error) {
 	if protocol == "http" {
 		return PostHttp(protocol+"://"+address+":"+strconv.Itoa(port)+path, postJson)
@@ -67,6 +74,7 @@ func Post(protocol string, address string, port int, path string, postJson strin
 	}
 }
 
+// Http Post Method, complete url
 func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
 	belogs.Debug("PostHttp():url:", urlStr, "    len(postJson):", len(postJson))
 	url, err := url.Parse(urlStr)
@@ -81,6 +89,8 @@ func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body str
 		End())
 
 }
+
+// Https Post Method, complete url
 func PostHttps(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
 	belogs.Debug("PostHttps():url:", urlStr, "    len(postJson):", len(postJson))
 	url, err := url.Parse(urlStr)
@@ -97,6 +107,8 @@ func PostHttps(urlStr string, postJson string) (resp gorequest.Response, body st
 		End())
 
 }
+
+// convert many erros to on error
 func errorsToerror(resps gorequest.Response, bodys string, errs []error) (resp gorequest.Response, body string, err error) {
 	if errs != nil && len(errs) > 0 {
 		buffer := bytes.NewBufferString("")

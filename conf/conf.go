@@ -10,6 +10,7 @@ import (
 
 var Configure config.Configer
 
+// load configure file
 func init() {
 	/*
 		iniFile := config.NewINIFile(util.GetParentPath() + string(os.PathSeparator) + "conf/slurm.conf")
