@@ -7,6 +7,17 @@ import (
 	ip "."
 )
 
+func TestAns1FormtToIp(t *testing.T) {
+	b := []byte{0xb0, 0x10}
+	di := ip.RoaFormtToIp(b, 0x01)
+	fmt.Println(di)
+
+	b = []byte{0x03, 0x05, 0x00, 0x28, 0x03, 0xEA, 0x80}
+	di = ip.RoaFormtToIp(b, 0x02)
+	fmt.Println(di)
+
+}
+
 func TestIpToRtrFormat(t *testing.T) {
 	// dig: 13635B00  str:19.99.91.0
 	str := "19.99.91.0"

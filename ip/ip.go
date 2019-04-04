@@ -1,12 +1,42 @@
 package ip
 
 import (
+	"bytes"
 	"fmt"
+	belogs "github.com/astaxie/beego/logs"
 	"strconv"
 	"strings"
-
-	belogs "github.com/astaxie/beego/logs"
 )
+
+const (
+	Ipv4Type = 0x01
+	Ipv6Type = 0x02
+)
+
+func RoaFormtToIp(ans1Ip []byte, ipType int) string {
+	belogs.Debug("RoaFormtToIp():ans1Ip: %+v:", ans1Ip, "  ipType:", ipType)
+	var buffer bytes.Buffer
+	if ipType == Ipv4Type {
+		for i, ip := range ans1Ip {
+			if i < len(ans1Ip)-1 {
+				buffer.WriteString(fmt.Sprintf("%d.", ip))
+			} else {
+				buffer.WriteString(fmt.Sprintf("%d", ip))
+			}
+		}
+		return buffer.String()
+	} else if ipType == Ipv6Type {
+		for i := 0; i < len(ans1Ip); i = i + 2 {
+			if i < len(ans1Ip)-2 {
+				buffer.WriteString(fmt.Sprintf("%d%d:", ans1Ip[i], ans1Ip[i+1]))
+			} else {
+				buffer.WriteString(fmt.Sprintf("%d%d", ans1Ip[i], ans1Ip[i+1]))
+			}
+		}
+		return buffer.String()
+	}
+	return ""
+}
 
 func RtrFormatToIp(rtrIp []byte) string {
 
