@@ -26,11 +26,16 @@ func RoaFormtToIp(ans1Ip []byte, ipType int) string {
 		}
 		return buffer.String()
 	} else if ipType == Ipv6Type {
-		for i := 0; i < len(ans1Ip); i = i + 2 {
-			if i < len(ans1Ip)-2 {
-				buffer.WriteString(fmt.Sprintf("%d%d:", ans1Ip[i], ans1Ip[i+1]))
+		asn1IpTmp := ans1Ip
+		if len(ans1Ip)%2 != 0 {
+			// Insufficient digits, fill in 0
+			asn1IpTmp = append(ans1Ip, 0x00)
+		}
+		for i := 0; i < len(asn1IpTmp); i = i + 2 {
+			if i < len(asn1IpTmp)-2 {
+				buffer.WriteString(fmt.Sprintf("%02x%02x:", asn1IpTmp[i], asn1IpTmp[i+1]))
 			} else {
-				buffer.WriteString(fmt.Sprintf("%d%d", ans1Ip[i], ans1Ip[i+1]))
+				buffer.WriteString(fmt.Sprintf("%02x%02x", asn1IpTmp[i], asn1IpTmp[i+1]))
 			}
 		}
 		return buffer.String()

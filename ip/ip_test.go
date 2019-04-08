@@ -7,7 +7,7 @@ import (
 	ip "."
 )
 
-func TestAns1FormtToIp(t *testing.T) {
+func TestRoaFormtToIp(t *testing.T) {
 	b := []byte{0xb0, 0x10}
 	di := ip.RoaFormtToIp(b, 0x01)
 	fmt.Println(di)
@@ -16,6 +16,9 @@ func TestAns1FormtToIp(t *testing.T) {
 	di = ip.RoaFormtToIp(b, 0x02)
 	fmt.Println(di)
 
+	b = []byte{0x2a, 0x0, 0x15, 0x28, 0xaa, 0x0, 0xd0}
+	di = ip.RoaFormtToIp(b, 0x02)
+	fmt.Println(di)
 }
 
 func TestIpToRtrFormat(t *testing.T) {
