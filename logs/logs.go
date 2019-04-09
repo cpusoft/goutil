@@ -7,7 +7,7 @@ import (
 	"time"
 
 	conf "github.com/cpusoft/goutil/conf"
-	util "github.com/cpusoft/goutil/util"
+	osutil "github.com/cpusoft/goutil/osutil"
 )
 
 /*
@@ -48,7 +48,7 @@ func init() {
 	ts := time.Now().Format("2006-01-02")
 
 	logConfig := make(map[string]interface{})
-	logConfig["filename"] = util.GetParentPath() + string(os.PathSeparator) + "log" + string(os.PathSeparator) + logName + "." + ts
+	logConfig["filename"] = osutil.GetParentPath() + string(os.PathSeparator) + "log" + string(os.PathSeparator) + logName + "." + ts
 	logConfig["level"] = logLevelInt
 	logConfigStr, _ := json.Marshal(logConfig)
 	//fmt.Println("log:logConfigStr", string(logConfigStr))
