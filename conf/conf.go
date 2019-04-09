@@ -5,7 +5,7 @@ import (
 	"os"
 
 	config "github.com/astaxie/beego/config"
-	util "github.com/cpusoft/goutil/util"
+	osutil "github.com/cpusoft/goutil/osutil"
 )
 
 var Configure config.Configer
@@ -21,7 +21,7 @@ func init() {
 		fmt.Println("conf:", *Configure)
 	*/
 	var err error
-	Configure, err = config.NewConfig("ini", util.GetParentPath()+string(os.PathSeparator)+"conf"+string(os.PathSeparator)+"project.conf")
+	Configure, err = config.NewConfig("ini", osutil.GetParentPath()+string(os.PathSeparator)+"conf"+string(os.PathSeparator)+"project.conf")
 	if err != nil {
 		fmt.Println("conf init err: ", err)
 	}
