@@ -1,6 +1,7 @@
 package xormdb
 
 import (
+	"database/sql"
 	belogs "github.com/astaxie/beego/logs"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/core"
@@ -66,4 +67,14 @@ func InitMySql() error {
 	XormEngine = engine
 	return nil
 
+}
+
+func SqlNullString(s string) sql.NullString {
+	if len(s) == 0 {
+		return sql.NullString{}
+	}
+	return sql.NullString{
+		String: s,
+		Valid:  true,
+	}
 }
