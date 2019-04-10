@@ -1,8 +1,10 @@
 package osutil
 
 import (
+	"container/list"
 	"os"
 	"os/exec"
+	path "path"
 	"path/filepath"
 	"strings"
 )
@@ -29,4 +31,24 @@ func GetParentPath() string {
 	}
 	ret := strings.Join(dirs[:index], string(os.PathSeparator))
 	return ret
+}
+
+func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string) *list.List {
+
+	absolutePath, _ := filepath.Abs(directory)
+	listStr := list.New()
+	filepath.Walk(absolutePath, func(filename string, fi os.FileInfo, err error) error {
+		if err != nil || len(filename) == 0 || nil == fi {
+			return err
+		}
+		if !fi.IsDir() {
+			suffix := path.Ext(filename)
+			//fmt.Println(suffix)
+			if _, ok := suffixs[suffix]; ok {
+				listStr.PushBack(filename)
+			}
+		}
+		return nil
+	})
+	return listStr
 }
