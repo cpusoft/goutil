@@ -2,6 +2,7 @@ package logs
 
 import (
 	"encoding/json"
+	"fmt"
 	belogs "github.com/astaxie/beego/logs"
 	"os"
 	"time"
@@ -54,4 +55,18 @@ func init() {
 	//fmt.Println("log:logConfigStr", string(logConfigStr))
 	belogs.SetLogger(belogs.AdapterFile, string(logConfigStr))
 
+}
+
+func LogDebugBytes(title string, buf []byte) {
+
+	belogs.Debug(title)
+
+	data_lines := make([]string, (len(buf)/30)+1)
+	for i, b := range buf {
+		data_lines[i/30] += fmt.Sprintf("%02x ", b)
+	}
+
+	for i := 0; i < len(data_lines); i++ {
+		belogs.Debug(data_lines[i])
+	}
 }
