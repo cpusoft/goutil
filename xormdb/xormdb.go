@@ -69,6 +69,18 @@ func InitMySql() error {
 
 }
 
+// when session is error, will rollback and log the error
+func RollbackAndLogError(session *xorm.Session, msg string, err error) error {
+	if err != nil {
+		belogs.Error(msg, err)
+		if session != nil {
+			session.Rollback()
+		}
+		return err
+	}
+	return nil
+}
+
 func SqlNullString(s string) sql.NullString {
 	if len(s) == 0 {
 		return sql.NullString{}
