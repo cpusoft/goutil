@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"strconv"
 )
 
 func Bytes2Uint64(bytes []byte) uint64 {
@@ -28,6 +29,34 @@ func GetInterfaceType(v interface{}) (string, error) {
 	default:
 		return "unknown", nil
 	}
+}
+
+func ToString(a interface{}) string {
+	if v, p := a.(string); p {
+		return v
+	}
+	if v, ok := a.([]byte); ok {
+		return string(v)
+	}
+	if v, p := a.(int); p {
+		return strconv.Itoa(v)
+	}
+	if v, p := a.(int16); p {
+		return strconv.Itoa(int(v))
+	}
+	if v, p := a.(int32); p {
+		return strconv.Itoa(int(v))
+	}
+	if v, p := a.(uint); p {
+		return strconv.Itoa(int(v))
+	}
+	if v, p := a.(float32); p {
+		return strconv.FormatFloat(float64(v), 'f', -1, 32)
+	}
+	if v, p := a.(float64); p {
+		return strconv.FormatFloat(v, 'f', -1, 32)
+	}
+	return ""
 }
 
 func Interface2String(v interface{}) (string, error) {
