@@ -52,3 +52,9 @@ func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string
 	})
 	return listStr
 }
+
+func GetFilePathAndFileName(fileAllPath string) (filePath string, fileName string) {
+	i := strings.LastIndex(fileAllPath, string(os.PathSeparator))
+	return fileAllPath[:i+1], fileAllPath[i+1:]
+
+}
