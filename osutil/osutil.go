@@ -7,6 +7,8 @@ import (
 	path "path"
 	"path/filepath"
 	"strings"
+
+	belogs "github.com/astaxie/beego/logs"
 )
 
 func IsDir(file string) (bool, error) {
@@ -54,6 +56,7 @@ func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string
 }
 
 func GetFilePathAndFileName(fileAllPath string) (filePath string, fileName string) {
+	belogs.Debug("GetFilePathAndFileName(): fileAllPath:", fileAllPath)
 	i := strings.LastIndex(fileAllPath, string(os.PathSeparator))
 	return fileAllPath[:i+1], fileAllPath[i+1:]
 
