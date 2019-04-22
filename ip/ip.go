@@ -118,7 +118,7 @@ func IpAndCIDRFillWithZero(ip string, ipType int) (string, error) {
 		prefix = string(ip[pos:])
 		ipp = string(ip[:pos])
 	}
-	belogs.Debug("FillIP(): ipp:", ipp, "   prefix:", prefix, "   pos:", pos)
+	belogs.Debug("IpAndCIDRFillWithZero():ip:", ip, "     ipType:", ipType, " --> ipp:", ipp, "   prefix:", prefix, "   pos:", pos)
 
 	if ipType == Ipv4Type {
 		countComma := strings.Count(ipp, ".")
@@ -193,17 +193,25 @@ func IPCIDRToHexRange(ip string, ipType int) (minHex string, maxHex string, err 
 
 	network, err := IpAndCIDRFillWithZero(ip, ipType)
 	if err != nil {
+		belogs.Error("IPCIDRToHexRange(): IpAndCIDRFillWithZero err:", err)
 		return "", "", err
 	}
 	belogs.Debug("IPCIDRToHexRange(): network:", network)
 
-	_, subnet, _ := net.ParseCIDR(network)
+	_, subnet, err := net.ParseCIDR(network)
+	if err != nil {
+		belogs.Error("IPCIDRToHexRange(): ParseCIDR err:", err)
+		return "", "", err
+	}
+	belogs.Debug("IPCIDRToHexRange(): subnet:", subnet)
+
 	var ipLen int
 	if ipType == Ipv4Type {
 		ipLen = net.IPv4len
 	} else if ipType == Ipv6Type {
 		ipLen = net.IPv6len
 	}
+	belogs.Debug("IPCIDRToHexRange(): ipLen:", ipLen)
 
 	min := make(net.IP, ipLen)
 	max := make(net.IP, ipLen)
