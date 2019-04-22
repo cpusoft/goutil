@@ -46,3 +46,54 @@ func TestRtrFormatToIp(t *testing.T) {
 	str = ip.RtrFormatToIp(dig)
 	fmt.Println(str)
 }
+
+func TestIpAndCIDRFillWithZero(t *testing.T) {
+
+	ips := []string{"19.99.91", "19.99/16"}
+
+	for _, ip := range ips {
+		str, err := IpAndCIDRFillWithZero(ip, Ipv4Type)
+		fmt.Println(ip, " --> ", str, err)
+
+	}
+	ips = []string{"2803:d380/28", "2803/28"}
+	for _, ip := range ips {
+		str, err := IpAndCIDRFillWithZero(ip, Ipv6Type)
+		fmt.Println(ip, " --> ", str, err)
+
+	}
+}
+
+func TestIpStrToHexString(t *testing.T) {
+
+	ips := []string{"19.99.91.3"}
+	for _, ip := range ips {
+		str, err := IpStrToHexString(ip, Ipv4Type)
+		fmt.Println(ip, " --> ", str, err)
+
+	}
+	ips = []string{"2803:d380::", "2803:d380::5512"}
+	for _, ip := range ips {
+		str, err := IpStrToHexString(ip, Ipv6Type)
+		fmt.Println(ip, " --> ", str, err)
+
+	}
+}
+
+func TestIPCIDRToHexRange(t *testing.T) {
+
+	ips := []string{"19.99/16"}
+	for _, ip := range ips {
+		ipp, err := IpAndCIDRFillWithZero(ip, Ipv4Type)
+		min, max, err := IPCIDRToHexRange(ipp, Ipv4Type)
+		fmt.Println(ip, " --> ", min, max, err)
+
+	}
+	ips = []string{"2803:d380/28"}
+	for _, ip := range ips {
+		ipp, err := IpAndCIDRFillWithZero(ip, Ipv6Type)
+		min, max, err := IPCIDRToHexRange(ipp, Ipv6Type)
+		fmt.Println(ip, " --> ", min, max, err)
+
+	}
+}

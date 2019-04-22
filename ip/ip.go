@@ -2,10 +2,14 @@ package ip
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	belogs "github.com/astaxie/beego/logs"
+	"math/big"
+	"net"
 	"strconv"
 	"strings"
+
+	belogs "github.com/astaxie/beego/logs"
 )
 
 const (
@@ -101,4 +105,129 @@ func IpToRtrFormat(ip string) string {
 		return formatIp
 	}
 	return ""
+}
+
+// fill ip with zero:
+// 192.168.1 --> 192.168.1.0;   192.168/24 --> 192.168.0.0/24
+func IpAndCIDRFillWithZero(ip string, ipType int) (string, error) {
+
+	prefix := ""
+	ipp := ip
+	pos := strings.Index(ip, "/")
+	if pos > 0 {
+		prefix = string(ip[pos:])
+		ipp = string(ip[:pos])
+	}
+	belogs.Debug("FillIP(): ipp:", ipp, "   prefix:", prefix, "   pos:", pos)
+
+	if ipType == Ipv4Type {
+		countComma := strings.Count(ipp, ".")
+		if countComma == 3 {
+			return ipp + prefix, nil
+		} else if countComma < 3 {
+			return ipp + strings.Repeat(".0", net.IPv4len-countComma-1) + prefix, nil
+		} else {
+			return "", errors.New("illegal ipv4")
+		}
+	} else if ipType == Ipv6Type {
+		countColon := strings.Count(ipp, ":")
+		if countColon == 7 {
+			return ipp + prefix, nil
+		} else if strings.HasSuffix(ipp, "::") {
+			return ipp + prefix, nil
+		} else {
+			return ipp + "::" + prefix, nil
+		}
+
+	} else {
+		return "", errors.New("illegal ipType")
+	}
+
+}
+
+// ip to string with fill zero: ip: 192.168.5.2 --> c0.a8.05.02
+func IpStrToHexString(ip string, ipType int) (string, error) {
+	ipp := net.IP{}
+	if ipType == Ipv4Type {
+		ipp = net.ParseIP(ip).To4()
+	} else if ipType == Ipv6Type {
+		ipp = net.ParseIP(ip).To16()
+	} else {
+		return "", errors.New("illegal ip type")
+	}
+
+	return IpNetToHexString(ipp, ipType)
+}
+
+// ip to string with fill zero: ip: 192.168.5.2 --> c0.a8.05.02
+func IpNetToHexString(ip net.IP, ipType int) (string, error) {
+
+	var buffer bytes.Buffer
+
+	if ipType == Ipv4Type && len(ip) == net.IPv4len {
+		for i := 0; i < net.IPv4len; i++ {
+			if i < net.IPv4len-1 {
+				buffer.WriteString(fmt.Sprintf("%02x.", ip[i]))
+			} else {
+				buffer.WriteString(fmt.Sprintf("%02x", ip[i]))
+			}
+		}
+		return buffer.String(), nil
+	} else if ipType == Ipv6Type && len(ip) == net.IPv6len {
+		for i := 0; i < net.IPv6len; i = i + 2 {
+			if i < net.IPv6len-2 {
+				buffer.WriteString(fmt.Sprintf("%02x%02x:", ip[i], ip[i+1]))
+			} else {
+				buffer.WriteString(fmt.Sprintf("%02x%02x", ip[i], ip[i+1]))
+			}
+		}
+		return buffer.String(), nil
+	}
+	return "", errors.New("ip type or ip length is illegal")
+
+}
+
+// 192.168.5.0/24 --> [min: c0.a8.05.00  max: c0.a8.05.ff]
+// 2803:d380::/28 --> [min: 2803:d380:0000:0000:0000:0000:0000:0000  max: 2803:d38f:ffff:ffff:ffff:ffff:ffff:ffff]
+func IPCIDRToHexRange(ip string, ipType int) (minHex string, maxHex string, err error) {
+
+	network, err := IpAndCIDRFillWithZero(ip, ipType)
+	if err != nil {
+		return "", "", err
+	}
+	belogs.Debug("IPCIDRToHexRange(): network:", network)
+
+	_, subnet, _ := net.ParseCIDR(network)
+	var ipLen int
+	if ipType == Ipv4Type {
+		ipLen = net.IPv4len
+	} else if ipType == Ipv6Type {
+		ipLen = net.IPv6len
+	}
+
+	min := make(net.IP, ipLen)
+	max := make(net.IP, ipLen)
+	for i := 0; i < ipLen; i++ {
+		min[i] = subnet.IP[i] & subnet.Mask[i]
+		max[i] = subnet.IP[i] | (^subnet.Mask[i])
+	}
+	belogs.Debug("IPCIDRToHexRange(): min:", min, " max:", max)
+
+	minHex, err = IpNetToHexString(min, ipType)
+	if err != nil {
+		return "", "", err
+	}
+	maxHex, err = IpNetToHexString(max, ipType)
+	if err != nil {
+		return "", "", err
+	}
+	belogs.Debug("IPCIDRToHexRange(): minHex:", minHex, " maxHex:", maxHex)
+	return minHex, maxHex, nil
+}
+
+// ipv4 to number
+func Ipv4toInt(ip net.IP) int64 {
+	IPv4Int := big.NewInt(0)
+	IPv4Int.SetBytes(ip.To4())
+	return IPv4Int.Int64()
 }
