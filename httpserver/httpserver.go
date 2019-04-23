@@ -7,6 +7,12 @@ import (
 	"github.com/cpusoft/go-json-rest/rest"
 )
 
+// result:ok/fail
+type HttpResponse struct {
+	Result string `json:"result"`
+	Msg    string `json:"msg"`
+}
+
 // setup Http Server, listen on port
 func ListenAndServe(port string, router *rest.App) {
 
