@@ -47,7 +47,7 @@ func ListenAndServeTLS(port string, crtFile string, keyFile string, router *rest
 }
 
 // return: map[fileFormName]=fileName, such as map["file1"]="aabbccdd.txt"
-func ReceiveFiles(receiveDir string, w http.ResponseWriter, r *http.Request) (receiveFiles map[string]string, err error) {
+func ReceiveFiles(receiveDir string, r *http.Request) (receiveFiles map[string]string, err error) {
 	belogs.Debug("ReceiveFiles(): receiveDir:", receiveDir)
 
 	reader, err := r.MultipartReader()
