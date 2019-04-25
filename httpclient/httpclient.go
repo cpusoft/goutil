@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
+	"io/ioutil"
 	"net/url"
+	"path"
 	"strconv"
 	"time"
 
@@ -104,6 +106,66 @@ func PostHttps(urlStr string, postJson string) (resp gorequest.Response, body st
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Send(postJson).
+		End())
+
+}
+
+// Http/Https Post Method,
+// protocol: "http" or "https"
+func PostFile(protocol string, address string, port int, path string, fileName string, FormName string) (gorequest.Response, string, error) {
+	if protocol == "http" {
+		return PostFileHttp(protocol+"://"+address+":"+strconv.Itoa(port)+path, fileName, FormName)
+	} else if protocol == "https" {
+		return PostFileHttps(protocol+"://"+address+":"+strconv.Itoa(port)+path, fileName, FormName)
+	} else {
+		return nil, "", errors.New("unknown protocol")
+	}
+}
+
+// fileName: file name ; FormName:id in form
+func PostFileHttp(urlStr string, fileName string, FormName string) (resp gorequest.Response, body string, err error) {
+
+	belogs.Debug("PostFileHttp():url:", urlStr, "   fileName:", fileName, "   FormName:", FormName)
+	b, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return nil, "", err
+	}
+
+	url, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, "", err
+	}
+	return errorsToerror(gorequest.New().Post(urlStr).
+		Timeout(DefaultTimeout*time.Minute).
+		Set("User-Agent", DefaultUserAgent).
+		Set("Referrer", url.Host).
+		Type("multipart").
+		SendFile(b, path.Base(fileName), FormName).
+		End())
+
+}
+
+// fileName: file name ; FormName:id in form
+func PostFileHttps(urlStr string, fileName string, FormName string) (resp gorequest.Response, body string, err error) {
+
+	belogs.Debug("PostFileHttps():url:", urlStr, "   fileName:", fileName, "   FormName:", FormName)
+	b, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return nil, "", err
+	}
+
+	url, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, "", err
+	}
+	config := &tls.Config{InsecureSkipVerify: true}
+	return errorsToerror(gorequest.New().Post(urlStr).
+		TLSClientConfig(config).
+		Timeout(DefaultTimeout*time.Minute).
+		Set("User-Agent", DefaultUserAgent).
+		Set("Referrer", url.Host).
+		Type("multipart").
+		SendFile(b, path.Base(fileName), FormName).
 		End())
 
 }
