@@ -189,21 +189,21 @@ func IpNetToHexString(ip net.IP, ipType int) (string, error) {
 
 // 192.168.5/24 -->  192.168.5.0/24 --> [min: c0.a8.05.00  max: c0.a8.05.ff]
 // 2803:d380/28 --> 2803:d380::/28 --> [min: 2803:d380:0000:0000:0000:0000:0000:0000  max: 2803:d38f:ffff:ffff:ffff:ffff:ffff:ffff]
-func IPCIDRToHexRange(ip string, ipType int) (minHex string, maxHex string, err error) {
+func IpCIDRToHexRange(ip string, ipType int) (minHex string, maxHex string, err error) {
 
 	network, err := IpAndCIDRFillWithZero(ip, ipType)
 	if err != nil {
-		belogs.Error("IPCIDRToHexRange(): IpAndCIDRFillWithZero err:", err)
+		belogs.Error("IpCIDRToHexRange(): IpAndCIDRFillWithZero err:", err)
 		return "", "", err
 	}
-	belogs.Debug("IPCIDRToHexRange(): network:", network)
+	belogs.Debug("IpCIDRToHexRange(): network:", network)
 
 	_, subnet, err := net.ParseCIDR(network)
 	if err != nil {
 		belogs.Error("IPCIDRToHexRange(): ParseCIDR err:", err)
 		return "", "", err
 	}
-	belogs.Debug("IPCIDRToHexRange(): subnet:", subnet)
+	belogs.Debug("IpCIDRToHexRange(): subnet:", subnet)
 
 	var ipLen int
 	if ipType == Ipv4Type {
@@ -211,7 +211,7 @@ func IPCIDRToHexRange(ip string, ipType int) (minHex string, maxHex string, err 
 	} else if ipType == Ipv6Type {
 		ipLen = net.IPv6len
 	}
-	belogs.Debug("IPCIDRToHexRange(): ipLen:", ipLen)
+	belogs.Debug("IpCIDRToHexRange(): ipLen:", ipLen)
 
 	min := make(net.IP, ipLen)
 	max := make(net.IP, ipLen)
@@ -219,7 +219,7 @@ func IPCIDRToHexRange(ip string, ipType int) (minHex string, maxHex string, err 
 		min[i] = subnet.IP[i] & subnet.Mask[i]
 		max[i] = subnet.IP[i] | (^subnet.Mask[i])
 	}
-	belogs.Debug("IPCIDRToHexRange(): min:", min, " max:", max)
+	belogs.Debug("IpCIDRToHexRange(): min:", min, " max:", max)
 
 	minHex, err = IpNetToHexString(min, ipType)
 	if err != nil {
@@ -229,7 +229,7 @@ func IPCIDRToHexRange(ip string, ipType int) (minHex string, maxHex string, err 
 	if err != nil {
 		return "", "", err
 	}
-	belogs.Debug("IPCIDRToHexRange(): minHex:", minHex, " maxHex:", maxHex)
+	belogs.Debug("IpCIDRToHexRange(): minHex:", minHex, " maxHex:", maxHex)
 	return minHex, maxHex, nil
 }
 
@@ -238,4 +238,29 @@ func Ipv4toInt(ip net.IP) int64 {
 	IPv4Int := big.NewInt(0)
 	IPv4Int.SetBytes(ip.To4())
 	return IPv4Int.Int64()
+}
+
+// check is: 192.168.5/24   or 2803:d380/28
+func IsIpCIDR(ip string) bool {
+	if len(ip) == 0 || !strings.Contains(ip, "/") {
+		return false
+	}
+	ipType = Ipv4Type
+	if strings.Contains(ip, ":") {
+		ipType = ipv6Type
+	}
+	network, err := IpAndCIDRFillWithZero(ip, ipType)
+	if err != nil {
+		belogs.Error("IsIpCIDR(): IpAndCIDRFillWithZero err:", err)
+		return false
+	}
+	belogs.Debug("IsIpCIDR(): network:", network)
+
+	_, subnet, err := net.ParseCIDR(network)
+	if err != nil {
+		belogs.Error("IsIpCIDR(): ParseCIDR err:", err)
+		return false
+	}
+	belogs.Debug("IsIpCIDR(): subnet:", subnet)
+	return true
 }
