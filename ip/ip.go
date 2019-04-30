@@ -245,9 +245,9 @@ func IsIpCIDR(ip string) bool {
 	if len(ip) == 0 || !strings.Contains(ip, "/") {
 		return false
 	}
-	ipType = Ipv4Type
+	ipType := Ipv4Type
 	if strings.Contains(ip, ":") {
-		ipType = ipv6Type
+		ipType = Ipv6Type
 	}
 	network, err := IpAndCIDRFillWithZero(ip, ipType)
 	if err != nil {
