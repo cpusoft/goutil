@@ -17,7 +17,7 @@ func MarshalJson(f interface{}) string {
   var user1 = User{}
   UnmarshalJson(body1, &user1)
 */
-func UnmarshalJson(str string, f interface{}) {
+func UnmarshalJson(str string, f interface{}) error {
 
-	json.Unmarshal([]byte(str), &f)
+	return json.Unmarshal([]byte(str), &f)
 }

@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	path "path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
@@ -60,4 +61,16 @@ func GetFilePathAndFileName(fileAllPath string) (filePath string, fileName strin
 	i := strings.LastIndex(fileAllPath, string(os.PathSeparator))
 	return fileAllPath[:i+1], fileAllPath[i+1:]
 
+}
+
+func GetNewLineSep() string {
+	switch runtime.GOOS {
+	case "windows":
+		return "\r\n"
+	case "linux":
+		return "\r"
+	default:
+		return "\r"
+
+	}
 }

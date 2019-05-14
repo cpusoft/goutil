@@ -10,3 +10,7 @@ func TestGetFilePathAndFileName(t *testing.T) {
 	filePath, fileName := GetFilePathAndFileName(fileAllPath)
 	fmt.Println(filePath, ":", fileName)
 }
+
+func TestGetNewLineSep(t *testing.T) {
+	fmt.Println(GetNewLineSep())
+}
