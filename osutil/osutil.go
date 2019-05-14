@@ -68,9 +68,9 @@ func GetNewLineSep() string {
 	case "windows":
 		return "\r\n"
 	case "linux":
-		return "\r"
+		return "\n"
 	default:
-		return "\r"
+		return "\n"
 
 	}
 }
