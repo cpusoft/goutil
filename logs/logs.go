@@ -3,10 +3,12 @@ package logs
 import (
 	"encoding/json"
 	"fmt"
-	belogs "github.com/astaxie/beego/logs"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
+	belogs "github.com/astaxie/beego/logs"
 	conf "github.com/cpusoft/goutil/conf"
 	osutil "github.com/cpusoft/goutil/osutil"
 )
@@ -24,7 +26,14 @@ import (
 func init() {
 
 	logLevel := conf.String("logs::level")
-	logName := conf.String("logs::name")
+	// get process file name as log name
+	logName := filepath.Base(os.Args[0])
+	if logName != "" {
+		logName = strings.Split(logName, ".")[0]
+	} else {
+		logName = conf.String("logs::name")
+	}
+
 	//fmt.Println("log", logLevel, logName)
 
 	var logLevelInt int = belogs.LevelInformational
