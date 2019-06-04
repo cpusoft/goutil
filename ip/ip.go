@@ -50,11 +50,11 @@ func RoaFormtToIp(ans1Ip []byte, ipType int) string {
 func RtrFormatToIp(rtrIp []byte) string {
 
 	// ipv4
-	belogs.Debug("RtrFormatToIp():rtrIp: %+v:", rtrIp, "   len(rtrIp):", len(rtrIp))
+	//belogs.Debug("RtrFormatToIp():rtrIp: %+v:", rtrIp, "   len(rtrIp):", len(rtrIp))
 	var ip string
 	if len(rtrIp) == 4 {
 		ip = fmt.Sprintf("%d.%d.%d.%d", rtrIp[0], rtrIp[1], rtrIp[2], rtrIp[3])
-		belogs.Debug("RtrFormatToIp():ipv4:ip:", ip)
+		//belogs.Debug("RtrFormatToIp():ipv4:ip:", ip)
 		return ip
 	} else if len(rtrIp) == 16 {
 
@@ -67,10 +67,10 @@ func RtrFormatToIp(rtrIp []byte) string {
 			rtrIp[10], rtrIp[11],
 			rtrIp[12], rtrIp[13],
 			rtrIp[14], rtrIp[15])
-		belogs.Debug("RtrFormatToIp():ipv6:ip:", ip)
+		//belogs.Debug("RtrFormatToIp():ipv6:ip:", ip)
 		return ip
 	}
-	belogs.Error("RtrFormatToIp():is not ipv4 or ipv6:", rtrIp)
+	//belogs.Error("RtrFormatToIp():is not ipv4 or ipv6:", rtrIp)
 	return ""
 }
 
