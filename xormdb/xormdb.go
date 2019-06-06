@@ -90,3 +90,13 @@ func SqlNullString(s string) sql.NullString {
 		Valid:  true,
 	}
 }
+
+func SqlNullInt(s int) sql.NullInt64 {
+	if s < 0 {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{
+		Int64: int64(s),
+		Valid: true,
+	}
+}
