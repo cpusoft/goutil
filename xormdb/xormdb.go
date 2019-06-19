@@ -79,9 +79,9 @@ func NewSession() (*xorm.Session, error) {
 	return session, nil
 }
 
-// commit session, and close session
+// commit session, if err, will rollback.
+// must return error, so not use in defer,
 func CommitSession(session *xorm.Session) error {
-	defer session.Close()
 	if err := session.Commit(); err != nil {
 		belogs.Error("main():Commit fail")
 		return RollbackAndLogError(session, "session.Commit fail", err)
