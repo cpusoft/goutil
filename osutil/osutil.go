@@ -36,6 +36,7 @@ func GetParentPath() string {
 	return ret
 }
 
+// will deprecated, will use GetAllFilesBySuffixs()
 func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string) *list.List {
 
 	absolutePath, _ := filepath.Abs(directory)
@@ -54,6 +55,25 @@ func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string
 		return nil
 	})
 	return listStr
+}
+func GetAllFilesBySuffixs(directory string, suffixs map[string]string) ([]string, error) {
+
+	absolutePath, _ := filepath.Abs(directory)
+	files := make([]string, 0)
+	filepath.Walk(absolutePath, func(fileName string, fi os.FileInfo, err error) error {
+		if err != nil || len(fileName) == 0 || nil == fi {
+			belogs.Debug("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
+			return err
+		}
+		if !fi.IsDir() {
+			suffix := path.Ext(fileName)
+			if _, ok := suffixs[suffix]; ok {
+				files = append(files, fileName)
+			}
+		}
+		return nil
+	})
+	return files, nil
 }
 
 func GetFilePathAndFileName(fileAllPath string) (filePath string, fileName string) {
