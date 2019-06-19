@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
@@ -64,7 +65,7 @@ func ReceiveFiles(receiveDir string, r *rest.Request) (receiveFiles map[string]s
 		if !strings.HasSuffix(receiveDir, string(os.PathSeparator)) {
 			receiveDir = receiveDir + string(os.PathSeparator)
 		}
-		file := receiveDir + part.FileName()
+		file := receiveDir + path.Base(part.FileName())
 		form := strings.TrimSpace(part.FormName())
 		belogs.Debug("ReceiveFiles():FileName:", part.FileName(), "   FormName:", part.FormName())
 		if part.FileName() == "" { // this is FormData

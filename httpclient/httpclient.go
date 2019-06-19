@@ -112,20 +112,20 @@ func PostHttps(urlStr string, postJson string) (resp gorequest.Response, body st
 
 // Http/Https Post Method,
 // protocol: "http" or "https"
-func PostFile(protocol string, address string, port int, path string, fileName string, FormName string) (gorequest.Response, string, error) {
+func PostFile(protocol string, address string, port int, path string, fileName string, formName string) (gorequest.Response, string, error) {
 	if protocol == "http" {
-		return PostFileHttp(protocol+"://"+address+":"+strconv.Itoa(port)+path, fileName, FormName)
+		return PostFileHttp(protocol+"://"+address+":"+strconv.Itoa(port)+path, fileName, formName)
 	} else if protocol == "https" {
-		return PostFileHttps(protocol+"://"+address+":"+strconv.Itoa(port)+path, fileName, FormName)
+		return PostFileHttps(protocol+"://"+address+":"+strconv.Itoa(port)+path, fileName, formName)
 	} else {
 		return nil, "", errors.New("unknown protocol")
 	}
 }
 
 // fileName: file name ; FormName:id in form
-func PostFileHttp(urlStr string, fileName string, FormName string) (resp gorequest.Response, body string, err error) {
+func PostFileHttp(urlStr string, fileName string, formName string) (resp gorequest.Response, body string, err error) {
 
-	belogs.Debug("PostFileHttp():url:", urlStr, "   fileName:", fileName, "   FormName:", FormName)
+	belogs.Debug("PostFileHttp():url:", urlStr, "   fileName:", fileName, "   formName:", formName)
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, "", err
@@ -140,15 +140,15 @@ func PostFileHttp(urlStr string, fileName string, FormName string) (resp goreque
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Type("multipart").
-		SendFile(b, path.Base(fileName), FormName).
+		SendFile(b, path.Base(fileName), formName).
 		End())
 
 }
 
 // fileName: file name ; FormName:id in form
-func PostFileHttps(urlStr string, fileName string, FormName string) (resp gorequest.Response, body string, err error) {
+func PostFileHttps(urlStr string, fileName string, formName string) (resp gorequest.Response, body string, err error) {
 
-	belogs.Debug("PostFileHttps():url:", urlStr, "   fileName:", fileName, "   FormName:", FormName)
+	belogs.Debug("PostFileHttps():url:", urlStr, "   fileName:", fileName, "   formName:", formName)
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, "", err
@@ -165,7 +165,7 @@ func PostFileHttps(urlStr string, fileName string, FormName string) (resp gorequ
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Type("multipart").
-		SendFile(b, path.Base(fileName), FormName).
+		SendFile(b, path.Base(fileName), formName).
 		End())
 
 }
