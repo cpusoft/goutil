@@ -67,7 +67,7 @@ func ReceiveFiles(receiveDir string, r *rest.Request) (receiveFiles map[string]s
 		}
 		file := receiveDir + path.Base(part.FileName())
 		form := strings.TrimSpace(part.FormName())
-		belogs.Debug("ReceiveFiles():FileName:", part.FileName(), "   FormName:", part.FormName())
+		belogs.Debug("ReceiveFiles():FileName:", part.FileName(), "   FormName:", part.FormName()+"   file:", file)
 		if part.FileName() == "" { // this is FormData
 			data, _ := ioutil.ReadAll(part)
 			ioutil.WriteFile(file, data, 0644)
