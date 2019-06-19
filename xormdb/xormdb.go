@@ -69,6 +69,15 @@ func InitMySql() error {
 
 }
 
+func NewBeginSession() (*xorm.Session, error) {
+	// open mysql session
+	session := XormEngine.NewSession()
+	if err := session.Begin(); err != nil {
+		return nil, RollbackAndLogError(session, "PushRtrIncr():session.Begin() fail", err)
+	}
+	return session, nil
+}
+
 // when session is error, will rollback and log the error
 func RollbackAndLogError(session *xorm.Session, msg string, err error) error {
 	if err != nil {
