@@ -69,13 +69,25 @@ func InitMySql() error {
 
 }
 
-func NewBeginSession() (*xorm.Session, error) {
+// get new session, and begin session
+func NewSession() (*xorm.Session, error) {
 	// open mysql session
 	session := XormEngine.NewSession()
 	if err := session.Begin(); err != nil {
-		return nil, RollbackAndLogError(session, "PushRtrIncr():session.Begin() fail", err)
+		return nil, RollbackAndLogError(session, "session.Begin() fail", err)
 	}
 	return session, nil
+}
+
+// commit session, and close session
+func CommitSession(session *xorm.Session) error {
+	defer session.Close()
+	if err := session.Commit(); err != nil {
+		belogs.Error("main():Commit fail")
+		return RollbackAndLogError(session, "session.Commit fail", err)
+
+	}
+	return nil
 }
 
 // when session is error, will rollback and log the error
