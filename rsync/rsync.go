@@ -27,6 +27,7 @@ type RsyncRecord struct {
 	Id           uint64        `json:"id"`
 	StartTime    time.Time     `json:"startTime"`
 	EndTime      time.Time     `json:"endTime"`
+	Style        string        `json:"style"`
 	RsyncResults []RsyncResult `json:"rsyncResults"`
 }
 
