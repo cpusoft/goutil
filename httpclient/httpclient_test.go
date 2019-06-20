@@ -33,7 +33,7 @@ func TestGetHttps(t *testing.T) {
 
 func TestPostFile(t *testing.T) {
 	resp, body, err := httpclient.PostFile("http", "localhost", 8080, "/parsecert/upload",
-		`G:\Download\cert\cache\trustanchors\rpki.apnic.net\repository\apnic-rpki-root-iana-origin.cer`, `file`)
+		`G:/Download/cert/cache/trustanchors/rpki.apnic.net/repository/apnic-rpki-root-iana-origin.cer`, `file`)
 	if err != nil {
 		fmt.Println(err)
 		return

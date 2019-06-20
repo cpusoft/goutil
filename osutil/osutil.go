@@ -24,6 +24,11 @@ func IsDir(file string) (bool, error) {
 	return f.IsDir(), nil
 }
 
+// path.Base() using in windows,
+func Base(p string) string {
+	p = strings.Replace(p, "\\", "/", -1)
+	return path.Base(p)
+}
 func GetParentPath() string {
 	file, _ := exec.LookPath(os.Args[0])
 	path, _ := filepath.Abs(file)

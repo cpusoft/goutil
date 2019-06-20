@@ -5,11 +5,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
 	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
 	"github.com/cpusoft/go-json-rest/rest"
+	osutil "github.com/cpusoft/goutil/osutil"
 )
 
 // result:ok/fail
@@ -65,7 +65,7 @@ func ReceiveFiles(receiveDir string, r *rest.Request) (receiveFiles map[string]s
 		if !strings.HasSuffix(receiveDir, string(os.PathSeparator)) {
 			receiveDir = receiveDir + string(os.PathSeparator)
 		}
-		file := receiveDir + path.Base(part.FileName())
+		file := receiveDir + osutil.Base(part.FileName())
 		form := strings.TrimSpace(part.FormName())
 		belogs.Debug("ReceiveFiles():FileName:", part.FileName(), "   FormName:", part.FormName()+"   file:", file)
 		if part.FileName() == "" { // this is FormData
