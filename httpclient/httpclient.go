@@ -6,11 +6,11 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/url"
-	"path"
 	"strconv"
 	"time"
 
 	belogs "github.com/astaxie/beego/logs"
+	osutil "github.com/cpusoft/goutil/osutil"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -135,7 +135,7 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 	if err != nil {
 		return nil, "", err
 	}
-	file := path.Base(fileName)
+	file := osutil.Base(fileName)
 	belogs.Debug("PostFileHttps():file:", file)
 	return errorsToerror(gorequest.New().Post(urlStr).
 		Timeout(DefaultTimeout*time.Minute).
@@ -160,7 +160,7 @@ func PostFileHttps(urlStr string, fileName string, formName string) (resp gorequ
 	if err != nil {
 		return nil, "", err
 	}
-	file := path.Base(fileName)
+	file := osutil.Base(fileName)
 	belogs.Debug("PostFileHttps():file:", file)
 	config := &tls.Config{InsecureSkipVerify: true}
 	return errorsToerror(gorequest.New().Post(urlStr).

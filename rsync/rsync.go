@@ -32,15 +32,15 @@ type RsyncRecord struct {
 }
 
 type RsyncResult struct {
-	Id        uint64    `json:"id"`
-	RsyncId   uint64    `json:"rsyncId"`
-	FileName  string    `json:"fileName"`
-	FilePath  string    `json:"filePath"`
-	FileType  string    `json:"fileType"`
+	Id       uint64 `json:"id"`
+	RsyncId  uint64 `json:"rsyncId"`
+	FileName string `json:"fileName"`
+	FilePath string `json:"filePath"`
+	FileType string `json:"fileType"`
+	//RSYNC_TYPE_***
 	RsyncType string    `json:"rsyncType"`
 	IsDir     bool      `json:"isDir"`
-	StartTime time.Time `json:"startTime"`
-	EndTime   time.Time `json:"endTime"`
+	SyncTime  time.Time `json:"syncTime"`
 }
 
 // set rsync url and local dest path , then will call rsync
@@ -158,6 +158,7 @@ func parseRsyncResult(destPath, result string) (RsyncResult, error) {
 	default:
 		rsyncResult.RsyncType = RSYNC_TYPE_IGNORE
 	}
+	rsyncResult.SyncTime = time.Now()
 	belogs.Debug("parseRsyncResult():rsyncResult:", rsyncResult)
 	return rsyncResult, nil
 
