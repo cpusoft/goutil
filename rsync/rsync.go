@@ -60,16 +60,18 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 	}
 
 	// mkdirAll path
-	err := os.MkdirAll(destPath+hostAndPath, os.ModePerm)
+	rsyncDestPath := destPath + hostAndPath
+	belogs.Debug("Rsync():rsyncDestPath:", rsyncDestPath)
+	err = os.MkdirAll(rsyncDestPath, os.ModePerm)
 	if err != nil {
-		belogs.Error("Rsync():MkdirAll:", destPath, " err:", err)
+		belogs.Error("Rsync():MkdirAll:", rsyncDestPath, " err:", err)
 		return rysncResults, err
 	}
 
 	// call rsync
 	//rsync -Lirzts --del --timeout=5 --contimeout=5 --no-motd  -4 rsync://rpki.afrinic.net/repository/afrinic/  /tmp/rpki.afrinic.net/repository/afrinic/
-	belogs.Debug("Rsync(): Command: rsync", "-Lirzts", "--del", "--timeout=15", "--contimeout=15", "--no-motd", "-4", rsyncUrl, destPath+hostAndPath)
-	cmd := exec.Command("rsync", "-Lirzts", "--del", "--timeout=15", "--contimeout=15", "--no-motd", "-4", rsyncUrl, destPath+hostAndPath)
+	belogs.Debug("Rsync(): Command: rsync", "-Lirzts", "--del", "--timeout=15", "--contimeout=15", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	cmd := exec.Command("rsync", "-Lirzts", "--del", "--timeout=15", "--contimeout=15", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("Rsync(): exec.Command: err: ", err, ": "+string(output))
@@ -90,7 +92,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 		}
 		one = strings.Replace(one, "\n", "", -1)
 		one = strings.Replace(one, "\r", "", -1)
-		rsyncResult, err := parseRsyncResult(destPath+hostAndPath, one)
+		rsyncResult, err := parseRsyncResult(rsyncDestPath, one)
 		if err != nil {
 			belogs.Error("Rsync(): parseRsyncResult: err: ", err, ": "+one)
 			return rysncResults, err
