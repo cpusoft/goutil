@@ -13,6 +13,11 @@ type User struct {
 	Class string
 }
 
+type UserSimple struct {
+	Name  string
+	Class string
+}
+
 func TestJson(t *testing.T) {
 	user := User{
 		Id:    1,
@@ -32,4 +37,7 @@ func TestJson(t *testing.T) {
 	UnmarshalJson(body1, &user1)
 	fmt.Println("after Unmarshal: ", user1)
 
+	var us = UserSimple{}
+	UnmarshalJson(body1, &us)
+	fmt.Println("after Unmarshal: ", us)
 }

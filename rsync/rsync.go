@@ -8,6 +8,7 @@ import (
 	"time"
 
 	belogs "github.com/astaxie/beego/logs"
+	jsonutil "github.com/cpusoft/goutil/jsonutil"
 	osutil "github.com/cpusoft/goutil/osutil"
 	urlutil "github.com/cpusoft/goutil/urlutil"
 )
@@ -159,7 +160,7 @@ func parseRsyncResult(destPath, result string) (RsyncResult, error) {
 		rsyncResult.RsyncType = RSYNC_TYPE_IGNORE
 	}
 	rsyncResult.SyncTime = time.Now()
-	belogs.Debug("parseRsyncResult():rsyncResult:", rsyncResult)
+	belogs.Debug("parseRsyncResult():rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 	return rsyncResult, nil
 
 }
