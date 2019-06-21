@@ -68,7 +68,8 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 
 	// call rsync
 	//rsync -Lirzts --del --timeout=5 --contimeout=5 --no-motd  -4 rsync://rpki.afrinic.net/repository/afrinic/  /tmp/rpki.afrinic.net/repository/afrinic/
-	cmd := exec.Command("rsync", "-Lirzts", "--del", "--timeout=15", "--contimeout=15", "--no-motd", "-4", rsyncUrl, destPath)
+	belogs.Debug("Rsync(): Command rsync", "-Lirzts", "--del", "--timeout=15", "--contimeout=15", "--no-motd", "-4", rsyncUrl, destPath+hostAndPath)
+	cmd := exec.Command("rsync", "-Lirzts", "--del", "--timeout=15", "--contimeout=15", "--no-motd", "-4", rsyncUrl, destPath+hostAndPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("Rsync(): exec.Command: err: ", err, ": "+string(output))
