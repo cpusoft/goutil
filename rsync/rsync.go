@@ -84,7 +84,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 	}
 
 	result := string(output)
-	results := strings.Split(result, "\r\n")
+	results := strings.Split(result, osutil.GetNewLineSep())
 	belogs.Debug("Rsync(): len(results):", len(results))
 	for _, one := range results {
 		if len(one) <= RSYNC_LOG_PREFIX {
