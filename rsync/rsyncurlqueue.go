@@ -67,7 +67,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string) *list.Element {
 		}
 	}
 	e = r.curUrls.PushBack(url)
-	msg <- "add"
+	r.msg <- "add"
 	return e
 }
 func (r *RsyncUrlQueue) GetNextUrl() string {
