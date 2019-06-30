@@ -12,7 +12,7 @@ type RsyncUrlQueue struct {
 	curMutex  *sync.RWMutex
 	usedMutex *sync.RWMutex
 
-	msg chan string
+	Msg chan string
 }
 
 func NewQueue() *RsyncUrlQueue {
@@ -26,7 +26,7 @@ func NewQueue() *RsyncUrlQueue {
 		usedUrls:  ul,
 		curMutex:  cm,
 		usedMutex: um,
-		msg:       m}
+		Msg:       m}
 }
 func (r *RsyncUrlQueue) CurUrlsSize() int {
 	r.curMutex.RLock()
@@ -67,7 +67,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string) *list.Element {
 		}
 	}
 	e = r.curUrls.PushBack(url)
-	r.msg <- "add"
+	r.Msg <- "add"
 	return e
 }
 func (r *RsyncUrlQueue) GetNextUrl() string {
