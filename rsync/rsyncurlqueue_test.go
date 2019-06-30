@@ -38,4 +38,11 @@ func TestRsyncQueue(t *testing.T) {
 	urls = rq.GetUsedUrls()
 	fmt.Println(urls)
 
+	urls = rq.GetNextUrls()
+	fmt.Println("GetNextUrls:", urls)
+	s = rq.CurUrlsSize()
+	fmt.Println(s)
+	s = rq.UsedUrlsSize()
+	fmt.Println(s)
+
 }

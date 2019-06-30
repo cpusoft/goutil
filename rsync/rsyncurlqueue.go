@@ -20,7 +20,7 @@ func NewQueue() *RsyncUrlQueue {
 	ul := list.New()
 	cm := new(sync.RWMutex)
 	um := new(sync.RWMutex)
-	m := make(chan string)
+	m := make(chan string, 10)
 	return &RsyncUrlQueue{
 		curUrls:   cl,
 		usedUrls:  ul,
@@ -84,6 +84,25 @@ func (r *RsyncUrlQueue) GetNextUrl() string {
 	r.usedUrls.PushBack(e.Value.(string))
 
 	return e.Value.(string)
+}
+
+func (r *RsyncUrlQueue) GetNextUrls() []string {
+	r.curMutex.Lock()
+	r.usedMutex.Lock()
+	defer r.curMutex.Unlock()
+	defer r.usedMutex.Unlock()
+
+	urls := make([]string, 0)
+	var next *list.Element
+	for e := r.curUrls.Front(); e != nil; e = next {
+		next = e.Next()
+		urls = append(urls, e.Value.(string))
+		r.usedUrls.PushBack(e.Value.(string))
+		r.curUrls.Remove(e)
+
+	}
+
+	return urls
 }
 
 func (r *RsyncUrlQueue) GetCurUrls() []string {
