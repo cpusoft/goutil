@@ -7,29 +7,35 @@ import (
 
 func TestRsyncQueue(t *testing.T) {
 	rq := NewQueue()
-	le := rq.Enqueue("rsync://apnic.com/1")
-	s := rq.Size()
+	le := rq.AddNewUrl("rsync://apnic.com/1")
+	s := rq.CurUrlsSize()
 	fmt.Println(le)
 	fmt.Println(s)
 
-	rq.Enqueue("rsync://apnic.com/1")
-	s = rq.Size()
+	rq.AddNewUrl("rsync://apnic.com/1")
+	s = rq.CurUrlsSize()
 	fmt.Println(s)
 
-	rq.Enqueue("rsync://apnic.com/2")
-	s = rq.Size()
+	rq.AddNewUrl("rsync://apnic.com/2")
+	s = rq.CurUrlsSize()
 	fmt.Println(s)
 
-	rq.Enqueue("rsync://apnic.com/3")
-	s = rq.Size()
+	rq.AddNewUrl("rsync://apnic.com/3")
+	s = rq.CurUrlsSize()
 	fmt.Println(s)
 
-	url := rq.Dequeue()
+	url := rq.GetNextUrl()
 	fmt.Println(url)
-	s = rq.Size()
+	s = rq.CurUrlsSize()
 	fmt.Println(s)
 
-	urls := rq.Traversal()
+	s = rq.UsedUrlsSize()
+	fmt.Println(s)
+
+	urls := rq.GetCurUrls()
+	fmt.Println(urls)
+
+	urls = rq.GetUsedUrls()
 	fmt.Println(urls)
 
 }
