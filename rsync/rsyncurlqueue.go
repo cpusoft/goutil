@@ -4,6 +4,8 @@ import (
 	"container/list"
 	"strings"
 	"sync"
+
+	belogs "github.com/astaxie/beego/logs"
 )
 
 type RsyncUrl struct {
@@ -45,7 +47,7 @@ func (r *RsyncUrlQueue) UsedUrlsSize() int {
 }
 
 func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
-
+	belogs.Debug("AddNewUrl():url", url, "    dest:", dest)
 	if len(url) == 0 || len(dest) == 0 {
 		return nil
 	}
