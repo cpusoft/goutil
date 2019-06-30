@@ -29,6 +29,12 @@ func (r *RsyncUrlQueue) CurUrlsSize() int {
 	defer r.curMutex.RUnlock()
 	return r.curUrls.Len()
 }
+func (r *RsyncUrlQueue) UsedUrlsSize() int {
+	r.usedMutex.RLock()
+	defer r.usedMutex.RUnlock()
+	return r.usedUrls.Len()
+}
+
 func (r *RsyncUrlQueue) AddNewUrl(url string) *list.Element {
 
 	if len(url) == 0 {
