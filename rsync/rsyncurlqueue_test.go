@@ -7,20 +7,20 @@ import (
 
 func TestRsyncQueue(t *testing.T) {
 	rq := NewQueue()
-	le := rq.AddNewUrl("rsync://apnic.com/1")
+	le := rq.AddNewUrl("rsync://apnic.com/1", "/tmp1")
 	s := rq.CurUrlsSize()
 	fmt.Println(le)
 	fmt.Println(s)
 
-	rq.AddNewUrl("rsync://apnic.com/1")
+	rq.AddNewUrl("rsync://apnic.com/1", "/tmp1")
 	s = rq.CurUrlsSize()
 	fmt.Println(s)
 
-	rq.AddNewUrl("rsync://apnic.com/2")
+	rq.AddNewUrl("rsync://apnic.com/2", "/tmp2")
 	s = rq.CurUrlsSize()
 	fmt.Println(s)
 
-	rq.AddNewUrl("rsync://apnic.com/3")
+	rq.AddNewUrl("rsync://apnic.com/3", "/tmp3")
 	s = rq.CurUrlsSize()
 	fmt.Println(s)
 

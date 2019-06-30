@@ -6,6 +6,11 @@ import (
 	"sync"
 )
 
+type RsyncUrl struct {
+	Url  string `json:"url"`
+	Dest string `jsong:"dest"`
+}
+
 type RsyncUrlQueue struct {
 	curUrls   *list.List
 	usedUrls  *list.List
@@ -39,9 +44,9 @@ func (r *RsyncUrlQueue) UsedUrlsSize() int {
 	return r.usedUrls.Len()
 }
 
-func (r *RsyncUrlQueue) AddNewUrl(url string) *list.Element {
+func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 
-	if len(url) == 0 {
+	if len(url) == 0 || len(dest) == 0 {
 		return nil
 	}
 
@@ -52,7 +57,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string) *list.Element {
 
 	e := r.curUrls.Front()
 	for e != nil {
-		if strings.Contains(e.Value.(string), url) {
+		if strings.Contains(e.Value.(RsyncUrl).Url, url) {
 			return nil
 		} else {
 			e = e.Next()
@@ -60,17 +65,18 @@ func (r *RsyncUrlQueue) AddNewUrl(url string) *list.Element {
 	}
 	e = r.usedUrls.Front()
 	for e != nil {
-		if strings.Contains(e.Value.(string), url) {
+		if strings.Contains(e.Value.(RsyncUrl).Url, url) {
 			return nil
 		} else {
 			e = e.Next()
 		}
 	}
-	e = r.curUrls.PushBack(url)
+	rsync := RsyncUrl{Url: url, Dest: dest}
+	e = r.curUrls.PushBack(rsync)
 	r.Msg <- "add"
 	return e
 }
-func (r *RsyncUrlQueue) GetNextUrl() string {
+func (r *RsyncUrlQueue) GetNextUrl() RsyncUrl {
 	r.curMutex.Lock()
 	r.usedMutex.Lock()
 	defer r.curMutex.Unlock()
@@ -78,26 +84,26 @@ func (r *RsyncUrlQueue) GetNextUrl() string {
 
 	e := r.curUrls.Front()
 	if e == nil {
-		return ""
+		return RsyncUrl{}
 	}
 	r.curUrls.Remove(e)
-	r.usedUrls.PushBack(e.Value.(string))
+	r.usedUrls.PushBack(e.Value.(RsyncUrl))
 
-	return e.Value.(string)
+	return e.Value.(RsyncUrl)
 }
 
-func (r *RsyncUrlQueue) GetNextUrls() []string {
+func (r *RsyncUrlQueue) GetNextUrls() []RsyncUrl {
 	r.curMutex.Lock()
 	r.usedMutex.Lock()
 	defer r.curMutex.Unlock()
 	defer r.usedMutex.Unlock()
 
-	urls := make([]string, 0)
+	urls := make([]RsyncUrl, 0)
 	var next *list.Element
 	for e := r.curUrls.Front(); e != nil; e = next {
 		next = e.Next()
-		urls = append(urls, e.Value.(string))
-		r.usedUrls.PushBack(e.Value.(string))
+		urls = append(urls, e.Value.(RsyncUrl))
+		r.usedUrls.PushBack(e.Value.(RsyncUrl))
 		r.curUrls.Remove(e)
 
 	}
@@ -105,26 +111,26 @@ func (r *RsyncUrlQueue) GetNextUrls() []string {
 	return urls
 }
 
-func (r *RsyncUrlQueue) GetCurUrls() []string {
+func (r *RsyncUrlQueue) GetCurUrls() []RsyncUrl {
 	r.curMutex.RLock()
 	defer r.curMutex.RUnlock()
 
-	urls := make([]string, 0)
+	urls := make([]RsyncUrl, 0)
 	e := r.curUrls.Front()
 	for e != nil {
-		urls = append(urls, e.Value.(string))
+		urls = append(urls, e.Value.(RsyncUrl))
 		e = e.Next()
 	}
 	return urls
 }
-func (r *RsyncUrlQueue) GetUsedUrls() []string {
+func (r *RsyncUrlQueue) GetUsedUrls() []RsyncUrl {
 	r.usedMutex.RLock()
 	defer r.usedMutex.RUnlock()
 
-	urls := make([]string, 0)
+	urls := make([]RsyncUrl, 0)
 	e := r.usedUrls.Front()
 	for e != nil {
-		urls = append(urls, e.Value.(string))
+		urls = append(urls, e.Value.(RsyncUrl))
 		e = e.Next()
 	}
 	return urls
