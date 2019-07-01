@@ -82,10 +82,8 @@ func GetAllFilesBySuffixs(directory string, suffixs map[string]string) ([]string
 }
 
 func GetFilePathAndFileName(fileAllPath string) (filePath string, fileName string) {
-	belogs.Debug("GetFilePathAndFileName(): fileAllPath:", fileAllPath)
 	i := strings.LastIndex(fileAllPath, string(os.PathSeparator))
 	return fileAllPath[:i+1], fileAllPath[i+1:]
-
 }
 
 func GetNewLineSep() string {
