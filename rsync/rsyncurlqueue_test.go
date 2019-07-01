@@ -45,4 +45,15 @@ func TestRsyncQueue(t *testing.T) {
 	s = rq.UsedUrlsSize()
 	fmt.Println(s)
 
+	type A struct {
+		S string
+		Z int
+	}
+	a := A{S: "sss", Z: 2}
+	rq.SetMisc(a)
+
+	a1 := rq.GetMisc()
+	a2, _ := a1.(A)
+	fmt.Println(a1)
+	fmt.Println(a2)
 }

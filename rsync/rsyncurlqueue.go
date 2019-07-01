@@ -13,13 +13,15 @@ type RsyncUrl struct {
 	Dest string `jsong:"dest"`
 }
 
+// queue for rsync url
 type RsyncUrlQueue struct {
 	curUrls   *list.List
 	usedUrls  *list.List
 	curMutex  *sync.RWMutex
 	usedMutex *sync.RWMutex
 
-	Msg chan string
+	Msg  chan string // will trigger rsync
+	Misc interface{} // miscellaneous data
 }
 
 func NewQueue() *RsyncUrlQueue {
@@ -136,4 +138,12 @@ func (r *RsyncUrlQueue) GetUsedUrls() []RsyncUrl {
 		e = e.Next()
 	}
 	return urls
+}
+
+func (r *RsyncUrlQueue) GetMisc() interface{} {
+	return r.Misc
+}
+
+func (r *RsyncUrlQueue) SetMisc(m interface{}) {
+	r.Misc = m
 }
