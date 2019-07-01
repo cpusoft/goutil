@@ -40,6 +40,7 @@ type RsyncResult struct {
 	FileType string `json:"fileType"`
 	//RSYNC_TYPE_***
 	RsyncType string    `json:"rsyncType"`
+	RsyncUrl  string    `json:"rsyncUrl"`
 	IsDir     bool      `json:"isDir"`
 	SyncTime  time.Time `json:"syncTime"`
 }
@@ -97,6 +98,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 			belogs.Error("Rsync(): parseRsyncResult: err: ", err, ": "+one)
 			return rysncResults, err
 		}
+		rsyncResult.RsyncUrl = rsyncUrl
 		rysncResults = append(rysncResults, rsyncResult)
 	}
 
