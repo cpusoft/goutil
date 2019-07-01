@@ -7,53 +7,22 @@ import (
 
 func TestRsyncQueue(t *testing.T) {
 	rq := NewQueue()
-	le := rq.AddNewUrl("rsync://apnic.com/1", "/tmp1")
-	s := rq.CurUrlsSize()
-	fmt.Println(le)
-	fmt.Println(s)
-
 	rq.AddNewUrl("rsync://apnic.com/1", "/tmp1")
-	s = rq.CurUrlsSize()
-	fmt.Println(s)
-
+	rq.AddNewUrl("rsync://apnic.com/1", "/tmp1")
 	rq.AddNewUrl("rsync://apnic.com/2", "/tmp2")
-	s = rq.CurUrlsSize()
-	fmt.Println(s)
-
 	rq.AddNewUrl("rsync://apnic.com/3", "/tmp3")
-	s = rq.CurUrlsSize()
+	s := rq.CurUrlsSize()
 	fmt.Println(s)
+	fmt.Println("wait:", rq.WaitUrlsSize(), "    cur:", rq.CurUrlsSize(), "   used:", rq.UsedUrlsSize())
 
-	url := rq.GetNextUrl()
-	fmt.Println(url)
-	s = rq.CurUrlsSize()
-	fmt.Println(s)
-
-	s = rq.UsedUrlsSize()
-	fmt.Println(s)
-
-	urls := rq.GetCurUrls()
+	urls := rq.GetNextWaitUrls()
 	fmt.Println(urls)
+	fmt.Println("wait:", rq.WaitUrlsSize(), "    cur:", rq.CurUrlsSize(), "   used:", rq.UsedUrlsSize())
 
-	urls = rq.GetUsedUrls()
-	fmt.Println(urls)
+	rq.AddNewUrl("rsync://apnic.com/new1", "/new1")
+	rq.AddNewUrl("rsync://apnic.com/new2", "/new2")
 
-	urls = rq.GetNextUrls()
-	fmt.Println("GetNextUrls:", urls)
-	s = rq.CurUrlsSize()
-	fmt.Println(s)
-	s = rq.UsedUrlsSize()
-	fmt.Println(s)
-
-	type A struct {
-		S string
-		Z int
-	}
-	a := A{S: "sss", Z: 2}
-	rq.SetMisc(a)
-
-	a1 := rq.GetMisc()
-	a2, _ := a1.(A)
-	fmt.Println(a1)
-	fmt.Println(a2)
+	rq.CurUrlsRsyncEnd(RsyncUrl{Url: "rsync://apnic.com/2", Dest: "/tmp2"})
+	fmt.Println("wait:", rq.WaitUrlsSize(), "    cur:", rq.CurUrlsSize(), "   used:", rq.UsedUrlsSize())
+	fmt.Println("wait:", rq.GetWaitUrls(), "    cur:", rq.GetCurUrls(), "   used:", rq.GetUsedUrls())
 }
