@@ -20,8 +20,7 @@ type RsyncUrlQueue struct {
 	curMutex  *sync.RWMutex
 	usedMutex *sync.RWMutex
 
-	Msg  chan string // will trigger rsync
-	Misc interface{} // miscellaneous data
+	Msg chan string // will trigger rsync
 }
 
 func NewQueue() *RsyncUrlQueue {
@@ -138,12 +137,4 @@ func (r *RsyncUrlQueue) GetUsedUrls() []RsyncUrl {
 		e = e.Next()
 	}
 	return urls
-}
-
-func (r *RsyncUrlQueue) GetMisc() interface{} {
-	return r.Misc
-}
-
-func (r *RsyncUrlQueue) SetMisc(m interface{}) {
-	r.Misc = m
 }
