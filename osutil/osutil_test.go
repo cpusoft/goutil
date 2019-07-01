@@ -2,6 +2,7 @@ package osutil
 
 import (
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -13,4 +14,11 @@ func TestGetFilePathAndFileName(t *testing.T) {
 
 func TestGetNewLineSep(t *testing.T) {
 	fmt.Println(GetNewLineSep())
+}
+
+func TestRemoveAll(t *testing.T) {
+	err := os.RemoveAll(`G:\Download\tmp\root\`)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
