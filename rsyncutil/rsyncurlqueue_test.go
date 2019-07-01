@@ -1,4 +1,4 @@
-package rsync
+package rsyncutil
 
 import (
 	"fmt"
