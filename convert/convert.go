@@ -19,6 +19,7 @@ func Bytes2String(byt []byte) string {
 }
 
 func GetInterfaceType(v interface{}) (string, error) {
+
 	switch v.(type) {
 	case int:
 		return "int", nil
@@ -26,6 +27,8 @@ func GetInterfaceType(v interface{}) (string, error) {
 		return "string", nil
 	case ([]byte):
 		return "[]byte", nil
+	case map[string]string:
+		return "map[string]string", nil
 	default:
 		return "unknown", nil
 	}
@@ -35,7 +38,7 @@ func ToString(a interface{}) string {
 	if v, p := a.(string); p {
 		return v
 	}
-	if v, ok := a.([]byte); ok {
+	if v, p := a.([]byte); p {
 		return string(v)
 	}
 	if v, p := a.(int); p {
@@ -56,6 +59,7 @@ func ToString(a interface{}) string {
 	if v, p := a.(float64); p {
 		return strconv.FormatFloat(v, 'f', -1, 32)
 	}
+
 	return ""
 }
 
@@ -78,5 +82,16 @@ func Interface2Uint64(v interface{}) (uint64, error) {
 		return ui, nil
 	} else {
 		return 0, errors.New("an interface{} cannot convert to a uint64")
+	}
+}
+func Interface2Map(v interface{}) (map[string]string, error) {
+	m := make(map[string]string, 0)
+	if v, p := v.(map[string]string); p {
+		for key, value := range v {
+			m[key] = value
+		}
+		return m, nil
+	} else {
+		return m, errors.New("an interface{} cannot convert to a map")
 	}
 }
