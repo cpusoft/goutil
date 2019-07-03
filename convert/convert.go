@@ -98,8 +98,9 @@ func Interface2Map(v interface{}) (map[string]string, error) {
 }
 
 func Time2String(t time.Time) string {
-	return t.Format("2006-01-02 15:04:05")
+	return t.Local().Format("2006-01-02 15:04:05")
 }
 func String2Time(t string) (time.Time, error) {
-	return time.Parse("2006-01-02 15:04:05", t)
+	tm, e := time.Parse("2006-01-02 15:04:05", t)
+	return tm.Local(), e
 }
