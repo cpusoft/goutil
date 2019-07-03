@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"strconv"
+	"time"
 )
 
 func Bytes2Uint64(bytes []byte) uint64 {
@@ -94,4 +95,11 @@ func Interface2Map(v interface{}) (map[string]string, error) {
 	} else {
 		return m, errors.New("an interface{} cannot convert to a map")
 	}
+}
+
+func Time2String(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
+}
+func String2Time(t string) (time.Time, error) {
+	return time.Parse("2006-01-02 15:04:05", t)
 }
