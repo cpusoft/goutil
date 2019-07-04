@@ -106,12 +106,10 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 	files, err := osutil.GetFilesInDir(rsyncDestPath, m)
 	belogs.Debug("Rsync():GetFilesInDir, files:", files, err)
 	if err == nil {
-		belogs.Debug("Rsync():GetFilesInDir,files:", files)
 		for _, file := range files {
 			belogs.Debug("Rsync():file:", file, "    rsyncResults:", rsyncResults)
 			found := false
 			for _, rsyncResult := range rsyncResults {
-				belogs.Debug("Rsync(): file == rsyncResult.FileName:", file, rsyncResult.FileName)
 				if file == rsyncResult.FileName {
 					found = true
 					break
@@ -120,8 +118,6 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 			}
 			belogs.Debug("Rsync():GetFilesInDir,found:", found, "   file:", file)
 			if !found {
-				belogs.Debug("Rsync():manual add cer file:", file)
-
 				rsyncResult := RsyncResult{}
 				rsyncResult.RsyncType = RSYNC_TYPE_UPDATE
 				rsyncResult.FilePath = rsyncDestPath
