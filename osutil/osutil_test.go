@@ -22,3 +22,13 @@ func TestRemoveAll(t *testing.T) {
 		fmt.Println(err)
 	}
 }
+
+func TestGetFilesInDir(t *testing.T) {
+	m := make(map[string]string, 0)
+	m[".cer"] = ".cer"
+	files, err := GetFilesInDir(`G:\Download\cert\`, m)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(files)
+}

@@ -2,6 +2,7 @@ package osutil
 
 import (
 	"container/list"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	path "path"
@@ -29,6 +30,12 @@ func Base(p string) string {
 	p = strings.Replace(p, "\\", "/", -1)
 	return path.Base(p)
 }
+
+// path.Ext() using in windows,
+func Ext(p string) string {
+	p = strings.Replace(p, "\\", "/", -1)
+	return path.Ext(p)
+}
 func GetParentPath() string {
 	file, _ := exec.LookPath(os.Args[0])
 	path, _ := filepath.Abs(file)
@@ -51,7 +58,7 @@ func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string
 			return err
 		}
 		if !fi.IsDir() {
-			suffix := path.Ext(filename)
+			suffix := Ext(filename)
 			//fmt.Println(suffix)
 			if _, ok := suffixs[suffix]; ok {
 				listStr.PushBack(filename)
@@ -71,13 +78,32 @@ func GetAllFilesBySuffixs(directory string, suffixs map[string]string) ([]string
 			return err
 		}
 		if !fi.IsDir() {
-			suffix := path.Ext(fileName)
+			suffix := Ext(fileName)
 			if _, ok := suffixs[suffix]; ok {
 				files = append(files, fileName)
 			}
 		}
 		return nil
 	})
+	return files, nil
+}
+
+func GetFilesInDir(directory string, suffixs map[string]string) ([]string, error) {
+	files := make([]string, 0, 10)
+	dir, err := ioutil.ReadDir(directory)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range dir {
+		if file.IsDir() { // 忽略目录
+			continue
+		}
+		suffix := Ext(file.Name())
+		if _, ok := suffixs[suffix]; ok {
+			files = append(files, file.Name())
+		}
+	}
 	return files, nil
 }
 

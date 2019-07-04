@@ -79,28 +79,28 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 		return nil, err
 	}
 
-	// if no changed ,so length of output is 0
-	if len(output) == 0 {
-		return rysncResults, nil
+	// if some changed ,so length of output is > 0
+	if len(output) > 0 {
+		result := string(output)
+		results := strings.Split(result, osutil.GetNewLineSep())
+		belogs.Debug("Rsync(): len(results):", len(results))
+		for _, one := range results {
+			if len(one) <= RSYNC_LOG_PREFIX {
+				continue
+			}
+			one = strings.Replace(one, "\n", "", -1)
+			one = strings.Replace(one, "\r", "", -1)
+			rsyncResult, err := parseRsyncResult(rsyncDestPath, one)
+			if err != nil {
+				belogs.Error("Rsync(): parseRsyncResult: err: ", err, ": "+one)
+				return rysncResults, err
+			}
+			rsyncResult.RsyncUrl = rsyncUrl
+			rysncResults = append(rysncResults, rsyncResult)
+		}
 	}
 
-	result := string(output)
-	results := strings.Split(result, osutil.GetNewLineSep())
-	belogs.Debug("Rsync(): len(results):", len(results))
-	for _, one := range results {
-		if len(one) <= RSYNC_LOG_PREFIX {
-			continue
-		}
-		one = strings.Replace(one, "\n", "", -1)
-		one = strings.Replace(one, "\r", "", -1)
-		rsyncResult, err := parseRsyncResult(rsyncDestPath, one)
-		if err != nil {
-			belogs.Error("Rsync(): parseRsyncResult: err: ", err, ": "+one)
-			return rysncResults, err
-		}
-		rsyncResult.RsyncUrl = rsyncUrl
-		rysncResults = append(rysncResults, rsyncResult)
-	}
+	// then , need read all current existed cer file, to get sub ca repo
 
 	return rysncResults, nil
 }
