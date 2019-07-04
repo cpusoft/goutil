@@ -64,7 +64,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 	belogs.Debug("AddNewUrl():get r.Mutex.Lock() ", url)
 	e := r.WaitUrls.Front()
 	for e != nil {
-		if strings.Contains(e.Value.(RsyncUrl).Url, url) {
+		if strings.Contains(url, e.Value.(RsyncUrl).Url) {
 			return nil
 		} else {
 			e = e.Next()
@@ -73,7 +73,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 	belogs.Debug("AddNewUrl():get CurUrls check ", url)
 	e = r.CurUrls.Front()
 	for e != nil {
-		if strings.Contains(e.Value.(RsyncUrl).Url, url) {
+		if strings.Contains(url, e.Value.(RsyncUrl).Url) {
 			return nil
 		} else {
 			e = e.Next()
@@ -82,7 +82,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 	belogs.Debug("AddNewUrl():get UsedUrls check ", url)
 	e = r.UsedUrls.Front()
 	for e != nil {
-		if strings.Contains(e.Value.(RsyncUrl).Url, url) {
+		if strings.Contains(url, e.Value.(RsyncUrl).Url) {
 			return nil
 		} else {
 			e = e.Next()
