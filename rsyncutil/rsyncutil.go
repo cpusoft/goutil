@@ -105,7 +105,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 	m[".cer"] = ".cer"
 	files, err := osutil.GetFilesInDir(rsyncDestPath, m)
 	belogs.Debug("Rsync():GetFilesInDir, files:", files, err)
-	if err != nil {
+	if err == nil {
 		belogs.Debug("Rsync():GetFilesInDir,files:", files)
 		for _, file := range files {
 			belogs.Debug("Rsync():file:", file, "    rsyncResults:", rsyncResults)
