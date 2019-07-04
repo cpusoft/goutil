@@ -58,8 +58,9 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 		return nil
 	}
 	belogs.Debug("AddNewUrl():r.Mutex.Lock() ", url)
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
+	//shaodebug
+	//r.Mutex.Lock()
+	//defer r.Mutex.Unlock()
 
 	belogs.Debug("AddNewUrl():get r.Mutex.Lock() ", url)
 	e := r.WaitUrls.Front()
@@ -98,8 +99,9 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 func (r *RsyncUrlQueue) GetNextWaitUrls() []RsyncUrl {
 	belogs.Debug("GetNextWaitUrls():r.Mutex.Lock()")
 
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
+	//shaodebug
+	//r.Mutex.Lock()
+	//defer r.Mutex.Unlock()
 
 	belogs.Debug("GetNextWaitUrls():get r.Mutex.Lock()")
 	urls := make([]RsyncUrl, 0)
@@ -116,8 +118,9 @@ func (r *RsyncUrlQueue) GetNextWaitUrls() []RsyncUrl {
 
 func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl RsyncUrl) {
 	belogs.Debug("CurUrlsRsyncEnd():r.Mutex.Lock()")
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
+	//shaodebug
+	//r.Mutex.Lock()
+	//defer r.Mutex.Unlock()
 	belogs.Debug("CurUrlsRsyncEnd():get r.Mutex.Lock()")
 
 	var next *list.Element
