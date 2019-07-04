@@ -56,6 +56,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 
+	belogs.Debug("AddNewUrl():get WaitUrls check ", url)
 	e := r.WaitUrls.Front()
 	for e != nil {
 		if strings.Contains(e.Value.(RsyncUrl).Url, url) {
@@ -64,6 +65,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 			e = e.Next()
 		}
 	}
+	belogs.Debug("AddNewUrl():get CurUrls check ", url)
 	e = r.CurUrls.Front()
 	for e != nil {
 		if strings.Contains(e.Value.(RsyncUrl).Url, url) {
@@ -72,6 +74,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 			e = e.Next()
 		}
 	}
+	belogs.Debug("AddNewUrl():get UsedUrls check ", url)
 	e = r.UsedUrls.Front()
 	for e != nil {
 		if strings.Contains(e.Value.(RsyncUrl).Url, url) {
@@ -81,6 +84,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 		}
 	}
 	rsync := RsyncUrl{Url: url, Dest: dest}
+	belogs.Debug("AddNewUrl():add ", url)
 	e = r.WaitUrls.PushBack(rsync)
 	r.Msg <- "add"
 	return e
