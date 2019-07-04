@@ -107,7 +107,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 	belogs.Debug("Rsync():GetFilesInDir, files:", files, err)
 	if err == nil {
 		for _, file := range files {
-			belogs.Debug("Rsync():file:", file, "    rsyncResults:", rsyncResults)
+			belogs.Debug("Rsync():file:", file)
 			found := false
 			for _, rsyncResult := range rsyncResults {
 				if file == rsyncResult.FileName {
