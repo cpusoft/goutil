@@ -50,14 +50,14 @@ type RsyncResult struct {
 func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 	belogs.Debug("Rsync():rsyncUrl:", rsyncUrl, " destPath:", destPath)
 
-	rysncResults := make([]RsyncResult, 0)
+	rsyncResults := make([]RsyncResult, 0)
 
 	// get host+path by url
 	hostAndPath, err := urlutil.HostAndPath(rsyncUrl)
 	belogs.Debug("Rsync():HostAndPath: rsyncUrl:", rsyncUrl, "  HostAndPath:", hostAndPath)
 	if err != nil {
 		belogs.Error("Rsync():HostAndPath: rsyncUrl:", rsyncUrl, "  HostAndPath:", hostAndPath, " err:", err)
-		return rysncResults, err
+		return rsyncResults, err
 	}
 
 	// mkdirAll path
@@ -66,7 +66,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 	err = os.MkdirAll(rsyncDestPath, os.ModePerm)
 	if err != nil {
 		belogs.Error("Rsync():MkdirAll:", rsyncDestPath, " err:", err)
-		return rysncResults, err
+		return rsyncResults, err
 	}
 
 	// call rsync
@@ -93,16 +93,42 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 			rsyncResult, err := parseRsyncResult(rsyncDestPath, one)
 			if err != nil {
 				belogs.Error("Rsync(): parseRsyncResult: err: ", err, ": "+one)
-				return rysncResults, err
+				return rsyncResults, err
 			}
 			rsyncResult.RsyncUrl = rsyncUrl
-			rysncResults = append(rysncResults, rsyncResult)
+			rsyncResults = append(rsyncResults, rsyncResult)
 		}
 	}
 
 	// then , need read all current existed cer file, to get sub ca repo
+	m := make(map[string]string, 0)
+	m[".cer"] = ".cer"
+	files, err := osutil.GetFilesInDir(rsyncDestPath, m)
+	belogs.Debug("Rsync(): GetFilesInDir, files:", files)
+	if err != nil {
+		for _, file := range files {
+			found := false
+			for _, rsyncResult := range rsyncResults {
+				belogs.Debug("Rsync(): file == rsyncResult.FileName:", file, rsyncResult.FileName)
+				if file == rsyncResult.FileName {
+					found = true
+					break
+				}
 
-	return rysncResults, nil
+			}
+			if !found {
+				rsyncResult := RsyncResult{}
+				rsyncResult.RsyncType = RSYNC_TYPE_UPDATE
+				rsyncResult.FilePath = rsyncDestPath
+				rsyncResult.FileName = file
+				rsyncResult.FileType = ".cer"
+				rsyncResult.SyncTime = time.Now()
+				rsyncResults = append(rsyncResults, rsyncResult)
+				belogs.Debug("Rsync(): manual add cer file:", rsyncResult)
+			}
+		}
+	}
+	return rsyncResults, nil
 }
 
 func parseRsyncResult(destPath, result string) (RsyncResult, error) {
