@@ -104,9 +104,11 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 	m := make(map[string]string, 0)
 	m[".cer"] = ".cer"
 	files, err := osutil.GetFilesInDir(rsyncDestPath, m)
-	belogs.Debug("Rsync(): GetFilesInDir, files:", files, err)
+	belogs.Debug("Rsync():GetFilesInDir, files:", files, err)
 	if err != nil {
+		belogs.Debug("Rsync():GetFilesInDir,files:", files)
 		for _, file := range files {
+			belogs.Debug("Rsync():file:", file, "    rsyncResults:", rsyncResults)
 			found := false
 			for _, rsyncResult := range rsyncResults {
 				belogs.Debug("Rsync(): file == rsyncResult.FileName:", file, rsyncResult.FileName)
@@ -116,9 +118,9 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 				}
 
 			}
-			belogs.Debug("Rsync(): GetFilesInDir, found:", found)
+			belogs.Debug("Rsync():GetFilesInDir,found:", found, "   file:", file)
 			if !found {
-				belogs.Debug("Rsync(): manual add cer file:", file)
+				belogs.Debug("Rsync():manual add cer file:", file)
 
 				rsyncResult := RsyncResult{}
 				rsyncResult.RsyncType = RSYNC_TYPE_UPDATE
@@ -131,7 +133,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 			}
 		}
 	}
-	belogs.Debug("Rsync(): rsyncResults:", rsyncResults)
+	belogs.Debug("Rsync(): rsyncResults:", jsonutil.MarshalJson(rsyncResults))
 	return rsyncResults, nil
 }
 
