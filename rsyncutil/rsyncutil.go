@@ -116,7 +116,10 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 				}
 
 			}
+			belogs.Debug("Rsync(): GetFilesInDir, found:", found)
 			if !found {
+				belogs.Debug("Rsync(): manual add cer file:", file)
+
 				rsyncResult := RsyncResult{}
 				rsyncResult.RsyncType = RSYNC_TYPE_UPDATE
 				rsyncResult.FilePath = rsyncDestPath
@@ -124,10 +127,11 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 				rsyncResult.FileType = ".cer"
 				rsyncResult.SyncTime = time.Now()
 				rsyncResults = append(rsyncResults, rsyncResult)
-				belogs.Debug("Rsync(): manual add cer file:", rsyncResult)
+				belogs.Debug("Rsync(): manual add rsyncResult:", rsyncResult)
 			}
 		}
 	}
+	belogs.Debug("Rsync(): rsyncResults:", rsyncResults)
 	return rsyncResults, nil
 }
 
