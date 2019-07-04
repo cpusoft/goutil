@@ -125,11 +125,10 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 				rsyncResult.FileType = ".cer"
 				rsyncResult.SyncTime = time.Now()
 				rsyncResults = append(rsyncResults, rsyncResult)
-				belogs.Debug("Rsync(): manual add rsyncResult:", rsyncResult)
+				belogs.Debug("Rsync(): manual add rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 			}
 		}
 	}
-	belogs.Debug("Rsync(): rsyncResults:", jsonutil.MarshalJson(rsyncResults))
 	return rsyncResults, nil
 }
 
