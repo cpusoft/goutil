@@ -15,7 +15,7 @@ type RsyncUrl struct {
 
 // queue for rsync url
 type RsyncUrlQueue struct {
-	Mutex    *sync.RWMutex
+	Mutex    *sync.Mutex
 	WaitUrls *list.List
 	CurUrls  *list.List
 	UsedUrls *list.List
@@ -24,7 +24,8 @@ type RsyncUrlQueue struct {
 }
 
 func NewQueue() *RsyncUrlQueue {
-	m := new(sync.RWMutex)
+	belogs.Debug("RsyncUrlQueue():")
+	m := new(sync.Mutex)
 	msg := make(chan string, 100)
 	return &RsyncUrlQueue{
 		WaitUrls: list.New(),
@@ -34,18 +35,19 @@ func NewQueue() *RsyncUrlQueue {
 		Msg:      msg}
 }
 func (r *RsyncUrlQueue) WaitUrlsSize() int {
-	r.Mutex.RLock()
-	defer r.Mutex.RUnlock()
+	belogs.Debug("WaitUrlsSize():before get lock")
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
 	return r.WaitUrls.Len()
 }
 func (r *RsyncUrlQueue) CurUrlsSize() int {
-	r.Mutex.RLock()
-	defer r.Mutex.RUnlock()
+	belogs.Debug("CurUrlsSize():before get lock")
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
 	return r.CurUrls.Len()
 }
 func (r *RsyncUrlQueue) UsedUrlsSize() int {
-	r.Mutex.RLock()
-	defer r.Mutex.RUnlock()
+	belogs.Debug("UsedUrlsSize():")
 	return r.UsedUrls.Len()
 }
 func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
@@ -92,6 +94,8 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 }
 
 func (r *RsyncUrlQueue) GetNextWaitUrls() []RsyncUrl {
+	belogs.Debug("GetNextWaitUrls():")
+
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 
@@ -108,7 +112,7 @@ func (r *RsyncUrlQueue) GetNextWaitUrls() []RsyncUrl {
 }
 
 func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl RsyncUrl) {
-
+	belogs.Debug("CurUrlsRsyncEnd():")
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 
@@ -127,8 +131,9 @@ func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl RsyncUrl) {
 }
 
 func (r *RsyncUrlQueue) GetWaitUrls() []RsyncUrl {
-	r.Mutex.RLock()
-	defer r.Mutex.RUnlock()
+	belogs.Debug("GetWaitUrls():")
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
 
 	urls := make([]RsyncUrl, 0)
 	e := r.WaitUrls.Front()
@@ -139,8 +144,9 @@ func (r *RsyncUrlQueue) GetWaitUrls() []RsyncUrl {
 	return urls
 }
 func (r *RsyncUrlQueue) GetCurUrls() []RsyncUrl {
-	r.Mutex.RLock()
-	defer r.Mutex.RUnlock()
+	belogs.Debug("GetCurUrls():")
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
 
 	urls := make([]RsyncUrl, 0)
 	e := r.CurUrls.Front()
@@ -151,9 +157,7 @@ func (r *RsyncUrlQueue) GetCurUrls() []RsyncUrl {
 	return urls
 }
 func (r *RsyncUrlQueue) GetUsedUrls() []RsyncUrl {
-	r.Mutex.RLock()
-	defer r.Mutex.RUnlock()
-
+	belogs.Debug("GetUsedUrls():")
 	urls := make([]RsyncUrl, 0)
 	e := r.UsedUrls.Front()
 	for e != nil {
