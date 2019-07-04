@@ -53,6 +53,7 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 	if len(url) == 0 || len(dest) == 0 {
 		return nil
 	}
+	belogs.Debug("AddNewUrl():before lock ", url)
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 
