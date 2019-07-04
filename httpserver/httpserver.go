@@ -81,3 +81,14 @@ func ReceiveFiles(receiveDir string, r *rest.Request) (receiveFiles map[string]s
 	}
 	return receiveFiles, nil
 }
+
+//map[fileFormName]=fileName
+func RemoveReceiveFiles(receiveFiles map[string]string) {
+	if len(receiveFiles) == 0 {
+		return
+	}
+	for k, v := range receiveFiles {
+		belogs.Debug("RemoveReceiveFiles(): form:", k, "    filename:", v)
+		os.Remove(v)
+	}
+}
