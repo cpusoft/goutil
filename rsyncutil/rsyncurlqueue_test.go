@@ -21,9 +21,14 @@ func TestRsyncQueue(t *testing.T) {
 
 	tmp3, err := rq.AddNewUrl("rsync://apnic.com/3", "/tmp3")
 	fmt.Println(tmp3, err)
+	s1 := rq.RsyncingCount
+	fmt.Println(s1)
+	s2 := rq.GetRsyncUrlsLen()
+	fmt.Println(s2)
 
-	s := rq.GetRsyncUrlsLen()
-	fmt.Println(s)
+	s1 = rq.SubRsyncingCount()
+	fmt.Println(s1)
+
 	fmt.Println("urls:", rq.GetRsyncUrls())
 
 }

@@ -5,10 +5,12 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	belogs "github.com/astaxie/beego/logs"
 )
 
+// rsync info
 type RsyncUrl struct {
 	Url  string `json:"url"`
 	Dest string `jsong:"dest"`
@@ -16,23 +18,24 @@ type RsyncUrl struct {
 
 // queue for rsync url
 type RsyncUrlQueue struct {
-	Mutex     *sync.Mutex
+	Mutex *sync.Mutex
+	// all rsync urls: including rsyncing and rsynced
 	RsyncUrls *list.List
-
+	// rsyncing count
+	RsyncingCount int64
+	// will add to RsyncUrls to rsync
 	RsyncUrlChan chan RsyncUrl
-	Msg          chan string // will trigger rsync
 }
 
 func NewQueue() *RsyncUrlQueue {
 	belogs.Debug("RsyncUrlQueue():")
 	m := new(sync.Mutex)
 	rsyncUrlChan := make(chan RsyncUrl, 10000)
-	msg := make(chan string, 10000)
 	return &RsyncUrlQueue{
-		Mutex:        m,
-		RsyncUrls:    list.New(),
-		RsyncUrlChan: rsyncUrlChan,
-		Msg:          msg}
+		Mutex:         m,
+		RsyncUrls:     list.New(),
+		RsyncingCount: 0,
+		RsyncUrlChan:  rsyncUrlChan}
 }
 func (r *RsyncUrlQueue) GetRsyncUrlsLen() int {
 	belogs.Debug("GetRsyncUrlsLen():r.Mutex.Lock()")
@@ -58,6 +61,13 @@ func (r *RsyncUrlQueue) GetRsyncUrls() []RsyncUrl {
 	}
 	return urls
 }
+func (r *RsyncUrlQueue) AddRsyncingCount() int64 {
+	return atomic.AddInt64(&r.RsyncingCount, 1)
+}
+func (r *RsyncUrlQueue) SubRsyncingCount() int64 {
+	return atomic.AddInt64(&r.RsyncingCount, -1)
+}
+
 func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) (RsyncUrl, error) {
 	belogs.Debug("AddNewUrl():url", url, "    dest:", dest)
 	if len(url) == 0 || len(dest) == 0 {
@@ -81,6 +91,6 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) (RsyncUrl, error) {
 	rsync := RsyncUrl{Url: url, Dest: dest}
 	e = r.RsyncUrls.PushBack(rsync)
 	r.RsyncUrlChan <- rsync
-	r.Msg <- "add"
+	atomic.AddInt64(&r.RsyncingCount, 1)
 	return rsync, nil
 }
