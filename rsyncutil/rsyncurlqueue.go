@@ -126,17 +126,28 @@ func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl RsyncUrl) {
 	//defer r.Mutex.Unlock()
 	belogs.Debug("CurUrlsRsyncEnd():get r.Mutex.Lock()")
 
+	belogs.Debug("CurUrlsRsyncEnd():rsyncUrl:", rsyncUrl)
+	if len(rsyncUrl.Url) == 0 {
+		return
+	}
+
 	var next *list.Element
-	for e := r.CurUrls.Front(); e != nil; e = next {
-		next = e.Next()
+	for e := r.CurUrls.Front(); e != nil; {
 		rsyncUrlCur := e.Value.(RsyncUrl)
 		belogs.Debug("CurUrlsRsyncEnd():rsyncUrlCur", rsyncUrlCur, "    rsyncUrl:", rsyncUrl)
 
 		if rsyncUrlCur.Url == rsyncUrl.Url {
 			belogs.Debug("CurUrlsRsyncEnd():rsyncUrlCur.Url == rsyncUrl.Url", rsyncUrlCur.Url, rsyncUrl.Url)
+			next = e.Next()
+
 			r.UsedUrls.PushBack(e.Value.(RsyncUrl))
 			r.CurUrls.Remove(e)
+			belogs.Debug("CurUrlsRsyncEnd():UsedUrls:", r.UsedUrls, "  r.CurUrls:", r.CurUrls)
+
+			e = next
 			break
+		} else {
+			e = e.Next()
 		}
 	}
 }
