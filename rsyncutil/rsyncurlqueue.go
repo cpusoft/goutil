@@ -90,7 +90,8 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) (RsyncUrl, error) {
 
 	rsync := RsyncUrl{Url: url, Dest: dest}
 	e = r.RsyncUrls.PushBack(rsync)
+	r.AddRsyncingCount()
 	r.RsyncUrlChan <- rsync
-	AddRsyncingCount()
+
 	return rsync, nil
 }
