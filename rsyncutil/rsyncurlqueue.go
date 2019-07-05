@@ -119,7 +119,7 @@ func (r *RsyncUrlQueue) GetNextWaitUrls() []RsyncUrl {
 	return urls
 }
 
-func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl RsyncUrl) {
+func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl string) {
 	belogs.Debug("CurUrlsRsyncEnd():r.Mutex.Lock()")
 	//shaodebug
 	//r.Mutex.Lock()
@@ -127,7 +127,7 @@ func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl RsyncUrl) {
 	belogs.Debug("CurUrlsRsyncEnd():get r.Mutex.Lock()")
 
 	belogs.Debug("CurUrlsRsyncEnd():rsyncUrl:", rsyncUrl)
-	if len(rsyncUrl.Url) == 0 {
+	if len(rsyncUrl) == 0 {
 		return
 	}
 
@@ -136,8 +136,8 @@ func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl RsyncUrl) {
 		rsyncUrlCur := e.Value.(RsyncUrl)
 		belogs.Debug("CurUrlsRsyncEnd():rsyncUrlCur", rsyncUrlCur, "    rsyncUrl:", rsyncUrl)
 
-		if rsyncUrlCur.Url == rsyncUrl.Url {
-			belogs.Debug("CurUrlsRsyncEnd():rsyncUrlCur.Url == rsyncUrl.Url", rsyncUrlCur.Url, rsyncUrl.Url)
+		if rsyncUrlCur.Url == rsyncUrl {
+			belogs.Debug("CurUrlsRsyncEnd():rsyncUrlCur.Url == rsyncUrl.Url", rsyncUrlCur.Url, rsyncUrl)
 			next = e.Next()
 
 			r.UsedUrls.PushBack(e.Value.(RsyncUrl))
