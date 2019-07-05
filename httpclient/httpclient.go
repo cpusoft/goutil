@@ -125,9 +125,10 @@ func PostFile(protocol string, address string, port int, path string, fileName s
 // fileName: file name ; FormName:id in form
 func PostFileHttp(urlStr string, fileName string, formName string) (resp gorequest.Response, body string, err error) {
 
-	belogs.Debug("PostFileHttp():url:", urlStr, "   fileName:", fileName, "   formName:", formName)
+	belogs.Info("PostFileHttp():url:", urlStr, "   fileName:", fileName, "   formName:", formName)
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
+		belogs.Error("PostFileHttp():url:", urlStr, "   fileName:", fileName, "   err:", err)
 		return nil, "", err
 	}
 
