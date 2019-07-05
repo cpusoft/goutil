@@ -115,7 +115,7 @@ func (r *RsyncUrlQueue) GetNextWaitUrls() []RsyncUrl {
 		r.CurUrls.PushBack(e.Value.(RsyncUrl))
 		r.WaitUrls.Remove(e)
 	}
-
+	belogs.Info("GetNextWaitUrls():urls:", urls)
 	return urls
 }
 
