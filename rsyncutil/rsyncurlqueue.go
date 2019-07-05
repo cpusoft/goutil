@@ -2,6 +2,7 @@ package rsyncutil
 
 import (
 	"container/list"
+	"errors"
 	"strings"
 	"sync"
 
@@ -15,182 +16,71 @@ type RsyncUrl struct {
 
 // queue for rsync url
 type RsyncUrlQueue struct {
-	Mutex    *sync.Mutex
-	WaitUrls *list.List
-	CurUrls  *list.List
-	UsedUrls *list.List
+	Mutex     *sync.Mutex
+	RsyncUrls *list.List
 
-	Msg chan string // will trigger rsync
+	RsyncUrlChan chan RsyncUrl
+	Msg          chan string // will trigger rsync
 }
 
 func NewQueue() *RsyncUrlQueue {
 	belogs.Debug("RsyncUrlQueue():")
 	m := new(sync.Mutex)
+	rsyncUrlChan := make(chan RsyncUrl, 10000)
 	msg := make(chan string, 10000)
-	belogs.Debug("NewQueue():len(msg):", len(msg))
 	return &RsyncUrlQueue{
-		WaitUrls: list.New(),
-		CurUrls:  list.New(),
-		UsedUrls: list.New(),
-		Mutex:    m,
-		Msg:      msg}
+		Mutex:        m,
+		RsyncUrls:    list.New(),
+		RsyncUrlChan: rsyncUrlChan,
+		Msg:          msg}
 }
-func (r *RsyncUrlQueue) WaitUrlsSize() int {
-	belogs.Debug("WaitUrlsSize():r.Mutex.Lock()")
-	//shaodebug
+func (r *RsyncUrlQueue) GetRsyncUrlsLen() int {
+	belogs.Debug("GetRsyncUrlsLen():r.Mutex.Lock()")
+
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
-	return r.WaitUrls.Len()
+	belogs.Debug("GetRsyncUrlsLen():r.Mutex.Lock()")
+
+	return r.RsyncUrls.Len()
 }
-func (r *RsyncUrlQueue) CurUrlsSize() int {
-	belogs.Debug("CurUrlsSize():r.Mutex.Lock()")
-	//shaodebug
+func (r *RsyncUrlQueue) GetRsyncUrls() []RsyncUrl {
+	belogs.Debug("GetRsyncUrls():r.Mutex.Lock()")
+
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
-	return r.CurUrls.Len()
+
+	belogs.Debug("GetRsyncUrls():get r.Mutex.Lock(): len:", r.RsyncUrls.Len())
+	urls := make([]RsyncUrl, 0)
+	e := r.RsyncUrls.Front()
+	for e != nil {
+		urls = append(urls, e.Value.(RsyncUrl))
+		e = e.Next()
+	}
+	return urls
 }
-func (r *RsyncUrlQueue) UsedUrlsSize() int {
-	belogs.Debug("UsedUrlsSize():")
-	return r.UsedUrls.Len()
-}
-func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
+func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) (RsyncUrl, error) {
 	belogs.Debug("AddNewUrl():url", url, "    dest:", dest)
 	if len(url) == 0 || len(dest) == 0 {
-		return nil
+		return RsyncUrl{}, errors.New("rsync url or dest is emtpy")
 	}
 	belogs.Debug("AddNewUrl():r.Mutex.Lock() ", url)
-	//shaodebug
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
-
 	belogs.Debug("AddNewUrl():get r.Mutex.Lock() ", url)
-	e := r.WaitUrls.Front()
+
+	e := r.RsyncUrls.Front()
 	for e != nil {
 		if strings.Contains(url, e.Value.(RsyncUrl).Url) {
-			return nil
+			belogs.Debug("AddNewUrl():have existed:", url, " in ", e.Value.(RsyncUrl).Url)
+			return RsyncUrl{}, errors.New(url + " have existed")
 		} else {
 			e = e.Next()
 		}
 	}
-	belogs.Debug("AddNewUrl():get CurUrls check ", url)
-	e = r.CurUrls.Front()
-	for e != nil {
-		if strings.Contains(url, e.Value.(RsyncUrl).Url) {
-			return nil
-		} else {
-			e = e.Next()
-		}
-	}
-	belogs.Debug("AddNewUrl():get UsedUrls check ", url)
-	e = r.UsedUrls.Front()
-	for e != nil {
-		if strings.Contains(url, e.Value.(RsyncUrl).Url) {
-			return nil
-		} else {
-			e = e.Next()
-		}
-	}
+
 	rsync := RsyncUrl{Url: url, Dest: dest}
-	belogs.Debug("AddNewUrl():add ", url)
-	e = r.WaitUrls.PushBack(rsync)
-	belogs.Debug("AddNewUrl():will add len(msg):", len(r.Msg))
+	e = r.RsyncUrls.PushBack(rsync)
+	r.RsyncUrlChan <- rsync
 	r.Msg <- "add"
-	belogs.Debug("AddNewUrl():after add len(msg):", len(r.Msg))
-	return e
-}
-
-func (r *RsyncUrlQueue) GetNextWaitUrls() []RsyncUrl {
-	belogs.Debug("GetNextWaitUrls():r.Mutex.Lock()")
-
-	//shaodebug
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
-
-	belogs.Debug("GetNextWaitUrls():get r.Mutex.Lock()")
-	urls := make([]RsyncUrl, 0)
-	var next *list.Element
-	for e := r.WaitUrls.Front(); e != nil; e = next {
-		next = e.Next()
-		urls = append(urls, e.Value.(RsyncUrl))
-		r.CurUrls.PushBack(e.Value.(RsyncUrl))
-		r.WaitUrls.Remove(e)
-	}
-	belogs.Info("GetNextWaitUrls():urls:", urls)
-	return urls
-}
-
-func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl string) {
-	belogs.Debug("CurUrlsRsyncEnd():r.Mutex.Lock()")
-	//shaodebug
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
-	belogs.Debug("CurUrlsRsyncEnd():get r.Mutex.Lock()")
-
-	belogs.Debug("CurUrlsRsyncEnd():rsyncUrl:", rsyncUrl)
-	if len(rsyncUrl) == 0 {
-		return
-	}
-
-	var next *list.Element
-	for e := r.CurUrls.Front(); e != nil; {
-		rsyncUrlCur := e.Value.(RsyncUrl)
-		belogs.Debug("CurUrlsRsyncEnd():rsyncUrlCur", rsyncUrlCur, "    rsyncUrl:", rsyncUrl)
-
-		if rsyncUrlCur.Url == rsyncUrl {
-			belogs.Info("CurUrlsRsyncEnd():rsyncUrlCur.Url == rsyncUrl.Url", rsyncUrlCur.Url, rsyncUrl)
-			next = e.Next()
-
-			belogs.Info("CurUrlsRsyncEnd():before UsedUrls.Len():", r.UsedUrls.Len(), "  r.CurUrls.Len():", r.CurUrls.Len())
-			r.UsedUrls.PushBack(e.Value.(RsyncUrl))
-			r.CurUrls.Remove(e)
-			belogs.Info("CurUrlsRsyncEnd():after UsedUrls.Len():", r.UsedUrls.Len(), "  r.CurUrls.Len():", r.CurUrls.Len())
-
-			e = next
-			break
-		} else {
-			e = e.Next()
-		}
-	}
-	belogs.Error("CurUrlsRsyncEnd():not found: rsyncUrl:", rsyncUrl,
-		"  WaitUrls:", r.GetWaitUrls(), "  CurUrls:", r.GetCurUrls(),
-		"  UsedUrls:", r.GetUsedUrls())
-}
-
-func (r *RsyncUrlQueue) GetWaitUrls() []RsyncUrl {
-	belogs.Debug("GetWaitUrls():r.Mutex.Lock()")
-	//shaodebug
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
-
-	urls := make([]RsyncUrl, 0)
-	e := r.WaitUrls.Front()
-	for e != nil {
-		urls = append(urls, e.Value.(RsyncUrl))
-		e = e.Next()
-	}
-	return urls
-}
-func (r *RsyncUrlQueue) GetCurUrls() []RsyncUrl {
-	belogs.Debug("GetCurUrls():r.Mutex.Lock()")
-	//shaodebug
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
-
-	urls := make([]RsyncUrl, 0)
-	e := r.CurUrls.Front()
-	for e != nil {
-		urls = append(urls, e.Value.(RsyncUrl))
-		e = e.Next()
-	}
-	return urls
-}
-func (r *RsyncUrlQueue) GetUsedUrls() []RsyncUrl {
-	belogs.Debug("GetUsedUrls():")
-	urls := make([]RsyncUrl, 0)
-	e := r.UsedUrls.Front()
-	for e != nil {
-		urls = append(urls, e.Value.(RsyncUrl))
-		e = e.Next()
-	}
-	return urls
+	return rsync, nil
 }
