@@ -26,7 +26,7 @@ type RsyncUrlQueue struct {
 func NewQueue() *RsyncUrlQueue {
 	belogs.Debug("RsyncUrlQueue():")
 	m := new(sync.Mutex)
-	msg := make(chan string, 100)
+	msg := make(chan string, 1000)
 	return &RsyncUrlQueue{
 		WaitUrls: list.New(),
 		CurUrls:  list.New(),
