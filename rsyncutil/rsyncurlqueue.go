@@ -27,6 +27,7 @@ func NewQueue() *RsyncUrlQueue {
 	belogs.Debug("RsyncUrlQueue():")
 	m := new(sync.Mutex)
 	msg := make(chan string, 1000)
+	belogs.Debug("NewQueue():len(msg):", len(msg))
 	return &RsyncUrlQueue{
 		WaitUrls: list.New(),
 		CurUrls:  list.New(),
@@ -92,7 +93,9 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) *list.Element {
 	rsync := RsyncUrl{Url: url, Dest: dest}
 	belogs.Debug("AddNewUrl():add ", url)
 	e = r.WaitUrls.PushBack(rsync)
+	belogs.Debug("AddNewUrl():will add len(msg):", len(r.Msg))
 	r.Msg <- "add"
+	belogs.Debug("AddNewUrl():after add len(msg):", len(r.Msg))
 	return e
 }
 
