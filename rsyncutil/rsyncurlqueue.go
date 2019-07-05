@@ -151,7 +151,8 @@ func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl string) {
 			e = e.Next()
 		}
 	}
-	belogs.Error("CurUrlsRsyncEnd():not found:", rsyncUrl)
+	belogs.Error("CurUrlsRsyncEnd():not found: rsyncUrl:", rsyncUrl,
+		"  WaitUrls:", r.WaitUrls, "  CurUrls:", r.CurUrls, "  UsedUrls:", r.UsedUrls)
 }
 
 func (r *RsyncUrlQueue) GetWaitUrls() []RsyncUrl {
