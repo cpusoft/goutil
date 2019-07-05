@@ -91,6 +91,6 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) (RsyncUrl, error) {
 	rsync := RsyncUrl{Url: url, Dest: dest}
 	e = r.RsyncUrls.PushBack(rsync)
 	r.RsyncUrlChan <- rsync
-	atomic.AddInt64(&r.RsyncingCount, 1)
+	AddRsyncingCount()
 	return rsync, nil
 }
