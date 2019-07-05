@@ -133,6 +133,7 @@ func (r *RsyncUrlQueue) CurUrlsRsyncEnd(rsyncUrl RsyncUrl) {
 		belogs.Debug("CurUrlsRsyncEnd():rsyncUrlCur", rsyncUrlCur, "    rsyncUrl:", rsyncUrl)
 
 		if rsyncUrlCur.Url == rsyncUrl.Url {
+			belogs.Debug("CurUrlsRsyncEnd():rsyncUrlCur.Url == rsyncUrl.Url", rsyncUrlCur.Url, rsyncUrl.Url)
 			r.UsedUrls.PushBack(e.Value.(RsyncUrl))
 			r.CurUrls.Remove(e)
 			break
