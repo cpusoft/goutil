@@ -32,3 +32,16 @@ func TestGetFilesInDir(t *testing.T) {
 	}
 	fmt.Println(files)
 }
+
+func TestIsDir(t *testing.T) {
+	f := `E:\Go\rpstir2\source\rpstir2\.project`
+	s, err := IsDir(f)
+	fmt.Println(s, err)
+
+	s, err = IsExists(f)
+	fmt.Println(s, err)
+
+	s, err = IsFile(f)
+	fmt.Println(s, err)
+
+}

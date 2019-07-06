@@ -13,16 +13,28 @@ import (
 	belogs "github.com/astaxie/beego/logs"
 )
 
-func IsDir(file string) (bool, error) {
+func IsExists(file string) (bool, error) {
+	_, err := os.Stat(file)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
+}
 
-	f, err := os.Stat(file)
+func IsDir(file string) (bool, error) {
+	s, err := os.Stat(file)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return false, err
-		}
 		return false, err
 	}
-	return f.IsDir(), nil
+	return s.IsDir(), nil
+}
+
+func IsFile(file string) (bool, error) {
+	s, err := IsDir(file)
+	return !s, err
 }
 
 // path.Base() using in windows,
