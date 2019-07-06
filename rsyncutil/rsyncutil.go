@@ -124,6 +124,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 				rsyncResult.FileName = file
 				rsyncResult.FileType = ".cer"
 				rsyncResult.SyncTime = time.Now()
+				rsyncResult.IsDir, _ = osutil.IsDir(file)
 				rsyncResults = append(rsyncResults, rsyncResult)
 				belogs.Debug("Rsync(): manual add rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 			}
