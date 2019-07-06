@@ -126,7 +126,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 				rsyncResult.SyncTime = time.Now()
 				rsyncResult.IsDir, _ = osutil.IsDir(file)
 				rsyncResults = append(rsyncResults, rsyncResult)
-				belogs.Debug("Rsync(): manual add rsyncResult:", jsonutil.MarshalJson(rsyncResult))
+				belogs.Info("Rsync(): manual add rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 			}
 		}
 	}
@@ -194,7 +194,7 @@ func parseRsyncResult(destPath, result string) (RsyncResult, error) {
 	}
 	rsyncResult.SyncTime = time.Now()
 	rsyncResult.IsDir, _ = osutil.IsDir(rsyncResult.FilePath + rsyncResult.FileName)
-	belogs.Debug("parseRsyncResult():rsyncResult:", jsonutil.MarshalJson(rsyncResult))
+	belogs.Info("parseRsyncResult():rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 	return rsyncResult, nil
 
 }
