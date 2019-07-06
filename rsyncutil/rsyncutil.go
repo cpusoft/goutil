@@ -193,6 +193,7 @@ func parseRsyncResult(destPath, result string) (RsyncResult, error) {
 		rsyncResult.RsyncType = RSYNC_TYPE_IGNORE
 	}
 	rsyncResult.SyncTime = time.Now()
+	rsyncResult.IsDir, _ = osutil.IsDir(rsyncResult.FilePath + rsyncResult.FileName)
 	belogs.Debug("parseRsyncResult():rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 	return rsyncResult, nil
 
