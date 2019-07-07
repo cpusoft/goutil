@@ -95,6 +95,11 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 				belogs.Error("Rsync(): parseRsyncResult: err: ", err, ": "+one)
 				return rsyncResults, err
 			}
+			if rsyncResult.RsyncType == RSYNC_TYPE_IGNORE ||
+				len(rsyncResult.FileName) == 0 || len(rsyncResult.FilePath) == 0 {
+				belogs.Info("Rsync():ignore parseRsyncResult: ", rsyncResult)
+				continue
+			}
 			rsyncResult.RsyncUrl = rsyncUrl
 			rsyncResults = append(rsyncResults, rsyncResult)
 		}
