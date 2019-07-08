@@ -127,7 +127,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 				rsyncResult.RsyncType = RSYNC_TYPE_UPDATE
 				rsyncResult.FilePath = rsyncDestPath
 				rsyncResult.FileName = file
-				rsyncResult.FileType = ".cer"
+				rsyncResult.FileType = "cer"
 				rsyncResult.SyncTime = time.Now()
 				rsyncResult.IsDir, _ = osutil.IsDir(file)
 				rsyncResults = append(rsyncResults, rsyncResult)
@@ -167,7 +167,7 @@ func parseRsyncResult(destPath, result string) (RsyncResult, error) {
 		rsyncResult.RsyncType = RSYNC_TYPE_DEL
 		rsyncResult.FilePath, rsyncResult.FileName =
 			osutil.GetFilePathAndFileName(destPath + string(result[RSYNC_LOG_PREFIX:]))
-		rsyncResult.FileType = path.Ext(rsyncResult.FileName)
+		rsyncResult.FileType = strings.Replace(path.Ext(rsyncResult.FileName), ".", "", -1)
 	case '>':
 		if strings.Contains(result, "++++") {
 			rsyncResult.RsyncType = RSYNC_TYPE_ADD
@@ -176,7 +176,7 @@ func parseRsyncResult(destPath, result string) (RsyncResult, error) {
 		}
 		rsyncResult.FilePath, rsyncResult.FileName =
 			osutil.GetFilePathAndFileName(destPath + string(result[RSYNC_LOG_PREFIX:]))
-		rsyncResult.FileType = path.Ext(rsyncResult.FileName)
+		rsyncResult.FileType = strings.Replace(path.Ext(rsyncResult.FileName), ".", "", -1)
 	case 'c':
 		switch second {
 		case 'd':
