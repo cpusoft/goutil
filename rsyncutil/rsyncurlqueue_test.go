@@ -2,6 +2,7 @@ package rsyncutil
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -30,5 +31,9 @@ func TestRsyncQueue(t *testing.T) {
 	fmt.Println(s1)
 
 	fmt.Println("urls:", rq.GetRsyncUrls())
+
+	s := ".cer"
+	s = strings.Replace(s, ".", "", -1)
+	fmt.Println(s)
 
 }
