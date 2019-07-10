@@ -72,7 +72,6 @@ func InitMySql() error {
 // get new session, and begin session
 func NewSession() (*xorm.Session, error) {
 	// open mysql session
-	XormEngine.ShowSQL(true)
 	session := XormEngine.NewSession()
 	if err := session.Begin(); err != nil {
 		return nil, RollbackAndLogError(session, "session.Begin() fail", err)
