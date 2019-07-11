@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -100,7 +101,12 @@ func Interface2Map(v interface{}) (map[string]string, error) {
 func Time2String(t time.Time) string {
 	return t.Local().Format("2006-01-02 15:04:05")
 }
-func String2Time(t string) (time.Time, error) {
-	tm, e := time.Parse("2006-01-02 15:04:05", t)
+func String2Time(t string) (tm time.Time, e error) {
+
+	if strings.LastIndex(t, "z") >= 0 || strings.LastIndex(t, "Z") >= 0 {
+		tm, e = time.Parse("2006-01-02 15:04:05Z", t)
+	} else {
+		tm, e = time.Parse("2006-01-02 15:04:05", t)
+	}
 	return tm.Local(), e
 }
