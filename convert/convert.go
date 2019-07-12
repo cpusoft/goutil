@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -32,7 +34,8 @@ func GetInterfaceType(v interface{}) (string, error) {
 	case map[string]string:
 		return "map[string]string", nil
 	default:
-		return "unknown", nil
+		var r = reflect.TypeOf(v)
+		return fmt.Sprintf("%v", r), nil
 	}
 }
 
