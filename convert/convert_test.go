@@ -23,3 +23,9 @@ func TestInterface2Map(t *testing.T) {
 	fmt.Println("v1:", v1.Kind())
 
 }
+
+func TestBytes2String(t *testing.T) {
+	byt := []byte{0x01, 0x02, 0x03}
+	s := Bytes2String(byt)
+	fmt.Println(s)
+}
