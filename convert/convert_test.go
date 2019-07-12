@@ -22,6 +22,12 @@ func TestInterface2Map(t *testing.T) {
 	v1 := reflect.ValueOf(m1)
 	fmt.Println("v1:", v1.Kind())
 
+	bb := []byte{0x01, 0x02, 0x03}
+	s, err := GetInterfaceType(bb)
+	fmt.Println("type:", s, err)
+
+	z = bb
+
 }
 
 func TestBytes2String(t *testing.T) {
