@@ -47,18 +47,18 @@ func TestRtrFormatToIp(t *testing.T) {
 	fmt.Println(str)
 }
 
-func TestIpAndCIDRFillWithZero(t *testing.T) {
+func TestFillAddressPrefixWithZero(t *testing.T) {
 
 	ips := []string{"19.99.91", "19.99/16"}
 
 	for _, ip := range ips {
-		str, err := IpAndCIDRFillWithZero(ip, Ipv4Type)
+		str, err := FillAddressPrefixWithZero(ip, Ipv4Type)
 		fmt.Println(ip, " --> ", str, err)
 
 	}
 	ips = []string{"2803:d380/28", "2803/28"}
 	for _, ip := range ips {
-		str, err := IpAndCIDRFillWithZero(ip, Ipv6Type)
+		str, err := FillAddressPrefixWithZero(ip, Ipv6Type)
 		fmt.Println(ip, " --> ", str, err)
 
 	}
@@ -80,20 +80,26 @@ func TestIpStrToHexString(t *testing.T) {
 	}
 }
 
-func TestIPCIDRToHexRange(t *testing.T) {
+func TestAddressPrefixToHexRange(t *testing.T) {
 
 	ips := []string{"19.99/16"}
 	for _, ip := range ips {
-		ipp, err := IpAndCIDRFillWithZero(ip, Ipv4Type)
-		min, max, err := IPCIDRToHexRange(ipp, Ipv4Type)
+		ipp, err := FillAddressPrefixWithZero(ip, Ipv4Type)
+		min, max, err := AddressPrefixToHexRange(ipp, Ipv4Type)
 		fmt.Println(ip, " --> ", min, max, err)
 
 	}
 	ips = []string{"2803:d380/28"}
 	for _, ip := range ips {
-		ipp, err := IpAndCIDRFillWithZero(ip, Ipv6Type)
-		min, max, err := IPCIDRToHexRange(ipp, Ipv6Type)
+		ipp, err := FillAddressPrefixWithZero(ip, Ipv6Type)
+		min, max, err := AddressPrefixToHexRange(ipp, Ipv6Type)
 		fmt.Println(ip, " --> ", min, max, err)
 
 	}
+}
+
+func TestSplitAddressAndPrefix(t *testing.T) {
+	ap := "87.247.164/24"
+	ip, pr, er := SplitAddressAndPrefix(ap)
+	fmt.Println(ip, pr, er)
 }

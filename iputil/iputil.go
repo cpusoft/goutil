@@ -109,7 +109,7 @@ func IpToRtrFormat(ip string) string {
 
 // fill ip with zero:
 // 192.168.1 --> 192.168.1.0;   192.168/24 --> 192.168.0.0/24
-func IpAndCIDRFillWithZero(ip string, ipType int) (string, error) {
+func FillAddressPrefixWithZero(ip string, ipType int) (string, error) {
 
 	prefix := ""
 	ipp := ip
@@ -189,9 +189,9 @@ func IpNetToHexString(ip net.IP, ipType int) (string, error) {
 
 // 192.168.5/24 -->  192.168.5.0/24 --> [min: c0.a8.05.00  max: c0.a8.05.ff]
 // 2803:d380/28 --> 2803:d380::/28 --> [min: 2803:d380:0000:0000:0000:0000:0000:0000  max: 2803:d38f:ffff:ffff:ffff:ffff:ffff:ffff]
-func IpCIDRToHexRange(ip string, ipType int) (minHex string, maxHex string, err error) {
+func AddressPrefixToHexRange(ip string, ipType int) (minHex string, maxHex string, err error) {
 
-	network, err := IpAndCIDRFillWithZero(ip, ipType)
+	network, err := FillAddressPrefixWithZero(ip, ipType)
 	if err != nil {
 		belogs.Error("IpCIDRToHexRange(): IpAndCIDRFillWithZero err:", err)
 		return "", "", err
@@ -241,7 +241,7 @@ func Ipv4toInt(ip net.IP) int64 {
 }
 
 // check is: 192.168.5/24   or 2803:d380/28
-func IsIpCIDR(ip string) bool {
+func IsAddressPrefix(ip string) bool {
 	if len(ip) == 0 || !strings.Contains(ip, "/") {
 		return false
 	}
@@ -249,7 +249,7 @@ func IsIpCIDR(ip string) bool {
 	if strings.Contains(ip, ":") {
 		ipType = Ipv6Type
 	}
-	network, err := IpAndCIDRFillWithZero(ip, ipType)
+	network, err := FillAddressPrefixWithZero(ip, ipType)
 	if err != nil {
 		belogs.Error("IsIpCIDR(): IpAndCIDRFillWithZero err:", err)
 		return false
@@ -263,4 +263,14 @@ func IsIpCIDR(ip string) bool {
 	}
 	belogs.Debug("IsIpCIDR(): subnet:", subnet)
 	return true
+}
+
+func SplitAddressAndPrefix(addressPrefix string) (address string, prefix int, err error) {
+	if len(addressPrefix) == 0 || len(strings.Split(addressPrefix, "/")) != 2 {
+		return "", 0, errors.New("ip length or format is illegal")
+	}
+	split := strings.Split(addressPrefix, "/")
+	address = split[0]
+	prefix, err = strconv.Atoi(split[1])
+	return address, prefix, err
 }
