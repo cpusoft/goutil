@@ -47,6 +47,22 @@ func TestRtrFormatToIp(t *testing.T) {
 	fmt.Println(str)
 }
 
+func TestTrimAddressPrefixZero(t *testing.T) {
+	ips := []string{"19.99.91.0", "19.99.0.0/16"}
+
+	for _, ip := range ips {
+		str, err := TrimAddressPrefixZero(ip, Ipv4Type)
+		fmt.Println(ip, " --> ", str, err)
+
+	}
+	ips = []string{"2803:d380::/28", "2803::/28"}
+	for _, ip := range ips {
+		str, err := TrimAddressPrefixZero(ip, Ipv6Type)
+		fmt.Println(ip, " --> ", str, err)
+
+	}
+}
+
 func TestFillAddressPrefixWithZero(t *testing.T) {
 
 	ips := []string{"19.99.91", "19.99/16"}

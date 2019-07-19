@@ -107,6 +107,18 @@ func IpToRtrFormat(ip string) string {
 	return ""
 }
 
+// 192.168.0.0/24-->192.168/24    192.168.1.0-->192.168.1
+func TrimAddressPrefixZero(ip string, ipType int) (string, error) {
+	if ipType == Ipv4Type {
+		return strings.Replace(ip, ".0", "", -1), nil
+	} else if ipType == Ipv6Type {
+		// have no zero in ipv6
+		return ip, nil
+	} else {
+		return "", errors.New("illegal ipType")
+	}
+}
+
 // fill ip with zero:
 // 192.168.1 --> 192.168.1.0;   192.168/24 --> 192.168.0.0/24
 func FillAddressPrefixWithZero(ip string, ipType int) (string, error) {
