@@ -15,11 +15,12 @@ import (
 
 // rsync type
 const (
-	RSYNC_TYPE_ADD    = "add"
-	RSYNC_TYPE_DEL    = "del"
-	RSYNC_TYPE_UPDATE = "update"
-	RSYNC_TYPE_MKDIR  = "mkdir"
-	RSYNC_TYPE_IGNORE = "ignore"
+	RSYNC_TYPE_ADD       = "add"
+	RSYNC_TYPE_DEL       = "del"
+	RSYNC_TYPE_UPDATE    = "update"
+	RSYNC_TYPE_MKDIR     = "mkdir"
+	RSYNC_TYPE_IGNORE    = "ignore"
+	RSYNC_TYPE_JUST_SYNC = "justsync" //The file itself is not updated, just used to trigger sync sub-dir , so no need save to db
 
 	RSYNC_LOG_PREFIX = 12
 )
@@ -105,7 +106,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 		}
 	}
 
-	// then , need read all current existed cer file, to get sub ca repo
+	// then , need read all current existed cer file, to just to trigger sub ca repo sync
 	m := make(map[string]string, 0)
 	m[".cer"] = ".cer"
 	files, err := osutil.GetFilesInDir(rsyncDestPath, m)
@@ -114,6 +115,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 		for _, file := range files {
 			belogs.Debug("Rsync():file:", file)
 			found := false
+			// if this file had synced, should not repeated add
 			for _, rsyncResult := range rsyncResults {
 				if file == rsyncResult.FileName {
 					found = true
@@ -124,7 +126,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 			belogs.Debug("Rsync():GetFilesInDir,found:", found, "   file:", file)
 			if !found {
 				rsyncResult := RsyncResult{}
-				rsyncResult.RsyncType = RSYNC_TYPE_UPDATE
+				rsyncResult.RsyncType = RSYNC_TYPE_JUST_SYNC
 				rsyncResult.FilePath = rsyncDestPath
 				rsyncResult.FileName = file
 				rsyncResult.FileType = "cer"
