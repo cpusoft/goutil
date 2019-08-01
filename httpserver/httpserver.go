@@ -60,7 +60,7 @@ func ReceiveFiles(receiveDir string, r *rest.Request) (receiveFiles map[string]s
 	receiveFiles = make(map[string]string)
 	for {
 		part, err := reader.NextPart()
-		if err == io.EOF {
+		if err == io.EOF || part == nil {
 			break
 		}
 		if !strings.HasSuffix(receiveDir, string(os.PathSeparator)) {

@@ -2,6 +2,9 @@ package xormdb
 
 import (
 	"database/sql"
+	"os"
+	"path/filepath"
+
 	belogs "github.com/astaxie/beego/logs"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/core"
@@ -22,7 +25,8 @@ func InitMySql() error {
 	maxopenconns := conf.Int("mysql::maxopenconns")
 
 	openSql := user + ":" + password + "@tcp(" + server + ")/" + database
-	belogs.Info("InitMySql(): server is: ", server, database)
+	logName := filepath.Base(os.Args[0])
+	belogs.Info("InitMySql(): server is: ", server, database, logName)
 
 	//连接数据库
 	engine, err := xorm.NewEngine("mysql", openSql)
