@@ -15,14 +15,15 @@ func TestVerifyCertByX509(t *testing.T) {
 }
 
 func TestVerifyEeCertByX509(t *testing.T) {
-	/*/root/rpki/repo/repo/rpki.ripe.net/repository/DEFAULT/ec/49c449-2d9c-4fc9-b340-51a23ddb6410/1/
-	rtpKuIKhDn9Y8Zg6y9HhlQfmPsU.roa
-		"eeStart": 159,
-		"eeEnd": 1426
+	/*
+		/root/rpki/repo/repo/rpki.ripe.net/repository/DEFAULT/ec/49c449-2d9c-4fc9-b340-51a23ddb6410/1/
+		rtpKuIKhDn9Y8Zg6y9HhlQfmPsU.roa
+			"eeStart": 159,
+			"eeEnd": 1426
 
 
-		/root/rpki/repo/repo/rpki.ripe.net/repository/DEFAULT/
-		ACBRR9OW8JgDvUcuWBka9usiwvU.cer
+			/root/rpki/repo/repo/rpki.ripe.net/repository/DEFAULT/
+			ACBRR9OW8JgDvUcuWBka9usiwvU.cer
 	*/
 	path := `G:\Download\cert\verify\3\`
 	fatherFile := path + `ACBRR9OW8JgDvUcuWBka9usiwvU.cer`
