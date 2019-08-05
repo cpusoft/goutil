@@ -45,3 +45,11 @@ func TestIsDir(t *testing.T) {
 	fmt.Println(s, err)
 
 }
+func TestCloseAndRemoveFile(t *testing.T) {
+	userFile := `G:\Download\test.txt`
+	f, err := os.Create(userFile)
+
+	err = CloseAndRemoveFile(f)
+	fmt.Println(err)
+
+}

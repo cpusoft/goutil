@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 
 	belogs "github.com/astaxie/beego/logs"
+	osutil "github.com/cpusoft/goutil/osutil"
 )
 
 func VerifyCertByX509(fatherCertFile string, childCertFile string) (result string, err error) {
@@ -86,21 +87,30 @@ func VerifyRootCertByOpenssl(rootFile string) (result string, err error) {
 		error inter.pem.cer: verification failed
 	*/
 	/*
-			openssl x509 -inform DER -in AfriNIC.cer -out AfriNIC.cer.pem
-			openssl verify -check_ss_sig -Cafile AfriNIC.cer.pem AfriNIC.cer.pem
+				openssl x509 -inform DER -in AfriNIC.cer -out AfriNIC.cer.pem
+				openssl verify -check_ss_sig -Cafile AfriNIC.cer.pem AfriNIC.cer.pem
 
-		Split
-		cerFile, err = ioutil.TempFile("", certType) // temp file
+			Split
+			cerFile, err = ioutil.TempFile("", certType) // temp file
 
-		belogs.Debug("VerifyRootCertByOpenssl(): cmd:  openssl", "x509", "-noout", "-text", "-in", certFile, "--inform", "der")
-		cmd := exec.Command("openssl", "x509", "-noout", "-text", "-in", certFile, "--inform", "der")
-		output, err := cmd.CombinedOutput()
+			belogs.Debug("VerifyRootCertByOpenssl(): cmd:  openssl", "x509", "-noout", "-text", "-in", certFile, "--inform", "der")
+			cmd := exec.Command("openssl", "x509", "-noout", "-text", "-in", certFile, "--inform", "der")
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				belogs.Error("GetResultsByOpensslX509(): exec.Command: err: ", err, ": "+string(output))
+				return nil, err
+			}
+			result := string(output)
+			results = strings.Split(result, osutil.GetNewLineSep())
+
+		_, fileName := osutil.Split(rootFile)
+		fileName = fileName + ".pem"
+		cerFile, err := ioutil.TempFile("", fileName) // temp file
 		if err != nil {
-			belogs.Error("GetResultsByOpensslX509(): exec.Command: err: ", err, ": "+string(output))
+			belogs.Error("VerifyRootCertByOpenssl(): TempFile: err: ", err, ": "+string(output))
 			return nil, err
 		}
-		result := string(output)
-		results = strings.Split(result, osutil.GetNewLineSep())
+		defer os
 	*/
 	return "ok", nil
 }
