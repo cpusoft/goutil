@@ -3,7 +3,10 @@ package cert
 import (
 	"crypto/x509"
 	"encoding/asn1"
+	"errors"
 	"io/ioutil"
+	"os/exec"
+	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
 	osutil "github.com/cpusoft/goutil/osutil"
@@ -87,30 +90,43 @@ func VerifyRootCertByOpenssl(rootFile string) (result string, err error) {
 		error inter.pem.cer: verification failed
 	*/
 	/*
-				openssl x509 -inform DER -in AfriNIC.cer -out AfriNIC.cer.pem
-				openssl verify -check_ss_sig -Cafile AfriNIC.cer.pem AfriNIC.cer.pem
-
-			Split
-			cerFile, err = ioutil.TempFile("", certType) // temp file
-
-			belogs.Debug("VerifyRootCertByOpenssl(): cmd:  openssl", "x509", "-noout", "-text", "-in", certFile, "--inform", "der")
-			cmd := exec.Command("openssl", "x509", "-noout", "-text", "-in", certFile, "--inform", "der")
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				belogs.Error("GetResultsByOpensslX509(): exec.Command: err: ", err, ": "+string(output))
-				return nil, err
-			}
-			result := string(output)
-			results = strings.Split(result, osutil.GetNewLineSep())
-
-		_, fileName := osutil.Split(rootFile)
-		fileName = fileName + ".pem"
-		cerFile, err := ioutil.TempFile("", fileName) // temp file
-		if err != nil {
-			belogs.Error("VerifyRootCertByOpenssl(): TempFile: err: ", err, ": "+string(output))
-			return nil, err
-		}
-		defer os
+		openssl x509 -inform DER -in AfriNIC.cer -out AfriNIC.cer.pem
+		openssl verify -check_ss_sig -Cafile AfriNIC.cer.pem AfriNIC.cer.pem
 	*/
+	belogs.Debug("VerifyRootCertByOpenssl():rootFile", rootFile)
+	_, file := osutil.Split(rootFile)
+	pemFile, err := ioutil.TempFile("", file+".pem") // temp file
+	if err != nil {
+		belogs.Error("VerifyRootCertByOpenssl(): exec.Command: err: ", err, rootFile)
+		return "fail", err
+	}
+	defer osutil.CloseAndRemoveFile(pemFile)
+
+	// cer --> pem
+	belogs.Debug("VerifyRootCertByOpenssl(): cmd: openssl", "x509", "-inform", "der", "-in", rootFile, "-out", pemFile)
+	cmd := exec.Command("openssl", "x509", "-inform", "der", "-in", rootFile, "-out", pemFile.Name())
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		belogs.Error("VerifyRootCertByOpenssl(): exec x509: err: ", err, ": "+string(output), rootFile)
+		return "fail", err
+	}
+	if len(output) != 0 {
+		belogs.Error("VerifyRootCertByOpenssl(): convert cer to pem fail: err:", string(output), rootFile)
+		return "fail", errors.New("convert cer to pem fail")
+	}
+
+	// verify
+	belogs.Debug("VerifyRootCertByOpenssl(): cmd: openssl", "verify", "-check_ss_sig", "-CAfile", pemFile.Name(), pemFile.Name())
+	cmd = exec.Command("openssl", "verify", "-check_ss_sig", "-CAfile", pemFile.Name(), pemFile.Name())
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		belogs.Error("VerifyRootCertByOpenssl(): exec verify: err: ", err, ": "+string(output), rootFile)
+		return "fail", err
+	}
+	out := string(output)
+	if !strings.Contains(out, "OK") {
+		belogs.Error("VerifyRootCertByOpenssl(): verify pem fail: err: ", string(output), rootFile)
+		return "fail", errors.New("verify pem fail")
+	}
 	return "ok", nil
 }
