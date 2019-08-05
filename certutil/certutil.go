@@ -73,3 +73,34 @@ func VerifyCertByteByX509(fatherCertByte []byte, childCertByte []byte) (result s
 	}
 	return "ok", nil
 }
+
+func VerifyRootCertByOpenssl(rootFile string) (result string, err error) {
+	/*
+
+			G:\Download\cert\verify\2>openssl verify -check_ss_sig -CAfile root.pem.cer  inter.pem.cer
+		inter.pem.cer: OK
+
+		G:\Download\cert\verify\2>openssl verify -check_ss_sig -CAfile inter.pem.cer  inter.pem.cer
+		CN = apnic-rpki-root-intermediate, serialNumber = 98142C9D0B41A3B9FB603D769848236FD1F31924
+		error 20 at 0 depth lookup: unable to get local issuer certificate
+		error inter.pem.cer: verification failed
+	*/
+	/*
+			openssl x509 -inform DER -in AfriNIC.cer -out AfriNIC.cer.pem
+			openssl verify -check_ss_sig -Cafile AfriNIC.cer.pem AfriNIC.cer.pem
+
+		Split
+		cerFile, err = ioutil.TempFile("", certType) // temp file
+
+		belogs.Debug("VerifyRootCertByOpenssl(): cmd:  openssl", "x509", "-noout", "-text", "-in", certFile, "--inform", "der")
+		cmd := exec.Command("openssl", "x509", "-noout", "-text", "-in", certFile, "--inform", "der")
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			belogs.Error("GetResultsByOpensslX509(): exec.Command: err: ", err, ": "+string(output))
+			return nil, err
+		}
+		result := string(output)
+		results = strings.Split(result, osutil.GetNewLineSep())
+	*/
+	return "ok", nil
+}

@@ -37,10 +37,16 @@ func IsFile(file string) (bool, error) {
 	return !s, err
 }
 
-// path.Base() using in windows,
+// make path.Base() using in windows,
 func Base(p string) string {
 	p = strings.Replace(p, "\\", "/", -1)
 	return path.Base(p)
+}
+
+// make path.Split using in win
+func Split(p string) (dir, file string) {
+	p = strings.Replace(p, "\\", "/", -1)
+	return path.Split(p)
 }
 
 // path.Ext() using in windows,
