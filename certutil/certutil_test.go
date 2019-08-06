@@ -5,12 +5,44 @@ import (
 	"testing"
 )
 
+func TestReadFileToCer(t *testing.T) {
+	path := `G:\Download\cert\verify\2\`
+	fatherFile := path + `inter.pem.cer`
+	p, err := ReadFileToCer(fatherFile)
+	fmt.Println(p, err)
+
+	fatherFile = `G:\Download\cert\verify\3\rtpKuIKhDn9Y8Zg6y9HhlQfmPsU.roa`
+	p, err = ReadFileToCer(fatherFile)
+	fmt.Println(p, err)
+}
+func TestReadFileToCrl(t *testing.T) {
+	path := `G:\Download\cert\1\`
+	fatherFile := path + `ACBRR9OW8JgDvUcuWBka9usiwvU.crl`
+	p, err := ReadFileToCrl(fatherFile)
+	fmt.Println(p, err)
+
+	fatherFile = `G:\Download\cert\verify\3\rtpKuIKhDn9Y8Zg6y9HhlQfmPsU.roa`
+	p, err = ReadFileToCrl(fatherFile)
+	fmt.Println(p, err)
+}
+
+func TestReadFileToByte(t *testing.T) {
+	path := `G:\Download\cert\verify\2\`
+	fatherFile := path + `inter.pem.cer`
+	p, by, err := ReadFileToByte(fatherFile)
+	fmt.Println(p, by, err)
+
+	fatherFile = path + `inter.cer`
+	p, by, err = ReadFileToByte(fatherFile)
+	fmt.Println(p, by, err)
+}
+
 func TestVerifyCertByX509(t *testing.T) {
 	path := `G:\Download\cert\verify\2\`
 	fatherFile := path + `inter.cer`
 	childFile := path + `A9.cer`
 
-	result, err := VerifyCertByX509(fatherFile, childFile)
+	result, err := VerifyCerByX509(fatherFile, childFile)
 	fmt.Println(result, err)
 }
 func TestVerifyRootCertByX509(t *testing.T) {
@@ -18,7 +50,7 @@ func TestVerifyRootCertByX509(t *testing.T) {
 	fatherFile := path + `inter.cer`
 	childFile := path + `inter.cer`
 
-	result, err := VerifyCertByX509(fatherFile, childFile)
+	result, err := VerifyCerByX509(fatherFile, childFile)
 	fmt.Println(result, err)
 }
 func TestVerifyEeCertByX509(t *testing.T) {
