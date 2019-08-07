@@ -71,3 +71,14 @@ func TestVerifyEeCertByX509(t *testing.T) {
 	result, err := VerifyEeCertByX509(fatherFile, childFile, 159, 1426)
 	fmt.Println(result, err)
 }
+
+func TestVerifyCrlByX509(t *testing.T) {
+	path := `G:\Download\cert\verify\4\`
+
+	//cerFile := path + `inter.cer` //err
+	cerFile := path + `bW-_qXU9uNhGQz21NR2ansB8lr0.cer` //ok
+	crlFile := path + `bW-_qXU9uNhGQz21NR2ansB8lr0.crl`
+
+	result, err := VerifyCrlByX509(cerFile, crlFile)
+	fmt.Println(result, err)
+}

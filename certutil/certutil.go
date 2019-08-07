@@ -167,14 +167,29 @@ func VerifyRootCerByOpenssl(rootFile string) (result string, err error) {
 	return "ok", nil
 }
 
-func VerifyCrlByOpenssl(cerFile, crlFile string) (result string, err error) {
+func VerifyCrlByX509(cerFile, crlFile string) (result string, err error) {
 	/*
-		cer, err := x509.ParseCertificate(fileByte)
-		if err != nil {
-			belogs.Error("ParseCerModelByX509():ParseCertificate err:", err)
-			return err
-		}
-		belogs.Debug("ParseCerModelByX509():cer:", jsonutil.MarshalJson(cer))
+		openssl crl -inform DER -in crl.der -outform PEM -out crl.pem
+			openssl verify -crl_check -CAfile crl_chain.pem wikipedia.pem
+
 	*/
+
+	cer, err := ReadFileToCer(cerFile)
+	if err != nil {
+		belogs.Error("VerifyCrlByX509(): ReadFileToCer fail: err: ", err, cerFile)
+		return "fail", err
+	}
+
+	crl, err := ReadFileToCrl(crlFile)
+	if err != nil {
+		belogs.Error("VerifyCrlByX509(): ReadFileToCrl fail: err: ", err, crlFile)
+		return "fail", err
+	}
+
+	err = cer.CheckCRLSignature(crl)
+	if err != nil {
+		belogs.Error("VerifyCrlByX509(): CheckCRLSignature fail: err: ", err, cerFile, crlFile)
+		return "fail", err
+	}
 	return "ok", nil
 }
