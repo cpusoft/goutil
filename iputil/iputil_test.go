@@ -98,7 +98,7 @@ func TestIpStrToHexString(t *testing.T) {
 
 func TestAddressPrefixToHexRange(t *testing.T) {
 
-	ips := []string{"19.99/16"}
+	ips := []string{"192.236/23"}
 	for _, ip := range ips {
 		ipp, err := FillAddressPrefixWithZero(ip, Ipv4Type)
 		min, max, err := AddressPrefixToHexRange(ipp, Ipv4Type)
