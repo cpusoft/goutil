@@ -2,6 +2,7 @@ package tcpudputil
 
 import (
 	"net"
+	"time"
 
 	belogs "github.com/astaxie/beego/logs"
 )
@@ -12,10 +13,7 @@ type clientProcess func(conn net.Conn) error
 // server: 111.111.111.111:9999
 func CreateTcpClient(server string, clientProcess clientProcess) (err error) {
 	belogs.Debug("CreateTcpClient():create client, server is  ", server, "   clientProcess:", clientProcess)
-
-	tcpServer, err := net.ResolveTCPAddr("tcp4", server)
-
-	conn, err := net.DialTCP("tcp", nil, tcpServer)
+	conn, err := net.DialTimeout("tcp4", server, time.Duration(5)*time.Minute)
 	if err != nil {
 		belogs.Error("CreateTcpClient(): Dial fail: ", server, err)
 		return err
