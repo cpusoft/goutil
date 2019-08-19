@@ -6,6 +6,7 @@ import (
 	belogs "github.com/astaxie/beego/logs"
 )
 
+// shoud add defer conn.Close()
 type clientProcess func(conn net.Conn) error
 
 // server: 111.111.111.111:9999
@@ -24,6 +25,7 @@ func CreateTcpClient(server string, clientProcess clientProcess) (err error) {
 	return clientProcess(conn)
 }
 
+// shoud add defer conn.Close()
 type serverProcess func(conn net.Conn)
 
 // server: 111.111.111.111:9999
