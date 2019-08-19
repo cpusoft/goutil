@@ -10,7 +10,7 @@ import (
 // shoud add defer conn.Close()
 type clientProcess func(conn net.Conn) error
 
-// server: 111.111.111.111:9999
+// server: **.**.**.**:port
 func CreateTcpClient(server string, clientProcess clientProcess) (err error) {
 	belogs.Debug("CreateTcpClient():create client, server is  ", server, "   clientProcess:", clientProcess)
 	conn, err := net.DialTimeout("tcp4", server, time.Duration(5)*time.Minute)
@@ -26,7 +26,7 @@ func CreateTcpClient(server string, clientProcess clientProcess) (err error) {
 // shoud add defer conn.Close()
 type serverProcess func(conn net.Conn)
 
-// server: 111.111.111.111:9999
+// server: 0.0.0.0:port
 func CreateTcpServer(server string, serverProcess serverProcess) (err error) {
 
 	belogs.Debug("CreateTcpServer():create server  ", server, "   serverProcess:", serverProcess)
