@@ -107,6 +107,67 @@ func IpToRtrFormat(ip string) string {
 	return ""
 }
 
+//Bad way, still need to find a good way
+func IpToRtrFormatByte(ip string) []byte {
+	belogs.Debug("IpToRtrFormatByte():ip", ip)
+
+	// format  ipv4
+	ipsV4 := strings.Split(ip, ".")
+	if len(ipsV4) > 1 {
+		byt := make([]byte, 4)
+		for i, _ := range ipsV4 {
+			tmp, err := strconv.Atoi(ipsV4[i])
+			belogs.Debug("IpToRtrFormatByte():ipv6 Atoi i:", i, " ipsV4[i]:", ipsV4[i], "   tmp:", tmp)
+			if err != nil {
+				belogs.Debug("IpToRtrFormatByte():ipv4 Atoi err:", ipsV4[i], err)
+				return nil
+			}
+			byt[i] = byte(tmp)
+		}
+		return byt
+	}
+
+	// format ipv6
+	count := strings.Count(ip, ":")
+	if count > 0 {
+		count := strings.Count(ip, ":")
+		if count < 7 { // total colon is 8
+			needCount := 7 - count + 2 //2 is current "::", need add
+			colon := strings.Repeat(":", needCount)
+			ip = strings.Replace(ip, "::", colon, -1)
+		}
+		belogs.Debug("IpToRtrFormatByte():new ip", ip)
+
+		ipsV6 := strings.Split(ip, ":")
+		byt := make([]byte, 16)
+		bytIndx := 0
+		for i, _ := range ipsV6 {
+			tmpV6 := fmt.Sprintf("%04s", ipsV6[i])
+			tmp1 := tmpV6[0:2]
+			tmp2 := tmpV6[2:4]
+			belogs.Debug("IpToRtrFormatByte():tmpV6:", tmpV6, "  tmp1:", tmp1, "  tmp2:", tmp2)
+
+			bb, err := strconv.ParseUint(tmp1, 16, 0)
+			if err != nil {
+				belogs.Debug("IpToRtrFormatByte():tmp1 Atoi err:", tmp1, err)
+				return nil
+			}
+			byt[bytIndx] = byte(bb)
+			bytIndx++
+
+			bb, err = strconv.ParseUint(tmp2, 16, 0)
+			if err != nil {
+				belogs.Debug("IpToRtrFormatByte():tmp2 Atoi err:", tmp2, err)
+				return nil
+			}
+			byt[bytIndx] = byte(bb)
+			bytIndx++
+		}
+		return byt
+	}
+	return nil
+}
+
 // 192.168.0.0/24-->192.168/24    192.168.1.0-->192.168.1
 func TrimAddressPrefixZero(ip string, ipType int) (string, error) {
 	if ipType == Ipv4Type {

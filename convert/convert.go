@@ -18,6 +18,7 @@ func Bytes2Uint64(bytes []byte) uint64 {
 	return binary.BigEndian.Uint64(bb)
 }
 
+//0102abc1
 func Bytes2String(byt []byte) string {
 	return hex.EncodeToString(byt)
 }

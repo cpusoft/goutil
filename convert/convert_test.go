@@ -31,7 +31,7 @@ func TestInterface2Map(t *testing.T) {
 }
 
 func TestBytes2String(t *testing.T) {
-	byt := []byte{0x01, 0x02, 0x03}
+	byt := []byte{0x01, 0x02, 0x03, 0xa1, 0xfc, 0x7c}
 	s := Bytes2String(byt)
 	fmt.Println(s)
 }

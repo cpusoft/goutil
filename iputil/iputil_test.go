@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/cpusoft/goutil/convert"
+
 	ip "."
 )
 
@@ -33,6 +35,20 @@ func TestIpToRtrFormat(t *testing.T) {
 	str = "2001:DB8::"
 	di = ip.IpToRtrFormat(str)
 	fmt.Println(di)
+
+}
+
+func TestIpToRtrFormatByte(t *testing.T) {
+	// dig: 13635B00  str:19.99.91.0
+	str := "19.99.91.0"
+	di := ip.IpToRtrFormatByte(str)
+	fmt.Println(di)
+	fmt.Println(convert.Bytes2String(di))
+
+	str = "2001:DB8::"
+	di2 := ip.IpToRtrFormatByte(str)
+	fmt.Println(di2)
+	fmt.Println(convert.Bytes2String(di2))
 
 }
 
