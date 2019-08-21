@@ -1,6 +1,7 @@
 package convert
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -9,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cpusoft/goutil/osutil"
 )
 
 func Bytes2Uint64(bytes []byte) uint64 {
@@ -21,6 +24,23 @@ func Bytes2Uint64(bytes []byte) uint64 {
 //0102abc1
 func Bytes2String(byt []byte) string {
 	return hex.EncodeToString(byt)
+}
+
+// print bytes in section to show,  num==8
+func PrintBytes(data []byte, num int) (ret string) {
+	return Bytes2StringSection(data, num)
+}
+
+// print bytes in section to show
+func Bytes2StringSection(data []byte, num int) (ret string) {
+	var buffer bytes.Buffer
+	for i, b := range data {
+		buffer.WriteString(fmt.Sprintf("%02x ", b))
+		if i > 0 && num > 0 && (i+1)%num == 0 {
+			buffer.WriteString(osutil.GetNewLineSep())
+		}
+	}
+	return buffer.String()
 }
 
 func GetInterfaceType(v interface{}) (string, error) {

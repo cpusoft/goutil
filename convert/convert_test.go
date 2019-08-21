@@ -35,3 +35,9 @@ func TestBytes2String(t *testing.T) {
 	s := Bytes2String(byt)
 	fmt.Println(s)
 }
+
+func TestBytes2StringSection(t *testing.T) {
+	byt := []byte{0x01, 0x02, 0x03, 0xa1, 0xfc, 0x7c, 0x01, 0x02, 0x03, 0xa1, 0xfc, 0x7c}
+	s := Bytes2StringSection(byt, 8)
+	fmt.Println(s)
+}
