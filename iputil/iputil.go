@@ -169,7 +169,8 @@ func IpToRtrFormatByte(ip string) []byte {
 	return nil
 }
 
-// 210.173.160/19 --> []byte 0xD2ADA000 19
+// 210.173.160/19 --> []byte{0xD2ADA000} 19
+// 2803:d380/24 --> []byte{0x2803d3800**00} 24
 func AddressPrefixToRtrFormatByte(addressPrefix string) (ipHex []byte, prefixLength int, ipType int, err error) {
 	address, prefixLength, err := SplitAddressAndPrefix(addressPrefix)
 	belogs.Debug("AddressPrefixToRtrFormatByte(): after SplitAddressAndPrefix  :", address, prefixLength)
