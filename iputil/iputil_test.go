@@ -115,11 +115,11 @@ func TestIpStrToHexString(t *testing.T) {
 	}
 }
 
-func TestAddressPrefixToRtrFormatByte(t *testing.T) {
-	ips := []string{"192.216/23", "19.99.91/23", "2803:d380/28"}
+func TestAddressToRtrFormatByte(t *testing.T) {
+	ips := []string{"192.216", "19.99.91.0", "2803:d380"}
 	for _, ip := range ips {
-		ipHex, prefixLength, ipType, err := AddressPrefixToRtrFormatByte(ip)
-		fmt.Println(ip, " --> ", ipHex, prefixLength, ipType, err)
+		ipHex, ipType, err := AddressToRtrFormatByte(ip)
+		fmt.Println(ip, " --> ", ipHex, ipType, err)
 	}
 }
 

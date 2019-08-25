@@ -169,28 +169,17 @@ func IpToRtrFormatByte(ip string) []byte {
 	return nil
 }
 
-// 210.173.160/19 --> []byte{0xD2ADA000} 19
-// 2803:d380/24 --> []byte{0x2803d3800**00} 24
-func AddressPrefixToRtrFormatByte(addressPrefix string) (ipHex []byte, prefixLength int, ipType int, err error) {
-	address, prefixLength, err := SplitAddressAndPrefix(addressPrefix)
-	belogs.Debug("AddressPrefixToRtrFormatByte(): after SplitAddressAndPrefix  :", address, prefixLength)
-	if err != nil {
-		return nil, 0, 0, err
-	}
+// 210.173.160 --> []byte{0xD2ADA000}
+// 2803:d380 --> []byte{0x2803d3800**00}
+func AddressToRtrFormatByte(address string) (ipHex []byte, ipType int, err error) {
 
 	ipType = GetIpType(address)
-	belogs.Debug("AddressPrefixToRtrFormatByte(): after GetIpType  :", ipType)
+	belogs.Debug("AddressToRtrFormatByte(): after GetIpType  :", ipType)
 
-	addressPrefixFill, err := FillAddressPrefixWithZero(addressPrefix, ipType)
-	belogs.Debug("AddressPrefixToRtrFormatByte(): after FillAddressPrefixWithZero  :", addressPrefixFill)
+	addressFill, err := FillAddressWithZero(address, ipType)
+	belogs.Debug("AddressToRtrFormatByte(): after FillAddressWithZero  :", addressFill, err)
 	if err != nil {
-		return nil, 0, 0, err
-	}
-
-	addressFill, _, err := SplitAddressAndPrefix(addressPrefixFill)
-	belogs.Debug("AddressPrefixToRtrFormatByte(): after SplitAddressAndPrefix addressFill :", addressFill)
-	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 
 	if ipType == Ipv4Type {
@@ -200,7 +189,7 @@ func AddressPrefixToRtrFormatByte(addressPrefix string) (ipHex []byte, prefixLen
 	}
 	belogs.Debug("AddressPrefixToRtrFormatByte(): after ParseIP  :", ipHex)
 
-	return ipHex, prefixLength, ipType, nil
+	return ipHex, ipType, nil
 
 }
 
@@ -216,40 +205,47 @@ func TrimAddressPrefixZero(ip string, ipType int) (string, error) {
 	}
 }
 
-// fill ip with zero:
+// fill addressprefix with zero:
 // 192.168/24 --> 192.168.0.0/24  2803:d380/28 --> 2803:d380::/28
 func FillAddressPrefixWithZero(addressPrefix string, ipType int) (addressPrefixFill string, err error) {
 
-	prefix := ""
-	ipp := addressPrefix
-	pos := strings.Index(addressPrefix, "/")
-	if pos > 0 {
-		prefix = string(addressPrefix[pos:])
-		ipp = string(addressPrefix[:pos])
+	address, prefix, err := SplitAddressAndPrefix(addressPrefix)
+	belogs.Debug("FillAddressPrefixWithZero():after SplitAddressAndPrefix:", address, "     prefix:", prefix, err)
+	if err != nil {
+		return "", err
 	}
-	belogs.Debug("FillAddressPrefixWithZero():addressPrefix:", addressPrefix, "     ipType:", ipType, " --> ipp:", ipp,
-		"   prefix:", prefix, "   pos:", pos)
 
+	addressFile, err := FillAddressWithZero(address, ipType)
+	belogs.Debug("FillAddressPrefixWithZero():after FillAddressWithZero:", addressFile, "     prefix:", prefix, err)
+	if err != nil {
+		return "", err
+	}
+	return addressFile + "/" + strconv.Itoa(prefix), nil
+}
+
+// fill address with zero:
+// 192.168 --> 192.168.0.0  2803:d380 --> 2803:d380::
+func FillAddressWithZero(address string, ipType int) (addressFill string, err error) {
 	if ipType == Ipv4Type {
-		countComma := strings.Count(ipp, ".")
+		countComma := strings.Count(address, ".")
 		if countComma == 3 {
-			addressPrefixFill = ipp + prefix
+			addressFill = address
 		} else if countComma < 3 {
-			addressPrefixFill = ipp + strings.Repeat(".0", net.IPv4len-countComma-1) + prefix
+			addressFill = address + strings.Repeat(".0", net.IPv4len-countComma-1)
 		}
-		belogs.Debug("FillAddressPrefixWithZero():ipv4  addressPrefix-->addressPrefixFill :", addressPrefix, addressPrefixFill)
-		return addressPrefixFill, nil
+		belogs.Debug("FillAddressWithZero():ipv4  address-->addressFill :", address, addressFill)
+		return addressFill, nil
 	} else if ipType == Ipv6Type {
-		countColon := strings.Count(ipp, ":")
+		countColon := strings.Count(address, ":")
 		if countColon == 7 {
-			addressPrefixFill = ipp + prefix
-		} else if strings.HasSuffix(ipp, "::") {
-			addressPrefixFill = ipp + prefix
+			addressFill = address
+		} else if strings.HasSuffix(address, "::") {
+			addressFill = address
 		} else {
-			addressPrefixFill = ipp + "::" + prefix
+			addressFill = address + "::"
 		}
-		belogs.Debug("FillAddressPrefixWithZero():ipv6  addressPrefix-->addressPrefixFill :", addressPrefix, addressPrefixFill)
-		return addressPrefixFill, nil
+		belogs.Debug("FillAddressWithZero():ipv6  address-->addressFill :", address, addressFill)
+		return addressFill, nil
 
 	} else {
 		return "", errors.New("illegal ipType")
