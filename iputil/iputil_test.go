@@ -93,6 +93,9 @@ func TestFillAddressPrefixWithZero(t *testing.T) {
 		str, err := FillAddressPrefixWithZero(ip, Ipv6Type)
 		fmt.Println(ip, " --> ", str, err)
 
+		strFill, err := IpStrToHexString(str, Ipv6Type)
+		fmt.Println(str, " --> ", strFill, err)
+
 	}
 }
 
@@ -109,6 +112,14 @@ func TestIpStrToHexString(t *testing.T) {
 		str, err := IpStrToHexString(ip, Ipv6Type)
 		fmt.Println(ip, " --> ", str, err)
 
+	}
+}
+
+func TestAddressPrefixToRtrFormatByte(t *testing.T) {
+	ips := []string{"192.216/23", "19.99.91/23", "2803:d380/28"}
+	for _, ip := range ips {
+		ipHex, prefixLength, ipType, err := AddressPrefixToRtrFormatByte(ip)
+		fmt.Println(ip, " --> ", ipHex, prefixLength, ipType, err)
 	}
 }
 
