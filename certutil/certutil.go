@@ -74,6 +74,11 @@ func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, e
 		belogs.Error("VerifyEeCertByX509():childCertFile:", mftRoaFile, "   ReadFile err:", err)
 		return "fail", err
 	}
+	if eeCertStart >= eeCertEnd || len(mftRoaFileByte) < int(eeCertEnd) {
+		belogs.Error("VerifyEeCertByX509():mftRoaFileByte[eeCertStart:eeCertEnd] err:", mftRoaFile,
+			"   eeCertStart :", eeCertStart, "   eeCertEnd:", eeCertEnd, "   len(mftRoaFileByte):", len(mftRoaFileByte))
+		return "fail", err
+	}
 	b := mftRoaFileByte[eeCertStart:eeCertEnd]
 	return VerifyCerByteByX509(fatherFileByte, b)
 }
