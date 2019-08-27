@@ -64,12 +64,12 @@ func ClientProcess1(conn net.Conn) error {
 	fmt.Println("client read:", n, convert.Bytes2String(recvByte))
 	return nil
 }
-
-func TestCreateTcpServer(t *testing.T) {
-	CreateTcpServer("0.0.0.0:9999", ServerProcess1)
-}
 func TestCreateTcpClient(t *testing.T) {
 	CreateTcpClient("127.0.0.1:9999", ClientProcess1)
 
 	time.Sleep(time.Duration(10) * time.Second)
+}
+
+func TestCreateTcpServer(t *testing.T) {
+	CreateTcpServer("0.0.0.0:9999", ServerProcess1)
 }
