@@ -116,12 +116,21 @@ func SqlNullString(s string) sql.NullString {
 	}
 }
 
-func SqlNullInt(s int) sql.NullInt64 {
+func SqlNullInt(s int64) sql.NullInt64 {
 	if s < 0 {
 		return sql.NullInt64{}
 	}
 	return sql.NullInt64{
-		Int64: int64(s),
+		Int64: s,
+		Valid: true,
+	}
+}
+func SqlNullIntPtr(s *int64) sql.NullInt64 {
+	if s == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{
+		Int64: *s,
 		Valid: true,
 	}
 }
