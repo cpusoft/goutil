@@ -125,12 +125,3 @@ func SqlNullInt(s int64) sql.NullInt64 {
 		Valid: true,
 	}
 }
-func SqlNullIntPtr(s *int64) sql.NullInt64 {
-	if s == nil {
-		return sql.NullInt64{}
-	}
-	return sql.NullInt64{
-		Int64: *s,
-		Valid: true,
-	}
-}
