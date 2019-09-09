@@ -76,7 +76,7 @@ func Rsync(rsyncUrl string, destPath string) ([]RsyncResult, error) {
 	cmd := exec.Command("rsync", "-Lirzts", "--del", "--timeout=15", "--contimeout=15", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Error("Rsync(): exec.Command: err: ", err, ": "+string(output))
+		belogs.Alert("Rsync(): exec.Command fail, rsyncUrl is :", rsyncUrl, "   output is ", string(output), " err is :", err)
 		return nil, err
 	}
 
