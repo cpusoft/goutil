@@ -14,7 +14,7 @@ func MarshalJson(f interface{}) string {
 	return string(body)
 }
 
-func MarshallJsonInent(f interface{}) string {
+func MarshallJsonIndent(f interface{}) string {
 	body, err := json.Marshal(f)
 	if err != nil {
 		return ""

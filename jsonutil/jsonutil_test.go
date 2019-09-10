@@ -34,7 +34,7 @@ func TestJson(t *testing.T) {
 	body1 := MarshalJson(user)
 	fmt.Println(body1)
 
-	body1a := MarshallJsonInent(user)
+	body1a := MarshallJsonIndent(user)
 	fmt.Println(body1a)
 
 	var user1 = User{}
