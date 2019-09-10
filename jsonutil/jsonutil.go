@@ -1,6 +1,7 @@
 package jsonutil
 
 import (
+	"bytes"
 	"encoding/json"
 )
 
@@ -11,6 +12,19 @@ func MarshalJson(f interface{}) string {
 		return ""
 	}
 	return string(body)
+}
+
+func MarshallJsonInent(f interface{}) string {
+	body, err := json.Marshal(f)
+	if err != nil {
+		return ""
+	}
+	var out bytes.Buffer
+	err = json.Indent(&out, body, "", "    ")
+	if err != nil {
+		return ""
+	}
+	return out.String()
 }
 
 /*

@@ -33,6 +33,10 @@ func TestJson(t *testing.T) {
 
 	body1 := MarshalJson(user)
 	fmt.Println(body1)
+
+	body1a := MarshallJsonInent(user)
+	fmt.Println(body1a)
+
 	var user1 = User{}
 	UnmarshalJson(body1, &user1)
 	fmt.Println("after Unmarshal: ", user1)
