@@ -220,7 +220,7 @@ func FillAddressPrefixWithZero(addressPrefix string, ipType int) (addressPrefixF
 	if err != nil {
 		return "", err
 	}
-	return addressFile + "/" + strconv.Itoa(prefix), nil
+	return addressFile + "/" + strconv.Itoa(int(prefix)), nil
 }
 
 // fill address with zero:
@@ -379,12 +379,13 @@ func IsAddressPrefix(ip string) bool {
 	return true
 }
 
-func SplitAddressAndPrefix(addressPrefix string) (address string, prefix int, err error) {
+func SplitAddressAndPrefix(addressPrefix string) (address string, prefix uint64, err error) {
 	if len(addressPrefix) == 0 || len(strings.Split(addressPrefix, "/")) != 2 {
 		return "", 0, errors.New("ip length or format is illegal")
 	}
 	split := strings.Split(addressPrefix, "/")
 	address = split[0]
-	prefix, err = strconv.Atoi(split[1])
+	p, err := strconv.Atoi(split[1])
+	prefix = uint64(p)
 	return address, prefix, err
 }

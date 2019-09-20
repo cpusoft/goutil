@@ -1,6 +1,7 @@
 package jsonutil
 
 import (
+	"container/list"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -36,6 +37,17 @@ func TestJson(t *testing.T) {
 
 	body1a := MarshallJsonIndent(user)
 	fmt.Println(body1a)
+
+	ll := list.New()
+	ll.PushBack(user)
+
+	bodylist := MarshallJsonIndent(&ll)
+	fmt.Println(bodylist)
+
+	users := make([]User, 0)
+	users = append(users, user)
+	bodys := MarshallJsonIndent(users)
+	fmt.Println(bodys)
 
 	var user1 = User{}
 	UnmarshalJson(body1, &user1)
