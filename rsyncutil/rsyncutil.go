@@ -205,3 +205,18 @@ func parseRsyncResult(destPath, result string) (RsyncResult, error) {
 	return rsyncResult, nil
 
 }
+
+// only rsync local files, include file extension
+func RsyncLocalIncludeFileExt(srcPath string, destPath string, includeFileExt string) error {
+	//rsync -Lrts --del  --no-motd --include="*.roa" --include="*/"  --exclude="*" /root/rpki/repo/repo /root/rpki/repo/repo-1
+	belogs.Debug("RsyncLocalIncludeFileExt(): Command: rsync", "-Lrts", "--del", "--no-motd", "-4", "--include=\""+includeFileExt+"\"",
+		"--include=\"*/\"", "--exclude=\"*\"", srcPath, destPath)
+	cmd := exec.Command("rsync", "-Lrts", "--del", "--no-motd", "-4", "--include=\""+includeFileExt+"\"",
+		"--include=\"*/\"", "--exclude=\"*\"", srcPath, destPath)
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		belogs.Alert("RsyncLocalIncludeFileExt(): exec.Command fail, srcPath is :", srcPath, "   destPath is ", destPath, " err is :", err)
+		return err
+	}
+	return nil
+}
