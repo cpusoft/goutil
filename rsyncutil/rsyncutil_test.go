@@ -8,7 +8,7 @@ import (
 func TestRsyncLocalIncludeFileExt(t *testing.T) {
 	srcPath := "/root/rpki/repo/repo"
 	destPath := "/root/rpki/repo/repo-1"
-	includeFileExt = "*.roa"
+	includeFileExt := "*.roa"
 	err := RsyncLocalIncludeFileExt(srcPath, destPath, includeFileExt)
 	fmt.Println(err)
 }
