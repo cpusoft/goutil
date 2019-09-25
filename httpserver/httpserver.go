@@ -98,3 +98,9 @@ func GetOkHttpResponse() HttpResponse {
 		Msg:    ""}
 
 }
+func GetFailHttpResponse(err error) HttpResponse {
+	return HttpResponse{
+		Result: "fail",
+		Msg:    err.Error()}
+
+}
