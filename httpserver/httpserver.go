@@ -92,3 +92,9 @@ func RemoveReceiveFiles(receiveFiles map[string]string) {
 		os.Remove(v)
 	}
 }
+func GetOkHttpResponse() HttpResponse {
+	return HttpResponse{
+		Result: "ok",
+		Msg:    ""}
+
+}
