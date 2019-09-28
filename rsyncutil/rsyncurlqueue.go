@@ -61,6 +61,10 @@ func (r *RsyncUrlQueue) GetRsyncUrls() []RsyncUrl {
 	}
 	return urls
 }
+
+func (r *RsyncUrlQueue) GetRsyncingCount() int64 {
+	return atomic.LoadInt64(&r.RsyncingCount)
+}
 func (r *RsyncUrlQueue) AddRsyncingCount() int64 {
 	return atomic.AddInt64(&r.RsyncingCount, 1)
 }
@@ -73,10 +77,9 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) (RsyncUrl, error) {
 	if len(url) == 0 || len(dest) == 0 {
 		return RsyncUrl{}, errors.New("rsync url or dest is emtpy")
 	}
-	belogs.Debug("AddNewUrl():r.Mutex.Lock() ", url)
+
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
-	belogs.Debug("AddNewUrl():get r.Mutex.Lock() ", url)
 
 	e := r.RsyncUrls.Front()
 	for e != nil {
