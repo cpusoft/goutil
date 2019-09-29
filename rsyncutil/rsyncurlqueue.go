@@ -5,7 +5,6 @@ import (
 	"errors"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	belogs "github.com/astaxie/beego/logs"
 )
@@ -28,9 +27,8 @@ type RsyncUrlQueue struct {
 }
 
 func NewQueue() *RsyncUrlQueue {
-	belogs.Debug("RsyncUrlQueue():")
 	m := new(sync.Mutex)
-	rsyncUrlChan := make(chan RsyncUrl, 10000)
+	rsyncUrlChan := make(chan RsyncUrl, 90000)
 	return &RsyncUrlQueue{
 		Mutex:         m,
 		RsyncUrls:     list.New(),
@@ -38,17 +36,13 @@ func NewQueue() *RsyncUrlQueue {
 		RsyncUrlChan:  rsyncUrlChan}
 }
 func (r *RsyncUrlQueue) GetRsyncUrlsLen() int {
-	belogs.Debug("GetRsyncUrlsLen():r.Mutex.Lock()")
-
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
-	belogs.Debug("GetRsyncUrlsLen():r.Mutex.Lock()")
+	belogs.Debug("GetRsyncUrlsLen():r.Mutex.Lock(): len:", r.RsyncUrls.Len())
 
 	return r.RsyncUrls.Len()
 }
 func (r *RsyncUrlQueue) GetRsyncUrls() []RsyncUrl {
-	belogs.Debug("GetRsyncUrls():r.Mutex.Lock()")
-
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 
@@ -63,23 +57,35 @@ func (r *RsyncUrlQueue) GetRsyncUrls() []RsyncUrl {
 }
 
 func (r *RsyncUrlQueue) GetRsyncingCount() int64 {
-	return atomic.LoadInt64(&r.RsyncingCount)
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	belogs.Debug("GetRsyncingCount():RsyncingCount:", r.RsyncingCount)
+	return r.RsyncingCount
+
 }
 func (r *RsyncUrlQueue) AddRsyncingCount() int64 {
-	return atomic.AddInt64(&r.RsyncingCount, 1)
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	r.RsyncingCount = r.RsyncingCount + 1
+	belogs.Debug("AddRsyncingCount():RsyncingCount:", r.RsyncingCount)
+	return r.RsyncingCount
 }
 func (r *RsyncUrlQueue) SubRsyncingCount() int64 {
-	return atomic.AddInt64(&r.RsyncingCount, -1)
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	r.RsyncingCount = r.RsyncingCount - 1
+	belogs.Debug("SubRsyncingCount():RsyncingCount:", r.RsyncingCount)
+	return r.RsyncingCount
 }
 
 func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) (RsyncUrl, error) {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+
 	belogs.Debug("AddNewUrl():url", url, "    dest:", dest)
 	if len(url) == 0 || len(dest) == 0 {
 		return RsyncUrl{}, errors.New("rsync url or dest is emtpy")
 	}
-
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
 
 	e := r.RsyncUrls.Front()
 	for e != nil {
@@ -93,7 +99,8 @@ func (r *RsyncUrlQueue) AddNewUrl(url string, dest string) (RsyncUrl, error) {
 
 	rsync := RsyncUrl{Url: url, Dest: dest}
 	e = r.RsyncUrls.PushBack(rsync)
-	r.AddRsyncingCount()
+	r.RsyncingCount = r.RsyncingCount + 1
+	belogs.Debug("AddNewUrl():RsyncingCount:", r.RsyncingCount)
 	r.RsyncUrlChan <- rsync
 
 	return rsync, nil
