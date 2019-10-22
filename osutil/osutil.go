@@ -142,6 +142,17 @@ func GetNewLineSep() string {
 	}
 }
 
+func GetPathSeparator() string {
+	return string(os.PathSeparator)
+}
+
+func JoinPathFile(pathName, fileName string) string {
+	if !strings.HasSuffix(pathName, string(os.PathSeparator)) {
+		pathName = pathName + string(os.PathSeparator)
+	}
+	return pathName + fileName
+}
+
 func CloseAndRemoveFile(file *os.File) error {
 	if file == nil {
 		return nil
