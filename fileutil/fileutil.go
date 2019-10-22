@@ -9,10 +9,10 @@ import (
 	belogs "github.com/astaxie/beego/logs"
 )
 
-func ReadFileLines(file string) (lines []string, err error) {
+func ReadFileToLines(file string) (lines []string, err error) {
 	fi, err := os.Open(file)
 	if err != nil {
-		belogs.Error("ReadFileLines(): open file fail:", file, err)
+		belogs.Error("ReadFileToLines(): open file fail:", file, err)
 		return nil, err
 	}
 	defer fi.Close()
@@ -26,7 +26,7 @@ func ReadFileLines(file string) (lines []string, err error) {
 			if err == io.EOF {
 				break
 			} else {
-				belogs.Error("ReadFileLines(): ReadString file fail:", file, err)
+				belogs.Error("ReadFileToLines(): ReadString file fail:", file, err)
 				return nil, err
 			}
 		}
