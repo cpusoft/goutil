@@ -84,8 +84,8 @@ func RsyncToLogFile(rsyncUrl string, destPath string, logPath string) (rsyncDest
 
 	// call rsync
 	//rsync -Lirzts --del --timeout=5 --contimeout=5 --no-motd  -4 rsync://rpki.afrinic.net/repository/afrinic/  /tmp/rpki.afrinic.net/repository/afrinic/
-	belogs.Debug("RsyncToLogFile(): Command: rsync", "-Lirzts", "--del", "--timeout=15", "--contimeout=15", "--no-motd", "-4", "--log-file=\""+rsyncLogFile+"\"", rsyncUrl, rsyncDestPath)
-	cmd := exec.Command("rsync", "-Lirzts", "--del", "--timeout=15", "--contimeout=15", "--no-motd", "-4", "--log-file=\""+rsyncLogFile+"\"", rsyncUrl, rsyncDestPath)
+	belogs.Debug("RsyncToLogFile(): Command: rsync", "-Lirzts", "--del", "--timeout=15", "--no-motd", "-4", "--log-file=\""+rsyncLogFile+"\"", rsyncUrl, rsyncDestPath)
+	cmd := exec.Command("rsync", "-Lirzts", "--del", "--timeout=15", "--no-motd", "-4", "--log-file=\""+rsyncLogFile+"\"", rsyncUrl, rsyncDestPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Alert("RsyncToLogFile(): exec.Command fail, rsyncUrl is :", rsyncUrl, "   output is ", string(output), " err is :", err)
@@ -147,8 +147,15 @@ func ParseLogfileToRsyncResults(rsyncUrl, rsyncDestPath, rsyncLogFile string) (r
 	if len(lines) == 0 {
 		return rsyncResults, nil
 	}
+	//2019/10/22 18:13:36 [12777] receiving file list
+	//2019/10/22 18:11:02 [12313] >f+++++++++ B527EF581D6611E2BB468F7C72FD1FF2/zz57dCpMUuD49_jnQF-yu7z0yqM.cer
+	//2019/10/22 18:13:36 [12777] sent 43 bytes  received 66591 bytes  total size 2844287
 	results := make([]string, 0)
 	for _, one := range lines {
+		if strings.Index(one, "] receiving file list") > 0 ||
+			strings.Index(one, "] sent") > 0 {
+			continue
+		}
 		pos := strings.Index(one, "]")
 		one = string(one[pos+2:])
 		results = append(results, one)
