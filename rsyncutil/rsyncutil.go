@@ -48,6 +48,31 @@ type RsyncResult struct {
 	SyncTime  time.Time `json:"syncTime"`
 }
 
+func Rsync(rsyncUrl, destPath string) (rsyncResults []RsyncResult, err error) {
+	belogs.Debug("Rsync():rsyncUrl:", rsyncUrl, " destPath:", destPath)
+
+	rsyncDestPath, output, err := RsyncToStdout(rsyncUrl, destPath)
+	if err != nil {
+		belogs.Error("Rsync():RsyncToStdout fail, rsyncUrl:", rsyncUrl, "   err:", err)
+		return nil, err
+	}
+
+	rsyncResults, err = ParseStdoutToRsyncResults(rsyncUrl, rsyncDestPath, output)
+	if err != nil {
+		belogs.Error("Rsync():ParseStdoutToRsyncResults fail, rsyncUrl:", rsyncUrl, "   rsyncDestPath:", rsyncDestPath, "   err:", err)
+		return nil, err
+	}
+
+	belogs.Debug("Rsync():before AddCerToRsyncResults, rsyncDestPath:", rsyncDestPath, "   len(rsyncResults)", len(rsyncResults))
+	err = AddCerToRsyncResults(rsyncDestPath, rsyncResults)
+	if err != nil {
+		belogs.Error("Rsync():AddCerToRsyncResults fail, rsyncUrl:", rsyncUrl, "   rsyncDestPath:", rsyncDestPath, "   err:", err)
+		return nil, err
+	}
+	belogs.Debug("Rsync():after AddCerToRsyncResults, rsyncDestPath:", rsyncDestPath, "   len(rsyncResults)", len(rsyncResults))
+	return rsyncResults, err
+}
+
 // set rsync url and local dest path , then will call rsync
 // will get all stdout to get every file rsync state
 // and output will save to logPath
