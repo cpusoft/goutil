@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	belogs "github.com/astaxie/beego/logs"
+	hashutil "github.com/cpusoft/goutil/hashutil"
 )
 
 func IsExists(file string) (bool, error) {
@@ -123,6 +125,42 @@ func GetFilesInDir(directory string, suffixs map[string]string) ([]string, error
 		}
 	}
 	return files, nil
+}
+
+type FileStat struct {
+	FilePath string    `json:"filePath"`
+	FileName string    `json:"fileName"`
+	ModeTime time.Time `json:"modeTime"`
+	Size     int64     `json:"size"`
+	Hash256  string    `json:"hash256"`
+}
+
+func GetAllFileStatsBySuffixs(directory string, suffixs map[string]string) ([]FileStat, error) {
+
+	absolutePath, _ := filepath.Abs(directory)
+	fileStats := make([]FileStat, 0)
+	filepath.Walk(absolutePath, func(path string, fi os.FileInfo, err error) error {
+		if err != nil || len(path) == 0 || nil == fi {
+			belogs.Debug("GetAllFileStatsBySuffixs():filepath.Walk(): err:", err)
+			return err
+		}
+		if !fi.IsDir() {
+
+			suffix := Ext(path)
+			if _, ok := suffixs[suffix]; ok {
+				fileStat := FileStat{}
+				fileStat.FilePath, _ = Split(path)
+				fileStat.FileName = fi.Name()
+				fileStat.ModeTime = fi.ModTime()
+				fileStat.Size = fi.Size()
+				fileStat.Hash256, _ = hashutil.Sha256File(JoinPathFile(fileStat.FilePath, fileStat.FileName))
+				fileStats = append(fileStats, fileStat)
+			}
+		}
+		return nil
+	})
+	return fileStats, nil
+
 }
 
 func GetFilePathAndFileName(fileAllPath string) (filePath string, fileName string) {

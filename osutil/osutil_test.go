@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	jsonutil "github.com/cpusoft/goutil/jsonutil"
 )
 
 func TestGetFilePathAndFileName(t *testing.T) {
@@ -52,4 +54,12 @@ func TestCloseAndRemoveFile(t *testing.T) {
 	err = CloseAndRemoveFile(f)
 	fmt.Println(err)
 
+}
+
+func TestGetAllFileStatsBySuffixs(t *testing.T) {
+	m := make(map[string]string, 0)
+	m[".cer"] = ".cer"
+	f, err := GetAllFileStatsBySuffixs(`G:\Download\cert\cache\rpki.afrinic.net\repository`, m)
+
+	fmt.Println(jsonutil.MarshalJson(f), err)
 }
