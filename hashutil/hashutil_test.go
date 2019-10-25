@@ -12,7 +12,7 @@ func TestSha256(t *testing.T) {
 }
 
 func TestSha256File(t *testing.T) {
-	s := `G:\Download\2.ppt`
+	s := `G:\Download\92dQUVu3YtGADFrmxsLbJP6VLQI.mft`
 	sh, err := Sha256File(s)
 	fmt.Println(sh, err)
 }
