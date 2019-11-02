@@ -1,6 +1,7 @@
 package rsyncutil
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path"
@@ -113,7 +114,8 @@ func RsyncToLogFile(rsyncUrl string, destPath string, logPath string) (rsyncDest
 	cmd := exec.Command("rsync", "-Lirzts", "--del", "--no-motd", "-4", "--log-file=\""+rsyncLogFile+"\"", rsyncUrl, rsyncDestPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Alert("RsyncToLogFile(): exec.Command fail, rsyncUrl is :", rsyncUrl, "   output is ", string(output), " err is :", err)
+		belogs.Error("RsyncToLogFile(): exec.Command fail, rsyncUrl is :", rsyncUrl, "   output is ", string(output), " err is :", err)
+		err = errors.New(string(output) + ", " + err.Error())
 		return "", "", err
 	}
 	belogs.Debug("RsyncToLogFile(): rsyncDestPath:", rsyncDestPath, "  rsyncLogFile:", rsyncLogFile)
@@ -154,6 +156,8 @@ func RsyncToStdout(rsyncUrl string, destPath string) (rsyncDestPath string, outp
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		belogs.Alert("RsyncToStdout(): exec.Command fail, rsyncUrl is :", rsyncUrl, "   output is ", string(output), " err is :", err)
+		// some err detail in output
+		err = errors.New(string(output) + ", " + err.Error())
 		return "", output, err
 	}
 	belogs.Debug("RsyncToStdout(): rsyncDestPath:", rsyncDestPath, "  output:", string(output))
