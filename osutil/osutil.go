@@ -52,10 +52,18 @@ func Split(p string) (dir, file string) {
 }
 
 // path.Ext() using in windows,
+// get filname suffix(include dot)
 func Ext(p string) string {
 	p = strings.Replace(p, "\\", "/", -1)
 	return path.Ext(p)
 }
+
+// path.Ext() using in windows,
+// get filname suffix(not include dot)
+func ExtNoDot(p string) string {
+	return strings.Replace(Ext(p), ".", "", -1)
+}
+
 func GetParentPath() string {
 	file, _ := exec.LookPath(os.Args[0])
 	path, _ := filepath.Abs(file)
