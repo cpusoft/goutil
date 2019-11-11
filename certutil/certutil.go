@@ -202,3 +202,11 @@ func VerifyCrlByX509(cerFile, crlFile string) (result string, err error) {
 	}
 	return "ok", nil
 }
+
+func JudgeBelongNic(repoDestPath, filePath string) (nicName string) {
+	if !strings.HasPrefix(filePath, repoDestPath) {
+		return ""
+	}
+	tmp := strings.Replace(filePath, repoDestPath+"/", "", -1)
+	return strings.Split(tmp, "/")[0]
+}
