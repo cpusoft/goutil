@@ -343,7 +343,7 @@ func AddressPrefixToHexRange(ip string, ipType int) (minHex string, maxHex strin
 
 // ipaddress is included in parent ipaddress
 // selfRangeStart, selfRangeEnd, parentRangeStart, parentRangeEnd
-func IncludeInParentRange(selfRangeStart, selfRangeEnd, parentRangeStart, parentRangeEnd) bool {
+func IncludeInParentRange(selfRangeStart, selfRangeEnd, parentRangeStart, parentRangeEnd string) bool {
 
 	belogs.Debug("IncludeInParentRange():", selfRangeStart, selfRangeEnd, parentRangeStart, parentRangeEnd)
 	if len(parentRangeStart) == 0 || len(selfRangeStart) == 0 ||
