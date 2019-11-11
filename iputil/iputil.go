@@ -341,6 +341,22 @@ func AddressPrefixToHexRange(ip string, ipType int) (minHex string, maxHex strin
 	return minHex, maxHex, nil
 }
 
+// ipaddress is included in parent ipaddress
+// selfRangeStart, selfRangeEnd, parentRangeStart, parentRangeEnd
+func IncludeInParentRange(selfRangeStart, selfRangeEnd, parentRangeStart, parentRangeEnd) bool {
+
+	if len(parentRangeStart) == 0 || len(selfRangeStart) == 0 ||
+		len(selfRangeEnd) == 0 || len(parentRangeEnd) == 0 {
+		return false
+	}
+
+	// parent.RangeStart <--- c.RangeStart <---------> c.RangeEnd ---> parent.RangeEnd
+	if parentRangeStart <= selfRangeStart && selfRangeEnd <= parentRangeEnd {
+		return true
+	}
+	return false
+}
+
 // ipv4 to number
 func Ipv4toInt(ip net.IP) int64 {
 	IPv4Int := big.NewInt(0)

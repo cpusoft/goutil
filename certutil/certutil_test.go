@@ -46,11 +46,11 @@ func TestVerifyCertByX509(t *testing.T) {
 	fmt.Println(result, err)
 }
 func TestVerifyRootCertByX509(t *testing.T) {
-	path := `G:\Download\cert\verify\2\`
-	fatherFile := path + `inter.cer`
-	childFile := path + `inter.cer`
+	path := `E:\Go\common-util\src\certutil\example\`
+	root := path + `root.cer`
+	//childFile := path + `inter.cer`
 
-	result, err := VerifyCerByX509(fatherFile, childFile)
+	result, err := VerifyRootCerByOpenssl(root)
 	fmt.Println(result, err)
 }
 func TestVerifyEeCertByX509(t *testing.T) {
