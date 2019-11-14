@@ -210,14 +210,14 @@ func TrimAddressPrefixZero(ip string, ipType int) (string, error) {
 func FillAddressPrefixWithZero(addressPrefix string, ipType int) (addressPrefixFill string, err error) {
 
 	address, prefix, err := SplitAddressAndPrefix(addressPrefix)
-	belogs.Debug("FillAddressPrefixWithZero():after SplitAddressAndPrefix:", address, "     prefix:", prefix, err)
 	if err != nil {
+		belogs.Error("FillAddressPrefixWithZero():after SplitAddressAndPrefix fail:  addressPrefix:", addressPrefix, err)
 		return "", err
 	}
 
 	addressFile, err := FillAddressWithZero(address, ipType)
-	belogs.Debug("FillAddressPrefixWithZero():after FillAddressWithZero:", addressFile, "     prefix:", prefix, err)
 	if err != nil {
+		belogs.Error("FillAddressPrefixWithZero():after FillAddressWithZero fail: address, ipType: ", address, ipType, err)
 		return "", err
 	}
 	return addressFile + "/" + strconv.Itoa(int(prefix)), nil
@@ -301,17 +301,15 @@ func AddressPrefixToHexRange(ip string, ipType int) (minHex string, maxHex strin
 
 	network, err := FillAddressPrefixWithZero(ip, ipType)
 	if err != nil {
-		belogs.Error("AddressPrefixToHexRange(): IpAndCIDRFillWithZero err:", err)
+		belogs.Error("AddressPrefixToHexRange(): IpAndCIDRFillWithZero fail,  ip, ipTye :", ip, ipType, err)
 		return "", "", err
 	}
-	belogs.Debug("AddressPrefixToHexRange(): network:", network)
 
 	_, subnet, err := net.ParseCIDR(network)
 	if err != nil {
-		belogs.Error("AddressPrefixToHexRange(): ParseCIDR err:", err)
+		belogs.Error("AddressPrefixToHexRange(): ParseCIDR fail,  ip, ipTye :", ip, ipType, err)
 		return "", "", err
 	}
-	belogs.Debug("AddressPrefixToHexRange(): subnet:", subnet)
 
 	var ipLen int
 	if ipType == Ipv4Type {
@@ -319,7 +317,6 @@ func AddressPrefixToHexRange(ip string, ipType int) (minHex string, maxHex strin
 	} else if ipType == Ipv6Type {
 		ipLen = net.IPv6len
 	}
-	belogs.Debug("AddressPrefixToHexRange(): ipLen:", ipLen)
 
 	min := make(net.IP, ipLen)
 	max := make(net.IP, ipLen)
@@ -327,17 +324,17 @@ func AddressPrefixToHexRange(ip string, ipType int) (minHex string, maxHex strin
 		min[i] = subnet.IP[i] & subnet.Mask[i]
 		max[i] = subnet.IP[i] | (^subnet.Mask[i])
 	}
-	belogs.Debug("AddressPrefixToHexRange(): min:", min, " max:", max)
 
 	minHex, err = IpNetToHexString(min, ipType)
 	if err != nil {
+		belogs.Error("AddressPrefixToHexRange(): IpNetToHexString fail,  ip, ipTye, min :", ip, ipType, min, err)
 		return "", "", err
 	}
 	maxHex, err = IpNetToHexString(max, ipType)
 	if err != nil {
+		belogs.Error("AddressPrefixToHexRange(): IpNetToHexString fail,  ip, ipTye, max :", ip, ipType, max, err)
 		return "", "", err
 	}
-	belogs.Debug("AddressPrefixToHexRange(): minHex:", minHex, " maxHex:", maxHex)
 	return minHex, maxHex, nil
 }
 
