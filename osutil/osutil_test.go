@@ -35,6 +35,19 @@ func TestGetFilesInDir(t *testing.T) {
 	fmt.Println(files)
 }
 
+func TestGetAllFileCountBySuffixs(t *testing.T) {
+	m := make(map[string]string, 0)
+	m[".cer"] = ".cer"
+	m[".crl"] = ".crl"
+	m[".roa"] = ".roa"
+	m[".mft"] = ".mft"
+	files, err := GetAllFileCountBySuffixs(`G:\Download\cert\`, m)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(files)
+}
+
 func TestIsDir(t *testing.T) {
 	f := `E:\Go\rpstir2\source\rpstir2\.project`
 	s, err := IsDir(f)

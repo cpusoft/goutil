@@ -116,6 +116,31 @@ func GetAllFilesBySuffixs(directory string, suffixs map[string]string) ([]string
 	return files, nil
 }
 
+func GetAllFileCountBySuffixs(directory string, suffixs map[string]string) (suffixCount map[string]uint64, err error) {
+
+	suffixCount = make(map[string]uint64, 0)
+	absolutePath, _ := filepath.Abs(directory)
+	filepath.Walk(absolutePath, func(fileName string, fi os.FileInfo, err error) error {
+		if err != nil || len(fileName) == 0 || nil == fi {
+			belogs.Debug("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
+			return err
+		}
+		if !fi.IsDir() {
+			suffix := Ext(fileName)
+			if _, ok := suffixs[suffix]; ok {
+				suffixNotDot := ExtNoDot(fileName)
+				if c, ok := suffixCount[suffixNotDot]; ok {
+					suffixCount[suffixNotDot] = c + 1
+				} else {
+					suffixCount[suffixNotDot] = 1
+				}
+			}
+		}
+		return nil
+	})
+	return suffixCount, nil
+}
+
 func GetFilesInDir(directory string, suffixs map[string]string) ([]string, error) {
 	files := make([]string, 0, 10)
 	dir, err := ioutil.ReadDir(directory)
