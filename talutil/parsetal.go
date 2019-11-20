@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
-	conf "github.com/cpusoft/goutil/conf"
 	osutil "github.com/cpusoft/goutil/osutil"
 )
 
@@ -16,9 +15,8 @@ type TalInfo struct {
 	PubKey  string `jons:"pubKey"`
 }
 
-func GetAllTalFile() ([]string, error) {
+func GetAllTalFile(file string) ([]string, error) {
 
-	file := conf.String("sync::talpath")
 	belogs.Notice("GetAllTalFile():input read file or path :", file)
 
 	// 读取所有文件，加入到fileList列表中
