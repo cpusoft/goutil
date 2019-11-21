@@ -36,7 +36,7 @@ func ReadFileToLines(file string) (lines []string, err error) {
 	return lines, nil
 }
 
-func ReadFileToByte(file string) (bytes []byte, err error) {
+func ReadFileToBytes(file string) (bytes []byte, err error) {
 	fi, err := os.Open(file)
 	if err != nil {
 		return nil, err
