@@ -31,6 +31,18 @@ func TestGetHttps(t *testing.T) {
 	fmt.Println("body:", body)
 }
 
+func TestGetHttpsRrdp(t *testing.T) {
+	//往rp发送请求
+	resp, body, err := httpclient.GetHttps("https://rrdp.apnic.net/notification.xml")
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("resp:", resp)
+	fmt.Println("body:", body)
+}
+
 func TestPostFile(t *testing.T) {
 	resp, body, err := httpclient.PostFile("http", "localhost", 8080, "/parse/start",
 		`G:/Download/cert/cache/trustanchors/rpki.apnic.net/repository/apnic-rpki-root-iana-origin.cer`, `file`)
