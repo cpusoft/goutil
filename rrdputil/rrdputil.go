@@ -143,22 +143,24 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 			"    notificationModel.Session_id:", notificationModel.Session_id)
 		return errors.New("delta's session_id is different from  notification's session_id")
 	}
+	for i, _ := range deltaModel.DeltaPublishs {
+		base64Hash := hashutil.Sha256([]byte(deltaModel.DeltaPublishs[i].Base64))
+		if strings.ToLower(base64Hash) != strings.ToLower(deltaModel.DeltaPublishs[i].Hash) {
+			belogs.Error("CheckRrdpDelta(): deltaModel.Serial:", deltaModel.Serial,
+				"   deltaModel.DeltaPublishs[i].Hash:", deltaModel.DeltaPublishs[i].Hash,
+				"    base64Hash:", base64Hash)
+			return errors.New("delta's base64's hash is different from  deltaModel's hash")
+		}
+	}
 
-	if strings.ToLower(notificationModel.Snapshot.Hash) != strings.ToLower(deltaModel.Hash) {
+	if _, ok := notificationModel.MapSerialDeltas[deltaModel.Serial]; !ok {
+		belogs.Error("CheckRrdpDelta(): notification has not such  delta's serial:", deltaModel.Serial)
+		return errors.New("notification has not such  delta's serial")
+	}
+	if strings.ToLower(notificationModel.MapSerialDeltas[deltaModel.Serial].Hash) != strings.ToLower(deltaModel.Hash) {
 		belogs.Error("CheckRrdpDelta(): deltaModel.Hash:", deltaModel.Hash,
 			"    notificationModel.Snapshot.Hash:", notificationModel.Snapshot.Hash)
 		return errors.New("delta's hash is different from  notification's snapshot's hash")
-	}
-
-	serail, err := convert.Interface2String(deltaModel.Serial)
-	if err != nil {
-		belogs.Error("CheckRrdpDelta(): Interface2String serail:", serail)
-		return errors.New("CheckRrdpDelta(): Interface2String serail")
-	}
-
-	if _, ok := notificationModel.MapSerialDeltas[serail]; !ok {
-		belogs.Error("CheckRrdpDelta(): notification has not such  delta's serial:", deltaModel.Serial)
-		return errors.New("notification has not such  delta's serial")
 	}
 
 	return nil
