@@ -2,11 +2,17 @@ package rrdputil
 
 import (
 	"errors"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
+	base64util "github.com/cpusoft/goutil/base64util"
+	fileutil "github.com/cpusoft/goutil/fileutil"
 	hashutil "github.com/cpusoft/goutil/hashutil"
 	httpclient "github.com/cpusoft/goutil/httpclient"
+	osutil "github.com/cpusoft/goutil/osutil"
+	urlutil "github.com/cpusoft/goutil/urlutil"
 	xmlutil "github.com/cpusoft/goutil/xmlutil"
 )
 
@@ -65,7 +71,7 @@ func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
 
 func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error) {
 
-	// 往rp发送请求
+	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
 	belogs.Debug("GetRrdpSnapshot(): snapshotUrl:", snapshotUrl)
 	resp, body, err := httpclient.GetHttps(snapshotUrl)
@@ -112,6 +118,37 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 	return nil
 
 }
+
+func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, dest string) (err error) {
+	if snapshotModel == nil || len(snapshotModel.SnapshotPublishs) == 0 {
+		belogs.Debug("SaveRrdpSnapshotToFiles(): len(snapshotModel.SnapshotPublishs)==0")
+		return nil
+	}
+	for i, _ := range snapshotModel.SnapshotPublishs {
+		url := snapshotModel.SnapshotPublishs[i].Uri
+		pathFile, err := urlutil.HostAndPathFile(url)
+		if err != nil {
+			belogs.Error("SaveRrdpSnapshotToFiles(): HostAndPathFile fail:", url)
+			return err
+		}
+		pathFile = osutil.JoinPathFile(dest, pathFile)
+		bytes, err := base64util.DecodeBase64(strings.TrimSpace(snapshotModel.SnapshotPublishs[i].Base64))
+		if err != nil {
+			belogs.Error("SaveRrdpSnapshotToFiles(): DecodeBase64 fail:", snapshotModel.SnapshotPublishs[i].Base64)
+			return err
+		}
+
+		err = fileutil.WriteBytesToFile(pathFile, bytes)
+		if err != nil {
+			belogs.Error("SaveRrdpSnapshotToFiles(): WriteBytesToFile fail:", pathFile, len(bytes))
+			return err
+		}
+		belogs.Debug("SaveRrdpSnapshotToFiles(): save pathFile ", pathFile, "  ok")
+	}
+	return nil
+
+}
+
 func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 
 	// 往rp发送请求
@@ -149,13 +186,13 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 		return errors.New("delta's session_id is different from  notification's session_id")
 	}
 	for i, _ := range deltaModel.DeltaPublishs {
-		base64Hash := hashutil.Sha256([]byte(deltaModel.DeltaPublishs[i].Base64))
+		base64Hash := hashutil.Sha256([]byte(strings.TrimSpace(deltaModel.DeltaPublishs[i].Base64)))
 		if strings.ToLower(base64Hash) != strings.ToLower(deltaModel.DeltaPublishs[i].Hash) {
 			belogs.Error("CheckRrdpDelta(): deltaModel.Serial:", deltaModel.Serial,
 				"   deltaModel.DeltaPublishs[i].Hash:", deltaModel.DeltaPublishs[i].Hash,
 				"    base64Hash:", base64Hash)
 			// shaodebug , all are not equal, why ??
-			//return errors.New("delta's base64's hash is different from  deltaModel's hash")
+			return errors.New("delta's base64's hash is different from  deltaModel's hash")
 		}
 	}
 
@@ -169,6 +206,71 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 		return errors.New("delta's hash is different from  notification's snapshot's hash")
 	}
 
+	return nil
+
+}
+func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, dest string) (err error) {
+	if deltaModel == nil || (len(deltaModel.DeltaPublishs) == 0 && len(deltaModel.DeltaWithdraws) == 0) {
+		belogs.Debug("SaveRrdpDeltaToFiles(): len(snapshotModel.SnapshotPublishs)==0")
+		return nil
+	}
+	// save publish files
+	for i, _ := range deltaModel.DeltaPublishs {
+		// get rsync://***/***/**.** file
+		url := deltaModel.DeltaPublishs[i].Uri
+		// get dir ***/***/**.**
+		pathFile, err := urlutil.HostAndPathFile(url)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToFiles():Publish HostAndPathFile fail:", url)
+			return err
+		}
+		// get absolute dir /dest/***/***/**.**
+		pathFile = osutil.JoinPathFile(dest, pathFile)
+		// if dir is notexist ,then mkdir
+		dir, _ := osutil.Split(pathFile)
+		isExist, _ := osutil.IsExists(dir)
+		if !isExist {
+			os.MkdirAll(dir, os.ModePerm)
+		}
+
+		// decode base65 to bytes
+		bytes, err := base64util.DecodeBase64(deltaModel.DeltaPublishs[i].Base64)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToFiles():Publish DecodeBase64 fail:", deltaModel.DeltaPublishs[i].Base64)
+			return err
+		}
+
+		err = fileutil.WriteBytesToFile(pathFile, bytes)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToFiles():Publish WriteBytesToFile fail:", pathFile, len(bytes))
+			return err
+		}
+		belogs.Debug("SaveRrdpDeltaToFiles():Publish save pathFile ", pathFile, "  ok")
+	}
+
+	// del withdraw files
+	for i, _ := range deltaModel.DeltaWithdraws {
+		url := deltaModel.DeltaWithdraws[i].Uri
+		pathFile, err := urlutil.HostAndPathFile(url)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToFiles():Withdraw HostAndPathFile fail:", url)
+			return err
+		}
+		// get absolute dir /dest/***/***/**.**, and remove file
+		pathFile = osutil.JoinPathFile(dest, pathFile)
+		err = os.Remove(pathFile)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToFiles():Remove fail:", pathFile)
+			return err
+		}
+		// if in this dir, no more files, then del dir
+		dir, _ := osutil.Split(pathFile)
+		files, _ := ioutil.ReadDir(dir)
+		if len(files) == 0 {
+			os.RemoveAll(dir)
+		}
+		belogs.Debug("SaveRrdpDeltaToFiles():Withdraw Remove pathFile ", pathFile, "  ok")
+	}
 	return nil
 
 }

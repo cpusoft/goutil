@@ -218,7 +218,11 @@ func GetPathSeparator() string {
 }
 
 func JoinPathFile(pathName, fileName string) string {
-	if !strings.HasSuffix(pathName, string(os.PathSeparator)) {
+	fileName = strings.Replace(fileName, `/`, string(os.PathSeparator), -1)
+	fileName = strings.Replace(fileName, `\`, string(os.PathSeparator), -1)
+	pathName = strings.Replace(pathName, `/`, string(os.PathSeparator), -1)
+	pathName = strings.Replace(pathName, `\`, string(os.PathSeparator), -1)
+	if !strings.HasSuffix(pathName, string(os.PathSeparator)) && !strings.HasPrefix(fileName, string(os.PathSeparator)) {
 		pathName = pathName + string(os.PathSeparator)
 	}
 	return pathName + fileName

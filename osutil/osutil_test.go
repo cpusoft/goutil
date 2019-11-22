@@ -66,7 +66,13 @@ func TestCloseAndRemoveFile(t *testing.T) {
 
 	err = CloseAndRemoveFile(f)
 	fmt.Println(err)
+}
 
+func TestJoinPathFile(t *testing.T) {
+	url := "/rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/44302/snapshot.xml"
+	dst := `G:\Download\rrdp`
+	filePath := JoinPathFile(dst, url)
+	fmt.Println(filePath)
 }
 
 func TestGetAllFileStatsBySuffixs(t *testing.T) {

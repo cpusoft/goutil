@@ -32,6 +32,11 @@ func TestGetRrdpNotificationAndRrdpSnapshot(t *testing.T) {
 		fmt.Println(err)
 		return
 	}
+	err = SaveRrdpSnapshotToFiles(&snapshotModel, `G:\Download\rrdp`)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	for _, delta := range notificationModel.MapSerialDeltas {
 
@@ -43,6 +48,11 @@ func TestGetRrdpNotificationAndRrdpSnapshot(t *testing.T) {
 		fmt.Println("get delta ok")
 
 		err = CheckRrdpDelta(&deltaModel, &notificationModel)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = SaveRrdpDeltaToFiles(&deltaModel, `G:\Download\rrdp`)
 		if err != nil {
 			fmt.Println(err)
 			return
