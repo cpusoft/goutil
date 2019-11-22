@@ -36,3 +36,7 @@ func Int(key string) int {
 	i, _ := Configure.Int(key)
 	return i
 }
+
+func Strings(key string) []string {
+	return Configure.Strings(key)
+}
