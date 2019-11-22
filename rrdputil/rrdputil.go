@@ -229,7 +229,8 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, dest string) (err error) {
 		// get dir ***/***/**.**
 		pathFile, err := urlutil.HostAndPathFile(url)
 		if err != nil {
-			belogs.Error("SaveRrdpDeltaToFiles():Publish HostAndPathFile fail:", url)
+			belogs.Error("SaveRrdpDeltaToFiles():Publish HostAndPathFile fail:", deltaModel.Serial,
+				deltaModel.DeltaPublishs[i].Uri, url)
 			return err
 		}
 		// get absolute dir /dest/***/***/**.**
@@ -242,15 +243,20 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, dest string) (err error) {
 		}
 
 		// decode base65 to bytes
-		bytes, err := base64util.DecodeBase64(deltaModel.DeltaPublishs[i].Base64)
+		bytes, err := base64util.DecodeBase64(strings.TrimSpace(deltaModel.DeltaPublishs[i].Base64))
 		if err != nil {
-			belogs.Error("SaveRrdpDeltaToFiles():Publish DecodeBase64 fail:", deltaModel.DeltaPublishs[i].Base64)
+			belogs.Error("SaveRrdpDeltaToFiles():Publish DecodeBase64 fail:",
+				deltaModel.Serial,
+				deltaModel.DeltaPublishs[i].Uri, deltaModel.DeltaPublishs[i].Base64)
 			return err
 		}
 
 		err = fileutil.WriteBytesToFile(pathFile, bytes)
 		if err != nil {
-			belogs.Error("SaveRrdpDeltaToFiles():Publish WriteBytesToFile fail:", pathFile, len(bytes))
+			belogs.Error("SaveRrdpDeltaToFiles():Publish WriteBytesToFile fail:",
+				deltaModel.Serial,
+				deltaModel.DeltaPublishs[i].Uri,
+				pathFile, len(bytes))
 			return err
 		}
 		belogs.Debug("SaveRrdpDeltaToFiles():Publish save pathFile ", pathFile, "  ok")
