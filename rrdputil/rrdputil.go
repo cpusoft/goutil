@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
-	convert "github.com/cpusoft/goutil/convert"
 	hashutil "github.com/cpusoft/goutil/hashutil"
 	httpclient "github.com/cpusoft/goutil/httpclient"
 	xmlutil "github.com/cpusoft/goutil/xmlutil"
@@ -29,10 +28,10 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 		return notificationModel, err
 	}
 
-	notificationModel.MapSerialDeltas = make(map[string]NotificationDelta, len(notificationModel.Deltas)+10)
+	notificationModel.MapSerialDeltas = make(map[uint64]NotificationDelta, len(notificationModel.Deltas)+10)
 	for i, _ := range notificationModel.Deltas {
 		notificationModel.MapSerialDeltas[notificationModel.Deltas[i].Serial] = notificationModel.Deltas[i]
-		serial := convert.Bytes2Uint64([]byte(notificationModel.Deltas[i].Serial))
+		serial := notificationModel.Deltas[i].Serial
 		if serial > notificationModel.MaxSerail {
 			notificationModel.MaxSerail = serial
 		}
@@ -53,11 +52,14 @@ func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
 		belogs.Error("CheckRrdpNotification(): len(notificationModel.Session_id) == 0")
 		return errors.New("notification session_id is error, session_id is empty ")
 	}
-	if len(notificationModel.Serial) == 0 {
+	if notificationModel.Serial == 0 {
 		belogs.Error("CheckRrdpNotification(): len(notificationModel.Serial) == 0")
 		return errors.New("notification serial is error, serial is empty ")
 	}
-
+	if _, ok := notificationModel.MapSerialDeltas[notificationModel.Serial]; !ok {
+		belogs.Error("CheckRrdpNotification(): notification has not such serial in deltas:", notificationModel.Serial)
+		return errors.New("notification has not such serial in deltas")
+	}
 	return nil
 }
 
@@ -98,7 +100,10 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 			"    notificationModel.Session_id:", notificationModel.Session_id)
 		return errors.New("snapshot's session_id is different from  notification's session_id")
 	}
-
+	if _, ok := notificationModel.MapSerialDeltas[snapshotModel.Serial]; !ok {
+		belogs.Error("CheckRrdpSnapshot(): notification has not such  snapshot's serial:", snapshotModel.Serial)
+		return errors.New("notification has not such  snapshot's serial")
+	}
 	if strings.ToLower(notificationModel.Snapshot.Hash) != strings.ToLower(snapshotModel.Hash) {
 		belogs.Error("CheckRrdpSnapshot(): snapshotModel.Hash:", snapshotModel.Hash,
 			"    notificationModel.Snapshot.Hash:", notificationModel.Snapshot.Hash)
