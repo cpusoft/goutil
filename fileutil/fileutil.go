@@ -44,3 +44,7 @@ func ReadFileToBytes(file string) (bytes []byte, err error) {
 	defer fi.Close()
 	return ioutil.ReadAll(fi)
 }
+
+func WriteBytesToFile(file string, bytes []byte) (err error) {
+	return ioutil.WriteFile(file, bytes, os.ModeAppend)
+}
