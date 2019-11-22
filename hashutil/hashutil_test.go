@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	base64util "github.com/cpusoft/goutil/base64util"
+	fileutil "github.com/cpusoft/goutil/fileutil"
 )
 
 func TestSha256(t *testing.T) {
@@ -17,6 +18,16 @@ func TestSha256File(t *testing.T) {
 	s := `G:\Download\hwuc0uQdqwW9VSfJFQ6UiVlxZpY.crl`
 	sh, err := Sha256File(s)
 	fmt.Println(sh, err)
+
+	b, err := fileutil.ReadFileToBytes(s)
+	fmt.Println(len(b), err)
+	sh = Sha256(b)
+	fmt.Println(sh)
+
+	base := base64util.EncodeBase64(b)
+	fmt.Println(base)
+	sh = Sha256([]byte(base))
+	fmt.Println(sh)
 }
 
 func TestSha256String(t *testing.T) {
@@ -26,7 +37,7 @@ func TestSha256String(t *testing.T) {
 
 	ss, err := base64util.DecodeBase64(s)
 	sh = Sha256(ss)
-	fmt.Println(sh, err)
+	fmt.Println(sh)
 
 	sss := base64util.EncodeBase64(ss)
 	sh = Sha256([]byte(sss))
