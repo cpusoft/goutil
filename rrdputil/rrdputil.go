@@ -41,8 +41,8 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 		if serial > notificationModel.MaxSerail {
 			notificationModel.MaxSerail = serial
 		}
-		if serial < notificationModel.MinSeail {
-			notificationModel.MinSeail = serial
+		if serial < notificationModel.MinSerail {
+			notificationModel.MinSerail = serial
 		}
 	}
 	//clear notificationModel.Deltas
@@ -194,11 +194,11 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 		return errors.New("delta's session_id is different from  notification's session_id")
 	}
 	for i, _ := range deltaModel.DeltaPublishs {
-		base64Hash := hashutil.Sha256([]byte(strings.TrimSpace(deltaModel.DeltaPublishs[i].Base64)))
+		base64Hash := hashutil.Sha256([]byte((deltaModel.DeltaPublishs[i].Base64)))
 		if strings.ToLower(base64Hash) != strings.ToLower(deltaModel.DeltaPublishs[i].Hash) {
 			belogs.Error("CheckRrdpDelta(): deltaModel.Serial:", deltaModel.Serial,
 				"   deltaModel.DeltaPublishs[i].Hash:", deltaModel.DeltaPublishs[i].Hash,
-				"    base64Hash:", base64Hash)
+				"    base64Hash:", base64Hash, "   base64:"+deltaModel.DeltaPublishs[i].Base64+",")
 			// shaodebug , all are not equal, why ??
 			//return errors.New("delta's base64's hash is different from  deltaModel's hash")
 		}

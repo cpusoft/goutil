@@ -16,7 +16,7 @@ type NotificationModel struct {
 	//check
 	MapSerialDeltas map[uint64]NotificationDelta `xml:"-"`
 	MaxSerail       uint64                       `xml:"-"`
-	MinSeail        uint64                       `xml:"-"`
+	MinSerail       uint64                       `xml:"-"`
 }
 
 type NotificationSnapshot struct {
