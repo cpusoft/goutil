@@ -119,7 +119,8 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 
 }
 
-func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, dest string) (err error) {
+// repoPath --> conf.String("rrdp::reporrdp")
+func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, repoPath string) (err error) {
 	if snapshotModel == nil || len(snapshotModel.SnapshotPublishs) == 0 {
 		belogs.Debug("SaveRrdpSnapshotToFiles(): len(snapshotModel.SnapshotPublishs)==0")
 		return nil
@@ -131,7 +132,7 @@ func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, dest string) (err err
 			belogs.Error("SaveRrdpSnapshotToFiles(): HostAndPathFile fail:", url)
 			return err
 		}
-		pathFile = osutil.JoinPathFile(dest, pathFile)
+		pathFile = osutil.JoinPathFile(repoPath, pathFile)
 
 		// if dir is notexist ,then mkdir
 		dir, _ := osutil.Split(pathFile)

@@ -22,6 +22,22 @@ func HostAndPath(urlStr string) (string, error) {
 	return (host + string(u.Path[:pos+1])), nil
 }
 
+// http://server:port/aa/bb/cc.html --> server
+func Host(urlStr string) (string, error) {
+
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	host := u.Host
+	// if have port
+	if strings.Contains(host, ":") {
+		host = strings.Split(host, ":")[0]
+	}
+	return host, nil
+}
+
 // http://server:port/aa/bb/cc.html --> server/aa/bb/cc.html
 func HostAndPathFile(urlStr string) (string, error) {
 	u, err := url.Parse(urlStr)
