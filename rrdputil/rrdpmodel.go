@@ -5,13 +5,13 @@ import (
 )
 
 type NotificationModel struct {
-	XMLName    xml.Name             `xml:"notification"`
-	Xmlns      string               `xml:"xmlns,attr"`
-	Version    string               `xml:"version,attr"`
-	Session_id string               `xml:"session_id,attr"`
-	Serial     uint64               `xml:"serial,attr"`
-	Snapshot   NotificationSnapshot `xml:"snapshot"`
-	Deltas     []NotificationDelta  `xml:"delta"`
+	XMLName   xml.Name             `xml:"notification"`
+	Xmlns     string               `xml:"xmlns,attr"`
+	Version   string               `xml:"version,attr"`
+	SessionId string               `xml:"session_id,attr"`
+	Serial    uint64               `xml:"serial,attr"`
+	Snapshot  NotificationSnapshot `xml:"snapshot"`
+	Deltas    []NotificationDelta  `xml:"delta"`
 
 	//check
 	MapSerialDeltas map[uint64]NotificationDelta `xml:"-"`
@@ -35,7 +35,7 @@ type SnapshotModel struct {
 	XMLName          xml.Name          `xml:"snapshot"`
 	Xmlns            string            `xml:"xmlns,attr"`
 	Version          string            `xml:"version,attr"`
-	Session_id       string            `xml:"session_id,attr"`
+	SessionId        string            `xml:"session_id,attr"`
 	Serial           uint64            `xml:"serial,attr"`
 	SnapshotPublishs []SnapshotPublish `xml:"publish"`
 	// to check
@@ -52,7 +52,7 @@ type DeltaModel struct {
 	XMLName        xml.Name        `xml:"delta"`
 	Xmlns          string          `xml:"xmlns,attr"`
 	Version        string          `xml:"version,attr"`
-	Session_id     string          `xml:"session_id,attr"`
+	SessionId      string          `xml:"session_id,attr"`
 	Serial         uint64          `xml:"serial,attr"`
 	DeltaPublishs  []DeltaPublish  `xml:"publish"`
 	DeltaWithdraws []DeltaWithdraw `xml:"withdraw"`

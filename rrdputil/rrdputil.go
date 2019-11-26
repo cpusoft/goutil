@@ -54,8 +54,8 @@ func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
 		belogs.Error("CheckRrdpNotification():  notificationModel.Version != 1")
 		return errors.New("notification version is error, version is not 1, it is " + notificationModel.Version)
 	}
-	if len(notificationModel.Session_id) == 0 {
-		belogs.Error("CheckRrdpNotification(): len(notificationModel.Session_id) == 0")
+	if len(notificationModel.SessionId) == 0 {
+		belogs.Error("CheckRrdpNotification(): len(notificationModel.SessionId) == 0")
 		return errors.New("notification session_id is error, session_id is empty ")
 	}
 	if notificationModel.Serial == 0 {
@@ -97,13 +97,13 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 		belogs.Error("CheckRrdpSnapshot():  snapshotModel.Version != 1")
 		return errors.New("snapshot version is error, version is not 1, it is " + snapshotModel.Version)
 	}
-	if len(snapshotModel.Session_id) == 0 {
-		belogs.Error("CheckRrdpSnapshot(): len(snapshotModel.Session_id) == 0")
+	if len(snapshotModel.SessionId) == 0 {
+		belogs.Error("CheckRrdpSnapshot(): len(snapshotModel.SessionId) == 0")
 		return errors.New("snapshot session_id is error, session_id is empty  ")
 	}
-	if notificationModel.Session_id != snapshotModel.Session_id {
-		belogs.Error("CheckRrdpSnapshot(): snapshotModel.Session_id:", snapshotModel.Session_id,
-			"    notificationModel.Session_id:", notificationModel.Session_id)
+	if notificationModel.SessionId != snapshotModel.SessionId {
+		belogs.Error("CheckRrdpSnapshot(): snapshotModel.SessionId:", snapshotModel.SessionId,
+			"    notificationModel.SessionId:", notificationModel.SessionId)
 		return errors.New("snapshot's session_id is different from  notification's session_id")
 	}
 	if _, ok := notificationModel.MapSerialDeltas[snapshotModel.Serial]; !ok {
@@ -185,13 +185,13 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 		belogs.Error("CheckRrdpDelta():  deltaModel.Version != 1")
 		return errors.New("delta version is error, version is not 1, it is " + deltaModel.Version)
 	}
-	if len(deltaModel.Session_id) == 0 {
-		belogs.Error("CheckRrdpDelta(): len(deltaModel.Session_id) == 0")
+	if len(deltaModel.SessionId) == 0 {
+		belogs.Error("CheckRrdpDelta(): len(deltaModel.SessionId) == 0")
 		return errors.New("delta session_id is error, session_id is empty  ")
 	}
-	if notificationModel.Session_id != deltaModel.Session_id {
-		belogs.Error("CheckRrdpDelta(): deltaModel.Session_id:", deltaModel.Session_id,
-			"    notificationModel.Session_id:", notificationModel.Session_id)
+	if notificationModel.SessionId != deltaModel.SessionId {
+		belogs.Error("CheckRrdpDelta(): deltaModel.SessionId:", deltaModel.SessionId,
+			"    notificationModel.SessionId:", notificationModel.SessionId)
 		return errors.New("delta's session_id is different from  notification's session_id")
 	}
 	for i, _ := range deltaModel.DeltaPublishs {
