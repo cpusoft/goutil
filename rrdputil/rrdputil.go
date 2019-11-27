@@ -12,7 +12,6 @@ import (
 	hashutil "github.com/cpusoft/goutil/hashutil"
 	httpclient "github.com/cpusoft/goutil/httpclient"
 	osutil "github.com/cpusoft/goutil/osutil"
-	urlutil "github.com/cpusoft/goutil/urlutil"
 	xmlutil "github.com/cpusoft/goutil/xmlutil"
 )
 
@@ -124,16 +123,14 @@ func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, repoPath string) (err
 		return nil
 	}
 	for i, _ := range snapshotModel.SnapshotPublishs {
-		url := snapshotModel.SnapshotPublishs[i].Uri
-		pathFile, err := urlutil.HostAndPathFile(url)
+		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, snapshotModel.SnapshotPublishs[i].Uri)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToFiles(): HostAndPathFile fail:", url)
+			belogs.Error("SaveRrdpSnapshotToFiles(): GetPathFileNameFromUrl fail:", snapshotModel.SnapshotPublishs[i].Uri)
 			return err
 		}
-		pathFile = osutil.JoinPathFile(repoPath, pathFile)
 
 		// if dir is notexist ,then mkdir
-		dir, _ := osutil.Split(pathFile)
+		dir, _ := osutil.Split(pathFileName)
 		isExist, _ := osutil.IsExists(dir)
 		if !isExist {
 			os.MkdirAll(dir, os.ModePerm)
@@ -145,12 +142,12 @@ func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, repoPath string) (err
 			return err
 		}
 
-		err = fileutil.WriteBytesToFile(pathFile, bytes)
+		err = fileutil.WriteBytesToFile(pathFileName, bytes)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToFiles(): WriteBytesToFile fail:", pathFile, len(bytes))
+			belogs.Error("SaveRrdpSnapshotToFiles(): WriteBytesToFile fail:", pathFileName, len(bytes))
 			return err
 		}
-		belogs.Debug("SaveRrdpSnapshotToFiles(): save pathFile ", pathFile, "  ok")
+		belogs.Debug("SaveRrdpSnapshotToFiles(): save pathFileName ", pathFileName, "  ok")
 	}
 	return nil
 
@@ -233,19 +230,15 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 	}
 	// save publish files
 	for i, _ := range deltaModel.DeltaPublishs {
-		// get rsync://***/***/**.** file
-		url := deltaModel.DeltaPublishs[i].Uri
-		// get dir ***/***/**.**
-		hostPathFile, err := urlutil.HostAndPathFile(url)
+		// get absolute dir /dest/***/***/**.**
+		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaPublishs[i].Uri)
 		if err != nil {
-			belogs.Error("SaveRrdpDeltaToFiles():Publish HostAndPathFile fail:", deltaModel.Serial,
-				deltaModel.DeltaPublishs[i].Uri, url)
+			belogs.Error("SaveRrdpSnapshotToFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaPublishs[i].Uri)
 			return err
 		}
-		// get absolute dir /dest/***/***/**.**
-		pathFile := osutil.JoinPathFile(repoPath, hostPathFile)
+
 		// if dir is notexist ,then mkdir
-		dir, _ := osutil.Split(pathFile)
+		dir, _ := osutil.Split(pathFileName)
 		isExist, _ := osutil.IsExists(dir)
 		if !isExist {
 			os.MkdirAll(dir, os.ModePerm)
@@ -260,39 +253,36 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 			return err
 		}
 
-		err = fileutil.WriteBytesToFile(pathFile, bytes)
+		err = fileutil.WriteBytesToFile(pathFileName, bytes)
 		if err != nil {
 			belogs.Error("SaveRrdpDeltaToFiles():Publish WriteBytesToFile fail:",
 				deltaModel.Serial,
 				deltaModel.DeltaPublishs[i].Uri,
-				pathFile, len(bytes))
+				pathFileName, len(bytes))
 			return err
 		}
-		belogs.Debug("SaveRrdpDeltaToFiles():Publish save pathFile ", pathFile, "  ok")
+		belogs.Debug("SaveRrdpDeltaToFiles():Publish save pathFileName ", pathFileName, "  ok")
 	}
 
 	// del withdraw files
 	for i, _ := range deltaModel.DeltaWithdraws {
-		url := deltaModel.DeltaWithdraws[i].Uri
-		pathFile, err := urlutil.HostAndPathFile(url)
+		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaWithdraws[i].Uri)
 		if err != nil {
-			belogs.Error("SaveRrdpDeltaToFiles():Withdraw HostAndPathFile fail:", url)
+			belogs.Error("SaveRrdpSnapshotToFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaWithdraws[i].Uri)
 			return err
 		}
-		// get absolute dir /dest/***/***/**.**, and remove file
-		pathFile = osutil.JoinPathFile(repoPath, pathFile)
-		err = os.Remove(pathFile)
+		err = os.Remove(pathFileName)
 		if err != nil {
-			belogs.Error("SaveRrdpDeltaToFiles():Remove fail:", pathFile)
+			belogs.Error("SaveRrdpDeltaToFiles():Remove fail:", pathFileName)
 			return err
 		}
 		// if in this dir, no more files, then del dir
-		dir, _ := osutil.Split(pathFile)
+		dir, _ := osutil.Split(pathFileName)
 		files, _ := ioutil.ReadDir(dir)
 		if len(files) == 0 {
 			os.RemoveAll(dir)
 		}
-		belogs.Debug("SaveRrdpDeltaToFiles():Withdraw Remove pathFile ", pathFile, "  ok")
+		belogs.Debug("SaveRrdpDeltaToFiles():Withdraw Remove pathFileName ", pathFileName, "  ok")
 	}
 	return nil
 
