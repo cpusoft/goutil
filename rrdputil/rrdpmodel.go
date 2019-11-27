@@ -60,6 +60,18 @@ type DeltaModel struct {
 	// to check
 	Hash string `xml:"-"`
 }
+
+// for sort
+func (delta DeltaModel) Len() int {
+	return len(delta)
+}
+func (delta DeltaModel) Swap(i, j int) {
+	delta[i], delta[j] = delta[j], delta[i]
+}
+func (delta DeltaModel) Less(i, j int) bool {
+	return delta[j].Serial < delta[i].Serial
+}
+
 type DeltaPublish struct {
 	XMLName xml.Name `xml:"publish"`
 	Uri     string   `xml:"uri,attr"`
