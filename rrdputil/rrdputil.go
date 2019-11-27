@@ -34,9 +34,9 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 		return notificationModel, err
 	}
 
-	notificationModel.MapSerialDeltas = make(map[uint64]NotificationDelta, len(notificationModel.Deltas)+10)
+	notificationModel.MapSerialDeltas = make(map[uint64]uint64, len(notificationModel.Deltas)+10)
 	for i, _ := range notificationModel.Deltas {
-		notificationModel.MapSerialDeltas[notificationModel.Deltas[i].Serial] = notificationModel.Deltas[i]
+		notificationModel.MapSerialDeltas[notificationModel.Deltas[i].Serial] = notificationModel.Deltas[i].Serial
 		serial := notificationModel.Deltas[i].Serial
 		if serial > notificationModel.MaxSerail {
 			notificationModel.MaxSerail = serial
@@ -45,8 +45,6 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 			notificationModel.MinSerail = serial
 		}
 	}
-	//clear notificationModel.Deltas
-	notificationModel.Deltas = make([]NotificationDelta, 0)
 	return notificationModel, nil
 }
 func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
@@ -209,7 +207,15 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 		belogs.Error("CheckRrdpDelta(): notification has not such  delta's serial:", deltaModel.Serial)
 		return errors.New("notification has not such  delta's serial")
 	}
-	if strings.ToLower(notificationModel.MapSerialDeltas[deltaModel.Serial].Hash) != strings.ToLower(deltaModel.Hash) {
+	found := false
+	for i, _ := range notificationModel.Deltas {
+		if notificationModel.Deltas[i].Serial == deltaModel.Serial &&
+			strings.ToLower(notificationModel.Deltas[i].Hash) != strings.ToLower(deltaModel.Hash) {
+			found = true
+			break
+		}
+	}
+	if !found {
 		belogs.Error("CheckRrdpDelta(): deltaModel.Hash:", deltaModel.Hash,
 			"    notificationModel.Snapshot.Hash:", notificationModel.Snapshot.Hash)
 		return errors.New("delta's hash is different from  notification's snapshot's hash")

@@ -13,10 +13,10 @@ type NotificationModel struct {
 	Snapshot  NotificationSnapshot `xml:"snapshot"`
 	Deltas    []NotificationDelta  `xml:"delta"`
 
-	//check
-	MapSerialDeltas map[uint64]NotificationDelta `xml:"-"`
-	MaxSerail       uint64                       `xml:"-"`
-	MinSerail       uint64                       `xml:"-"`
+	//map[serial]serial: just save exist serial ,for check
+	MapSerialDeltas map[uint64]uint64 `xml:"-"`
+	MaxSerail       uint64            `xml:"-"`
+	MinSerail       uint64            `xml:"-"`
 }
 
 type NotificationSnapshot struct {
@@ -59,17 +59,6 @@ type DeltaModel struct {
 
 	// to check
 	Hash string `xml:"-"`
-}
-
-// for sort
-func (delta DeltaModel) Len() int {
-	return len(delta)
-}
-func (delta DeltaModel) Swap(i, j int) {
-	delta[i], delta[j] = delta[j], delta[i]
-}
-func (delta DeltaModel) Less(i, j int) bool {
-	return delta[j].Serial < delta[i].Serial
 }
 
 type DeltaPublish struct {
