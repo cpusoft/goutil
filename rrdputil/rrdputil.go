@@ -117,7 +117,7 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 
 }
 
-// repoPath --> conf.String("rrdp::reporrdp")
+// repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
 func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, repoPath string) (err error) {
 	if snapshotModel == nil || len(snapshotModel.SnapshotPublishs) == 0 {
 		belogs.Debug("SaveRrdpSnapshotToFiles(): len(snapshotModel.SnapshotPublishs)==0")
@@ -224,7 +224,9 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 	return nil
 
 }
-func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, dest string) (err error) {
+
+// repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
+func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 	if deltaModel == nil || (len(deltaModel.DeltaPublishs) == 0 && len(deltaModel.DeltaWithdraws) == 0) {
 		belogs.Debug("SaveRrdpDeltaToFiles(): len(snapshotModel.SnapshotPublishs)==0")
 		return nil
@@ -234,14 +236,14 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, dest string) (err error) {
 		// get rsync://***/***/**.** file
 		url := deltaModel.DeltaPublishs[i].Uri
 		// get dir ***/***/**.**
-		pathFile, err := urlutil.HostAndPathFile(url)
+		hostPathFile, err := urlutil.HostAndPathFile(url)
 		if err != nil {
 			belogs.Error("SaveRrdpDeltaToFiles():Publish HostAndPathFile fail:", deltaModel.Serial,
 				deltaModel.DeltaPublishs[i].Uri, url)
 			return err
 		}
 		// get absolute dir /dest/***/***/**.**
-		pathFile = osutil.JoinPathFile(dest, pathFile)
+		pathFile := osutil.JoinPathFile(repoPath, hostPathFile)
 		// if dir is notexist ,then mkdir
 		dir, _ := osutil.Split(pathFile)
 		isExist, _ := osutil.IsExists(dir)
@@ -278,7 +280,7 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, dest string) (err error) {
 			return err
 		}
 		// get absolute dir /dest/***/***/**.**, and remove file
-		pathFile = osutil.JoinPathFile(dest, pathFile)
+		pathFile = osutil.JoinPathFile(repoPath, pathFile)
 		err = os.Remove(pathFile)
 		if err != nil {
 			belogs.Error("SaveRrdpDeltaToFiles():Remove fail:", pathFile)
