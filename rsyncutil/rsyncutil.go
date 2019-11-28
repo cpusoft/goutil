@@ -75,6 +75,55 @@ func Rsync(rsyncUrl, destPath string) (rsyncResults []RsyncResult, err error) {
 }
 
 // set rsync url and local dest path , then will call rsync
+// will rsync every file but no output
+// if success, the len(output) will be zero
+func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output []byte, err error) {
+	belogs.Debug("RsyncQuiet():rsyncUrl:", rsyncUrl, " destPath:", destPath)
+
+	// get host+path by url
+	hostAndPath, err := urlutil.HostAndPath(rsyncUrl)
+	belogs.Debug("RsyncQuiet():HostAndPath: rsyncUrl:", rsyncUrl, "  HostAndPath:", hostAndPath)
+	if err != nil {
+		belogs.Error("RsyncQuiet():HostAndPath: rsyncUrl:", rsyncUrl, "  HostAndPath:", hostAndPath, " err:", err)
+		return "", output, err
+	}
+
+	// mkdirAll path
+	rsyncDestPath = osutil.JoinPathFile(destPath, hostAndPath)
+	belogs.Debug("RsyncQuiet():rsyncDestPath:", rsyncDestPath)
+	err = os.MkdirAll(rsyncDestPath, os.ModePerm)
+	if err != nil {
+		belogs.Error("RsyncQuiet():MkdirAll:", rsyncDestPath, " err:", err)
+		return "", output, err
+	}
+
+	// call rsync
+	//rsync -Lirzts --del --timeout=5 --contimeout=5 --no-motd  -4 rsync://rpki.afrinic.net/repository/afrinic/  /tmp/rpki.afrinic.net/repository/afrinic/
+	//-L  --copy-links            transform symlink into referent file/dir
+	//-r  --recursive             recurse into directories
+	//-z  --compress              compress file data during the transfer
+	//-t  --times                 preserve modification times
+	//-s  --protect-args          no space-splitting; only wildcard special-chars
+	//--del                   an alias for --delete-during
+	//--delete-during         receiver deletes during the transfer
+	//-4  --ipv4                  prefer IPv4
+	//--timeout=SECONDS       set I/O timeout in seconds
+	//--no-motd               suppress daemon-mode MOTD (see manpage caveat)
+	belogs.Debug("RsyncQuiet(): Command: rsync", "-Lirzts", "--del", "--timeout=12000", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	cmd := exec.Command("rsync", "-Lrzts", "--del", "--timeout=12000", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	// if success, the len(output) will be zero
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		belogs.Error("RsyncQuiet(): exec.Command fail, rsyncUrl is :", rsyncUrl, "   output is ", string(output), " err is :", err)
+		// some err detail in output
+		err = errors.New(string(output) + ", " + err.Error())
+		return "", output, err
+	}
+	belogs.Debug("RsyncQuiet(): rsyncDestPath:", rsyncDestPath, "  output:", string(output))
+	return rsyncDestPath, output, nil
+}
+
+// set rsync url and local dest path , then will call rsync
 // will get all stdout to get every file rsync state
 // and output will save to logPath
 func RsyncToLogFile(rsyncUrl string, destPath string, logPath string) (rsyncDestPath, rsyncLogFile string, err error) {
@@ -151,6 +200,17 @@ func RsyncToStdout(rsyncUrl string, destPath string) (rsyncDestPath string, outp
 
 	// call rsync
 	//rsync -Lirzts --del --timeout=5 --contimeout=5 --no-motd  -4 rsync://rpki.afrinic.net/repository/afrinic/  /tmp/rpki.afrinic.net/repository/afrinic/
+	//-L  --copy-links            transform symlink into referent file/dir
+	//-i  --itemize-changes       output a change-summary for all updates
+	//-r  --recursive             recurse into directories
+	//-z  --compress              compress file data during the transfer
+	//-t  --times                 preserve modification times
+	//-s  --protect-args          no space-splitting; only wildcard special-chars
+	//--del                   an alias for --delete-during
+	//--delete-during         receiver deletes during the transfer
+	//-4  --ipv4                  prefer IPv4
+	//--timeout=SECONDS       set I/O timeout in seconds
+	//--no-motd               suppress daemon-mode MOTD (see manpage caveat)
 	belogs.Debug("RsyncToStdout(): Command: rsync", "-Lirzts", "--del", "--timeout=600", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
 	cmd := exec.Command("rsync", "-Lirzts", "--del", "--timeout=6000", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
 	output, err = cmd.CombinedOutput()
