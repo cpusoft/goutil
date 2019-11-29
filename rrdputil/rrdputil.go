@@ -12,6 +12,7 @@ import (
 	hashutil "github.com/cpusoft/goutil/hashutil"
 	httpclient "github.com/cpusoft/goutil/httpclient"
 	osutil "github.com/cpusoft/goutil/osutil"
+	stringutil "github.com/cpusoft/goutil/stringutil"
 	xmlutil "github.com/cpusoft/goutil/xmlutil"
 )
 
@@ -175,6 +176,10 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 	}
 
 	deltaModel.Hash = hashutil.Sha256([]byte(body))
+	for i, _ := range deltaModel.DeltaPublishs {
+		deltaModel.DeltaPublishs[i].Base64 = stringutil.TrimSpaceAneNewLine(deltaModel.DeltaPublishs[i].Base64)
+	}
+
 	return deltaModel, nil
 }
 

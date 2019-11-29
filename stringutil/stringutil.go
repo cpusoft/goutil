@@ -1,6 +1,8 @@
 package stringutil
 
-import ()
+import (
+	"strings"
+)
 
 func ContainInSlice(slice []string, one string) bool {
 	if len(slice) == 0 || len(one) == 0 {
@@ -12,4 +14,11 @@ func ContainInSlice(slice []string, one string) bool {
 		}
 	}
 	return false
+}
+
+func TrimSpaceAneNewLine(str string) (s string) {
+	s = strings.TrimSpace(str)
+	s = strings.Replace(s, "\r", "", -1)
+	s = strings.Replace(s, "\n", "", -1)
+	return s
 }
