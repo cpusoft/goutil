@@ -25,6 +25,7 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 		belogs.Error("GetRrdpNotification(): notificationUrl fail, ", notificationUrl, err)
 		return notificationModel, err
 	}
+	defer resp.Body.Close()
 	belogs.Debug("GetRrdpNotification(): resp.Status:", resp.Status, "    len(body):", len(body))
 
 	err = xmlutil.UnmarshalXml(body, &notificationModel)
@@ -76,6 +77,7 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 		belogs.Error("GetRrdpSnapshot(): snapshotUrl fail, ", snapshotUrl, err)
 		return snapshotModel, err
 	}
+	defer resp.Body.Close()
 	belogs.Debug("GetRrdpSnapshot(): resp.Status:", resp.Status, "    len(body):", len(body))
 
 	err = xmlutil.UnmarshalXml(body, &snapshotModel)
@@ -163,6 +165,7 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 		belogs.Error("deltaUrl(): deltaUrl fail, ", deltaUrl, err)
 		return deltaModel, err
 	}
+	defer resp.Body.Close()
 	belogs.Debug("deltaUrl(): resp.Status:", resp.Status, "    len(body):", len(body))
 
 	err = xmlutil.UnmarshalXml(body, &deltaModel)
