@@ -221,9 +221,12 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 		}
 	}
 	if !found {
-		belogs.Error("CheckRrdpDelta(): deltaModel.Hash:", deltaModel.Hash,
-			"    notificationModel.Snapshot.Hash:", notificationModel.Snapshot.Hash)
-		return errors.New("delta's hash is different from  notification's snapshot's hash")
+		belogs.Error("CheckRrdpDelta(): compare notificationModel.MapSerialDeltas:",
+			notificationModel.MapSerialDeltas, "  eltaModel.Serial: ", deltaModel.Serial,
+			"    notificationModel.Deltas[i].Hash not found, ",
+			"    deltaModel.Hash:", deltaModel.Hash)
+		//shaodebug ,not return ,just log error
+		//return errors.New("delta's hash is different from  notification's snapshot's hash")
 	}
 
 	return nil
