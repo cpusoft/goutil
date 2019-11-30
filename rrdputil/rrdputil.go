@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
@@ -11,6 +12,7 @@ import (
 	fileutil "github.com/cpusoft/goutil/fileutil"
 	hashutil "github.com/cpusoft/goutil/hashutil"
 	httpclient "github.com/cpusoft/goutil/httpclient"
+	jsonutil "github.com/cpusoft/goutil/jsonutil"
 	osutil "github.com/cpusoft/goutil/osutil"
 	stringutil "github.com/cpusoft/goutil/stringutil"
 	xmlutil "github.com/cpusoft/goutil/xmlutil"
@@ -35,6 +37,11 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 		return notificationModel, err
 	}
 
+	// will sort deltas from smaller to bigger
+	sort.Sort(NotificationDeltas(notificationModel.Deltas))
+	belogs.Debug("GetRrdpNotification(): after sort, notificationModel.Deltas:", jsonutil.MarshalJson(notificationModel.Deltas))
+
+	// get maxserial and minserial, and set map[serial]serial
 	notificationModel.MapSerialDeltas = make(map[uint64]uint64, len(notificationModel.Deltas)+10)
 	for i, _ := range notificationModel.Deltas {
 		notificationModel.MapSerialDeltas[notificationModel.Deltas[i].Serial] = notificationModel.Deltas[i].Serial
