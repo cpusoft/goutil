@@ -19,3 +19,26 @@ func ToString(t time.Time) string {
 func ParseTime(s string, timeLayout string) (tm time.Time, err error) {
 	return time.Parse(timeLayout, s)
 }
+
+// compare==1: src==dst;;;
+// compare==1: src>dst: src is after dst;;;;
+// compare==-1: src<dst: src is before dst;;;
+// first: compare notafter
+// second: compare notbefore
+func CompareTimeRange(srcNotBefore, srcNotAfter,
+	dstNotBefore, dstNotAfter time.Time) (compare int) {
+	if srcNotAfter.After(dstNotAfter) {
+		return 1
+	}
+	if srcNotAfter.Before(dstNotAfter) {
+		return -1
+	}
+	if srcNotBefore.After(dstNotBefore) {
+		return 1
+	}
+	if srcNotBefore.Before(dstNotBefore) {
+		return -1
+	}
+	return 0
+
+}
