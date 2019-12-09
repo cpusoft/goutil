@@ -81,8 +81,8 @@ func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, e
 		return "fail", errors.New("get eecert fail,  eeCertStart is " + strconv.Itoa(int(eeCertStart)) +
 			",   eeCertEnd is " + strconv.Itoa(int(eeCertEnd)) + ", but len(mftRoaFileByte) is " + strconv.Itoa(len(mftRoaFileByte)))
 	}
-	belogs.Debug("VerifyEeCertByX509():mftRoaFileByte[eeCertStart:eeCertEnd]:", mftRoaFile,
-		"   eeCertStart :", eeCertStart, "   eeCertEnd:", eeCertEnd, "   len(mftRoaFileByte):", len(mftRoaFileByte))
+	//belogs.Debug("VerifyEeCertByX509():mftRoaFileByte[eeCertStart:eeCertEnd]:", mftRoaFile,
+	//	"   eeCertStart :", eeCertStart, "   eeCertEnd:", eeCertEnd, "   len(mftRoaFileByte):", len(mftRoaFileByte))
 	b := mftRoaFileByte[eeCertStart:eeCertEnd]
 	return VerifyCerByteByX509(fatherFileByte, b)
 }
