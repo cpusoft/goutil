@@ -18,7 +18,7 @@ const (
 )
 
 func RoaFormtToIp(ans1Ip []byte, ipType int) string {
-	belogs.Debug("RoaFormtToIp():ans1Ip: %+v:", ans1Ip, "  ipType:", ipType)
+	//belogs.Debug("RoaFormtToIp():ans1Ip: %+v:", ans1Ip, "  ipType:", ipType)
 	var buffer bytes.Buffer
 	if ipType == Ipv4Type {
 		for i, ip := range ans1Ip {
@@ -233,7 +233,7 @@ func FillAddressWithZero(address string, ipType int) (addressFill string, err er
 		} else if countComma < 3 {
 			addressFill = address + strings.Repeat(".0", net.IPv4len-countComma-1)
 		}
-		belogs.Debug("FillAddressWithZero():ipv4  address-->addressFill :", address, addressFill)
+		//belogs.Debug("FillAddressWithZero():ipv4  address-->addressFill :", address, addressFill)
 		return addressFill, nil
 	} else if ipType == Ipv6Type {
 		countColon := strings.Count(address, ":")
@@ -244,7 +244,7 @@ func FillAddressWithZero(address string, ipType int) (addressFill string, err er
 		} else {
 			addressFill = address + "::"
 		}
-		belogs.Debug("FillAddressWithZero():ipv6  address-->addressFill :", address, addressFill)
+		//belogs.Debug("FillAddressWithZero():ipv6  address-->addressFill :", address, addressFill)
 		return addressFill, nil
 
 	} else {
@@ -381,14 +381,14 @@ func IsAddressPrefix(ip string) bool {
 		belogs.Error("IsAddressPrefix(): IpAndCIDRFillWithZero err:", err)
 		return false
 	}
-	belogs.Debug("IsAddressPrefix(): network:", network)
+	//belogs.Debug("IsAddressPrefix(): network:", network)
 
-	_, subnet, err := net.ParseCIDR(network)
+	_, _, err = net.ParseCIDR(network)
 	if err != nil {
 		belogs.Error("IsAddressPrefix(): ParseCIDR err:", err)
 		return false
 	}
-	belogs.Debug("IsAddressPrefix(): subnet:", subnet)
+	//belogs.Debug("IsAddressPrefix(): subnet:", subnet)
 	return true
 }
 
