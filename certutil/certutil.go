@@ -90,7 +90,7 @@ func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, e
 // fatherCerFile is as root, childCerFile is to be verified
 // result: ok/fail
 func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result string, err error) {
-	belogs.Debug("VerifyCerByteByX509():fatherCertByte:", len(fatherCertByte), "   childCertByte:", len(childCertByte))
+	//belogs.Debug("VerifyCerByteByX509():fatherCertByte:", len(fatherCertByte), "   childCertByte:", len(childCertByte))
 
 	fatherPool := x509.NewCertPool()
 
@@ -109,7 +109,7 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 		return "fail", err
 	}
 	childCert.UnhandledCriticalExtensions = make([]asn1.ObjectIdentifier, 0)
-	belogs.Debug("VerifyCerByteByX509():child issuer:", childCert.Issuer.String(), "   childCert:", childCert.Subject.String())
+	//belogs.Debug("VerifyCerByteByX509():child issuer:", childCert.Issuer.String(), "   childCert:", childCert.Subject.String())
 
 	opts := x509.VerifyOptions{
 		Roots: fatherPool,
