@@ -369,6 +369,11 @@ func GetIpType(ip string) (ipType int) {
 	return ipType
 }
 
+// check is 192.168.5.1 or 2803:d380::
+func IsAddress(ip string) bool {
+	return nil != net.ParseIP(ip)
+}
+
 // check is: 192.168.5/24   or 2803:d380/28
 func IsAddressPrefix(ip string) bool {
 	if len(ip) == 0 || !strings.Contains(ip, "/") {
@@ -378,14 +383,14 @@ func IsAddressPrefix(ip string) bool {
 
 	network, err := FillAddressPrefixWithZero(ip, ipType)
 	if err != nil {
-		belogs.Error("IsAddressPrefix(): IpAndCIDRFillWithZero err:", err)
+		belogs.Error("IsAddressPrefix(): IpAndCIDRFillWithZero err:", ip, err)
 		return false
 	}
 	//belogs.Debug("IsAddressPrefix(): network:", network)
 
 	_, _, err = net.ParseCIDR(network)
 	if err != nil {
-		belogs.Error("IsAddressPrefix(): ParseCIDR err:", err)
+		belogs.Error("IsAddressPrefix(): ParseCIDR err:", ip, err)
 		return false
 	}
 	//belogs.Debug("IsAddressPrefix(): subnet:", subnet)

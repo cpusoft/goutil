@@ -146,3 +146,19 @@ func TestSplitAddressAndPrefix(t *testing.T) {
 	ip, pr, er := SplitAddressAndPrefix(ap)
 	fmt.Println(ip, pr, er)
 }
+
+func TestIsAddressPrefix(t *testing.T) {
+	ip := "182.18.223/24"
+	is := IsAddressPrefix(ip)
+	fmt.Println(is)
+}
+func TestIsAddress(t *testing.T) {
+	ip := "182.18.223.1"
+	is := IsAddress(ip)
+	fmt.Println(is)
+
+	ip = "182.18.223"
+	is = IsAddress(ip)
+	fmt.Println(is)
+
+}
