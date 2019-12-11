@@ -137,6 +137,14 @@ func Interface2Map(v interface{}) (map[string]string, error) {
 	}
 }
 
+func Interface2Time(v interface{}) (time.Time, error) {
+	if by, ok := v.(time.Time); ok {
+		return by, nil
+	} else {
+		return time.Now(), errors.New("an interface{} cannot convert to time.Time")
+	}
+}
+
 func Time2String(t time.Time) string {
 	return t.Local().Format("2006-01-02 15:04:05")
 }
@@ -148,4 +156,16 @@ func String2Time(t string) (tm time.Time, e error) {
 		tm, e = time.Parse("2006-01-02 15:04:05", t)
 	}
 	return tm.Local(), e
+}
+
+// struct --> map
+func Struct2Map(obj interface{}) map[string]interface{} {
+	t := reflect.TypeOf(obj)
+	v := reflect.ValueOf(obj)
+
+	var data = make(map[string]interface{})
+	for i := 0; i < t.NumField(); i++ {
+		data[t.Field(i).Name] = v.Field(i).Interface()
+	}
+	return data
 }

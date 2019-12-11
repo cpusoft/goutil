@@ -41,3 +41,29 @@ func TestBytes2StringSection(t *testing.T) {
 	s := Bytes2StringSection(byt, 8)
 	fmt.Println(s)
 }
+
+type User struct {
+	Id         int         `json:"id"`
+	Username   string      `json:"username"`
+	Password   string      `json:"password"`
+	StateItems []StateItem `json:"stateItems"`
+}
+
+type StateItem struct {
+	Title string `json:"title"`
+	Text  string `json:"text"`
+}
+
+func TestStruct2Map(t *testing.T) {
+	s1 := StateItem{"state", "valid"}
+	s2 := StateItem{"error", "errorssss"}
+	s3 := StateItem{"warning", "warningsss"}
+	ss := make([]StateItem, 0)
+	ss = append(ss, s1)
+	ss = append(ss, s2)
+	ss = append(ss, s3)
+	user := User{Id: 5, Username: "zhangsan", Password: "password", StateItems: ss}
+
+	data := Struct2Map(user)
+	fmt.Printf("%v", data)
+}
