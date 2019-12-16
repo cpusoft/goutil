@@ -24,7 +24,7 @@ func InitMySql() error {
 	maxidleconns := conf.Int("mysql::maxidleconns")
 	maxopenconns := conf.Int("mysql::maxopenconns")
 
-	openSql := user + ":" + password + "@tcp(" + server + ")/" + database
+	openSql := user + ":" + password + "@tcp(" + server + ")/" + database + "?charset=utf8&parseTime=True&loc=Local"
 	logName := filepath.Base(os.Args[0])
 	belogs.Info("InitMySql(): server is: ", server, database, logName)
 
