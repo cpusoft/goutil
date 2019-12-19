@@ -149,10 +149,15 @@ func Interface2Time(v interface{}) (time.Time, error) {
 }
 
 func Time2String(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
 	return t.Local().Format("2006-01-02 15:04:05")
 }
 func String2Time(t string) (tm time.Time, e error) {
-
+	if len(t) == 0 {
+		return tm, errors.New("string is empty")
+	}
 	if strings.LastIndex(t, "z") >= 0 || strings.LastIndex(t, "Z") >= 0 {
 		tm, e = time.Parse("2006-01-02 15:04:05Z", t)
 	} else {

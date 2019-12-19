@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 )
 
 type User struct {
@@ -17,6 +18,45 @@ type User struct {
 type UserSimple struct {
 	Name  string
 	Class string
+}
+type MyTime time.Time
+
+const (
+	timeFormart = "2006-01-02 15:04:05"
+)
+
+func (t *MyTime) UnmarshalJSON(data []byte) (err error) {
+
+	now, err := time.ParseInLocation(`"`+timeFormart+`"`, string(data), time.Local)
+	*t = MyTime(now)
+	return
+}
+
+func (t MyTime) MarshalJSON() ([]byte, error) {
+	b := make([]byte, 0, len(timeFormart)+2)
+	b = append(b, '"')
+	b = time.Time(t).AppendFormat(b, timeFormart)
+	b = append(b, '"')
+	return b, nil
+}
+func (t MyTime) String() string {
+	return time.Time(t).Format(timeFormart)
+}
+
+type SyncLogRtrState struct {
+	StartTime MyTime `json:"startTime"`
+	EndTime   MyTime `json:"endTime"`
+}
+
+func TestTimeJson(t *testing.T) {
+
+	s := ""
+	var syncLogRtrState = SyncLogRtrState{}
+	fmt.Println("after Unmarshal: ", MarshalJson(syncLogRtrState))
+
+	UnmarshalJson(s, &syncLogRtrState)
+	fmt.Println("after Unmarshal: ", syncLogRtrState)
+
 }
 
 func TestJson(t *testing.T) {
