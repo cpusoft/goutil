@@ -1,8 +1,9 @@
-package util
+package conf
 
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	config "github.com/astaxie/beego/config"
 	osutil "github.com/cpusoft/goutil/osutil"
@@ -39,4 +40,31 @@ func Int(key string) int {
 
 func Strings(key string) []string {
 	return Configure.Strings(key)
+}
+
+//destpath=${rpstir2::datadir}/rsyncrepo   --> replace ${rpstir2::datadir}
+//-->/root/rpki/data/rsyncrepo --> get /root/rpki/data/rsyncrepo
+func VariableString(key string) string {
+	if len(key) == 0 || len(String(key)) == 0 {
+		return ""
+	}
+	value := String(key)
+	start := strings.Index(value, "${")
+	end := strings.Index(value, "}")
+	if start >= 0 && end > 0 && start < end {
+		//${rpstir2::datadir}/rsyncrepo -->rpstir2::datadir
+		replaceKey := string(value[start+len("${") : end])
+		if len(replaceKey) == 0 || len(String(replaceKey)) == 0 {
+			return value
+		}
+		//rpstir2::datadir -->get  "/root/rpki/data"
+		replaceValue := String(replaceKey)
+		prefix := string(value[:start])
+		suffix := string(value[end+1:])
+		///root/rpki/data/rsyncrepo
+		newValue := prefix + replaceValue + suffix
+		return newValue
+	}
+	return ""
+
 }
