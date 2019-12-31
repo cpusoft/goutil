@@ -165,6 +165,11 @@ func TestIsAddress(t *testing.T) {
 }
 
 func TestSummarize(t *testing.T) {
+	pss := SummarizeAddress("194.193.128.0", "194.193.223.255")
+	for _, p := range pss {
+		fmt.Println(p)
+	}
+
 	ps := Summarize(net.ParseIP("2001:db8::1"), net.ParseIP("2001:db8::8000"))
 	for _, p := range ps {
 		fmt.Println(p)
