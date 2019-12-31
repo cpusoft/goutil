@@ -430,7 +430,7 @@ func NewPrefix(n *net.IPNet) *Prefix {
 
 // Summarize summarizes the address range from first to last and
 // returns a list of prefixes.
-func SummarizeAddress(min, max string) (addressPrefixs []string) {
+func IpRangeToAddressPrefixRanges(min, max string) (addressPrefixs []string) {
 	prefixs := Summarize(net.ParseIP(min), net.ParseIP(max))
 	if len(prefixs) == 0 {
 		return nil

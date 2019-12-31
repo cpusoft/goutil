@@ -165,7 +165,7 @@ func TestIsAddress(t *testing.T) {
 }
 
 func TestSummarize(t *testing.T) {
-	pss := SummarizeAddress("194.193.128.0", "194.193.223.255")
+	pss := IpRangeToAddressPrefixRanges("194.193.128.0", "194.193.223.255")
 	for _, p := range pss {
 		fmt.Println(p)
 	}
