@@ -1,7 +1,8 @@
-package ip
+package iputil
 
 import (
 	"fmt"
+	"net"
 	"testing"
 
 	"github.com/cpusoft/goutil/convert"
@@ -160,5 +161,57 @@ func TestIsAddress(t *testing.T) {
 	ip = "182.18.223"
 	is = IsAddress(ip)
 	fmt.Println(is)
+
+}
+
+func TestSummarize(t *testing.T) {
+	ps := Summarize(net.ParseIP("2001:db8::1"), net.ParseIP("2001:db8::8000"))
+	for _, p := range ps {
+		fmt.Println(p)
+	}
+	/*
+	   2001:db8::1/128
+	   2001:db8::2/127
+	   2001:db8::4/126
+	   2001:db8::8/125
+	   2001:db8::10/124
+	   2001:db8::20/123
+	   2001:db8::40/122
+	   2001:db8::80/121
+	   2001:db8::100/120
+	   2001:db8::200/119
+	   2001:db8::400/118
+	   2001:db8::800/117
+	   2001:db8::1000/116
+	   2001:db8::2000/115
+	   2001:db8::4000/114
+	   2001:db8::8000/128
+	*/
+	ps = Summarize(net.ParseIP("194.193.128.0"), net.ParseIP("194.193.223.255"))
+	for _, p := range ps {
+		fmt.Println(p)
+	}
+	/*
+		194.193.128.0/18
+		194.193.192.0/19
+	*/
+	ps = Summarize(net.ParseIP("194.223.0.0"), net.ParseIP("194.223.95.255"))
+	for _, p := range ps {
+		fmt.Println(p)
+	}
+	/*
+		194.223.0.0/18
+		194.223.64.0/19
+	*/
+	ps = Summarize(net.ParseIP("2001:7fa:9::"), net.ParseIP("2001:7fa:e:ffff:ffff:ffff:ffff:ffff"))
+	for _, p := range ps {
+		fmt.Println(p)
+	}
+	/*
+		2001:7fa:9::/48
+		2001:7fa:a::/47
+		2001:7fa:c::/47
+		2001:7fa:e::/48
+	*/
 
 }
