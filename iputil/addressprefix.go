@@ -430,6 +430,12 @@ func NewPrefix(n *net.IPNet) *Prefix {
 
 // Summarize summarizes the address range from first to last and
 // returns a list of prefixes.
+func SummarizeAddress(min, max string) []Prefix {
+	return Summarize(net.ParseIP(min), net.ParseIP(max))
+}
+
+// Summarize summarizes the address range from first to last and
+// returns a list of prefixes.
 func Summarize(first, last net.IP) []Prefix {
 	if fip := first.To4(); fip != nil {
 		lip := last.To4()
