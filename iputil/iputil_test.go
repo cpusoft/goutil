@@ -10,6 +10,12 @@ import (
 	ip "."
 )
 
+func TestFillAddressPrefixWithZero1(t *testing.T) {
+	ipss := `91.228.164/24`
+	ips, _ := FillAddressPrefixWithZero(ipss, GetIpType(ipss))
+	fmt.Println(ips)
+}
+
 func TestRoaFormtToIp(t *testing.T) {
 	b := []byte{0xb0, 0x10}
 	di := ip.RoaFormtToIp(b, 0x01)
