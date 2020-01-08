@@ -10,7 +10,7 @@ import (
 )
 
 func TestFillAddressPrefixWithZero1(t *testing.T) {
-	ipss := `190.232/21`
+	ipss := `16.7/16`
 	ips, _ := FillAddressPrefixWithZero(ipss, GetIpType(ipss))
 	fmt.Println(ips)
 }
@@ -70,7 +70,7 @@ func TestRtrFormatToIp(t *testing.T) {
 }
 
 func TestTrimAddressPrefixZero(t *testing.T) {
-	ips := []string{"19.0.1.0", "0.1.0.0/16"}
+	ips := []string{"16.70.0.0/16", "16.0.1.0/16"}
 
 	for _, ip := range ips {
 		str, err := TrimAddressPrefixZero(ip, Ipv4Type)
@@ -87,7 +87,7 @@ func TestTrimAddressPrefixZero(t *testing.T) {
 
 func TestFillAddressPrefixWithZero(t *testing.T) {
 
-	ips := []string{"19.99.91", "19.99/16"}
+	ips := []string{"16.7", "16.7/16"}
 
 	for _, ip := range ips {
 		str, err := FillAddressPrefixWithZero(ip, Ipv4Type)

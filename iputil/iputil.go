@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
+	stringutil "github.com/cpusoft/goutil/stringutil"
 )
 
 const (
@@ -198,9 +199,9 @@ func TrimAddressPrefixZero(ip string, ipType int) (string, error) {
 	if ipType == Ipv4Type {
 		split := strings.Split(ip, "/")
 		if len(split) == 1 {
-			return strings.TrimRight(ip, ".0"), nil
+			return stringutil.TrimeSuffixAll(ip, ".0"), nil
 		} else if len(split) == 2 {
-			return strings.TrimRight(split[0], ".0") + "/" + split[1], nil
+			return stringutil.TrimeSuffixAll(split[0], ".0") + "/" + split[1], nil
 		} else {
 			return "", errors.New("illegal addres prefix")
 		}
