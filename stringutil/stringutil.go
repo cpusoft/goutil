@@ -22,3 +22,13 @@ func TrimSpaceAneNewLine(str string) (s string) {
 	s = strings.Replace(s, "\n", "", -1)
 	return s
 }
+
+func TrimeSuffixAll(str, trim string) (s string) {
+
+	s = strings.TrimSuffix(str, trim)
+	if strings.HasSuffix(str, trim) {
+		return TrimeSuffixAll(s, trim)
+	} else {
+		return
+	}
+}

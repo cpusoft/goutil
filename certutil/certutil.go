@@ -100,7 +100,7 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 		return "fail", err
 	}
 	faterCert.UnhandledCriticalExtensions = make([]asn1.ObjectIdentifier, 0)
-	belogs.Debug("VerifyCerByteByX509():father issuer:", faterCert.Issuer.String(), "   subject:", faterCert.Subject.String())
+	//belogs.Debug("VerifyCerByteByX509():father issuer:", faterCert.Issuer.String(), "   subject:", faterCert.Subject.String())
 	fatherPool.AddCert(faterCert)
 
 	childCert, err := x509.ParseCertificate(childCertByte)
