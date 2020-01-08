@@ -196,7 +196,15 @@ func AddressToRtrFormatByte(address string) (ipHex []byte, ipType int, err error
 // 192.168.0.0/24-->192.168/24    192.168.1.0-->192.168.1
 func TrimAddressPrefixZero(ip string, ipType int) (string, error) {
 	if ipType == Ipv4Type {
-		return strings.Replace(ip, ".0", "", -1), nil
+		split := strings.Split(ip, "/")
+		if len(split) == 1 {
+			return strings.TrimRight(ip, ".0"), nil
+		} else if len(split) == 2 {
+			return strings.TrimRight(split[0], ".0") + "/" + split[1], nil
+		} else {
+			return "", errors.New("illegal addres prefix")
+		}
+
 	} else if ipType == Ipv6Type {
 		// have no zero in ipv6
 		return ip, nil
