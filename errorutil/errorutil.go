@@ -1,6 +1,8 @@
 package errorutil
 
 import (
+	"errors"
+
 	belogs "github.com/astaxie/beego/logs"
 )
 
@@ -11,4 +13,18 @@ func LogErrAndPanic(msg string, err error, willPanic bool) {
 			panic(err)
 		}
 	}
+}
+
+//
+func CloseErrorChanToError(errChan chan error) error {
+	close(errChan)
+	errStr := ""
+	for {
+		if value, ok := <-errChan; ok {
+			errStr = errStr + ";" + value.Error()
+		} else {
+			break //表示channel已经被关闭，退出循环
+		}
+	}
+	return errors.New(errStr)
 }
