@@ -26,5 +26,9 @@ func CloseErrorChanToError(errChan chan error) error {
 			break //表示channel已经被关闭，退出循环
 		}
 	}
-	return errors.New(errStr)
+	if len(errStr) > 0 {
+		return errors.New(errStr)
+	} else {
+		return nil
+	}
 }

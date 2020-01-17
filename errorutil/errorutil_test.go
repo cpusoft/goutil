@@ -21,3 +21,11 @@ func TestErrorChanToError(t *testing.T) {
 	fmt.Println(errs)
 
 }
+
+func TestErrorChanToError2(t *testing.T) {
+	errCh := make(chan error, 10)
+	errs := CloseErrorChanToError(errCh)
+
+	fmt.Println(errs)
+
+}
