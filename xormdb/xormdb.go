@@ -1,16 +1,17 @@
 package xormdb
 
 import (
+	"bytes"
 	"database/sql"
 	"os"
 	"path/filepath"
 
 	belogs "github.com/astaxie/beego/logs"
+	conf "github.com/cpusoft/goutil/conf"
+	convert "github.com/cpusoft/goutil/convert"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-
-	conf "github.com/cpusoft/goutil/conf"
 )
 
 var XormEngine = &xorm.Engine{}
@@ -124,4 +125,21 @@ func SqlNullInt(s int64) sql.NullInt64 {
 		Int64: s,
 		Valid: true,
 	}
+}
+
+func Int64sToInString(s []int64) string {
+	if len(s) == 0 {
+		return ""
+	}
+	var buffer bytes.Buffer
+	buffer.WriteString("(")
+	for i := 0; i < len(s); i++ {
+		buffer.WriteString(convert.ToString(s[i]))
+		if i < len(s)-1 {
+			buffer.WriteString(",")
+		}
+	}
+	buffer.WriteString(")")
+	return buffer.String()
+
 }
