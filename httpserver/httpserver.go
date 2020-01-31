@@ -22,12 +22,15 @@ type HttpResponse struct {
 func ListenAndServe(port string, router *rest.App) {
 
 	api := rest.NewApi()
-	MyAccessProdStack := rest.AccessProdStack
-	MyAccessProdStack[0] = &rest.AccessLogApacheMiddleware{
-		Logger: belogs.GetLogger("access"),
-		Format: rest.CombinedLogFormat,
-	}
-	api.Use(MyAccessProdStack...)
+	/*
+		MyAccessProdStack := rest.AccessProdStack
+		MyAccessProdStack[0] = &rest.AccessLogApacheMiddleware{
+			Logger: belogs.GetLogger("access"),
+			Format: rest.CombinedLogFormat,
+		}
+		api.Use(MyAccessProdStack...)
+	*/
+	api.Use(rest.DefaultDevStack...)
 	api.SetApp(*router)
 	belogs.Emergency(http.ListenAndServe(port, api.MakeHandler()))
 }
@@ -36,12 +39,15 @@ func ListenAndServe(port string, router *rest.App) {
 func ListenAndServeTLS(port string, crtFile string, keyFile string, router *rest.App) {
 
 	api := rest.NewApi()
-	MyAccessProdStack := rest.AccessProdStack
-	MyAccessProdStack[0] = &rest.AccessLogApacheMiddleware{
-		Logger: belogs.GetLogger("access"),
-		Format: rest.CombinedLogFormat,
-	}
-	api.Use(MyAccessProdStack...)
+	/*
+		MyAccessProdStack := rest.AccessProdStack
+		MyAccessProdStack[0] = &rest.AccessLogApacheMiddleware{
+			Logger: belogs.GetLogger("access"),
+			Format: rest.CombinedLogFormat,
+		}
+		api.Use(MyAccessProdStack...)
+	*/
+	api.Use(rest.DefaultDevStack...)
 	api.SetApp(*router)
 	//belogs.Emergency(http.ListenAndServe(port, api.MakeHandler()))
 	belogs.Emergency(http.ListenAndServeTLS(port, crtFile, keyFile, api.MakeHandler()))
