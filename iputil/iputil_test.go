@@ -9,6 +9,66 @@ import (
 	ip "."
 )
 
+func TestIpRangeIncludeInParentRange(t *testing.T) {
+
+	self := make([]ChainIpAddress, 0)
+	self1 := ChainIpAddress{
+		RangeStart: "7a.09.00.00",
+		RangeEnd:   "7a.09.00.ff",
+	}
+	self2 := ChainIpAddress{
+		RangeStart: "7b.3c.00.00",
+		RangeEnd:   "7b.3c.00.ff",
+	}
+	self = append(self, self1)
+	self = append(self, self2)
+
+	parent := make([]ChainIpAddress, 0)
+	parent1 := ChainIpAddress{
+		RangeStart: "7b.3c.00.00",
+		RangeEnd:   "7b.3c.ff.ff",
+	}
+	parent2 := ChainIpAddress{
+		RangeStart: "2407:1d00:0000:0000:0000:0000:0000:0000",
+		RangeEnd:   "2407:1d00:ffff:ffff:ffff:ffff:ffff:ffff",
+	}
+	parent = append(parent, parent1)
+	parent = append(parent, parent2)
+
+	inRange := ipAddressesIncludeInParent(parent, self)
+	fmt.Println(inRange)
+
+	//7b.3c.00.00	7b.3c.00.ff
+}
+
+type ChainIpAddress struct {
+	//min address range from addressPrefix or min/max, in hex:  63.60.00.00'
+	RangeStart string `json:"rangeStart" xorm:"rangeStart varchar(512)"`
+	//max address range from addressPrefix or min/max, in hex:  63.69.7f.ff'
+	RangeEnd string `json:"rangeEnd" xorm:"rangeEnd varchar(512)"`
+}
+
+func ipAddressesIncludeInParent(parents []ChainIpAddress, self []ChainIpAddress) bool {
+	fmt.Println(parents, self)
+	for _, s := range self {
+		include := false
+		for _, p := range parents {
+			fmt.Println("compare:", s, p)
+			include = IpRangeIncludeInParentRange(p.RangeStart, p.RangeEnd, s.RangeStart, s.RangeEnd)
+			if include {
+				fmt.Println("include:", s, p)
+				break
+			}
+		}
+		if !include {
+			fmt.Println("not include:", s)
+			return false
+		}
+	}
+	fmt.Println(true)
+	return true
+}
+
 func TestFillAddressPrefixWithZero1(t *testing.T) {
 	ipss := `16.7/16`
 	ips, _ := FillAddressPrefixWithZero(ipss, GetIpType(ipss))
