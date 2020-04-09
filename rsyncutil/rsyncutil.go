@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -79,6 +80,14 @@ func Rsync(rsyncUrl, destPath string) (rsyncResults []RsyncResult, err error) {
 // if success, the len(output) will be zero
 func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output []byte, err error) {
 	belogs.Debug("RsyncQuiet():rsyncUrl:", rsyncUrl, " destPath:", destPath)
+	defer func(rsyncUrl string) {
+		if err := recover(); err != nil {
+			errStack := string(debug.Stack())
+			belogs.Error("RsyncQuiet(): recover from panic, rsyncUrl is :", rsyncUrl,
+				" debug.Stack():", errStack, "  err is :", err)
+
+		}
+	}(rsyncUrl)
 
 	// get host+path by url
 	hostAndPath, err := urlutil.HostAndPath(rsyncUrl)
@@ -109,8 +118,8 @@ func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output 
 	//-4  --ipv4                  prefer IPv4
 	//--timeout=SECONDS       set I/O timeout in seconds
 	//--no-motd               suppress daemon-mode MOTD (see manpage caveat)
-	belogs.Debug("RsyncQuiet(): Command: rsync", "-Lirzts", "--del", "--timeout=20", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
-	cmd := exec.Command("rsync", "-Lrzts", "--del", "--timeout=20", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	belogs.Debug("RsyncQuiet(): Command: rsync", "-Lirzts", "--del", "--timeout=10", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	cmd := exec.Command("rsync", "-Lrzts", "--del", "--timeout=10", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
 	// if success, the len(output) will be zero
 	output, err = cmd.CombinedOutput()
 	if err != nil {
