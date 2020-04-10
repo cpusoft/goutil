@@ -27,6 +27,8 @@ const (
 
 	RSYNC_LOG_PREFIX    = 12
 	RSYNC_LOG_FILE_NAME = "rsync.log"
+
+	RSYNC_TIMEOUT_SEC = "10"
 )
 
 type RsyncRecord struct {
@@ -118,8 +120,8 @@ func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output 
 	//-4  --ipv4                  prefer IPv4
 	//--timeout=SECONDS       set I/O timeout in seconds
 	//--no-motd               suppress daemon-mode MOTD (see manpage caveat)
-	belogs.Debug("RsyncQuiet(): Command: rsync", "-Lirzts", "--del", "--timeout=10", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
-	cmd := exec.Command("rsync", "-Lrzts", "--del", "--timeout=10", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	belogs.Debug("RsyncQuiet(): Command: rsync", "-Lirzts", "--del", "--timeout="+RSYNC_TIMEOUT_SEC, "--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	cmd := exec.Command("rsync", "-Lrzts", "--del", "--timeout="+RSYNC_TIMEOUT_SEC, "--no-motd", "-4", rsyncUrl, rsyncDestPath)
 	// if success, the len(output) will be zero
 	output, err = cmd.CombinedOutput()
 	if err != nil {
