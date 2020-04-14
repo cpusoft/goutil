@@ -16,29 +16,37 @@ import (
 
 var XormEngine = &xorm.Engine{}
 
-func InitMySql() error {
-	//DB, err = sql.Open("mysql", "rpstir:Rpstir-123@tcp(202.173.9.21:13306)/rpstir")
+func InitMySql() (err error) {
 	user := conf.String("mysql::user")
 	password := conf.String("mysql::password")
 	server := conf.String("mysql::server")
 	database := conf.String("mysql::database")
 	maxidleconns := conf.Int("mysql::maxidleconns")
 	maxopenconns := conf.Int("mysql::maxopenconns")
+	XormEngine, err = InitMySqlParameter(user, password, server, database, maxidleconns, maxopenconns)
+	if err != nil {
+		belogs.Error("NewEngine failed: ", err)
+		return err
+	}
+	return nil
+}
+func InitMySqlParameter(user, password, server, database string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
+	//DB, err = sql.Open("mysql", "rpstir:Rpstir-123@tcp(202.173.9.21:13306)/rpstir")
 
 	openSql := user + ":" + password + "@tcp(" + server + ")/" + database + "?charset=utf8&parseTime=True&loc=Local"
 	logName := filepath.Base(os.Args[0])
 	belogs.Info("InitMySql(): server is: ", server, database, logName)
 
 	//连接数据库
-	engine, err := xorm.NewEngine("mysql", openSql)
+	engine, err = xorm.NewEngine("mysql", openSql)
 	if err != nil {
 		belogs.Error("NewEngine failed: ", err)
-		return err
+		return engine, err
 	}
 	//连接测试
 	if err := engine.Ping(); err != nil {
 		belogs.Error("Ping failed: ", err)
-		return err
+		return engine, err
 	}
 
 	//设置连接池的空闲数大小
@@ -71,8 +79,8 @@ func InitMySql() error {
 
 	*/
 	engine.SetTableMapper(core.SnakeMapper{})
-	XormEngine = engine
-	return nil
+
+	return engine, nil
 
 }
 
