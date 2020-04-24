@@ -203,7 +203,7 @@ func TrimAddressPrefixZero(ip string, ipType int) (string, error) {
 		} else if len(split) == 2 {
 			return stringutil.TrimeSuffixAll(split[0], ".0") + "/" + split[1], nil
 		} else {
-			return "", errors.New("illegal addres prefix")
+			return "", errors.New("illegal address prefix")
 		}
 
 	} else if ipType == Ipv6Type {

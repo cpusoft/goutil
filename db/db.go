@@ -43,7 +43,7 @@ func TxCommitOrRollback(tx *sql.Tx) {
 	}
 }
 
-// update sql, controll transaction in func
+// update sql, control transaction in func
 func UpdateInsideTx(sqlStr string, args ...interface{}) error {
 	// need drop
 	tx, err := ConnDb.Begin()
@@ -62,7 +62,7 @@ func UpdateInsideTx(sqlStr string, args ...interface{}) error {
 
 }
 
-// // update sql, controll transaction out func
+// // update sql, control transaction out func
 func UpdateOutsideTx(tx *sql.Tx, sqlStr string, args ...interface{}) error {
 	belogs.Debug("UpdateNoTx():" + sqlStr)
 	_, err := tx.Exec(sqlStr, args...)
