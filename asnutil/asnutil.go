@@ -1,7 +1,5 @@
 package asnutil
 
-import ()
-
 // asn is included in parent asn ;  .
 // selfAsn, selfMin, selfMax,parentAsn, parentMin, parentMax
 func AsnIncludeInParentAsn(selfAsn, selfMin, selfMax, parentAsn, parentMin, parentMax uint64) bool {
