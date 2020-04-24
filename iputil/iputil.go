@@ -117,7 +117,7 @@ func IpToRtrFormatByte(ip string) []byte {
 	ipsV4 := strings.Split(ip, ".")
 	if len(ipsV4) > 1 {
 		byt := make([]byte, 4)
-		for i, _ := range ipsV4 {
+		for i := range ipsV4 {
 			tmp, err := strconv.Atoi(ipsV4[i])
 			belogs.Debug("IpToRtrFormatByte():ipv6 Atoi i:", i, " ipsV4[i]:", ipsV4[i], "   tmp:", tmp)
 			if err != nil {
@@ -143,7 +143,7 @@ func IpToRtrFormatByte(ip string) []byte {
 		ipsV6 := strings.Split(ip, ":")
 		byt := make([]byte, 16)
 		bytIndx := 0
-		for i, _ := range ipsV6 {
+		for i := range ipsV6 {
 			tmpV6 := fmt.Sprintf("%04s", ipsV6[i])
 			tmp1 := tmpV6[0:2]
 			tmp2 := tmpV6[2:4]
