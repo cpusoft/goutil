@@ -43,7 +43,7 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 
 	// get maxserial and minserial, and set map[serial]serial
 	notificationModel.MapSerialDeltas = make(map[uint64]uint64, len(notificationModel.Deltas)+10)
-	for i, _ := range notificationModel.Deltas {
+	for i := range notificationModel.Deltas {
 		notificationModel.MapSerialDeltas[notificationModel.Deltas[i].Serial] = notificationModel.Deltas[i].Serial
 		serial := notificationModel.Deltas[i].Serial
 		if serial > notificationModel.MaxSerail {
@@ -132,7 +132,7 @@ func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, repoPath string) (err
 		belogs.Debug("SaveRrdpSnapshotToFiles(): len(snapshotModel.SnapshotPublishs)==0")
 		return nil
 	}
-	for i, _ := range snapshotModel.SnapshotPublishs {
+	for i := range snapshotModel.SnapshotPublishs {
 		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, snapshotModel.SnapshotPublishs[i].Uri)
 		if err != nil {
 			belogs.Error("SaveRrdpSnapshotToFiles(): GetPathFileNameFromUrl fail:", snapshotModel.SnapshotPublishs[i].Uri)
@@ -183,7 +183,7 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 	}
 
 	deltaModel.Hash = hashutil.Sha256([]byte(body))
-	for i, _ := range deltaModel.DeltaPublishs {
+	for i := range deltaModel.DeltaPublishs {
 		deltaModel.DeltaPublishs[i].Base64 = stringutil.TrimSpaceAneNewLine(deltaModel.DeltaPublishs[i].Base64)
 	}
 
@@ -204,7 +204,7 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 			"    notificationModel.SessionId:", notificationModel.SessionId)
 		return errors.New("delta's session_id is different from  notification's session_id")
 	}
-	for i, _ := range deltaModel.DeltaPublishs {
+	for i := range deltaModel.DeltaPublishs {
 		base64Hash := hashutil.Sha256([]byte((deltaModel.DeltaPublishs[i].Base64)))
 		if strings.ToLower(base64Hash) != strings.ToLower(deltaModel.DeltaPublishs[i].Hash) {
 			belogs.Error("CheckRrdpDelta(): deltaModel.Serial:", deltaModel.Serial,
@@ -220,7 +220,7 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 		return errors.New("notification has not such  delta's serial")
 	}
 	found := false
-	for i, _ := range notificationModel.Deltas {
+	for i := range notificationModel.Deltas {
 		if notificationModel.Deltas[i].Serial == deltaModel.Serial &&
 			strings.ToLower(notificationModel.Deltas[i].Hash) != strings.ToLower(deltaModel.Hash) {
 			found = true
@@ -247,7 +247,7 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 		return nil
 	}
 	// save publish files
-	for i, _ := range deltaModel.DeltaPublishs {
+	for i := range deltaModel.DeltaPublishs {
 		// get absolute dir /dest/***/***/**.**
 		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaPublishs[i].Uri)
 		if err != nil {
@@ -283,7 +283,7 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 	}
 
 	// del withdraw files
-	for i, _ := range deltaModel.DeltaWithdraws {
+	for i := range deltaModel.DeltaWithdraws {
 		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaWithdraws[i].Uri)
 		if err != nil {
 			belogs.Error("SaveRrdpSnapshotToFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaWithdraws[i].Uri)
