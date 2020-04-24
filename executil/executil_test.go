@@ -13,7 +13,7 @@ func TestExecCommand(t *testing.T) {
 	ss, err := ExecCommand("cmd", params, fmtShow)
 
 	fmt.Println(err)
-	for i, _ := range ss {
+	for i := range ss {
 		fmt.Println(ss[i])
 	}
 
