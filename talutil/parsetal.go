@@ -30,6 +30,10 @@ func GetAllTalFile(file string) ([]string, error) {
 		suffixs := make(map[string]string)
 		suffixs[".tal"] = ".tal"
 		files, err = osutil.GetAllFilesBySuffixs(file, suffixs)
+		if err != nil {
+			belogs.Error("GetAllTalFile():GetAllFilesBySuffixs err:", file, err)
+			return nil, err
+		}
 	} else {
 		files = make([]string, 0)
 		files = append(files, file)

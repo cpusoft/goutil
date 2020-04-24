@@ -15,6 +15,7 @@ import (
 	hashutil "github.com/cpusoft/goutil/hashutil"
 )
 
+// judge file is or not exists.
 func IsExists(file string) (bool, error) {
 	_, err := os.Stat(file)
 	if err == nil {
@@ -26,6 +27,7 @@ func IsExists(file string) (bool, error) {
 	return true, err
 }
 
+// judge file is dir or not.
 func IsDir(file string) (bool, error) {
 	s, err := os.Stat(file)
 	if err != nil {

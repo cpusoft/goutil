@@ -177,7 +177,6 @@ func TestIpStrToHexString(t *testing.T) {
 	for _, ip := range ips {
 		str, err := IpStrToHexString(ip, Ipv6Type)
 		fmt.Println(ip, " --> ", str, err)
-
 	}
 }
 
@@ -194,6 +193,7 @@ func TestAddressPrefixToHexRange(t *testing.T) {
 	ips := []string{"192.236/23"}
 	for _, ip := range ips {
 		ipp, err := FillAddressPrefixWithZero(ip, Ipv4Type)
+		fmt.Println(ip, " --> ", ipp, err)
 		min, max, err := AddressPrefixToHexRange(ipp, Ipv4Type)
 		fmt.Println(ip, " --> ", min, max, err)
 
@@ -201,6 +201,7 @@ func TestAddressPrefixToHexRange(t *testing.T) {
 	ips = []string{"2803:d380/28"}
 	for _, ip := range ips {
 		ipp, err := FillAddressPrefixWithZero(ip, Ipv6Type)
+		fmt.Println(ip, " --> ", ipp, err)
 		min, max, err := AddressPrefixToHexRange(ipp, Ipv6Type)
 		fmt.Println(ip, " --> ", min, max, err)
 

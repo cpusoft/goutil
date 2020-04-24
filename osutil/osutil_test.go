@@ -63,6 +63,7 @@ func TestIsDir(t *testing.T) {
 func TestCloseAndRemoveFile(t *testing.T) {
 	userFile := `G:\Download\test.txt`
 	f, err := os.Create(userFile)
+	fmt.Println(err)
 
 	err = CloseAndRemoveFile(f)
 	fmt.Println(err)

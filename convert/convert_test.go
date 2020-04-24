@@ -26,8 +26,6 @@ func TestInterface2Map(t *testing.T) {
 	s, err := GetInterfaceType(bb)
 	fmt.Println("type:", s, err)
 
-	z = bb
-
 }
 
 func TestBytes2String(t *testing.T) {
