@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	belogs "github.com/astaxie/beego/logs"
 	_ "github.com/go-sql-driver/mysql"
-	_ "strconv"
 
 	conf "github.com/cpusoft/goutil/conf"
 )

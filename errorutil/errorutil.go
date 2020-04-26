@@ -28,7 +28,7 @@ func CloseErrorChanToError(errChan chan error) error {
 	}
 	if len(errStr) > 0 {
 		return errors.New(errStr)
-	} else {
-		return nil
 	}
+	return nil
+
 }

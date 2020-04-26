@@ -110,23 +110,22 @@ func ToString(a interface{}) string {
 func Interface2String(v interface{}) (string, error) {
 	if str, ok := v.(string); ok {
 		return str, nil
-	} else {
-		return "", errors.New("an interface{} cannot convert to a string")
 	}
+	return "", errors.New("an interface{} cannot convert to a string")
 }
+
 func Interface2Bytes(v interface{}) ([]byte, error) {
 	if by, ok := v.([]byte); ok {
 		return by, nil
-	} else {
-		return nil, errors.New("an interface{} cannot convert to []byte")
 	}
+	return nil, errors.New("an interface{} cannot convert to []byte")
 }
+
 func Interface2Uint64(v interface{}) (uint64, error) {
 	if ui, ok := v.(uint64); ok {
 		return ui, nil
-	} else {
-		return 0, errors.New("an interface{} cannot convert to a uint64")
 	}
+	return 0, errors.New("an interface{} cannot convert to a uint64")
 }
 func Interface2Map(v interface{}) (map[string]string, error) {
 	m := make(map[string]string, 0)
@@ -135,17 +134,15 @@ func Interface2Map(v interface{}) (map[string]string, error) {
 			m[key] = value
 		}
 		return m, nil
-	} else {
-		return m, errors.New("an interface{} cannot convert to a map")
 	}
+	return m, errors.New("an interface{} cannot convert to a map")
 }
 
 func Interface2Time(v interface{}) (time.Time, error) {
 	if by, ok := v.(time.Time); ok {
 		return by, nil
-	} else {
-		return time.Now(), errors.New("an interface{} cannot convert to time.Time")
 	}
+	return time.Now(), errors.New("an interface{} cannot convert to time.Time")
 }
 
 func Time2String(t time.Time) string {
@@ -154,6 +151,7 @@ func Time2String(t time.Time) string {
 	}
 	return t.Local().Format("2006-01-02 15:04:05")
 }
+
 func String2Time(t string) (tm time.Time, e error) {
 	if len(t) == 0 {
 		return tm, errors.New("string is empty")

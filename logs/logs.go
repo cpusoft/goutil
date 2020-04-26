@@ -70,12 +70,12 @@ func LogDebugBytes(title string, buf []byte) {
 
 	belogs.Debug(title)
 
-	data_lines := make([]string, (len(buf)/30)+1)
+	dataLines := make([]string, (len(buf)/30)+1)
 	for i, b := range buf {
-		data_lines[i/30] += fmt.Sprintf("%02x ", b)
+		dataLines[i/30] += fmt.Sprintf("%02x ", b)
 	}
 
-	for i := 0; i < len(data_lines); i++ {
-		belogs.Debug(data_lines[i])
+	for i := 0; i < len(dataLines); i++ {
+		belogs.Debug(dataLines[i])
 	}
 }
