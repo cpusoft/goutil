@@ -26,9 +26,9 @@ func Hmac(key, data string) string {
 }
 
 // Calculate Sha1
-func Sha1(data string) string {
+func Sha1(data []byte) string {
 	sha1 := sha1.New()
-	sha1.Write([]byte(data))
+	sha1.Write(data)
 	return hex.EncodeToString(sha1.Sum([]byte("")))
 }
 
