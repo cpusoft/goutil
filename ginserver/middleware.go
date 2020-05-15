@@ -11,7 +11,7 @@ import (
 type SkipperFunc func(*gin.Context) bool
 
 // AllowPathPrefixSkipper
-//Check if the request path contains the specified prefix, skip if it contains
+// Check if the request path contains the specified prefix, skip if it contains
 func AllowPathPrefixSkipper(prefixes ...string) SkipperFunc {
 	return func(c *gin.Context) bool {
 		path := c.Request.URL.Path
@@ -27,7 +27,7 @@ func AllowPathPrefixSkipper(prefixes ...string) SkipperFunc {
 }
 
 // AllowPathPrefixNoSkipper
-//Check if the request path contains the specified prefix, if it does not skip
+// Check if the request path contains the specified prefix, if it does not skip
 func AllowPathPrefixNoSkipper(prefixes ...string) SkipperFunc {
 	return func(c *gin.Context) bool {
 		path := c.Request.URL.Path
@@ -43,10 +43,10 @@ func AllowPathPrefixNoSkipper(prefixes ...string) SkipperFunc {
 }
 
 // AllowMethodAndPathPrefixSkipper
-//Check if the request method and path contain the specified prefix, if it is skipped
+// Check if the request method and path contain the specified prefix, if it is skipped
 func AllowMethodAndPathPrefixSkipper(prefixes ...string) SkipperFunc {
 	return func(c *gin.Context) bool {
-		path := JoinRouter(c.Request.Method, c.Request.URL.Path)
+		path := joinRouter(c.Request.Method, c.Request.URL.Path)
 		pathLen := len(path)
 
 		for _, p := range prefixes {
@@ -58,8 +58,8 @@ func AllowMethodAndPathPrefixSkipper(prefixes ...string) SkipperFunc {
 	}
 }
 
-// JoinRouter
-func JoinRouter(method, path string) string {
+// Join method + path
+func joinRouter(method, path string) string {
 	if len(path) > 0 && path[0] != '/' {
 		path = "/" + path
 	}

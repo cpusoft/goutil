@@ -16,11 +16,6 @@ const (
 	AUTH_URL      = "authurl"  //session key name
 )
 
-type SessionContent struct {
-	Urls  []string `json:"urls"`
-	Uname string   `json:"uname"`
-}
-
 // decode json
 func DecodeJson(c *gin.Context, v interface{}) error {
 	content, err := ioutil.ReadAll(c.Request.Body)
