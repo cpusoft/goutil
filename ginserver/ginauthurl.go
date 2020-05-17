@@ -2,16 +2,16 @@ package ginserver
 
 import (
 	"errors"
+	"strings"
 
+	belogs "github.com/astaxie/beego/logs"
+	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterCheckAuthUrls(app *gin.Engine, skipUrls []string, roleHasUrls map[uint64][]string) {
 	app.Use(checkAuthUrls(
-		skipAuthUrls(skipUrls),
-	))
-	app.Use(checkAuthUrls(
-		roleHasAuthUrls(roleHasUrls),
+		skipAuthUrlsOrRoleHasAuthUrls(skipUrls, roleHasUrls),
 	))
 
 }
@@ -22,6 +22,7 @@ type checkAuthUrlsFunc func(*gin.Context) bool
 func checkAuthUrls(checkAuthUrlsFuncs ...checkAuthUrlsFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if len(checkAuthUrlsFuncs) > 0 && checkAuthUrlsFuncs[0](c) {
+			belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0]: ", checkAuthUrlsFuncs[0])
 			c.Next()
 			return
 		}
@@ -31,37 +32,36 @@ func checkAuthUrls(checkAuthUrlsFuncs ...checkAuthUrlsFunc) gin.HandlerFunc {
 	}
 }
 
-// if the request path contains url(prefix), skip if it contains
-func skipAuthUrls(skipUrls []string) checkAuthUrlsFunc {
+// if the request path contains skip url(prefix), or the roles has the ruls, skip if it contains
+func skipAuthUrlsOrRoleHasAuthUrls(skipUrls []string, roleHasUrls map[uint64][]string) checkAuthUrlsFunc {
 	return func(c *gin.Context) bool {
-		path := c.Request.URL.Path
-		pathLen := len(path)
-		for _, p := range skipUrls {
-			if pl := len(p); pathLen >= pl && path[:pl] == p {
+		reqPath := c.Request.URL.Path
+
+		// check if in skipUrls
+		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   skipUrls:", skipUrls)
+		for _, skipUrl := range skipUrls {
+			belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   skipUrl:", skipUrl)
+			if strings.HasPrefix(skipUrl, reqPath) {
 				return true
 			}
 		}
-		return false
-	}
-}
 
-// if the request path contains url(prefix) according to roles, skip if it contains
-func roleHasAuthUrls(roleHasUrls map[uint64][]string) checkAuthUrlsFunc {
-	return func(c *gin.Context) bool {
-		path := c.Request.URL.Path
-		pathLen := len(path)
-
+		// check if role has urls
 		ginUserModel := GinUserModel{}
 		err := GetUserFromSession(c, &ginUserModel)
+		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   ginUserModel:", jsonutil.MarshalJson(ginUserModel))
 		if err != nil || ginUserModel.Id == 0 {
 			return false
 		}
-		skipUrls, ok := roleHasUrls[ginUserModel.RoleId]
+
+		roleUrls, ok := roleHasUrls[ginUserModel.RoleId]
+		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   roleUrls:", jsonutil.MarshalJson(roleUrls))
 		if !ok {
 			return false
 		}
-		for _, p := range skipUrls {
-			if pl := len(p); pathLen >= pl && path[:pl] == p {
+		for _, roleUrl := range roleUrls {
+			belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   roleUrl:", roleUrl)
+			if strings.HasPrefix(roleUrl, reqPath) {
 				return true
 			}
 		}
