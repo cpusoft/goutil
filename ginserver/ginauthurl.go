@@ -2,6 +2,7 @@ package ginserver
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
@@ -40,9 +41,19 @@ func skipAuthUrlsOrRoleHasAuthUrls(skipUrls []string, roleHasUrls map[uint64][]s
 		// check if in skipUrls
 		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   skipUrls:", skipUrls)
 		for _, skipUrl := range skipUrls {
-			belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   skipUrl:", skipUrl)
-			if strings.HasPrefix(skipUrl, reqPath) {
+			belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls():skipUrl:", skipUrl,
+				"    reqPath:", reqPath, "  hasSuffix(*):", strings.HasSuffix(skipUrl, "*"))
+			// if equal
+			if skipUrl == reqPath {
 				return true
+			} else if strings.HasSuffix(skipUrl, "*") {
+				//if endwith, eg: /static/*
+				reg := regexp.MustCompile(skipUrl).MatchString(reqPath)
+				belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls():HasSuffix(*):skipUrl:", skipUrl,
+					"    reqPath:", reqPath, reg)
+				if reg {
+					return true
+				}
 			}
 		}
 
