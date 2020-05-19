@@ -31,6 +31,11 @@ func TestSha256File(t *testing.T) {
 	fmt.Println(sh)
 }
 
+func TestSha256Password(t *testing.T) {
+	p := Sha256([]byte("2e869b49-50c8-487b-ab1a-67c87c77ccc0" + "abc123!@#"))
+	fmt.Println(p)
+}
+
 func TestSha256String(t *testing.T) {
 	s := `
         MIIDFjCCAf4CAQEwDQYJKoZIhvcNAQELBQAwRjERMA8GA1UEAxMIQTkxOUI2M0MxMTAvBgNV
