@@ -55,12 +55,16 @@ func GetFromSession(c *gin.Context, key string, value interface{}) error {
 func GetUserFromSession(c *gin.Context, ginUserModel *GinUserModel) error {
 	return GetFromSession(c, "ginuser", ginUserModel)
 }
-func DeleteInSession(c *gin.Context, key string) {
+func DeleteInSession(c *gin.Context, key string) error {
 	if len(key) == 0 {
-		return
+		return nil
 	}
 
 	s := sessions.Default(c)
 	s.Delete(key)
-	s.Save()
+	return s.Save()
+}
+
+func DeleteUserInSession(c *gin.Context) error {
+	return DeleteInSession(c, "ginuser")
 }
