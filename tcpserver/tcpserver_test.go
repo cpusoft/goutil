@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"testing"
-	"time"
 
 	"github.com/cpusoft/goutil/convert"
 )
