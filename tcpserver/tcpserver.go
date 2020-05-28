@@ -19,14 +19,15 @@ type TcpServer struct {
 }
 
 // server: 0.0.0.0:port
-func NewTcpServer(tcpProcessFunc TcpProcessFunc) (ts *TcpServer) {
+func NewTcpServer(tcpProcessFunc TcpProcessFunc) {
 
 	belogs.Debug("NewTcpServer():tcpProcessFunc:", tcpProcessFunc)
-	ts = new(TcpServer)
-	ts.tcpConns = make([]*net.TCPConn, 0, 16)
-	ts.tcpConnsMutex = new(sync.RWMutex)
-	ts.tcpProcessFunc = tcpProcessFunc
-	return ts
+	tcpServer = new(TcpServer)
+	tcpServer.tcpConns = make([]*net.TCPConn, 0, 16)
+	tcpServer.tcpConnsMutex = new(sync.RWMutex)
+	tcpServer.tcpProcessFunc = tcpProcessFunc
+
+	return
 }
 
 // server: 0.0.0.0:port
