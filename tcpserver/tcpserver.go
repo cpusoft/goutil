@@ -9,7 +9,7 @@ import (
 	belogs "github.com/astaxie/beego/logs"
 )
 
-var TCPServer = &TcpServer{}
+var tcpServer = &TcpServer{}
 
 type TcpServer struct {
 	tcpConns      []*net.TCPConn
