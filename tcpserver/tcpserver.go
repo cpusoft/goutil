@@ -9,8 +9,6 @@ import (
 	belogs "github.com/astaxie/beego/logs"
 )
 
-var TCPServer = &TcpServer{}
-
 type TcpServer struct {
 	tcpConns      []*net.TCPConn
 	tcpConnsMutex *sync.RWMutex
@@ -19,15 +17,14 @@ type TcpServer struct {
 }
 
 // server: 0.0.0.0:port
-func NewTcpServer(tcpProcessFunc TcpProcessFunc) {
+func NewTcpServer(tcpProcessFunc TcpProcessFunc) (ts *TcpServer) {
 
 	belogs.Debug("NewTcpServer():tcpProcessFunc:", tcpProcessFunc)
-	TCPServer = new(TcpServer)
-	TCPServer.tcpConns = make([]*net.TCPConn, 0, 16)
-	TCPServer.tcpConnsMutex = new(sync.RWMutex)
-	TCPServer.tcpProcessFunc = tcpProcessFunc
-
-	return
+	ts = new(TcpServer)
+	ts.tcpConns = make([]*net.TCPConn, 0, 16)
+	ts.tcpConnsMutex = new(sync.RWMutex)
+	ts.tcpProcessFunc = tcpProcessFunc
+	return ts
 }
 
 // server: 0.0.0.0:port
