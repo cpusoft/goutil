@@ -36,5 +36,5 @@ func (rs *RtrServer) ActiveSend(conn *net.TCPConn, sendData []byte) (err error) 
 func TestCreateTcpServer(t *testing.T) {
 	rtrServer := new(RtrServer)
 	ts := NewTcpServer(rtrServer)
-	ts.CreateTcpServer("0.0.0.0:9999")
+	ts.Start("0.0.0.0:9999")
 }

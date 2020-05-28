@@ -9,6 +9,8 @@ import (
 	belogs "github.com/astaxie/beego/logs"
 )
 
+var TCPServer = &TcpServer{}
+
 type TcpServer struct {
 	tcpConns      []*net.TCPConn
 	tcpConnsMutex *sync.RWMutex
@@ -28,7 +30,7 @@ func NewTcpServer(tcpProcessFunc TcpProcessFunc) (ts *TcpServer) {
 }
 
 // server: 0.0.0.0:port
-func (ts *TcpServer) CreateTcpServer(server string) (err error) {
+func (ts *TcpServer) Start(server string) (err error) {
 	tcpServer, err := net.ResolveTCPAddr("tcp", server)
 	if err != nil {
 		belogs.Error("CreateTcpServer(): ResolveTCPAddr fail: ", server, err)
