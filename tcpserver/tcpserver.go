@@ -11,7 +11,7 @@ import (
 
 type TcpServer struct {
 	tcpConns      []*net.TCPConn
-	tcpConnsMutex *sync.RWMutex
+	tcpConnsMutex sync.RWMutex
 
 	tcpProcessFunc TcpProcessFunc
 }
@@ -22,7 +22,6 @@ func NewTcpServer(tcpProcessFunc TcpProcessFunc) (ts *TcpServer) {
 	belogs.Debug("NewTcpServer():tcpProcessFunc:", tcpProcessFunc)
 	ts = &TcpServer{}
 	ts.tcpConns = make([]*net.TCPConn, 0, 16)
-	ts.tcpConnsMutex = new(sync.RWMutex)
 	ts.tcpProcessFunc = tcpProcessFunc
 	belogs.Debug("NewTcpServer():ts:", ts, "   ts.tcpConnsMutex:", ts.tcpConnsMutex)
 	return ts
