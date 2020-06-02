@@ -23,6 +23,8 @@ func NewTcpClient(tcpClientProcessFuncs map[string]TcpClientProcessFunc) (tc *Tc
 
 	belogs.Debug("NewTcpClient():tcpClientProcessFuncs:", tcpClientProcessFuncs)
 	tc = &TcpClient{}
+	tc.stopChan = make(chan string)
+	tc.tcpClientProcessChan = make(chan string)
 	tc.tcpClientProcessFuncs = tcpClientProcessFuncs
 	belogs.Debug("NewTcpClient():tc:", tc)
 	return tc
@@ -46,17 +48,17 @@ func (tc *TcpClient) Start(server string) (err error) {
 	belogs.Debug("Start():create client ok, server is  ", server, "   conn:", conn)
 
 	// receive process func
-	go func(conn1 *net.TCPConn) {
-		belogs.Debug("Start():wait for, conn:", conn1)
+	go func() {
+		belogs.Debug("Start():wait for, conn:", conn, "  tcpClientProcessChan:", tc.tcpClientProcessChan)
 		for {
 			select {
 			case tcpClientProcess := <-tc.tcpClientProcessChan:
 				belogs.Debug("Start():  tcpClientProcess:", tcpClientProcess)
 				if tcpClientProcessFunc, ok := tc.tcpClientProcessFuncs[tcpClientProcess]; ok {
 					start := time.Now()
-					belogs.Debug("Start(): tcpClientProcessFunc:", tcpClientProcessFunc, "  conn1:", conn1)
+					belogs.Debug("Start(): tcpClientProcessFunc:", tcpClientProcessFunc, "  conn:", conn)
 
-					err = tcpClientProcessFunc.ActiveSendAndReceive(conn1)
+					err = tcpClientProcessFunc.ActiveSendAndReceive(conn)
 					if err != nil {
 						belogs.Error("Start(): tcpClientProcessFunc.ActiveSendAndReceive fail: ", server, tcpServer, err)
 						return
@@ -65,13 +67,15 @@ func (tc *TcpClient) Start(server string) (err error) {
 				}
 			}
 		}
-	}(conn)
+	}()
 
 	// wait for exit
 	for {
 		select {
 		case stop := <-tc.stopChan:
 			if stop == "stop" {
+				close(tc.stopChan)
+				close(tc.tcpClientProcessChan)
 				belogs.Info("Start(): end client: ", server)
 				return nil
 			}
