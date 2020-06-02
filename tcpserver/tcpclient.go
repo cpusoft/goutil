@@ -46,15 +46,17 @@ func (tc *TcpClient) Start(server string) (err error) {
 	belogs.Debug("Start():create client ok, server is  ", server, "   conn:", conn)
 
 	// receive process func
-	go func(conn *net.TCPConn) {
-
+	go func(conn1 *net.TCPConn) {
+		belogs.Debug("Start():wait for, conn:", conn1)
 		for {
 			select {
 			case tcpClientProcess := <-tc.tcpClientProcessChan:
 				belogs.Debug("Start():  tcpClientProcess:", tcpClientProcess)
 				if tcpClientProcessFunc, ok := tc.tcpClientProcessFuncs[tcpClientProcess]; ok {
 					start := time.Now()
-					err = tcpClientProcessFunc.ActiveSendAndReceive(conn)
+					belogs.Debug("Start(): tcpClientProcessFunc:", tcpClientProcessFunc, "  conn1:", conn1)
+
+					err = tcpClientProcessFunc.ActiveSendAndReceive(conn1)
 					if err != nil {
 						belogs.Error("Start(): tcpClientProcessFunc.ActiveSendAndReceive fail: ", server, tcpServer, err)
 						return
@@ -80,9 +82,11 @@ func (tc *TcpClient) Start(server string) (err error) {
 
 // exit: to quit
 func (tc *TcpClient) CallProcessFunc(clientProcessFunc string) {
+	belogs.Debug("CallProcessFunc():  clientProcessFunc:", clientProcessFunc)
 	tc.tcpClientProcessChan <- clientProcessFunc
 }
 
 func (tc *TcpClient) CallStop() {
+	belogs.Debug("CallStop():")
 	tc.stopChan <- "stop"
 }
