@@ -8,7 +8,7 @@ import (
 )
 
 type TcpClient struct {
-	exitChan chan string
+	stopChan chan string
 
 	tcpClientProcessChan  chan string
 	tcpClientProcessFuncs map[string]TcpClientProcessFunc
@@ -68,8 +68,8 @@ func (tc *TcpClient) Start(server string) (err error) {
 	// wait for exit
 	for {
 		select {
-		case exit := <-tc.exitChan:
-			if exit == "exit" || exit == "quit" || exit == "end" {
+		case stop := <-tc.stopChan:
+			if stop == "stop" {
 				belogs.Info("Start(): end client: ", server)
 				return nil
 			}
@@ -83,6 +83,6 @@ func (tc *TcpClient) CallProcessFunc(clientProcessFunc string) {
 	tc.tcpClientProcessChan <- clientProcessFunc
 }
 
-func (tc *TcpClient) CallExit() {
-	tc.exitChan <- "exit"
+func (tc *TcpClient) CallStop() {
+	tc.stopChan <- "stop"
 }
