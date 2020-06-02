@@ -13,16 +13,16 @@ type TcpServer struct {
 	tcpConns      []*net.TCPConn
 	tcpConnsMutex sync.RWMutex
 
-	tcpProcessFunc TcpProcessFunc
+	tcpServerProcessFunc TcpServerProcessFunc
 }
 
 // server: 0.0.0.0:port
-func NewTcpServer(tcpProcessFunc TcpProcessFunc) (ts *TcpServer) {
+func NewTcpServer(tcpServerProcessFunc TcpServerProcessFunc) (ts *TcpServer) {
 
-	belogs.Debug("NewTcpServer():tcpProcessFunc:", tcpProcessFunc)
+	belogs.Debug("NewTcpServer():tcpProcessFunc:", tcpServerProcessFunc)
 	ts = &TcpServer{}
 	ts.tcpConns = make([]*net.TCPConn, 0, 16)
-	ts.tcpProcessFunc = tcpProcessFunc
+	ts.tcpServerProcessFunc = tcpServerProcessFunc
 	belogs.Debug("NewTcpServer():ts:", ts, "   ts.tcpConnsMutex:", ts.tcpConnsMutex)
 	return ts
 }
@@ -63,7 +63,7 @@ func (ts *TcpServer) Start(server string) (err error) {
 	return nil
 }
 
-type TcpProcessFunc interface {
+type TcpServerProcessFunc interface {
 	OnConnect(conn *net.TCPConn)
 	OnReceiveAndSend(conn *net.TCPConn, receiveData []byte) (err error)
 	OnClose(conn *net.TCPConn)
@@ -84,7 +84,7 @@ func (ts *TcpServer) OnConnect(conn *net.TCPConn) {
 
 	// call process func OnConnect
 	belogs.Debug("OnConnect():conn: ", conn, "   call process func: OnConnect ")
-	ts.tcpProcessFunc.OnConnect(conn)
+	ts.tcpServerProcessFunc.OnConnect(conn)
 	belogs.Debug("OnConnect():add conn: ", conn, "   time(s):", time.Now().Sub(start).Seconds())
 }
 
@@ -115,7 +115,7 @@ func (ts *TcpServer) ReceiveAndSend(conn *net.TCPConn) {
 		// call process func OnReceiveAndSend
 		recvByte := buffer[0:n]
 		belogs.Debug("ReceiveAndSend():conn: ", conn, "   call process func: ReceiveAndSend ")
-		err = ts.tcpProcessFunc.OnReceiveAndSend(conn, recvByte)
+		err = ts.tcpServerProcessFunc.OnReceiveAndSend(conn, recvByte)
 		belogs.Debug("ReceiveAndSend():conn: ", conn, "  len(recvByte): ", len(recvByte), "  time(s):", time.Now().Sub(start).Seconds())
 		if err != nil {
 			belogs.Error("OnReceiveAndSend(): fail ,will remove this conn : ", conn, err)
@@ -131,7 +131,7 @@ func (ts *TcpServer) OnClose(conn *net.TCPConn) {
 
 	// call process func OnClose
 	belogs.Debug("OnClose():conn: ", conn, "   call process func: OnClose ")
-	ts.tcpProcessFunc.OnClose(conn)
+	ts.tcpServerProcessFunc.OnClose(conn)
 
 	// remove conn from tcpConns
 	ts.tcpConnsMutex.Lock()
@@ -155,7 +155,7 @@ func (ts *TcpServer) ActiveSend(sendData []byte) (err error) {
 	belogs.Debug("ActiveSend():len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpConns))
 	for i := range ts.tcpConns {
 		belogs.Debug("ActiveSend():i: ", "    ts.tcpConns[i]:", i, ts.tcpConns[i], "   call process func: ActiveSend ")
-		err = ts.tcpProcessFunc.ActiveSend(ts.tcpConns[i], sendData)
+		err = ts.tcpServerProcessFunc.ActiveSend(ts.tcpConns[i], sendData)
 		if err != nil {
 			// just logs, not return or break
 			belogs.Error("ActiveSend():ActiveSend err: ", i, "    ts.tcpConns[i]:", ts.tcpConns[i], err)
