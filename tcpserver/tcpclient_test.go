@@ -64,8 +64,10 @@ func TestCreateTcpClient(t *testing.T) {
 	fmt.Println("tc:", tc)
 	err := tc.Start("127.0.0.1:9999")
 	fmt.Println("tc:", tc, err)
-
+	if err != nil {
+		return
+	}
 	tc.CallProcessFunc("resetquery")
 	tc.CallProcessFunc("serialquery")
-	tc.CallExit()
+	tc.CallStop()
 }

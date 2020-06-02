@@ -25,6 +25,8 @@ func NewTcpClient(tcpClientProcessFuncs map[string]TcpClientProcessFunc) (tc *Tc
 	tc = &TcpClient{}
 	tc.stopChan = make(chan string)
 	tc.tcpClientProcessChan = make(chan string)
+	belogs.Debug("NewTcpClient():tc:%p, %p:", tc.stopChan, tc.tcpClientProcessChan)
+
 	tc.tcpClientProcessFuncs = tcpClientProcessFuncs
 	belogs.Debug("NewTcpClient():tc:", tc)
 	return tc
