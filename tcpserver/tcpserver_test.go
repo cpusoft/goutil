@@ -8,13 +8,13 @@ import (
 	"github.com/cpusoft/goutil/convert"
 )
 
-type RtrServer struct {
+type ServerProcessFunc struct {
 }
 
-func (rs *RtrServer) OnConnect(conn *net.TCPConn) {
+func (spf *ServerProcessFunc) OnConnect(conn *net.TCPConn) {
 
 }
-func (rs *RtrServer) OnReceiveAndSend(conn *net.TCPConn, receiveData []byte) (err error) {
+func (spf *ServerProcessFunc) OnReceiveAndSend(conn *net.TCPConn, receiveData []byte) (err error) {
 	fmt.Println("server read:", convert.Bytes2String(receiveData))
 
 	buffer1 := []byte{0x11, 0x12, 0x00, 0x00, 0x13, 0x14, 0x00, 0x00, 0x00}
@@ -26,15 +26,15 @@ func (rs *RtrServer) OnReceiveAndSend(conn *net.TCPConn, receiveData []byte) (er
 	}
 	return nil
 }
-func (rs *RtrServer) OnClose(conn *net.TCPConn) {
+func (spf *ServerProcessFunc) OnClose(conn *net.TCPConn) {
 
 }
-func (rs *RtrServer) ActiveSend(conn *net.TCPConn, sendData []byte) (err error) {
+func (spf *ServerProcessFunc) ActiveSend(conn *net.TCPConn, sendData []byte) (err error) {
 	return
 }
 
 func TestCreateTcpServer(t *testing.T) {
-	rtrServer := new(RtrServer)
-	ts := NewTcpServer(rtrServer)
+	serverProcessFunc := new(ServerProcessFunc)
+	ts := NewTcpServer(serverProcessFunc)
 	ts.Start("0.0.0.0:9999")
 }

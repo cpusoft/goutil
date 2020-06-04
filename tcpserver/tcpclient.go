@@ -1,6 +1,7 @@
 package tcpserver
 
 import (
+	"io"
 	"net"
 	"time"
 
@@ -10,24 +11,25 @@ import (
 type TcpClient struct {
 	stopChan chan string
 
-	tcpClientProcessChan  chan string
-	tcpClientProcessFuncs map[string]TcpClientProcessFunc
+	tcpClientProcessChan chan string
+	tcpClientProcessFunc TcpClientProcessFunc
 }
 
 type TcpClientProcessFunc interface {
-	ActiveSendAndReceive(conn *net.TCPConn) (err error)
+	ActiveSend(conn *net.TCPConn, tcpClientProcessChan string) (err error)
+	OnReceive(conn *net.TCPConn, receiveData []byte) (err error)
 }
 
 // server: 0.0.0.0:port
-func NewTcpClient(tcpClientProcessFuncs map[string]TcpClientProcessFunc) (tc *TcpClient) {
+func NewTcpClient(tcpClientProcessFunc TcpClientProcessFunc) (tc *TcpClient) {
 
-	belogs.Debug("NewTcpClient():tcpClientProcessFuncs:", tcpClientProcessFuncs)
+	belogs.Debug("NewTcpClient():tcpClientProcessFuncs:", tcpClientProcessFunc)
 	tc = &TcpClient{}
 	tc.stopChan = make(chan string)
 	tc.tcpClientProcessChan = make(chan string)
 	belogs.Debug("NewTcpClient():tc:%p, %p:", tc.stopChan, tc.tcpClientProcessChan)
 
-	tc.tcpClientProcessFuncs = tcpClientProcessFuncs
+	tc.tcpClientProcessFunc = tcpClientProcessFunc
 	belogs.Debug("NewTcpClient():tc:", tc)
 	return tc
 }
@@ -49,30 +51,15 @@ func (tc *TcpClient) Start(server string) (err error) {
 	defer conn.Close()
 	belogs.Debug("Start():create client ok, server is  ", server, "   conn:", conn)
 
-	// receive process func
-	go func() {
-		belogs.Debug("Start():wait for, conn:", conn, "  tcpClientProcessChan:", tc.tcpClientProcessChan)
-		for {
-			select {
-			case tcpClientProcess := <-tc.tcpClientProcessChan:
-				belogs.Debug("Start():  tcpClientProcess:", tcpClientProcess)
-				if tcpClientProcessFunc, ok := tc.tcpClientProcessFuncs[tcpClientProcess]; ok {
-					start := time.Now()
-					belogs.Debug("Start(): tcpClientProcessFunc:", tcpClientProcessFunc, "  conn:", conn)
+	// get process func to active send to server
+	go tc.waitActiveSend(conn)
 
-					err = tcpClientProcessFunc.ActiveSendAndReceive(conn)
-					if err != nil {
-						belogs.Error("Start(): tcpClientProcessFunc.ActiveSendAndReceive fail: ", server, tcpServer, err)
-						return
-					}
-					belogs.Debug("Start(): tcpClientProcess:", tcpClientProcess, "  time(s):", time.Now().Sub(start).Seconds())
-				}
-			}
-		}
-	}()
+	// wait for receive bytes from server
+	go tc.waitReceive(conn)
 
 	// wait for exit
 	for {
+		belogs.Debug("Start():wait for stop  ", server, "   conn:", conn)
 		select {
 		case stop := <-tc.stopChan:
 			if stop == "stop" {
@@ -95,4 +82,55 @@ func (tc *TcpClient) CallProcessFunc(clientProcessFunc string) {
 func (tc *TcpClient) CallStop() {
 	belogs.Debug("CallStop():")
 	tc.stopChan <- "stop"
+}
+
+func (tc *TcpClient) waitActiveSend(conn *net.TCPConn) {
+	belogs.Debug("waitActiveSend():wait for ActiveSend, conn:", conn)
+	for {
+		select {
+		case tcpClientProcessChan := <-tc.tcpClientProcessChan:
+			belogs.Debug("waitActiveSend():  tcpClientProcess:", tcpClientProcessChan)
+			start := time.Now()
+
+			err := tc.tcpClientProcessFunc.ActiveSend(conn, tcpClientProcessChan)
+			if err != nil {
+				belogs.Error("waitActiveSend(): tcpClientProcessFunc.ActiveSendAndReceive fail:  conn:", conn, err)
+				return
+			}
+			belogs.Debug("waitActiveSend(): tcpClientProcessChan:", tcpClientProcessChan, "  time(s):", time.Now().Sub(start).Seconds())
+		}
+	}
+}
+
+func (tc *TcpClient) waitReceive(conn *net.TCPConn) {
+	belogs.Debug("waitReceive():wait for OnReceive, conn:", conn)
+	// one packet
+	buffer := make([]byte, 2048)
+	// wait for new packet to read
+	for {
+		n, err := conn.Read(buffer)
+		start := time.Now()
+		belogs.Debug("waitReceive():server read: Read n: ", conn, n)
+		if err != nil {
+			if err == io.EOF {
+				// is not error, just client close
+				belogs.Debug("waitReceive(): io.EOF, client close: ", conn, err)
+				return
+			}
+			belogs.Error("waitReceive(): Read fail, err ", conn, err)
+			return
+		}
+		if n == 0 {
+			continue
+		}
+
+		// call process func OnReceiveAndSend
+		recvByte := buffer[0:n]
+		err = tc.tcpClientProcessFunc.OnReceive(conn, recvByte)
+		belogs.Debug("waitReceive():conn: ", conn, "  len(recvByte): ", len(recvByte), "  time(s):", time.Now().Sub(start).Seconds())
+		if err != nil {
+			belogs.Error("waitReceive(): fail ,will remove this conn : ", conn, err)
+			break
+		}
+	}
 }
