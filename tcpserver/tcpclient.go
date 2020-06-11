@@ -97,7 +97,7 @@ func (tc *TcpClient) waitActiveSend(conn *net.TCPConn) {
 				belogs.Error("waitActiveSend(): tcpClientProcessFunc.ActiveSendAndReceive fail:  conn:", conn, err)
 				return
 			}
-			belogs.Debug("waitActiveSend(): tcpClientProcessChan:", tcpClientProcessChan, "  time(s):", time.Now().Sub(start).Seconds())
+			belogs.Info("waitActiveSend(): tcpClientProcessChan:", tcpClientProcessChan, "  time(s):", time.Now().Sub(start).Seconds())
 		}
 	}
 }
@@ -128,8 +128,10 @@ func (tc *TcpClient) waitReceive(conn *net.TCPConn) {
 		// copy to new []byte
 		receiveData := make([]byte, n)
 		copy(receiveData, buffer[0:n])
+		belogs.Info("waitReceive():conn: ", conn, "  len(receiveData): ", len(receiveData),
+			" , will call client tcpClientProcessFunc,  time(s):", time.Now().Sub(start).Seconds())
 		err = tc.tcpClientProcessFunc.OnReceive(conn, receiveData)
-		belogs.Debug("waitReceive():conn: ", conn, "  n: ", n, "  time(s):", time.Now().Sub(start).Seconds())
+		belogs.Debug("waitReceive():conn: ", conn, "  len(receiveData): ", len(receiveData), "  time(s):", time.Now().Sub(start).Seconds())
 		if err != nil {
 			belogs.Error("waitReceive(): fail ,will remove this conn : ", conn, err)
 			break
