@@ -31,24 +31,23 @@ func NewTcpServer(tcpServerProcessFunc TcpServerProcessFunc) (ts *TcpServer) {
 func (ts *TcpServer) Start(server string) (err error) {
 	tcpServer, err := net.ResolveTCPAddr("tcp", server)
 	if err != nil {
-		belogs.Error("CreateTcpServer(): ResolveTCPAddr fail: ", server, err)
+		belogs.Error("Start(): ResolveTCPAddr fail: ", server, err)
 		return err
 	}
 
 	listen, err := net.ListenTCP("tcp", tcpServer)
 	if err != nil {
-		belogs.Error("CreateTcpServer(): ListenTCP fail: ", server, err)
+		belogs.Error("Start(): ListenTCP fail: ", server, err)
 		return err
 	}
 	defer listen.Close()
-
-	belogs.Debug("CreateTcpServer(): create server ok, server is ", server, "  will accept client")
+	belogs.Debug("Start(): create server ok, server is ", server, "  will accept client")
 
 	for {
 		conn, err := listen.AcceptTCP()
-		belogs.Info("CreateTcpServer(): Accept remote: ", conn.RemoteAddr().String())
+		belogs.Info("Start(): Accept remote: ", conn.RemoteAddr().String())
 		if err != nil {
-			belogs.Error("CreateTcpServer(): Accept remote fail: ", server, conn.RemoteAddr().String(), err)
+			belogs.Error("Start(): Accept remote fail: ", server, conn.RemoteAddr().String(), err)
 			continue
 		}
 		if conn == nil {
