@@ -156,14 +156,14 @@ func (ts *TcpServer) ActiveSend(sendData []byte) (err error) {
 
 	belogs.Debug("ActiveSend():server,len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpConns))
 	for i := range ts.tcpConns {
-		belogs.Debug("ActiveSend():server, i: ", "    ts.tcpConns[i]:", i, ts.tcpConns[i], "   call process func: ActiveSend ")
+		belogs.Debug("ActiveSend(): client: ", i, "    ts.tcpConns[i]:", ts.tcpConns[i], "   call process func: ActiveSend ")
 		err = ts.tcpServerProcessFunc.ActiveSend(ts.tcpConns[i], sendData)
 		if err != nil {
 			// just logs, not return or break
-			belogs.Error("ActiveSend():ActiveSend err: ", i, "    ts.tcpConns[i]:", ts.tcpConns[i], err)
+			belogs.Error("ActiveSend(): fail, client: ", i, "    ts.tcpConns[i]:", ts.tcpConns[i], err)
 		}
 	}
-	belogs.Info("ActiveSend():server, send len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpConns),
+	belogs.Info("ActiveSend(): send to all clients ok,  len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpConns),
 		"  time(s):", time.Now().Sub(start).Seconds())
 	return
 }
