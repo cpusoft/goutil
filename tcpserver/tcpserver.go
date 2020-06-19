@@ -115,7 +115,7 @@ func (ts *TcpServer) ReceiveAndSend(conn *net.TCPConn) {
 		// copy to new []byte
 		receiveData := make([]byte, n)
 		copy(receiveData, buffer[0:n])
-		belogs.Info("ReceiveAndSend():server conn: ", conn, "  len(receiveData):", len(receiveData),
+		belogs.Debug("ReceiveAndSend():server conn: ", conn, "  len(receiveData):", len(receiveData),
 			" , will call process func: OnReceiveAndSend,  time(s):", time.Now().Sub(start).Seconds())
 		err = ts.tcpServerProcessFunc.OnReceiveAndSend(conn, receiveData)
 		belogs.Debug("ReceiveAndSend():server conn: ", conn, "  len(receiveData): ", len(receiveData), "  time(s):", time.Now().Sub(start).Seconds())
