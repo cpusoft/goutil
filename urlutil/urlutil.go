@@ -3,6 +3,8 @@ package urlutil
 import (
 	"net/url"
 	"strings"
+
+	"github.com/cpusoft/goutil/osutil"
 )
 
 // http://server:port/aa/bb/cc.html --> server/aa/bb/
@@ -50,6 +52,21 @@ func HostAndPathFile(urlStr string) (string, error) {
 		host = strings.Split(host, ":")[0]
 	}
 	return (host + u.Path), nil
+}
+
+// http://server:port/aa/bb/cc.html --> server,  aa/bb, cc.html
+func HostAndPathAndFile(urlStr string) (host, path, file string, err error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return
+	}
+	host = u.Host
+	// if have port
+	if strings.Contains(host, ":") {
+		host = strings.Split(host, ":")[0]
+	}
+	path, file = osutil.Split(u.Path)
+	return host, path, file, nil
 }
 
 func IsUrl(urlStr string) bool {
