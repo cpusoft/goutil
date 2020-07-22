@@ -48,12 +48,19 @@ func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
 
 // Https Get Method, complete url
 func GetHttps(urlStr string) (resp gorequest.Response, body string, err error) {
-	belogs.Debug("GetHttps():url:", urlStr)
+	return GetHttpsVerify(urlStr, false)
+
+}
+
+// Https Get Method, complete url
+// verify: check https or not
+func GetHttpsVerify(urlStr string, verify bool) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("GetHttpsVerify():url:", urlStr, "    verify:", verify)
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
 	}
-	config := &tls.Config{InsecureSkipVerify: true}
+	config := &tls.Config{InsecureSkipVerify: !verify}
 
 	return errorsToerror(gorequest.New().Get(urlStr).
 		TLSClientConfig(config).
@@ -94,12 +101,19 @@ func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body str
 
 // Https Post Method, complete url
 func PostHttps(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
-	belogs.Debug("PostHttps():url:", urlStr, "    len(postJson):", len(postJson))
+	return PostHttpsVerify(urlStr, postJson, false)
+
+}
+
+// Https Post Method, complete url
+// verify: check https or not
+func PostHttpsVerify(urlStr string, postJson string, verify bool) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("PostHttpsVerify():url:", urlStr, "    len(postJson):", len(postJson), "    verify:", verify)
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
 	}
-	config := &tls.Config{InsecureSkipVerify: true}
+	config := &tls.Config{InsecureSkipVerify: !verify}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
 		Timeout(DefaultTimeout*time.Minute).
