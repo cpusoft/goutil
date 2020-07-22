@@ -1,23 +1,52 @@
 package osutil
 
 import (
-	urlutil "github.com/cpusoft/goutil/urlutil"
+	"net/url"
+	"strings"
 )
 
-// url is http://www.server.com:8080/aa/bb/cc.html , and  preifxPath is /root/path ;
-// combine to  /root/path/www.server.com/aa/bb/cc.html
+// Deprecated: using urlutil
+func hostAndPathFile(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+	host := u.Host
+	// if have port
+	if strings.Contains(host, ":") {
+		host = strings.Split(host, ":")[0]
+	}
+	return (host + u.Path), nil
+}
+
+// Deprecated: using urlutil
+func host(urlStr string) (string, error) {
+
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	host := u.Host
+	// if have port
+	if strings.Contains(host, ":") {
+		host = strings.Split(host, ":")[0]
+	}
+	return host, nil
+}
+
+// Deprecated: using urlutil
 func GetPathFileNameFromUrl(prefixPath, url string) (pathFileName string, err error) {
-	hostPathFile, err := urlutil.HostAndPathFile(url)
+	hostPathFile, err := hostAndPathFile(url)
 	if err != nil {
 		return "", err
 	}
 	return prefixPath + GetPathSeparator() + hostPathFile, nil
 }
 
-// url is http://www.server.com:8080/aa/bb/cc.html , and  preifxPath is /root/path ;
-// combine to  /root/path/www.server.com
+// Deprecated: using urlutil
 func GetHostPathFromUrl(prefixPath, url string) (filePathName string, err error) {
-	host, err := urlutil.Host(url)
+	host, err := host(url)
 	if err != nil {
 		return "", err
 	}
