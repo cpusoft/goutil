@@ -81,7 +81,7 @@ func GetPathFileNameFromUrl(prefixPath, url string) (pathFileName string, err er
 	if err != nil {
 		return "", err
 	}
-	return prefixPath + GetPathSeparator() + hostPathFile, nil
+	return prefixPath + osutil.GetPathSeparator() + hostPathFile, nil
 }
 
 // url is http://www.server.com:8080/aa/bb/cc.html , and  preifxPath is /root/path ;
@@ -91,5 +91,5 @@ func GetHostPathFromUrl(prefixPath, url string) (filePathName string, err error)
 	if err != nil {
 		return "", err
 	}
-	return prefixPath + GetPathSeparator() + host, nil
+	return prefixPath + osutil.GetPathSeparator() + host, nil
 }
