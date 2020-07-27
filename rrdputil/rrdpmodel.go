@@ -90,3 +90,10 @@ type DeltaWithdraw struct {
 	Uri     string   `xml:"uri,attr"`
 	Hash    string   `xml:"hash,attr"`
 }
+
+type RrdpFile struct {
+	FilePath string
+	FileName string
+	// add /del
+	SyncType string
+}

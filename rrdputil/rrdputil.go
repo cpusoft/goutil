@@ -126,7 +126,7 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 
 }
 
-// repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
+// Deprecated: using SaveRrdpSnapshotToRrdpFiles
 func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, repoPath string) (err error) {
 	if snapshotModel == nil || len(snapshotModel.SnapshotPublishs) == 0 {
 		belogs.Debug("SaveRrdpSnapshotToFiles(): len(snapshotModel.SnapshotPublishs)==0")
@@ -160,6 +160,51 @@ func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, repoPath string) (err
 		belogs.Debug("SaveRrdpSnapshotToFiles(): save pathFileName ", pathFileName, "  ok")
 	}
 	return nil
+
+}
+
+// repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
+func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) (rrdpFiles []RrdpFile, err error) {
+	if snapshotModel == nil || len(snapshotModel.SnapshotPublishs) == 0 {
+		belogs.Error("SaveRrdpSnapshotToRrdpFiles(): len(snapshotModel.SnapshotPublishs)==0")
+		return nil, errors.New("snapshot's publishs is empty")
+	}
+	for i := range snapshotModel.SnapshotPublishs {
+		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, snapshotModel.SnapshotPublishs[i].Uri)
+		if err != nil {
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): GetPathFileNameFromUrl fail:", snapshotModel.SnapshotPublishs[i].Uri)
+			return nil, err
+		}
+
+		// if dir is notexist ,then mkdir
+		dir, file := osutil.Split(pathFileName)
+		isExist, _ := osutil.IsExists(dir)
+		if !isExist {
+			os.MkdirAll(dir, os.ModePerm)
+		}
+
+		bytes, err := base64util.DecodeBase64(strings.TrimSpace(snapshotModel.SnapshotPublishs[i].Base64))
+		if err != nil {
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): DecodeBase64 fail:", snapshotModel.SnapshotPublishs[i].Base64)
+			return nil, err
+		}
+
+		err = fileutil.WriteBytesToFile(pathFileName, bytes)
+		if err != nil {
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): WriteBytesToFile fail:", pathFileName, len(bytes))
+			return nil, err
+		}
+		belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save pathFileName ", pathFileName, "  ok")
+
+		rrdpFile := RrdpFile{
+			FilePath: dir,
+			FileName: file,
+			SyncType: "add",
+		}
+		rrdpFiles = append(rrdpFiles, rrdpFile)
+	}
+	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save rrdpFiles ", jsonutil.MarshalJson(rrdpFiles))
+	return rrdpFiles, nil
 
 }
 
@@ -240,7 +285,7 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 
 }
 
-// repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
+// Deprecated: using SaveRrdpDeltaToRrdpFiles
 func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 	if deltaModel == nil || (len(deltaModel.DeltaPublishs) == 0 && len(deltaModel.DeltaWithdraws) == 0) {
 		belogs.Debug("SaveRrdpDeltaToFiles(): len(snapshotModel.SnapshotPublishs)==0")
@@ -280,6 +325,7 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 			return err
 		}
 		belogs.Debug("SaveRrdpDeltaToFiles():Publish save pathFileName ", pathFileName, "  ok")
+
 	}
 
 	// del withdraw files
@@ -303,5 +349,87 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 		belogs.Debug("SaveRrdpDeltaToFiles():Withdraw Remove pathFileName ", pathFileName, "  ok")
 	}
 	return nil
+
+}
+
+// repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
+func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFiles []RrdpFile, err error) {
+	if deltaModel == nil || (len(deltaModel.DeltaPublishs) == 0 && len(deltaModel.DeltaWithdraws) == 0) {
+		belogs.Error("SaveRrdpDeltaToRrdpFiles(): len(snapshotModel.DeltaPublishs)==0 && len(deltaModel.DeltaWithdraws)==0")
+		return nil, errors.New("delta's publishs and withdraws are all empty")
+
+	}
+	// save publish files
+	for i := range deltaModel.DeltaPublishs {
+		// get absolute dir /dest/***/***/**.**
+		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaPublishs[i].Uri)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaPublishs[i].Uri)
+			return nil, err
+		}
+
+		// if dir is notexist ,then mkdir
+		dir, file := osutil.Split(pathFileName)
+		isExist, _ := osutil.IsExists(dir)
+		if !isExist {
+			os.MkdirAll(dir, os.ModePerm)
+		}
+
+		// decode base65 to bytes
+		bytes, err := base64util.DecodeBase64(strings.TrimSpace(deltaModel.DeltaPublishs[i].Base64))
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles():Publish DecodeBase64 fail:",
+				deltaModel.Serial,
+				deltaModel.DeltaPublishs[i].Uri, deltaModel.DeltaPublishs[i].Base64)
+			return nil, err
+		}
+
+		err = fileutil.WriteBytesToFile(pathFileName, bytes)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles():Publish WriteBytesToFile fail:",
+				deltaModel.Serial,
+				deltaModel.DeltaPublishs[i].Uri,
+				pathFileName, len(bytes))
+			return nil, err
+		}
+		belogs.Debug("SaveRrdpDeltaToFiles():Publish save pathFileName ", pathFileName, "  ok")
+
+		rrdpFile := RrdpFile{
+			FilePath: dir,
+			FileName: file,
+			SyncType: "add",
+		}
+		rrdpFiles = append(rrdpFiles, rrdpFile)
+	}
+
+	// del withdraw files
+	for i := range deltaModel.DeltaWithdraws {
+		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaWithdraws[i].Uri)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaWithdraws[i].Uri)
+			return nil, err
+		}
+		err = os.Remove(pathFileName)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles():Remove fail:", pathFileName)
+			return nil, err
+		}
+		// if in this dir, no more files, then del dir
+		dir, file := osutil.Split(pathFileName)
+		files, _ := ioutil.ReadDir(dir)
+		if len(files) == 0 {
+			os.RemoveAll(dir)
+		}
+		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Withdraw Remove pathFileName ", pathFileName, "  ok")
+
+		rrdpFile := RrdpFile{
+			FilePath: dir,
+			FileName: file,
+			SyncType: "del",
+		}
+		rrdpFiles = append(rrdpFiles, rrdpFile)
+	}
+	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save rrdpFiles ", jsonutil.MarshalJson(rrdpFiles))
+	return rrdpFiles, nil
 
 }
