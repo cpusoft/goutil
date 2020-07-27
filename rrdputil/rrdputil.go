@@ -359,7 +359,35 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 		return nil, errors.New("delta's publishs and withdraws are all empty")
 
 	}
-	// save publish files
+	// first , del withdraw files
+	for i := range deltaModel.DeltaWithdraws {
+		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaWithdraws[i].Uri)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaWithdraws[i].Uri)
+			return nil, err
+		}
+		err = os.Remove(pathFileName)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles():Remove fail:", pathFileName)
+			return nil, err
+		}
+		// if in this dir, no more files, then del dir
+		dir, file := osutil.Split(pathFileName)
+		files, _ := ioutil.ReadDir(dir)
+		if len(files) == 0 {
+			os.RemoveAll(dir)
+		}
+		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Withdraw Remove pathFileName ", pathFileName, "  ok")
+
+		rrdpFile := RrdpFile{
+			FilePath: dir,
+			FileName: file,
+			SyncType: "del",
+		}
+		rrdpFiles = append(rrdpFiles, rrdpFile)
+	}
+
+	// seconde, save publish files
 	for i := range deltaModel.DeltaPublishs {
 		// get absolute dir /dest/***/***/**.**
 		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaPublishs[i].Uri)
@@ -402,33 +430,6 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}
 
-	// del withdraw files
-	for i := range deltaModel.DeltaWithdraws {
-		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaWithdraws[i].Uri)
-		if err != nil {
-			belogs.Error("SaveRrdpDeltaToRrdpFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaWithdraws[i].Uri)
-			return nil, err
-		}
-		err = os.Remove(pathFileName)
-		if err != nil {
-			belogs.Error("SaveRrdpDeltaToRrdpFiles():Remove fail:", pathFileName)
-			return nil, err
-		}
-		// if in this dir, no more files, then del dir
-		dir, file := osutil.Split(pathFileName)
-		files, _ := ioutil.ReadDir(dir)
-		if len(files) == 0 {
-			os.RemoveAll(dir)
-		}
-		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Withdraw Remove pathFileName ", pathFileName, "  ok")
-
-		rrdpFile := RrdpFile{
-			FilePath: dir,
-			FileName: file,
-			SyncType: "del",
-		}
-		rrdpFiles = append(rrdpFiles, rrdpFile)
-	}
 	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save rrdpFiles ", jsonutil.MarshalJson(rrdpFiles))
 	return rrdpFiles, nil
 
