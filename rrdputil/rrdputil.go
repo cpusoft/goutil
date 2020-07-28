@@ -249,38 +249,39 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 			"    notificationModel.SessionId:", notificationModel.SessionId)
 		return errors.New("delta's session_id is different from  notification's session_id")
 	}
+	/* hash256 comes from the last file
 	for i := range deltaModel.DeltaPublishs {
 		base64Hash := hashutil.Sha256([]byte((deltaModel.DeltaPublishs[i].Base64)))
 		if strings.ToLower(base64Hash) != strings.ToLower(deltaModel.DeltaPublishs[i].Hash) {
 			belogs.Error("CheckRrdpDelta(): deltaModel.Serial:", deltaModel.Serial,
 				"   deltaModel.DeltaPublishs[i].Hash:", deltaModel.DeltaPublishs[i].Hash,
 				"    base64Hash:", base64Hash, "   base64:"+deltaModel.DeltaPublishs[i].Base64+",")
-			// shaodebug , all are not equal, why ??
-			//return errors.New("delta's base64's hash is different from  deltaModel's hash")
 		}
 	}
+	*/
 
 	if _, ok := notificationModel.MapSerialDeltas[deltaModel.Serial]; !ok {
 		belogs.Error("CheckRrdpDelta(): notification has not such  delta's serial:", deltaModel.Serial)
 		return errors.New("notification has not such  delta's serial")
 	}
-	found := false
-	for i := range notificationModel.Deltas {
-		if notificationModel.Deltas[i].Serial == deltaModel.Serial &&
-			strings.ToLower(notificationModel.Deltas[i].Hash) != strings.ToLower(deltaModel.Hash) {
-			found = true
-			break
+	/*
+		found := false
+		for i := range notificationModel.Deltas {
+			if notificationModel.Deltas[i].Serial == deltaModel.Serial &&
+				strings.ToLower(notificationModel.Deltas[i].Hash) != strings.ToLower(deltaModel.Hash) {
+				found = true
+				break
+			}
 		}
-	}
-	if !found {
-		belogs.Error("CheckRrdpDelta(): compare notificationModel.MapSerialDeltas:",
-			notificationModel.MapSerialDeltas, "  eltaModel.Serial: ", deltaModel.Serial,
-			"    notificationModel.Deltas[i].Hash not found, ",
-			"    deltaModel.Hash:", deltaModel.Hash)
-		//shaodebug ,not return ,just log error
-		//return errors.New("delta's hash is different from  notification's snapshot's hash")
-	}
-
+		if !found {
+			belogs.Error("CheckRrdpDelta(): compare notificationModel.MapSerialDeltas:",
+				notificationModel.MapSerialDeltas, "  eltaModel.Serial: ", deltaModel.Serial,
+				"    notificationModel.Deltas[i].Hash not found, ",
+				"    deltaModel.Hash:", deltaModel.Hash)
+			//shaodebug ,not return ,just log error
+			//return errors.New("delta's hash is different from  notification's snapshot's hash")
+		}
+	*/
 	return nil
 
 }
