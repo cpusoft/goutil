@@ -39,7 +39,7 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 
 	// will sort deltas from smaller to bigger
 	sort.Sort(NotificationDeltas(notificationModel.Deltas))
-	belogs.Debug("GetRrdpNotification(): after sort, notificationModel.Deltas:", jsonutil.MarshalJson(notificationModel.Deltas))
+	belogs.Debug("GetRrdpNotification(): after sort, len(notificationModel.Deltas):", len(notificationModel.Deltas))
 
 	// get maxserial and minserial, and set map[serial]serial
 	notificationModel.MapSerialDeltas = make(map[uint64]uint64, len(notificationModel.Deltas)+10)
