@@ -337,11 +337,8 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 			belogs.Error("SaveRrdpSnapshotToFiles(): JoinPrefixPathAndUrlFileName fail:", deltaModel.DeltaWithdraws[i].Uri)
 			return err
 		}
-		err = os.Remove(pathFileName)
-		if err != nil {
-			belogs.Error("SaveRrdpDeltaToFiles():Remove fail:", pathFileName)
-			return err
-		}
+		os.Remove(pathFileName)
+
 		// if in this dir, no more files, then del dir
 		dir, _ := osutil.Split(pathFileName)
 		files, _ := ioutil.ReadDir(dir)
@@ -368,11 +365,8 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 			belogs.Error("SaveRrdpDeltaToRrdpFiles(): JoinPrefixPathAndUrlFileName fail:", deltaModel.DeltaWithdraws[i].Uri)
 			return nil, err
 		}
-		err = os.Remove(pathFileName)
-		if err != nil {
-			belogs.Error("SaveRrdpDeltaToRrdpFiles():Remove fail:", pathFileName)
-			return nil, err
-		}
+		os.Remove(pathFileName)
+
 		// if in this dir, no more files, then del dir
 		dir, file := osutil.Split(pathFileName)
 		files, _ := ioutil.ReadDir(dir)
