@@ -15,6 +15,7 @@ import (
 	jsonutil "github.com/cpusoft/goutil/jsonutil"
 	osutil "github.com/cpusoft/goutil/osutil"
 	stringutil "github.com/cpusoft/goutil/stringutil"
+	urlutil "github.com/cpusoft/goutil/urlutil"
 	xmlutil "github.com/cpusoft/goutil/xmlutil"
 )
 
@@ -133,9 +134,9 @@ func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, repoPath string) (err
 		return nil
 	}
 	for i := range snapshotModel.SnapshotPublishs {
-		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, snapshotModel.SnapshotPublishs[i].Uri)
+		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, snapshotModel.SnapshotPublishs[i].Uri)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToFiles(): GetPathFileNameFromUrl fail:", snapshotModel.SnapshotPublishs[i].Uri)
+			belogs.Error("SaveRrdpSnapshotToFiles(): JoinPrefixPathAndUrlFileName fail:", snapshotModel.SnapshotPublishs[i].Uri)
 			return err
 		}
 
@@ -170,9 +171,9 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 		return nil, errors.New("snapshot's publishs is empty")
 	}
 	for i := range snapshotModel.SnapshotPublishs {
-		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, snapshotModel.SnapshotPublishs[i].Uri)
+		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, snapshotModel.SnapshotPublishs[i].Uri)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): GetPathFileNameFromUrl fail:", snapshotModel.SnapshotPublishs[i].Uri)
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): JoinPrefixPathAndUrlFileName fail:", snapshotModel.SnapshotPublishs[i].Uri)
 			return nil, err
 		}
 
@@ -295,9 +296,9 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 	// save publish files
 	for i := range deltaModel.DeltaPublishs {
 		// get absolute dir /dest/***/***/**.**
-		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaPublishs[i].Uri)
+		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, deltaModel.DeltaPublishs[i].Uri)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaPublishs[i].Uri)
+			belogs.Error("SaveRrdpSnapshotToFiles(): JoinPrefixPathAndUrlFileName fail:", deltaModel.DeltaPublishs[i].Uri)
 			return err
 		}
 
@@ -331,9 +332,9 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 
 	// del withdraw files
 	for i := range deltaModel.DeltaWithdraws {
-		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaWithdraws[i].Uri)
+		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, deltaModel.DeltaWithdraws[i].Uri)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaWithdraws[i].Uri)
+			belogs.Error("SaveRrdpSnapshotToFiles(): JoinPrefixPathAndUrlFileName fail:", deltaModel.DeltaWithdraws[i].Uri)
 			return err
 		}
 		err = os.Remove(pathFileName)
@@ -362,9 +363,9 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 	}
 	// first , del withdraw files
 	for i := range deltaModel.DeltaWithdraws {
-		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaWithdraws[i].Uri)
+		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, deltaModel.DeltaWithdraws[i].Uri)
 		if err != nil {
-			belogs.Error("SaveRrdpDeltaToRrdpFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaWithdraws[i].Uri)
+			belogs.Error("SaveRrdpDeltaToRrdpFiles(): JoinPrefixPathAndUrlFileName fail:", deltaModel.DeltaWithdraws[i].Uri)
 			return nil, err
 		}
 		err = os.Remove(pathFileName)
@@ -391,9 +392,9 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 	// seconde, save publish files
 	for i := range deltaModel.DeltaPublishs {
 		// get absolute dir /dest/***/***/**.**
-		pathFileName, err := osutil.GetPathFileNameFromUrl(repoPath, deltaModel.DeltaPublishs[i].Uri)
+		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, deltaModel.DeltaPublishs[i].Uri)
 		if err != nil {
-			belogs.Error("SaveRrdpDeltaToRrdpFiles(): GetPathFileNameFromUrl fail:", deltaModel.DeltaPublishs[i].Uri)
+			belogs.Error("SaveRrdpDeltaToRrdpFiles(): JoinPrefixPathAndUrlFileName fail:", deltaModel.DeltaPublishs[i].Uri)
 			return nil, err
 		}
 

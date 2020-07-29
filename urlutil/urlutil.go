@@ -76,20 +76,20 @@ func IsUrl(urlStr string) bool {
 
 // url is http://www.server.com:8080/aa/bb/cc.html , and  preifxPath is /root/path ;
 // combine to  /root/path/www.server.com/aa/bb/cc.html
-func GetPathFileNameFromUrl(prefixPath, url string) (pathFileName string, err error) {
+func JoinPrefixPathAndUrlFileName(prefixPath, url string) (pathFileName string, err error) {
 	hostPathFile, err := HostAndPathFile(url)
 	if err != nil {
 		return "", err
 	}
-	return prefixPath + osutil.GetPathSeparator() + hostPathFile, nil
+	return osutil.JoinPathFile(prefixPath, hostPathFile), nil
 }
 
 // url is http://www.server.com:8080/aa/bb/cc.html , and  preifxPath is /root/path ;
 // combine to  /root/path/www.server.com
-func GetHostPathFromUrl(prefixPath, url string) (filePathName string, err error) {
+func JoinPrefixPathAndUrlHost(prefixPath, url string) (path string, err error) {
 	host, err := Host(url)
 	if err != nil {
 		return "", err
 	}
-	return prefixPath + osutil.GetPathSeparator() + host, nil
+	return osutil.JoinPathFile(prefixPath, host), nil
 }
