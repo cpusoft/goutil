@@ -42,6 +42,7 @@ func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
 		Timeout(DefaultTimeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
+		Set("Connection", "keep-alive").
 		End())
 
 }
@@ -67,6 +68,7 @@ func GetHttpsVerify(urlStr string, verify bool) (resp gorequest.Response, body s
 		Timeout(DefaultTimeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
+		Set("Connection", "keep-alive").
 		End())
 
 }
@@ -94,6 +96,7 @@ func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body str
 		Timeout(DefaultTimeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
+		Set("Connection", "keep-alive").
 		Send(postJson).
 		End())
 
@@ -119,6 +122,7 @@ func PostHttpsVerify(urlStr string, postJson string, verify bool) (resp goreques
 		Timeout(DefaultTimeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
+		Set("Connection", "keep-alive").
 		Send(postJson).
 		End())
 
@@ -156,6 +160,7 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 		Timeout(DefaultTimeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
+		Set("Connection", "keep-alive").
 		Type("multipart").
 		SendFile(b, file).
 		End())
@@ -183,6 +188,7 @@ func PostFileHttps(urlStr string, fileName string, formName string) (resp gorequ
 		Timeout(DefaultTimeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
+		Set("Connection", "keep-alive").
 		Type("multipart").
 		SendFile(b, file).
 		End())

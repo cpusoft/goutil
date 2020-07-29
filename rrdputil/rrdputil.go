@@ -24,7 +24,7 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 	// 往rp发送请求
 	// "https://rrdp.apnic.net/notification.xml"
 	belogs.Debug("GetRrdpNotification(): notificationUrl:", notificationUrl)
-	resp, body, err := httpclient.GetHttps(notificationUrl)
+	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
 	if err != nil {
 		belogs.Error("GetRrdpNotification(): notificationUrl fail, ", notificationUrl, err)
 		return notificationModel, err
@@ -81,7 +81,7 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
 	belogs.Debug("GetRrdpSnapshot(): snapshotUrl:", snapshotUrl)
-	resp, body, err := httpclient.GetHttps(snapshotUrl)
+	resp, body, err := httpclient.GetHttpsVerify(snapshotUrl, true)
 	if err != nil {
 		belogs.Error("GetRrdpSnapshot(): snapshotUrl fail, ", snapshotUrl, err)
 		return snapshotModel, err
@@ -214,7 +214,7 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 	// 往rp发送请求
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
 	belogs.Debug("deltaUrl(): deltaUrl:", deltaUrl)
-	resp, body, err := httpclient.GetHttps(deltaUrl)
+	resp, body, err := httpclient.GetHttpsVerify(deltaUrl, true)
 	if err != nil {
 		belogs.Error("deltaUrl(): deltaUrl fail, ", deltaUrl, err)
 		return deltaModel, err
