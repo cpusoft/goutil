@@ -45,6 +45,7 @@ func ReadFileToBytes(file string) (bytes []byte, err error) {
 	return ioutil.ReadAll(fi)
 }
 
+// -rw-rw--r--
 func WriteBytesToFile(file string, bytes []byte) (err error) {
-	return ioutil.WriteFile(file, bytes, os.ModeAppend)
+	return ioutil.WriteFile(file, bytes, 0664)
 }
