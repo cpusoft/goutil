@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestInterface2Map(t *testing.T) {
@@ -64,4 +65,13 @@ func TestStruct2Map(t *testing.T) {
 
 	data := Struct2Map(user)
 	fmt.Printf("%v", data)
+}
+
+func TestTime2String(t *testing.T) {
+	tt := time.Now()
+	s := Time2String(tt)
+	fmt.Println(s)
+
+	s = Time2StringZone(tt)
+	fmt.Println(s)
 }
