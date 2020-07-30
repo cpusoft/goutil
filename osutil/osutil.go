@@ -24,7 +24,7 @@ func IsExists(file string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	}
-	return true, err
+	return false, err
 }
 
 // judge file is dir or not.
