@@ -28,8 +28,8 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 	belogs.Debug("GetRrdpNotification(): notificationUrl:", notificationUrl)
 	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
 	if err != nil {
-		belogs.Error("GetRrdpNotification(): notificationUrl fail, ", notificationUrl, "   resp.Status:",
-			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+		belogs.Error("GetRrdpNotification(): notificationUrl fail, ", notificationUrl, "   resp:",
+			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 		return notificationModel, err
 	}
 	defer resp.Body.Close()
@@ -87,8 +87,8 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 	belogs.Debug("GetRrdpSnapshot(): snapshotUrl:", snapshotUrl)
 	resp, body, err := httpclient.GetHttpsVerify(snapshotUrl, true)
 	if err != nil {
-		belogs.Error("GetRrdpSnapshot(): snapshotUrl fail:", snapshotUrl, "   resp.Status:",
-			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+		belogs.Error("GetRrdpSnapshot(): snapshotUrl fail:", snapshotUrl, "   resp:",
+			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 		return snapshotModel, err
 	}
 	defer resp.Body.Close()
@@ -223,8 +223,8 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 	belogs.Debug("GetRrdpDelta(): deltaUrl:", deltaUrl)
 	resp, body, err := httpclient.GetHttpsVerify(deltaUrl, true)
 	if err != nil {
-		belogs.Error("GetRrdpDelta(): deltaUrl fail, ", deltaUrl, "  resp.Status:",
-			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+		belogs.Error("GetRrdpDelta(): deltaUrl fail, ", deltaUrl, "  resp:",
+			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 		return deltaModel, err
 	}
 	defer resp.Body.Close()
