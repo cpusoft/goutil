@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	belogs "github.com/astaxie/beego/logs"
 	base64util "github.com/cpusoft/goutil/base64util"
@@ -21,16 +22,19 @@ import (
 
 func GetRrdpNotification(notificationUrl string) (notificationModel NotificationModel, err error) {
 
+	start := time.Now()
 	// 往rp发送请求
 	// "https://rrdp.apnic.net/notification.xml"
 	belogs.Debug("GetRrdpNotification(): notificationUrl:", notificationUrl)
 	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
 	if err != nil {
-		belogs.Error("GetRrdpNotification(): notificationUrl fail, ", notificationUrl, err)
+		belogs.Error("GetRrdpNotification(): notificationUrl fail, ", notificationUrl, "   resp.Status:",
+			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 		return notificationModel, err
 	}
 	defer resp.Body.Close()
-	belogs.Debug("GetRrdpNotification(): resp.Status:", resp.Status, "    len(body):", len(body))
+	belogs.Debug("GetRrdpNotification(): notificationUrl:", notificationUrl, "   resp.Status:",
+		resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 
 	err = xmlutil.UnmarshalXml(body, &notificationModel)
 	if err != nil {
@@ -77,17 +81,19 @@ func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
 }
 
 func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error) {
-
+	start := time.Now()
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
 	belogs.Debug("GetRrdpSnapshot(): snapshotUrl:", snapshotUrl)
 	resp, body, err := httpclient.GetHttpsVerify(snapshotUrl, true)
 	if err != nil {
-		belogs.Error("GetRrdpSnapshot(): snapshotUrl fail, ", snapshotUrl, err)
+		belogs.Error("GetRrdpSnapshot(): snapshotUrl fail:", snapshotUrl, "   resp.Status:",
+			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 		return snapshotModel, err
 	}
 	defer resp.Body.Close()
-	belogs.Debug("GetRrdpSnapshot(): resp.Status:", resp.Status, "    len(body):", len(body))
+	belogs.Debug("GetRrdpSnapshot(): snapshotUrl:", snapshotUrl, "   resp.Status:",
+		resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 
 	err = xmlutil.UnmarshalXml(body, &snapshotModel)
 	if err != nil {
@@ -211,20 +217,23 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 
 func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 
+	start := time.Now()
 	// 往rp发送请求
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
-	belogs.Debug("deltaUrl(): deltaUrl:", deltaUrl)
+	belogs.Debug("GetRrdpDelta(): deltaUrl:", deltaUrl)
 	resp, body, err := httpclient.GetHttpsVerify(deltaUrl, true)
 	if err != nil {
-		belogs.Error("deltaUrl(): deltaUrl fail, ", deltaUrl, err)
+		belogs.Error("GetRrdpDelta(): deltaUrl fail, ", deltaUrl, "  resp.Status:",
+			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 		return deltaModel, err
 	}
 	defer resp.Body.Close()
-	belogs.Debug("deltaUrl(): resp.Status:", resp.Status, "    len(body):", len(body))
+	belogs.Debug("GetRrdpDelta():  deltaUrl:", deltaUrl, "   resp.Status:",
+		resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 
 	err = xmlutil.UnmarshalXml(body, &deltaModel)
 	if err != nil {
-		belogs.Error("deltaUrl(): UnmarshalXml fail, ", deltaUrl, err)
+		belogs.Error("GetRrdpDelta(): UnmarshalXml fail, ", deltaUrl, err)
 		return deltaModel, err
 	}
 
