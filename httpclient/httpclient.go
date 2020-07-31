@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -15,9 +16,14 @@ import (
 )
 
 const (
-	DefaultUserAgent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36"
-	DefaultTimeout   = 30
+	DefaultUserAgent     = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36"
+	DefaultTimeout       = 30
+	RetryCount           = 3
+	RetryIntervalSeconds = 5
 )
+
+var RetryHttpStatus = []int{http.StatusBadRequest, http.StatusInternalServerError,
+	http.StatusRequestTimeout, http.StatusBadGateway, http.StatusGatewayTimeout}
 
 // Http/Https Get Method,
 // protocol: "http" or "https"
@@ -43,6 +49,7 @@ func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		End())
 
 }
@@ -69,6 +76,7 @@ func GetHttpsVerify(urlStr string, verify bool) (resp gorequest.Response, body s
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		End())
 
 }
@@ -97,6 +105,7 @@ func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body str
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Send(postJson).
 		End())
 
@@ -123,6 +132,7 @@ func PostHttpsVerify(urlStr string, postJson string, verify bool) (resp goreques
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Send(postJson).
 		End())
 
@@ -161,6 +171,7 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
 		SendFile(b, file).
 		End())
@@ -189,6 +200,7 @@ func PostFileHttps(urlStr string, fileName string, formName string) (resp gorequ
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
 		SendFile(b, file).
 		End())
