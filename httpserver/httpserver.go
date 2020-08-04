@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -32,7 +33,10 @@ func ListenAndServe(port string, router *rest.App) {
 
 	//api.Use(rest.DefaultDevStack...)
 	api.SetApp(*router)
-	belogs.Emergency(http.ListenAndServe(port, api.MakeHandler()))
+	err := http.ListenAndServe(port, api.MakeHandler())
+	belogs.Emergency("Start Http Server failed to start, error is ", err)
+	fmt.Println("Http Server failed to start, the error is ", err)
+
 }
 
 // setup Https Server, listen on port. need crt and key files
@@ -50,7 +54,9 @@ func ListenAndServeTLS(port string, crtFile string, keyFile string, router *rest
 	api.Use(rest.DefaultDevStack...)
 	api.SetApp(*router)
 	//belogs.Emergency(http.ListenAndServe(port, api.MakeHandler()))
-	belogs.Emergency(http.ListenAndServeTLS(port, crtFile, keyFile, api.MakeHandler()))
+	err := http.ListenAndServeTLS(port, crtFile, keyFile, api.MakeHandler())
+	belogs.Emergency("Start Https Server failed to start, error is ", err)
+	fmt.Println("Https Server failed to start, the error is ", err)
 }
 
 // return: map[fileFormName]=fileName, such as map["file1"]="aabbccdd.txt"
