@@ -13,6 +13,8 @@ func TestXYZ(t *testing.T) {
 	fmt.Printf("%x,%d,%b\n", z, z, z)
 
 	z = 0xff
-	a := LeftAndFillOne(3)
-
+	a = LeftAndFillZero(5)
+	fmt.Printf("%x,%d,%b\n", a, a, a)
+	z = z & a
+	fmt.Printf("%x,%d,%b\n", z, z, z)
 }

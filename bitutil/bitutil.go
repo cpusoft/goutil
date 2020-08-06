@@ -15,7 +15,7 @@ func LeftAndFillOne(bits uint8) (a uint8) {
 // 0x01(1111 1111) --> left 6 --> 0x(1100 0000)
 // rfc3779 min : usine &, right bits are zero
 func LeftAndFillZero(bits uint8) (a uint8) {
-	a = 1
+	a = 0xff
 	for i := uint8(0); i < bits; i++ {
 		a = a << 1
 	}
