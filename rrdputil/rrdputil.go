@@ -73,9 +73,11 @@ func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
 		belogs.Error("CheckRrdpNotification(): len(notificationModel.Serial) == 0")
 		return errors.New("notification serial is error, serial is empty ")
 	}
-	if _, ok := notificationModel.MapSerialDeltas[notificationModel.Serial]; !ok {
-		belogs.Error("CheckRrdpNotification(): notification has not such serial in deltas:", notificationModel.Serial)
-		return errors.New("notification has not such serial in deltas")
+	if len(notificationModel.MapSerialDeltas) > 0 {
+		if _, ok := notificationModel.MapSerialDeltas[notificationModel.Serial]; !ok {
+			belogs.Error("CheckRrdpNotification(): notification has not such serial in deltas:", notificationModel.Serial)
+			return errors.New("notification has not such serial in deltas")
+		}
 	}
 	return nil
 }
@@ -120,9 +122,11 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 			"    notificationModel.SessionId:", notificationModel.SessionId)
 		return errors.New("snapshot's session_id is different from  notification's session_id")
 	}
-	if _, ok := notificationModel.MapSerialDeltas[snapshotModel.Serial]; !ok {
-		belogs.Error("CheckRrdpSnapshot(): notification has not such  snapshot's serial:", snapshotModel.Serial)
-		return errors.New("notification has not such  snapshot's serial")
+	if len(notificationModel.MapSerialDeltas) > 0 {
+		if _, ok := notificationModel.MapSerialDeltas[snapshotModel.Serial]; !ok {
+			belogs.Error("CheckRrdpSnapshot(): notification has not such  snapshot's serial:", snapshotModel.Serial)
+			return errors.New("notification has not such  snapshot's serial")
+		}
 	}
 	if strings.ToLower(notificationModel.Snapshot.Hash) != strings.ToLower(snapshotModel.Hash) {
 		belogs.Error("CheckRrdpSnapshot(): snapshotModel.Hash:", snapshotModel.Hash,
@@ -269,10 +273,11 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 		}
 	}
 	*/
-
-	if _, ok := notificationModel.MapSerialDeltas[deltaModel.Serial]; !ok {
-		belogs.Error("CheckRrdpDelta(): notification has not such  delta's serial:", deltaModel.Serial)
-		return errors.New("notification has not such  delta's serial")
+	if len(notificationModel.MapSerialDeltas) > 0 {
+		if _, ok := notificationModel.MapSerialDeltas[deltaModel.Serial]; !ok {
+			belogs.Error("CheckRrdpDelta(): notification has not such  delta's serial:", deltaModel.Serial)
+			return errors.New("notification has not such  delta's serial")
+		}
 	}
 	/*
 		found := false
