@@ -64,11 +64,11 @@ func TestVerifyEeCertByX509(t *testing.T) {
 			/root/rpki/repo/repo/rpki.ripe.net/repository/DEFAULT/
 			ACBRR9OW8JgDvUcuWBka9usiwvU.cer
 	*/
-	path := `G:\Download\cert\verify\3\`
-	fatherFile := path + `ACBRR9OW8JgDvUcuWBka9usiwvU.cer`
-	childFile := path + `rtpKuIKhDn9Y8Zg6y9HhlQfmPsU.roa`
+	path := `G:\Download\cert\`
+	fatherFile := path + `ohcWJIUz0QduJriNGOlBlT-lB9c.cer`
+	childFile := path + `db42e932-926a-42bd-afdb-63320fa7ec40.roa`
 
-	result, err := VerifyEeCertByX509(fatherFile, childFile, 159, 1426)
+	result, err := VerifyEeCertByX509(fatherFile, childFile, 838969, 1019659)
 	fmt.Println(result, err)
 }
 

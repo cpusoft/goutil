@@ -112,10 +112,45 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 	childCert.UnhandledCriticalExtensions = make([]asn1.ObjectIdentifier, 0)
 	belogs.Debug("VerifyCerByteByX509():child issuer:", childCert.Issuer.String(), "   childCert:", childCert.Subject.String())
 
+	/*
+		https://tools.ietf.org/html/rfc5280#section-4.2.1.12
+		   id-kp OBJECT IDENTIFIER ::= { id-pkix 3 }
+
+		   id-kp-serverAuth             OBJECT IDENTIFIER ::= { id-kp 1 }
+		   -- TLS WWW server authentication
+		   -- Key usage bits that may be consistent: digitalSignature,
+		   -- keyEncipherment or keyAgreement
+
+		   id-kp-clientAuth             OBJECT IDENTIFIER ::= { id-kp 2 }
+		   -- TLS WWW client authentication
+		   -- Key usage bits that may be consistent: digitalSignature
+		   -- and/or keyAgreement
+
+		   id-kp-codeSigning             OBJECT IDENTIFIER ::= { id-kp 3 }
+		   -- Signing of downloadable executable code
+		   -- Key usage bits that may be consistent: digitalSignature
+
+		   id-kp-emailProtection         OBJECT IDENTIFIER ::= { id-kp 4 }
+		   -- Email protection
+		   -- Key usage bits that may be consistent: digitalSignature,
+		   -- nonRepudiation, and/or (keyEncipherment or keyAgreement)
+
+		   id-kp-timeStamping            OBJECT IDENTIFIER ::= { id-kp 8 }
+		   -- Binding the hash of an object to a time
+		   -- Key usage bits that may be consistent: digitalSignature
+		   -- and/or nonRepudiation
+
+		   id-kp-OCSPSigning            OBJECT IDENTIFIER ::= { id-kp 9 }
+		   -- Signing OCSP responses
+		   -- Key usage bits that may be consistent: digitalSignature
+		   -- and/or nonRepudiation
+	*/
+
 	opts := x509.VerifyOptions{
 		Roots: fatherPool,
 		//Intermediates: inter,
-		KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+		//KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+		KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		//KeyUsages: []x509.ExtKeyUsage{x509.KeyUsageCertSign},
 	}
 	if _, err := childCert.Verify(opts); err != nil {
