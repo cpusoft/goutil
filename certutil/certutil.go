@@ -67,16 +67,16 @@ func VerifyCerByX509(fatherCertFile string, childCertFile string) (result string
 func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, eeCertEnd uint64) (result string, err error) {
 	fatherFileByte, err := ioutil.ReadFile(fatherCertFile)
 	if err != nil {
-		belogs.Error("VerifyEeCertByX509():fatherCertFile:", fatherCertFile, "   ReadFile err:", err)
+		belogs.Error("VerifyEeCertByX509():read father, fatherCertFile:", fatherCertFile, "   mftRoaFile:", mftRoaFile, "     ReadFile err:", err)
 		return "fail", err
 	}
 	mftRoaFileByte, err := ioutil.ReadFile(mftRoaFile)
 	if err != nil {
-		belogs.Error("VerifyEeCertByX509():childCertFile:", mftRoaFile, "   ReadFile err:", err)
+		belogs.Error("VerifyEeCertByX509():read mftRoaFile, fatherCertFile:", fatherCertFile, "    mftRoaFile:", mftRoaFile, "   ReadFile err:", err)
 		return "fail", err
 	}
 	if eeCertStart >= eeCertEnd || len(mftRoaFileByte) < int(eeCertEnd) {
-		belogs.Error("VerifyEeCertByX509():mftRoaFileByte[eeCertStart:eeCertEnd] err:", mftRoaFile,
+		belogs.Error("VerifyEeCertByX509():mftRoaFileByte[eeCertStart:eeCertEnd] fatherCertFile:", fatherCertFile, "    mftRoaFile:", mftRoaFile,
 			"   eeCertStart :", eeCertStart, "   eeCertEnd:", eeCertEnd, "   len(mftRoaFileByte):", len(mftRoaFileByte))
 		return "fail", errors.New("get eecert fail,  eeCertStart is " + strconv.Itoa(int(eeCertStart)) +
 			",   eeCertEnd is " + strconv.Itoa(int(eeCertEnd)) + ", but len(mftRoaFileByte) is " + strconv.Itoa(len(mftRoaFileByte)))
@@ -96,20 +96,21 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 
 	faterCert, err := x509.ParseCertificate(fatherCertByte)
 	if err != nil {
-		belogs.Debug("VerifyCerByteByX509():fatherCertFile   ParseCertificate err:", err)
+		belogs.Error("VerifyCerByteByX509():parse fatherCertFile fail, ParseCertificate err:", err)
 		return "fail", err
 	}
 	faterCert.UnhandledCriticalExtensions = make([]asn1.ObjectIdentifier, 0)
-	//belogs.Debug("VerifyCerByteByX509():father issuer:", faterCert.Issuer.String(), "   subject:", faterCert.Subject.String())
+	belogs.Debug("VerifyCerByteByX509():father issuer:", faterCert.Issuer.String(), "   subject:", faterCert.Subject.String())
+
 	fatherPool.AddCert(faterCert)
 
 	childCert, err := x509.ParseCertificate(childCertByte)
 	if err != nil {
-		belogs.Debug("VerifyCerByteByX509():childCertFile:  ParseCertificate err:", err)
+		belogs.Error("VerifyCerByteByX509():parse childCertFile fail:  father issuer:", faterCert.Issuer.String(), " ParseCertificate err:", err)
 		return "fail", err
 	}
 	childCert.UnhandledCriticalExtensions = make([]asn1.ObjectIdentifier, 0)
-	//belogs.Debug("VerifyCerByteByX509():child issuer:", childCert.Issuer.String(), "   childCert:", childCert.Subject.String())
+	belogs.Debug("VerifyCerByteByX509():child issuer:", childCert.Issuer.String(), "   childCert:", childCert.Subject.String())
 
 	opts := x509.VerifyOptions{
 		Roots: fatherPool,
@@ -118,7 +119,8 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 		//KeyUsages: []x509.ExtKeyUsage{x509.KeyUsageCertSign},
 	}
 	if _, err := childCert.Verify(opts); err != nil {
-		belogs.Debug("VerifyCerByteByX509():Verify err:", err)
+		belogs.Error("VerifyCerByteByX509():Verify fail, father issuer:", faterCert.Issuer.String(), "   subject:", faterCert.Subject.String(),
+			"   child issuer:", childCert.Issuer.String(), "   childCert:", childCert.Subject.String(), "    Verify err:", err)
 		return "fail", err
 	}
 	return "ok", nil
