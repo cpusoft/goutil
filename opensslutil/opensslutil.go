@@ -18,7 +18,11 @@ func GetResultsByOpensslX509(certFile string) (results []string, err error) {
 		return nil, errors.New("Fail to parse by openssl, it may be not a valid x509 certificate. Error is `" + string(output) + "`. " + err.Error())
 	}
 	result := string(output)
-	results = strings.Split(result, osutil.GetNewLineSep())
+	tmps := strings.Split(result, osutil.GetNewLineSep())
+	results = make([]string, len(tmps))
+	for i := range tmps {
+		results[i] = strings.TrimSpace(tmps[i])
+	}
 	belogs.Debug("GetResultsByOpensslX509(): len(results):", len(results))
 	return results, nil
 }
@@ -35,7 +39,11 @@ func GetResultsByOpensslAns1(certFile string) (results []string, err error) {
 		return nil, errors.New("Fail to parse by openssl, it may be not a valid asn1 format. Error is `" + string(output) + ". " + err.Error())
 	}
 	result := string(output)
-	results = strings.Split(result, osutil.GetNewLineSep())
+	tmps := strings.Split(result, osutil.GetNewLineSep())
+	results = make([]string, len(tmps))
+	for i := range tmps {
+		results[i] = strings.TrimSpace(tmps[i])
+	}
 	belogs.Debug("GetResultsByOpensslAns1(): len(results):", len(results))
 	return results, nil
 }
