@@ -154,8 +154,10 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 		//KeyUsages: []x509.ExtKeyUsage{x509.KeyUsageCertSign},
 	}
 	if _, err := childCert.Verify(opts); err != nil {
-		belogs.Error("VerifyCerByteByX509():Verify fail, father issuer:", faterCert.Issuer.String(), "   subject:", faterCert.Subject.String(),
-			"   child issuer:", childCert.Issuer.String(), "   childCert:", childCert.Subject.String(), "    Verify err:", err)
+		belogs.Error("VerifyCerByteByX509():Verify fail, father issuer:", faterCert.Issuer.String(),
+			"   father subject:", faterCert.Subject.String(),
+			"   child issuer:", childCert.Issuer.String(),
+			"   child subject:", childCert.Subject.String(), "    Verify err:", err)
 		return "fail", err
 	}
 	return "ok", nil
