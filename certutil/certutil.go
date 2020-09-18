@@ -10,8 +10,10 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	belogs "github.com/astaxie/beego/logs"
+	convert "github.com/cpusoft/goutil/convert"
 	osutil "github.com/cpusoft/goutil/osutil"
 )
 
@@ -154,10 +156,15 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 		//KeyUsages: []x509.ExtKeyUsage{x509.KeyUsageCertSign},
 	}
 	if _, err := childCert.Verify(opts); err != nil {
-		belogs.Error("VerifyCerByteByX509():Verify fail, father issuer:", faterCert.Issuer.String(),
-			"   father subject:", faterCert.Subject.String(),
-			"   child issuer:", childCert.Issuer.String(),
-			"   child subject:", childCert.Subject.String(), "    Verify err:", err)
+		belogs.Info("VerifyCerByteByX509():Verify fail, father issuer:", faterCert.Issuer.String(),
+			"   father subject:`"+faterCert.Subject.String()+"`",
+			"   child issuer:`"+childCert.Issuer.String()+"`",
+			"   child subject:`"+childCert.Subject.String()+"`",
+			"   father subject == child issuer:", strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()),
+			"   Now:", convert.Time2StringZone(time.Now()),
+			"   child NotBefore:", convert.Time2StringZone(childCert.NotBefore),
+			"   child NotAfter:", convert.Time2StringZone(childCert.NotAfter), "    Verify err:", err)
+
 		return "fail", err
 	}
 	return "ok", nil
