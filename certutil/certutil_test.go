@@ -38,9 +38,9 @@ func TestReadFileToByte(t *testing.T) {
 }
 
 func TestVerifyCertByX509(t *testing.T) {
-	path := `G:\Download\cert\verify\2\`
-	fatherFile := path + `inter.cer`
-	childFile := path + `A9.cer`
+	path := `G:\Download\cert\`
+	fatherFile := path + `c0793683-aa07-4935-a2c2-ec423ea7dd0b.father.cer`
+	childFile := path + `c922abf8-95b1-37f0-90cd-bdb125467e8e.ee.cer`
 
 	result, err := VerifyCerByX509(fatherFile, childFile)
 	fmt.Println(result, err)

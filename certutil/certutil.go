@@ -1,6 +1,7 @@
 package cert
 
 import (
+	"bytes"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -156,14 +157,18 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 		//KeyUsages: []x509.ExtKeyUsage{x509.KeyUsageCertSign},
 	}
 	if _, err := childCert.Verify(opts); err != nil {
-		belogs.Info("VerifyCerByteByX509():Verify fail, father issuer:", faterCert.Issuer.String(),
-			"   father subject:`"+faterCert.Subject.String()+"`",
-			"   child issuer:`"+childCert.Issuer.String()+"`",
-			"   child subject:`"+childCert.Subject.String()+"`",
-			"   father subject == child issuer:", strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()),
-			"   Now:", convert.Time2StringZone(time.Now()),
-			"   child NotBefore:", convert.Time2StringZone(childCert.NotBefore),
-			"   child NotAfter:", convert.Time2StringZone(childCert.NotAfter), "    Verify err:", err)
+		belogs.Info("VerifyCerByteByX509():Verify fail ",
+			"\nfather subject:`"+faterCert.Subject.String()+"`",
+			"\nchild issuer:`"+childCert.Issuer.String()+"`",
+			"\nfather subject == child issuer:", strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()),
+
+			"\nfather rawsubject:"+convert.Bytes2String(faterCert.RawSubject),
+			"\nchild   rawissuer:"+convert.Bytes2String(childCert.RawIssuer),
+			"\nfather rawsubject == child rawissuer:", bytes.Compare(faterCert.RawSubject, childCert.RawIssuer),
+
+			"\nNow:", convert.Time2StringZone(time.Now()),
+			"\nchild NotBefore:", convert.Time2StringZone(childCert.NotBefore),
+			"\nchild NotAfter:", convert.Time2StringZone(childCert.NotAfter), "\nVerify err:", err)
 
 		return "fail", err
 	}
