@@ -169,7 +169,11 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 			"\nNow:", convert.Time2StringZone(time.Now()),
 			"\nchild NotBefore:", convert.Time2StringZone(childCert.NotBefore),
 			"\nchild NotAfter:", convert.Time2StringZone(childCert.NotAfter), "\nVerify err:", err)
-
+		if strings.Contains(err.Error(), "issuer name does not match subject from issuing certificate") {
+			err = errors.New(err.Error() + ".  Father rawsubject is '" + convert.Bytes2String(faterCert.RawSubject) + "', and child rawissuer is '" + convert.Bytes2String(childCert.RawIssuer) + "'")
+		} else if strings.Contains(err.Error(), "certificate has expired or is not yet valid") {
+			err = errors.New(err.Error() + ".   NotBefore is '" + convert.Time2StringZone(childCert.NotBefore) + "', and NotAfter is '" + convert.Time2StringZone(childCert.NotAfter) + "'")
+		}
 		return "fail", err
 	}
 	return "ok", nil
