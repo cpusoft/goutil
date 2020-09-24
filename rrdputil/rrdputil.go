@@ -378,10 +378,12 @@ func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
 
 // repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
 func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFiles []RrdpFile, err error) {
+
+	// delta may have no publishes and no withdraws
 	if deltaModel == nil || (len(deltaModel.DeltaPublishs) == 0 && len(deltaModel.DeltaWithdraws) == 0) {
-		belogs.Error("SaveRrdpDeltaToRrdpFiles(): len(snapshotModel.DeltaPublishs)==0 && len(deltaModel.DeltaWithdraws)==0, deltaModel:",
+		belogs.Debug("SaveRrdpDeltaToRrdpFiles(): len(snapshotModel.DeltaPublishs)==0 && len(deltaModel.DeltaWithdraws)==0, deltaModel:",
 			jsonutil.MarshalJson(deltaModel), "   repoPath:", repoPath)
-		return nil, errors.New("delta's publishs and withdraws are all empty, deltaModel is : " + jsonutil.MarshalJson(deltaModel))
+		return rrdpFiles, nil
 
 	}
 	// first , del withdraw files
