@@ -101,9 +101,12 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 		}
 
 	}
-	defer resp.Body.Close()
-	belogs.Debug("GetRrdpSnapshot(): snapshotUrl:", snapshotUrl, "   resp.Status:",
-		resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+	if resp != nil && resp.Body != nil {
+		defer resp.Body.Close()
+	}
+
+	belogs.Debug("GetRrdpSnapshot(): snapshotUrl:", snapshotUrl, "   resp:", resp,
+		"    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 
 	err = xmlutil.UnmarshalXml(body, &snapshotModel)
 	if err != nil {
