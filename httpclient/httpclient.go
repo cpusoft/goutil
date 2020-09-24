@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"strconv"
 	"time"
 
@@ -205,6 +206,17 @@ func PostFileHttps(urlStr string, fileName string, formName string) (resp gorequ
 		SendFile(b, file).
 		End())
 
+}
+
+func GetByCurl(url string) (result string, err error) {
+	belogs.Debug("GetByCurl(): cmd:  curl ", url)
+	cmd := exec.Command("curl", url)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		belogs.Error("GetByCurl(): exec.Command: curl:", url, "   err: ", err, "   output: "+string(output))
+		return "", errors.New("Fail to get by curl. Output  is `" + string(output) + ".  Error is " + err.Error() + "`")
+	}
+	return string(output), nil
 }
 
 // convert many erros to on error

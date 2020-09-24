@@ -3,13 +3,11 @@ package httpclient
 import (
 	"fmt"
 	"testing"
-
-	httpclient "github.com/cpusoft/goutil/httpclient"
 )
 
 func TestGetHttp(t *testing.T) {
 	//往rp发送请求
-	resp, body, err := httpclient.GetHttp("http://localhost:8080/hello")
+	resp, body, err := GetHttp("http://localhost:8080/hello")
 
 	if err != nil {
 		fmt.Println(err)
@@ -21,7 +19,7 @@ func TestGetHttp(t *testing.T) {
 
 func TestGetHttps(t *testing.T) {
 	//往rp发送请求
-	resp, body, err := httpclient.GetHttps("https://localhost:8081/hello")
+	resp, body, err := GetHttps("https://localhost:8081/hello")
 
 	if err != nil {
 		fmt.Println(err)
@@ -31,20 +29,20 @@ func TestGetHttps(t *testing.T) {
 	fmt.Println("body:", body)
 }
 
+// only in linux
 func TestGetHttpsRrdp(t *testing.T) {
 	//往rp发送请求
-	resp, body, err := httpclient.GetHttps("https://rrdp.apnic.net/notification.xml")
+	resutl, err := GetByCurl("https://rrdp.arin.net/8fe05c2e-047d-49e7-8398-cd4250a572b1/7681/snapshot.xml")
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("resp:", resp)
-	fmt.Println("body:", body)
+	fmt.Println("resp:", resutl)
 }
 
 func TestPostFile(t *testing.T) {
-	resp, body, err := httpclient.PostFile("http", "localhost", 8080, "/parse/start",
+	resp, body, err := PostFile("http", "localhost", 8080, "/parse/start",
 		`G:/Download/cert/cache/trustanchors/rpki.apnic.net/repository/apnic-rpki-root-iana-origin.cer`, `file`)
 	if err != nil {
 		fmt.Println(err)
