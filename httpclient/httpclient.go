@@ -214,7 +214,7 @@ func GetByCurl(url string) (result string, err error) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetByCurl(): exec.Command: curl:", url, "   err: ", err, "   output: "+string(output))
-		return "", errors.New("Fail to get by curl. Output  is `" + string(output) + ".  Error is " + err.Error() + "`")
+		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
 	return string(output), nil
 }
