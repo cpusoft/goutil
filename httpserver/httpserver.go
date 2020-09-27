@@ -105,11 +105,15 @@ func RemoveReceiveFiles(receiveFiles map[string]string) {
 	}
 }
 func GetOkHttpResponse() HttpResponse {
-	return HttpResponse{
-		Result: "ok",
-		Msg:    ""}
+	return GetOkMsgHttpResponse("")
 
 }
+func GetOkMsgHttpResponse(msg string) HttpResponse {
+	return HttpResponse{
+		Result: "ok",
+		Msg:    msg}
+}
+
 func GetFailHttpResponse(err error) HttpResponse {
 	return HttpResponse{
 		Result: "fail",
