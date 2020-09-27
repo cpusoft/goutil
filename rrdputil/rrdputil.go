@@ -148,43 +148,6 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 
 }
 
-// Deprecated: using SaveRrdpSnapshotToRrdpFiles
-func SaveRrdpSnapshotToFiles(snapshotModel *SnapshotModel, repoPath string) (err error) {
-	if snapshotModel == nil || len(snapshotModel.SnapshotPublishs) == 0 {
-		belogs.Debug("SaveRrdpSnapshotToFiles(): len(snapshotModel.SnapshotPublishs)==0")
-		return nil
-	}
-	for i := range snapshotModel.SnapshotPublishs {
-		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, snapshotModel.SnapshotPublishs[i].Uri)
-		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToFiles(): JoinPrefixPathAndUrlFileName fail:", snapshotModel.SnapshotPublishs[i].Uri)
-			return err
-		}
-
-		// if dir is notexist ,then mkdir
-		dir, _ := osutil.Split(pathFileName)
-		isExist, _ := osutil.IsExists(dir)
-		if !isExist {
-			os.MkdirAll(dir, os.ModePerm)
-		}
-
-		bytes, err := base64util.DecodeBase64(strings.TrimSpace(snapshotModel.SnapshotPublishs[i].Base64))
-		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToFiles(): DecodeBase64 fail:", snapshotModel.SnapshotPublishs[i].Base64)
-			return err
-		}
-
-		err = fileutil.WriteBytesToFile(pathFileName, bytes)
-		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToFiles(): WriteBytesToFile fail:", pathFileName, len(bytes))
-			return err
-		}
-		belogs.Debug("SaveRrdpSnapshotToFiles(): save pathFileName ", pathFileName, "  ok")
-	}
-	return nil
-
-}
-
 // repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
 func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) (rrdpFiles []RrdpFile, err error) {
 	if snapshotModel == nil || len(snapshotModel.SnapshotPublishs) == 0 {
@@ -312,70 +275,6 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 
 }
 
-// Deprecated: using SaveRrdpDeltaToRrdpFiles
-func SaveRrdpDeltaToFiles(deltaModel *DeltaModel, repoPath string) (err error) {
-	if deltaModel == nil || (len(deltaModel.DeltaPublishs) == 0 && len(deltaModel.DeltaWithdraws) == 0) {
-		belogs.Debug("SaveRrdpDeltaToFiles(): len(snapshotModel.SnapshotPublishs)==0")
-		return nil
-	}
-	// save publish files
-	for i := range deltaModel.DeltaPublishs {
-		// get absolute dir /dest/***/***/**.**
-		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, deltaModel.DeltaPublishs[i].Uri)
-		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToFiles(): JoinPrefixPathAndUrlFileName fail:", deltaModel.DeltaPublishs[i].Uri)
-			return err
-		}
-
-		// if dir is notexist ,then mkdir
-		dir, _ := osutil.Split(pathFileName)
-		isExist, _ := osutil.IsExists(dir)
-		if !isExist {
-			os.MkdirAll(dir, os.ModePerm)
-		}
-
-		// decode base65 to bytes
-		bytes, err := base64util.DecodeBase64(strings.TrimSpace(deltaModel.DeltaPublishs[i].Base64))
-		if err != nil {
-			belogs.Error("SaveRrdpDeltaToFiles():Publish DecodeBase64 fail:",
-				deltaModel.Serial,
-				deltaModel.DeltaPublishs[i].Uri, deltaModel.DeltaPublishs[i].Base64)
-			return err
-		}
-
-		err = fileutil.WriteBytesToFile(pathFileName, bytes)
-		if err != nil {
-			belogs.Error("SaveRrdpDeltaToFiles():Publish WriteBytesToFile fail:",
-				deltaModel.Serial,
-				deltaModel.DeltaPublishs[i].Uri,
-				pathFileName, len(bytes))
-			return err
-		}
-		belogs.Debug("SaveRrdpDeltaToFiles():Publish save pathFileName ", pathFileName, "  ok")
-
-	}
-
-	// del withdraw files
-	for i := range deltaModel.DeltaWithdraws {
-		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, deltaModel.DeltaWithdraws[i].Uri)
-		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToFiles(): JoinPrefixPathAndUrlFileName fail:", deltaModel.DeltaWithdraws[i].Uri)
-			return err
-		}
-		os.Remove(pathFileName)
-
-		// if in this dir, no more files, then del dir
-		dir, _ := osutil.Split(pathFileName)
-		files, _ := ioutil.ReadDir(dir)
-		if len(files) == 0 {
-			os.RemoveAll(dir)
-		}
-		belogs.Debug("SaveRrdpDeltaToFiles():Withdraw Remove pathFileName ", pathFileName, "  ok")
-	}
-	return nil
-
-}
-
 // repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
 func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFiles []RrdpFile, err error) {
 
@@ -446,10 +345,12 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 		}
 		belogs.Debug("SaveRrdpDeltaToFiles():Publish save pathFileName ", pathFileName, "  ok")
 
+		// some rrdp have no withdraw, only publish, so change to update to del old in db
 		rrdpFile := RrdpFile{
 			FilePath: dir,
 			FileName: file,
-			SyncType: "add",
+			//SyncType: "add",
+			SyncType: "update",
 		}
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}

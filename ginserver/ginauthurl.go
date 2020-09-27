@@ -23,7 +23,7 @@ type checkAuthUrlsFunc func(*gin.Context) bool
 func checkAuthUrls(checkAuthUrlsFuncs ...checkAuthUrlsFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if len(checkAuthUrlsFuncs) > 0 && checkAuthUrlsFuncs[0](c) {
-			belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0]: ", checkAuthUrlsFuncs[0])
+			belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) pass: ", checkAuthUrlsFuncs[0])
 			c.Next()
 			return
 		}
