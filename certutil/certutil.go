@@ -64,7 +64,12 @@ func VerifyCerByX509(fatherCertFile string, childCertFile string) (result string
 		belogs.Error("VerifyCerByX509():childCertFile:", childCertFile, "   ReadFile err:", err)
 		return "fail", err
 	}
-	return VerifyCerByteByX509(fatherFileByte, childFileByte)
+	result, err = VerifyCerByteByX509(fatherFileByte, childFileByte)
+	if err != nil {
+		belogs.Error("VerifyCerByX509():VerifyCerByteByX509 fail, fatherCertFile:", fatherCertFile, "    childCertFile:", childCertFile, "  err:", err)
+		return "fail", err
+	}
+	return result, nil
 }
 
 func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, eeCertEnd uint64) (result string, err error) {
@@ -75,7 +80,7 @@ func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, e
 	}
 	mftRoaFileByte, err := ioutil.ReadFile(mftRoaFile)
 	if err != nil {
-		belogs.Error("VerifyEeCertByX509():read mftRoaFile, fatherCertFile:", fatherCertFile, "    mftRoaFile:", mftRoaFile, "   ReadFile err:", err)
+		belogs.Error("VerifyEeCertByX509():ReadFile fail, fatherCertFile:", fatherCertFile, "    mftRoaFile:", mftRoaFile, "   ReadFile err:", err)
 		return "fail", err
 	}
 	if eeCertStart >= eeCertEnd || len(mftRoaFileByte) < int(eeCertEnd) {
@@ -87,7 +92,13 @@ func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, e
 	//belogs.Debug("VerifyEeCertByX509():mftRoaFileByte[eeCertStart:eeCertEnd]:", mftRoaFile,
 	//	"   eeCertStart :", eeCertStart, "   eeCertEnd:", eeCertEnd, "   len(mftRoaFileByte):", len(mftRoaFileByte))
 	b := mftRoaFileByte[eeCertStart:eeCertEnd]
-	return VerifyCerByteByX509(fatherFileByte, b)
+	result, err = VerifyCerByteByX509(fatherFileByte, b)
+	if err != nil {
+		belogs.Error("VerifyEeCertByX509():VerifyCerByteByX509 fail, fatherCertFile:", fatherCertFile, "    mftRoaFile:", mftRoaFile,
+			"   eeCertStart, eeCertEnd:", eeCertStart, eeCertEnd, "  err:", err)
+		return "fail", err
+	}
+	return result, nil
 }
 
 // fatherCerFile is as root, childCerFile is to be verified
