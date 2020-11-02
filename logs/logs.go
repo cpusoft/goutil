@@ -33,7 +33,7 @@ func init() {
 	} else {
 		logName = conf.String("logs::name")
 	}
-
+	async := conf.DefaultBool("logs::async", false)
 	//fmt.Println("log", logLevel, logName)
 
 	var logLevelInt int = belogs.LevelInformational
@@ -60,9 +60,18 @@ func init() {
 	logConfig := make(map[string]interface{})
 	logConfig["filename"] = osutil.GetParentPath() + string(os.PathSeparator) + "log" + string(os.PathSeparator) + logName + "." + ts
 	logConfig["level"] = logLevelInt
+	// no max lines
+	logConfig["maxlines"] = 0
+	logConfig["maxsize"] = 0
+	logConfig["daily"] = true
+	logConfig["maxdays"] = 30
+
 	logConfigStr, _ := json.Marshal(logConfig)
 	//fmt.Println("log:logConfigStr", string(logConfigStr))
 	belogs.SetLogger(belogs.AdapterFile, string(logConfigStr))
+	if async {
+		belogs.Async()
+	}
 
 }
 
