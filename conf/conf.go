@@ -47,6 +47,10 @@ func Bool(key string) bool {
 	return b
 }
 
+func DefaultBool(key string, defaultVal bool) bool {
+	return Configure.DefaultBool(key, defaultVal)
+}
+
 //destpath=${rpstir2::datadir}/rsyncrepo   --> replace ${rpstir2::datadir}
 //-->/root/rpki/data/rsyncrepo --> get /root/rpki/data/rsyncrepo
 func VariableString(key string) string {
