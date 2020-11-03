@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/cpusoft/beego/logs"
 	osutil "github.com/cpusoft/goutil/osutil"
 )
 

@@ -1,7 +1,7 @@
 package uuidutil
 
 import (
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/cpusoft/beego/logs"
 	uuid "github.com/satori/go.uuid"
 )
 

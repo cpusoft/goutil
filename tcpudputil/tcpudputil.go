@@ -3,7 +3,7 @@ package tcpudputil
 import (
 	"net"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/cpusoft/beego/logs"
 )
 
 // shoud add defer conn.Close()

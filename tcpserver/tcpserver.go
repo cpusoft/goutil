@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/cpusoft/beego/logs"
 )
 
 type TcpServer struct {
