@@ -18,6 +18,7 @@ import (
 	osutil "github.com/cpusoft/goutil/osutil"
 )
 
+// if cert cannot pass verify, just log info level
 func ReadFileToCer(fileName string) (*x509.Certificate, error) {
 	p, fileByte, err := ReadFileToByte(fileName)
 	if err != nil {
@@ -31,6 +32,7 @@ func ReadFileToCer(fileName string) (*x509.Certificate, error) {
 	return nil, errors.New("unknown cert type")
 }
 
+// if cert cannot pass verify, just log info level
 func ReadFileToCrl(fileName string) (*pkix.CertificateList, error) {
 	_, fileByte, err := ReadFileToByte(fileName)
 	if err != nil {
@@ -53,6 +55,7 @@ func ReadFileToByte(fileName string) (p *pem.Block, fileByte []byte, err error) 
 	return p, fileByte, nil
 }
 
+// if cert cannot pass verify, just log info level
 func VerifyCerByX509(fatherCertFile string, childCertFile string) (result string, err error) {
 	fatherFileByte, err := ioutil.ReadFile(fatherCertFile)
 	if err != nil {
@@ -66,12 +69,13 @@ func VerifyCerByX509(fatherCertFile string, childCertFile string) (result string
 	}
 	result, err = VerifyCerByteByX509(fatherFileByte, childFileByte)
 	if err != nil {
-		belogs.Error("VerifyCerByX509():VerifyCerByteByX509 fail, fatherCertFile:", fatherCertFile, "    childCertFile:", childCertFile, "  err:", err)
+		belogs.Info("VerifyCerByX509():VerifyCerByteByX509 fail, fatherCertFile:", fatherCertFile, "    childCertFile:", childCertFile, "  err:", err)
 		return "fail", err
 	}
 	return result, nil
 }
 
+// if cert cannot pass verify, just log info level
 func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, eeCertEnd uint64) (result string, err error) {
 	fatherFileByte, err := ioutil.ReadFile(fatherCertFile)
 	if err != nil {
@@ -94,14 +98,15 @@ func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, e
 	b := mftRoaFileByte[eeCertStart:eeCertEnd]
 	result, err = VerifyCerByteByX509(fatherFileByte, b)
 	if err != nil {
-		belogs.Error("VerifyEeCertByX509():VerifyCerByteByX509 fail, fatherCertFile:", fatherCertFile, "    mftRoaFile:", mftRoaFile,
+		belogs.Info("VerifyEeCertByX509():VerifyCerByteByX509 fail, fatherCertFile:", fatherCertFile, "    mftRoaFile:", mftRoaFile,
 			"   eeCertStart, eeCertEnd:", eeCertStart, eeCertEnd, "  err:", err)
 		return "fail", err
 	}
 	return result, nil
 }
 
-// fatherCerFile is as root, childCerFile is to be verified
+// if cert cannot pass verify, just log info level. .
+// fatherCerFile is as root, childCerFile is to be verified. .
 // result: ok/fail
 func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result string, err error) {
 	//belogs.Debug("VerifyCerByteByX509():fatherCertByte:", len(fatherCertByte), "   childCertByte:", len(childCertByte))
@@ -168,28 +173,50 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 		//KeyUsages: []x509.ExtKeyUsage{x509.KeyUsageCertSign},
 	}
 	if _, err := childCert.Verify(opts); err != nil {
-		belogs.Info("VerifyCerByteByX509():Verify fail ",
-			"\nfather subject:`"+faterCert.Subject.String()+"`",
-			"\nchild issuer:`"+childCert.Issuer.String()+"`",
-			"\nfather subject == child issuer:", strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()),
 
-			"\nfather rawsubject:"+convert.Bytes2String(faterCert.RawSubject),
-			"\nchild   rawissuer:"+convert.Bytes2String(childCert.RawIssuer),
-			"\nfather rawsubject == child rawissuer:", bytes.Compare(faterCert.RawSubject, childCert.RawIssuer),
-
-			"\nNow:", convert.Time2StringZone(time.Now()),
-			"\nchild NotBefore:", convert.Time2StringZone(childCert.NotBefore),
-			"\nchild NotAfter:", convert.Time2StringZone(childCert.NotAfter), "\nVerify err:", err)
 		if strings.Contains(err.Error(), "issuer name does not match subject from issuing certificate") {
-			err = errors.New(err.Error() + ".  Father rawsubject is '" + convert.Bytes2String(faterCert.RawSubject) + "', and child rawissuer is '" + convert.Bytes2String(childCert.RawIssuer) + "'")
+			// compare by subject and issuer by string
+			if strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()) == 0 {
+				belogs.Debug("VerifyCerByteByX509():Verify fail, subject and issuer by string is equal, but by raw bytes is not equal, will return ok:",
+					"\nfather subject:`"+faterCert.Subject.String()+"`",
+					"\nchild issuer:`"+childCert.Issuer.String()+"`",
+					"\nfather subject == child issuer:", strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()),
+
+					"\nfather rawsubject:"+convert.Bytes2String(faterCert.RawSubject),
+					"\nchild  rawissuer:"+convert.Bytes2String(childCert.RawIssuer),
+					"\nfather rawsubject == child rawissuer:", bytes.Compare(faterCert.RawSubject, childCert.RawIssuer),
+
+					"\nVerify err:", err)
+				return "ok", nil
+			} else {
+				belogs.Info("VerifyCerByteByX509():Verify fail, subject and issuer by string is not equal:",
+					"\nfather subject:`"+faterCert.Subject.String()+"`",
+					"\nchild issuer:`"+childCert.Issuer.String()+"`",
+					"\nfather subject == child issuer:", strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()),
+					"\nVerify err:", err)
+				err = errors.New(err.Error() + ".  Father subject is '" + faterCert.Subject.String() + "', and child issuer is '" + childCert.Issuer.String() + "'")
+				return "fail", err
+			}
 		} else if strings.Contains(err.Error(), "certificate has expired or is not yet valid") {
+			belogs.Info("VerifyCerByteByX509():Verify fail, certificate has expired or is not yet valid. ",
+				"\nNow:", convert.Time2StringZone(time.Now()),
+				"\nchild NotBefore:", convert.Time2StringZone(childCert.NotBefore),
+				"\nchild NotAfter:", convert.Time2StringZone(childCert.NotAfter), "\nVerify err:", err)
 			err = errors.New(err.Error() + ".   NotBefore is '" + convert.Time2StringZone(childCert.NotBefore) + "', and NotAfter is '" + convert.Time2StringZone(childCert.NotAfter) + "'")
+			return "fail", err
+		} else {
+			belogs.Info("VerifyCerByteByX509():Verify fail ",
+				"\nfather subject:`"+faterCert.Subject.String()+"`",
+				"\nchild issuer:`"+childCert.Issuer.String()+"`",
+				"\nVerify err:", err)
+			return "fail", err
 		}
-		return "fail", err
+
 	}
 	return "ok", nil
 }
 
+// if cert cannot pass verify, just log info level
 func VerifyRootCerByOpenssl(rootFile string) (result string, err error) {
 	/*
 
@@ -236,12 +263,13 @@ func VerifyRootCerByOpenssl(rootFile string) (result string, err error) {
 	}
 	out := string(output)
 	if !strings.Contains(out, "OK") {
-		belogs.Error("VerifyRootCerByOpenssl(): verify pem fail: err: ", string(output), rootFile)
+		belogs.Info("VerifyRootCerByOpenssl(): verify pem fail: err: ", string(output), rootFile)
 		return "fail", errors.New("verify pem fail")
 	}
 	return "ok", nil
 }
 
+// if cert cannot pass verify, just log info level
 func VerifyCrlByX509(cerFile, crlFile string) (result string, err error) {
 	/*
 		openssl crl -inform DER -in crl.der -outform PEM -out crl.pem
@@ -263,12 +291,13 @@ func VerifyCrlByX509(cerFile, crlFile string) (result string, err error) {
 
 	err = cer.CheckCRLSignature(crl)
 	if err != nil {
-		belogs.Error("VerifyCrlByX509(): CheckCRLSignature fail: err: ", err, cerFile, crlFile)
+		belogs.Info("VerifyCrlByX509(): CheckCRLSignature fail: err: ", err, cerFile, crlFile)
 		return "fail", err
 	}
 	return "ok", nil
 }
 
+//deprecated
 func JudgeBelongNic(repoDestPath, filePath string) (nicName string) {
 	if !strings.HasPrefix(filePath, repoDestPath) {
 		return ""
