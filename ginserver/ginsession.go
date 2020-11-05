@@ -5,6 +5,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
+
+	belogs "github.com/cpusoft/beego/logs"
 )
 
 // sessionId wil save to cookis, session value will save to memory ;//
@@ -31,11 +33,19 @@ func SaveToSession(c *gin.Context, key string, value interface{}) error {
 		return nil
 	}
 	s := sessions.Default(c)
+	belogs.Debug("SaveToSession(): key:", key, " jsonutil.MarshalJson(value):", jsonutil.MarshalJson(value))
 	s.Set(key, jsonutil.MarshalJson(value))
 	return s.Save()
 }
 func SaveUserToSession(c *gin.Context, ginUserModel *GinUserModel) error {
-	return SaveToSession(c, "ginuser", ginUserModel)
+	err := SaveToSession(c, "ginuser", ginUserModel)
+
+	ginUserModelTest := GinUserModel{}
+	err1 := GetUserFromSession(c, &ginUserModelTest)
+	belogs.Debug("SaveUserToSession(): save to session: ", jsonutil.MarshalJson(ginUserModel),
+		"   get from session: ", jsonutil.MarshalJson(ginUserModelTest), err1)
+
+	return err
 }
 func GetFromSession(c *gin.Context, key string, value interface{}) error {
 	if len(key) == 0 {
@@ -43,10 +53,12 @@ func GetFromSession(c *gin.Context, key string, value interface{}) error {
 	}
 
 	s := sessions.Default(c)
+	belogs.Debug("GetFromSession(): key:", key, " s:", s)
 	if s == nil {
 		return nil
 	}
 	v := s.Get(key)
+	belogs.Debug("GetFromSession(): key:", key, " s:", s, " v:", v)
 	if v == nil {
 		return nil
 	}
