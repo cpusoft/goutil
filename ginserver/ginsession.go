@@ -2,7 +2,6 @@ package ginserver
 
 import (
 	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/cpusoft/goutil/uuidutil"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
@@ -15,7 +14,7 @@ import (
 // httpOnly: only in http, cannot in js ; //
 func InitSessionInMem(engine *gin.Engine, domain, cookieName string, maxAge int, secure, httpOnly bool) {
 
-	memStore := memstore.NewStore([]byte(uuidutil.GetUuid()))
+	memStore := memstore.NewStore([]byte(domain + "_cookie_" + cookieName))
 	memStore.Options(sessions.Options{
 		Path:     "/",
 		Domain:   domain,
