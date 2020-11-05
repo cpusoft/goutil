@@ -63,6 +63,11 @@ func skipAuthUrlsOrRoleHasAuthUrls(skipUrls []string, roleHasUrls map[uint64][]s
 			return false
 		}
 
+		if len(roleHasUrls) == 0 {
+			belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, " len(roleHasUrls)==0")
+			return true
+		}
+
 		roleUrls, ok := roleHasUrls[ginUserModel.RoleId]
 		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   roleUrls:", jsonutil.MarshalJson(roleUrls))
 		if !ok {
