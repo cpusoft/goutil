@@ -8,16 +8,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// sessionId wil save to cookis, session value will save to memory ;
-// maxAge(seconds): 30 * 60 ;
-// secure: only use cookie on https ;
-// httpOnly: only in http, cannot in js ;
-func InitSessionInMem(engine *gin.Engine, cookieName string, maxAge int, secure, httpOnly bool) {
+// sessionId wil save to cookis, session value will save to memory ;//
+// domain: allowed to w/r cookie, must start by '.' : .aaa.com  //
+// maxAge(seconds): 30 * 60 ;   //
+// secure: only use cookie on https ;  //
+// httpOnly: only in http, cannot in js ; //
+func InitSessionInMem(engine *gin.Engine, domain, cookieName string, maxAge int, secure, httpOnly bool) {
 
 	memStore := memstore.NewStore([]byte(uuidutil.GetUuid()))
 	memStore.Options(sessions.Options{
 		Path:     "/",
-		Domain:   "/",
+		Domain:   domain,
 		MaxAge:   maxAge,
 		Secure:   secure,
 		HttpOnly: httpOnly,
