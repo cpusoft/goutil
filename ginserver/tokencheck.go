@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	belogs "github.com/cpusoft/beego/logs"
+	belogs "github.com/astaxie/beego/logs"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"

@@ -6,7 +6,7 @@ import (
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
 
-	belogs "github.com/cpusoft/beego/logs"
+	belogs "github.com/astaxie/beego/logs"
 )
 
 // sessionId wil save to cookis, session value will save to memory ;//

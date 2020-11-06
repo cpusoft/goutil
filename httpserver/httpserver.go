@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	belogs "github.com/cpusoft/beego/logs"
+	belogs "github.com/astaxie/beego/logs"
 	"github.com/cpusoft/go-json-rest/rest"
 	osutil "github.com/cpusoft/goutil/osutil"
 )

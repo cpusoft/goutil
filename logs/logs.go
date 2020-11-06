@@ -6,9 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
-	belogs "github.com/cpusoft/beego/logs"
+	belogs "github.com/astaxie/beego/logs"
 	conf "github.com/cpusoft/goutil/conf"
 	osutil "github.com/cpusoft/goutil/osutil"
 )
@@ -55,10 +54,10 @@ func init() {
 	case "LevelDebug":
 		logLevelInt = belogs.LevelDebug
 	}
-	ts := time.Now().Format("2006-01-02")
+	//ts := time.Now().Format("2006-01-02")
 
 	logConfig := make(map[string]interface{})
-	logConfig["filename"] = osutil.GetParentPath() + string(os.PathSeparator) + "log" + string(os.PathSeparator) + logName + "." + ts
+	logConfig["filename"] = osutil.GetParentPath() + string(os.PathSeparator) + "log" + string(os.PathSeparator) + logName // + "." + ts
 	logConfig["level"] = logLevelInt
 	// no max lines
 	logConfig["maxlines"] = 0

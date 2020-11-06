@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	belogs "github.com/cpusoft/beego/logs"
+	belogs "github.com/astaxie/beego/logs"
 	stringutil "github.com/cpusoft/goutil/stringutil"
 )
 
