@@ -10,8 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterCheckAuthUrls(app *gin.Engine, skipUrls []string, roleHasUrls map[uint64][]string) {
-	app.Use(checkAuthUrls(
+// when auth fail, will redirectUrl or failJson.
+// redirectUrl: "" or  "/login"
+// failJson: ""  or "no auth"
+func RegisterCheckAuthUrls(app *gin.Engine,
+	skipUrls []string, roleHasUrls map[uint64][]string,
+	redirectUrl, failJson string) {
+	app.Use(checkAuthUrls(redirectUrl, failJson,
 		skipAuthUrlsOrRoleHasAuthUrls(skipUrls, roleHasUrls),
 	))
 
@@ -20,14 +25,21 @@ func RegisterCheckAuthUrls(app *gin.Engine, skipUrls []string, roleHasUrls map[u
 // check Func
 type checkAuthUrlsFunc func(*gin.Context) bool
 
-func checkAuthUrls(checkAuthUrlsFuncs ...checkAuthUrlsFunc) gin.HandlerFunc {
+func checkAuthUrls(redirectUrl string, failJson string,
+	checkAuthUrlsFuncs ...checkAuthUrlsFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if len(checkAuthUrlsFuncs) > 0 && checkAuthUrlsFuncs[0](c) {
 			belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) pass: ", checkAuthUrlsFuncs[0])
 			c.Next()
 			return
 		}
-		ResponseFail(c, errors.New("No auth"), nil)
+		belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) unpass: ", checkAuthUrlsFuncs[0],
+			"    redirectUrl:", redirectUrl, "  or  failJson:", failJson)
+		if len(redirectUrl) > 0 {
+			c.Redirect(302, redirectUrl)
+		} else if len(failJson) > 0 {
+			ResponseFail(c, errors.New(failJson), nil)
+		}
 		c.Abort()
 		return
 	}
