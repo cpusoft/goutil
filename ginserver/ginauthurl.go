@@ -2,6 +2,7 @@ package ginserver
 
 import (
 	"errors"
+	"net/http"
 	"regexp"
 	"strings"
 
@@ -36,7 +37,7 @@ func checkAuthUrls(redirectUrl string, failJson string,
 		belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) unpass: ", checkAuthUrlsFuncs[0],
 			"    redirectUrl:", redirectUrl, "  or  failJson:", failJson)
 		if len(redirectUrl) > 0 {
-			c.Redirect(302, redirectUrl)
+			c.Redirect(http.StatusMovedPermanently, redirectUrl)
 		} else if len(failJson) > 0 {
 			ResponseFail(c, errors.New(failJson), nil)
 		}
