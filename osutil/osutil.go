@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/astaxie/beego/core/logs"
 	hashutil "github.com/cpusoft/goutil/hashutil"
 )
 

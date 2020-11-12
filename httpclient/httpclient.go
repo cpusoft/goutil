@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/astaxie/beego/core/logs"
 	osutil "github.com/cpusoft/goutil/osutil"
 	"github.com/parnurzeal/gorequest"
 )

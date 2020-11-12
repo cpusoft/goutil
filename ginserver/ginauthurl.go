@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/astaxie/beego/core/logs"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-gonic/gin"
 )

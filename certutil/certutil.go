@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/astaxie/beego/core/logs"
 	convert "github.com/cpusoft/goutil/convert"
 	osutil "github.com/cpusoft/goutil/osutil"
 )
