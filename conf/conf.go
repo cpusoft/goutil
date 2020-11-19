@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	config "github.com/cpusoft/beego/config"
+	config "github.com/astaxie/beego/core/config"
 	osutil "github.com/cpusoft/goutil/osutil"
 )
 
@@ -30,7 +30,8 @@ func init() {
 }
 
 func String(key string) string {
-	return Configure.String(key)
+	s, _ := Configure.String(key)
+	return s
 }
 
 func Int(key string) int {
@@ -39,7 +40,8 @@ func Int(key string) int {
 }
 
 func Strings(key string) []string {
-	return Configure.Strings(key)
+	s, _ := Configure.Strings(key)
+	return s
 }
 
 func Bool(key string) bool {

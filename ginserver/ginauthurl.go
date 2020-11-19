@@ -30,7 +30,7 @@ func checkAuthUrls(redirectUrl string, failJson string,
 	checkAuthUrlsFuncs ...checkAuthUrlsFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if len(checkAuthUrlsFuncs) > 0 && checkAuthUrlsFuncs[0](c) {
-			belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) pass: ", checkAuthUrlsFuncs[0])
+			belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) pass: ", checkAuthUrlsFuncs[0], "   url:", c.Request.URL.Path)
 			c.Next()
 			return
 		}
