@@ -60,10 +60,10 @@ func init() {
 	logConfig["filename"] = osutil.GetParentPath() + string(os.PathSeparator) + "log" + string(os.PathSeparator) + logName // + "." + ts
 	logConfig["level"] = logLevelInt
 	// no max lines
-	//logConfig["maxlines"] = 0
-	//logConfig["maxsize"] = 0
-	//logConfig["daily"] = true
-	//logConfig["maxdays"] = 30
+	logConfig["maxlines"] = 0
+	logConfig["maxsize"] = 0
+	logConfig["daily"] = true
+	logConfig["maxdays"] = 30
 
 	logConfigStr, _ := json.Marshal(logConfig)
 	//fmt.Println("log:logConfigStr", string(logConfigStr))
