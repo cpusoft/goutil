@@ -67,6 +67,7 @@ func init() {
 
 	logConfigStr, _ := json.Marshal(logConfig)
 	//fmt.Println("log:logConfigStr", string(logConfigStr))
+	belogs.NewLogger(1000000)
 	belogs.SetLogger(belogs.AdapterFile, string(logConfigStr))
 	if async {
 		belogs.Async()
