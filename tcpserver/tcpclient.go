@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	belogs "github.com/astaxie/beego/core/logs"
+	belogs "github.com/astaxie/beego/logs"
 )
 
 type TcpClient struct {

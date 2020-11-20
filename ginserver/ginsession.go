@@ -1,7 +1,7 @@
 package ginserver
 
 import (
-	belogs "github.com/astaxie/beego/core/logs"
+	belogs "github.com/astaxie/beego/logs"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"

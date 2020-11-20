@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	belogs "github.com/astaxie/beego/core/logs"
+	belogs "github.com/astaxie/beego/logs"
 	conf "github.com/cpusoft/goutil/conf"
 	osutil "github.com/cpusoft/goutil/osutil"
 )
