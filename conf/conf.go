@@ -30,7 +30,7 @@ func init() {
 }
 
 func String(key string) string {
-	s, _ := Configure.String(key)
+	s := Configure.String(key)
 	return s
 }
 
@@ -40,7 +40,7 @@ func Int(key string) int {
 }
 
 func Strings(key string) []string {
-	s, _ := Configure.Strings(key)
+	s := Configure.Strings(key)
 	return s
 }
 
