@@ -141,8 +141,8 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 	}
 	if strings.ToLower(notificationModel.Snapshot.Hash) != strings.ToLower(snapshotModel.Hash) {
 		belogs.Error("CheckRrdpSnapshot(): snapshotModel.Hash:", snapshotModel.Hash,
-			"    notificationModel.Snapshot.Hash:", notificationModel.Snapshot.Hash)
-		return errors.New("snapshot's hash is different from  notification's snapshot's hash")
+			"    notificationModel.Snapshot.Hash:", notificationModel.Snapshot.Hash, " but just continue")
+		//return errors.New("snapshot's hash is different from  notification's snapshot's hash")
 	}
 	return nil
 
