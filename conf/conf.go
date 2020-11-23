@@ -28,7 +28,7 @@ func init() {
 	*/
 	var err error
 	var conf string
-	if len(os.Args) > 0 {
+	if len(os.Args) > 1 {
 		args := strings.Split(os.Args[1], "=")
 		if len(args) > 0 && args[0] == "conf" {
 			conf = args[1]
