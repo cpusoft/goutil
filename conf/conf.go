@@ -35,7 +35,16 @@ func init() {
 		}
 	}
 	if conf == "" {
-		conf = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
+		conf = "./conf"
+		exists, err := osutil.IsDir(conf)
+		if err != nil {
+			panic("load " + conf + " failed, " + err.Error())
+		}
+		if exists {
+			conf = "conf" + string(os.PathSeparator) + "project.conf"
+		} else {
+			conf = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
+		}
 	}
 	fmt.Println("conf file is ", conf)
 	Configure, err = config.NewConfig("ini", conf)
