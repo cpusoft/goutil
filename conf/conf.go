@@ -23,15 +23,12 @@ func init() {
 		fmt.Println("conf:", *Configure)
 	*/
 
-	flagFile := flag.String("conf",
-		osutil.GetParentPath()+string(os.PathSeparator)+"conf"+string(os.PathSeparator)+"project.conf", "")
-	fmt.Println("conf file is ", *flagFile)
+	flagFile := flag.String("conf", "", "")
+	fmt.Println("conf file is ", *flagFile, " from args")
 	exists, err := osutil.IsExists(*flagFile)
-	if err != nil {
-		panic(*flagFile + "conf init failed, " + err.Error())
-	}
-	if !exists {
-		panic(*flagFile + " is not exists")
+	if err != nil || !exists {
+		*flagFile = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
+		fmt.Println("conf file is ", *flagFile, " default")
 	}
 
 	Configure, err = config.NewConfig("ini", *flagFile)
