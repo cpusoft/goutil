@@ -56,8 +56,18 @@ func init() {
 	}
 	//ts := time.Now().Format("2006-01-02")
 
+	// decide by "conf" directory, not "log" directory
+	log := "./conf"
+	exists, _ := osutil.IsDir(log)
+	if exists {
+		log = "log" + string(os.PathSeparator) + logName
+	} else {
+		log = osutil.GetParentPath() + string(os.PathSeparator) + "log" + string(os.PathSeparator) + logName
+	}
+	fmt.Println("log file is ", log)
+
 	logConfig := make(map[string]interface{})
-	logConfig["filename"] = osutil.GetParentPath() + string(os.PathSeparator) + "log" + string(os.PathSeparator) + logName // + "." + ts
+	logConfig["filename"] = log // + "." + ts
 	logConfig["level"] = logLevelInt
 	// no max lines
 	logConfig["maxlines"] = 0

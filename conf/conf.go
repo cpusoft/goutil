@@ -34,6 +34,8 @@ func init() {
 			conf = args[1]
 		}
 	}
+
+	// decide by "conf" directory
 	if conf == "" {
 		conf = "./conf"
 		exists, err := osutil.IsDir(conf)
