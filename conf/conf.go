@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -21,10 +22,21 @@ func init() {
 		}
 		fmt.Println("conf:", *Configure)
 	*/
-	var err error
-	Configure, err = config.NewConfig("ini", osutil.GetParentPath()+string(os.PathSeparator)+"conf"+string(os.PathSeparator)+"project.conf")
+
+	flagFile := flag.String("conf",
+		osutil.GetParentPath()+string(os.PathSeparator)+"conf"+string(os.PathSeparator)+"project.conf", "")
+	fmt.Println("conf file is ", *flagFile)
+	exists, err := osutil.IsExists(*flagFile)
 	if err != nil {
-		fmt.Println("conf init err: ", err)
+		panic(*flagFile + "conf init failed, " + err.Error())
+	}
+	if !exists {
+		panic(*flagFile + " is not exists")
+	}
+
+	Configure, err = config.NewConfig("ini", *flagFile)
+	if err != nil {
+		panic("load " + *flagFile + " failed, " + err.Error())
 	}
 
 }
