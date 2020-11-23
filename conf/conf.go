@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -15,25 +14,28 @@ var Configure config.Configer
 // load configure file
 func init() {
 	/*
-		iniFile := config.NewINIFile(util.GetParentPath() + string(os.PathSeparator) + "conf/slurm.conf")
-		Configure = config.NewConfig([]config.Provider{iniFile})
-		if err := Configure.Load(); err != nil {
-			fmt.Println("conf:", err)
+		flagFile := flag.String("conf", "", "")
+		flag.Parse()
+		fmt.Println("conf file is ", *flagFile, " from args")
+		exists, err := osutil.IsExists(*flagFile)
+		if err != nil || !exists {
+			*flagFile = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
+			fmt.Println("conf file is ", *flagFile, " default")
 		}
-		fmt.Println("conf:", *Configure)
-	*/
-	flag.Parse()
-	flagFile := flag.String("conf", "", "")
-	fmt.Println("conf file is ", *flagFile, " from args")
-	exists, err := osutil.IsExists(*flagFile)
-	if err != nil || !exists {
-		*flagFile = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
-		fmt.Println("conf file is ", *flagFile, " default")
-	}
 
-	Configure, err = config.NewConfig("ini", *flagFile)
+
+	*/
+	var err error
+	var conf string
+	if len(os.Args) > 0 {
+		conf = os.Args[1]
+	} else {
+		conf = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
+	}
+	fmt.Println("conf file is ", conf)
+	Configure, err = config.NewConfig("ini", conf)
 	if err != nil {
-		panic("load " + *flagFile + " failed, " + err.Error())
+		panic("load " + conf + " failed, " + err.Error())
 	}
 
 }
