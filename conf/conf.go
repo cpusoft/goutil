@@ -14,22 +14,27 @@ var Configure config.Configer
 // load configure file
 func init() {
 	/*
-		flagFile := flag.String("conf", "", "")
-		flag.Parse()
-		fmt.Println("conf file is ", *flagFile, " from args")
-		exists, err := osutil.IsExists(*flagFile)
-		if err != nil || !exists {
-			*flagFile = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
-			fmt.Println("conf file is ", *flagFile, " default")
-		}
-
+			cannot use flag in init()
+				flagFile := flag.String("conf", "", "")
+				flag.Parse()
+				fmt.Println("conf file is ", *flagFile, " from args")
+				exists, err := osutil.IsExists(*flagFile)
+				if err != nil || !exists {
+					*flagFile = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
+					fmt.Println("conf file is ", *flagFile, " default")
+				}
+		so ,use os.Args
 
 	*/
 	var err error
 	var conf string
 	if len(os.Args) > 0 {
-		conf = os.Args[1]
-	} else {
+		args := strings.Split(os.Args[1], "=")
+		if len(args) > 0 && args[0] == "conf" {
+			conf = args[1]
+		}
+	}
+	if conf == "" {
 		conf = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
 	}
 	fmt.Println("conf file is ", conf)
