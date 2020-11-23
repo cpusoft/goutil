@@ -22,7 +22,7 @@ func init() {
 		}
 		fmt.Println("conf:", *Configure)
 	*/
-
+	flag.Parse()
 	flagFile := flag.String("conf", "", "")
 	fmt.Println("conf file is ", *flagFile, " from args")
 	exists, err := osutil.IsExists(*flagFile)
