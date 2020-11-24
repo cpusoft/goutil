@@ -38,10 +38,7 @@ func init() {
 	// decide by "conf" directory
 	if conf == "" {
 		conf = "./conf"
-		exists, err := osutil.IsDir(conf)
-		if err != nil {
-			panic("load " + conf + " failed, " + err.Error())
-		}
+		exists, _ := osutil.IsDir(conf)
 		if exists {
 			conf = "conf" + string(os.PathSeparator) + "project.conf"
 		} else {
