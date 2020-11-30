@@ -2,6 +2,7 @@ package osutil
 
 import (
 	"container/list"
+	"errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -254,4 +255,19 @@ func CloseAndRemoveFile(file *os.File) error {
 		return nil
 	}
 	return nil
+}
+
+// to find if specificName is subdirectory
+// specificName: conf
+func GetPathOfSpecificName(specificName string) (path string, err error) {
+	exists, _ := IsDir(specificName)
+	if exists {
+		return specificName + string(os.PathSeparator), nil
+	}
+	exists, _ = IsDir(GetParentPath() + string(os.PathSeparator) + specificName)
+	if exists {
+		return GetParentPath() + string(os.PathSeparator) + specificName + string(os.PathSeparator), nil
+	}
+	belogs.Error("GetPathOfSpecificName(): cannot found  specificName:", specificName)
+	return "", errors.New("cannot found  specificName:" + specificName)
 }
