@@ -258,9 +258,9 @@ func CloseAndRemoveFile(file *os.File) error {
 }
 
 // to find if specificName is subdirectory
-// specificName: conf
+// specificName eg: conf
 func GetPathOfSpecificName(specificName string) (path string, err error) {
-	exists, _ := IsDir(specificName)
+	exists, _ := IsDir("./" + specificName)
 	if exists {
 		return specificName + string(os.PathSeparator), nil
 	}
