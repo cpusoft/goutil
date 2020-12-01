@@ -37,13 +37,8 @@ func init() {
 
 	// decide by "conf" directory
 	if conf == "" {
-		conf = "./conf"
-		exists, _ := osutil.IsDir(conf)
-		if exists {
-			conf = "conf" + string(os.PathSeparator) + "project.conf"
-		} else {
-			conf = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
-		}
+		confPath, _ := osutil.GetPathOfSpecificName("conf")
+		conf = confPath + "project.conf"
 	}
 	fmt.Println("conf file is ", conf)
 	Configure, err = config.NewConfig("ini", conf)
