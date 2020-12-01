@@ -257,12 +257,13 @@ func CloseAndRemoveFile(file *os.File) error {
 	return nil
 }
 
-// to find if specificName is subdirectory
-// specificName eg: conf
+// to find if specificName is subdirectory;
+// specificName eg: conf;
+// return path: ./conf/ or /aa/bbb/cc/conf/;
 func GetPathOfSpecificName(specificName string) (path string, err error) {
 	exists, _ := IsDir("./" + specificName)
 	if exists {
-		return specificName + string(os.PathSeparator), nil
+		return "./" + specificName + "/", nil
 	}
 	exists, _ = IsDir(GetParentPath() + string(os.PathSeparator) + specificName)
 	if exists {
