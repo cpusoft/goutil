@@ -72,10 +72,14 @@ func GetParentPath() string {
 	path, _ := filepath.Abs(file)
 	dirs := strings.Split(path, string(os.PathSeparator))
 	index := len(dirs)
+	belogs.Debug("GetParentPath():file:", file, " path:", path,
+		"	dirs:", dirs, "  index:", index)
 	if len(dirs) > 2 {
 		index = len(dirs) - 2
 	}
 	ret := strings.Join(dirs[:index], string(os.PathSeparator))
+	belogs.Debug("GetParentPath():file:", file, " path:", path,
+		"	dirs:", dirs, "  new index:", index, " ret:", ret)
 	return ret
 }
 func GetCurPath() string {
