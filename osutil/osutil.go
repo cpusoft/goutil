@@ -261,13 +261,18 @@ func CloseAndRemoveFile(file *os.File) error {
 // specificName eg: conf;
 // return path: ./conf/ or /aa/bbb/cc/conf/;
 func GetPathOfSpecificName(specificName string) (path string, err error) {
-	exists, _ := IsDir("./" + specificName)
+	path = "./" + specificName + "/"
+	exists, err := IsDir("./" + specificName)
+	belogs.Debug("GetPathOfSpecificName(): relative path:", path, err)
 	if exists {
-		return "./" + specificName + "/", nil
+		return path, nil
 	}
-	exists, _ = IsDir(GetParentPath() + string(os.PathSeparator) + specificName)
+
+	path = GetParentPath() + string(os.PathSeparator) + specificName + string(os.PathSeparator)
+	exists, err = IsDir(path)
+	belogs.Debug("GetPathOfSpecificName(): absolute path:", path, err)
 	if exists {
-		return GetParentPath() + string(os.PathSeparator) + specificName + string(os.PathSeparator), nil
+		return path, nil
 	}
 	belogs.Error("GetPathOfSpecificName(): cannot found  specificName:", specificName)
 	return "", errors.New("cannot found  specificName:" + specificName)
