@@ -78,6 +78,11 @@ func GetParentPath() string {
 	ret := strings.Join(dirs[:index], string(os.PathSeparator))
 	return ret
 }
+func GetCurPath() string {
+	file, _ := exec.LookPath(os.Args[0])
+	path, _ := filepath.Abs(file)
+	return path
+}
 
 // will deprecated, will use GetAllFilesBySuffixs()
 func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string) *list.List {
@@ -261,8 +266,8 @@ func CloseAndRemoveFile(file *os.File) error {
 // specificName eg: conf;
 // return path: ./conf/ or /aa/bbb/cc/conf/;
 func GetPathOfSpecificName(specificName string) (path string, err error) {
-	path = "./" + specificName + "/"
-	exists, err := IsDir("./" + specificName)
+	path = GetCurPath()
+	exists, err := IsDir(path)
 	belogs.Debug("GetPathOfSpecificName(): relative path:", path, err)
 	if exists {
 		return path, nil
