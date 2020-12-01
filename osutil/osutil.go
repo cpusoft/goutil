@@ -268,14 +268,14 @@ func CloseAndRemoveFile(file *os.File) error {
 func GetPathOfSpecificName(specificName string) (path string, err error) {
 	path = GetCurPath() + string(os.PathSeparator)
 	exists, err := IsDir(path)
-	belogs.Debug("GetPathOfSpecificName(): relative path:", path, " fail:", err)
+	belogs.Debug("GetPathOfSpecificName(): relative path:", path, ",   exists:", exists, " err:", err)
 	if exists {
 		return path, nil
 	}
 
 	path = GetParentPath() + string(os.PathSeparator) + specificName + string(os.PathSeparator)
 	exists, err = IsDir(path)
-	belogs.Debug("GetPathOfSpecificName(): absolute path:", path, " fail:", err)
+	belogs.Debug("GetPathOfSpecificName(): absolute path:", path, ",   exists:", exists, " fail:", err)
 	if exists {
 		return path, nil
 	}
