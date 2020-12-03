@@ -59,8 +59,7 @@ func init() {
 	//
 	path, err := osutil.GetCurrentOrParentAbsolutePath("log")
 	if err != nil {
-		panic("found " + log + " path failed, " + err.Error())
-		return
+		panic("found " + path + " failed, " + err.Error())
 	}
 	log := path + logName
 	fmt.Println("log file is ", log)

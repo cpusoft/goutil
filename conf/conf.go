@@ -39,8 +39,8 @@ func init() {
 	if conf == "" {
 		path, err := osutil.GetCurrentOrParentAbsolutePath("conf")
 		if err != nil {
-			panic("found " + conf + " path failed, " + err.Error())
-			return
+			panic("found " + path + " failed, " + err.Error())
+
 		}
 		conf = path + string(os.PathSeparator) + "project.conf"
 
@@ -49,7 +49,7 @@ func init() {
 	Configure, err = config.NewConfig("ini", conf)
 	if err != nil {
 		panic("load " + conf + " failed, " + err.Error())
-		return
+
 	}
 
 }
