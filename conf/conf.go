@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	config "github.com/astaxie/beego/config"
-	osutil "github.com/cpusoft/osutil"
+	osutil "github.com/cpusoft/goutil/osutil"
 )
 
 var Configure config.Configer
