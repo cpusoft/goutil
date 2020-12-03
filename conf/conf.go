@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	config "github.com/astaxie/beego/config"
-	osutil "github.com/cpusoft/goutil/osutil"
+	osutil "github.com/cpusoft/osutil"
 )
 
 var Configure config.Configer
@@ -37,13 +37,19 @@ func init() {
 
 	// decide by "conf" directory
 	if conf == "" {
-		confPath, _ := osutil.GetPathOfSpecificName("conf")
-		conf = confPath + "project.conf"
+		path, err := osutil.GetCurrentOrParentAbsolutePath("conf")
+		if err != nil {
+			panic("found " + conf + " path failed, " + err.Error())
+			return
+		}
+		conf = path + string(os.PathSeparator) + "project.conf"
+
 	}
 	fmt.Println("conf file is ", conf)
 	Configure, err = config.NewConfig("ini", conf)
 	if err != nil {
 		panic("load " + conf + " failed, " + err.Error())
+		return
 	}
 
 }

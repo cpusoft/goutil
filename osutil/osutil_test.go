@@ -83,11 +83,3 @@ func TestGetAllFileStatsBySuffixs(t *testing.T) {
 
 	fmt.Println(jsonutil.MarshalJson(f), err)
 }
-
-func TestGetPathOfSpecificName(t *testing.T) {
-	conf := "conf"
-	dir, err := GetPathOfSpecificName(conf)
-	fmt.Println(dir, err)
-	isF, err := IsFile(dir + "project.conf")
-	fmt.Println(isF, err)
-}

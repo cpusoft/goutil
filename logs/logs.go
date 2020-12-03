@@ -56,9 +56,13 @@ func init() {
 	}
 	//ts := time.Now().Format("2006-01-02")
 
-	// decide by "conf" directory, not "log" directory
-	confPath, _ := osutil.GetPathOfSpecificName("conf")
-	log := confPath + logName
+	//
+	path, err := osutil.GetCurrentOrParentAbsolutePath("log")
+	if err != nil {
+		panic("found " + log + " path failed, " + err.Error())
+		return
+	}
+	log := path + logName
 	fmt.Println("log file is ", log)
 
 	logConfig := make(map[string]interface{})

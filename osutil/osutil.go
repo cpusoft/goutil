@@ -67,25 +67,33 @@ func ExtNoDot(p string) string {
 	return strings.Replace(Ext(p), ".", "", -1)
 }
 
+// get executable file's parent path: /root/abc/zzz/zz.sh --> /root/abc
+// if go run, will be temporary program's parent path
 func GetParentPath() string {
 	file, _ := exec.LookPath(os.Args[0])
 	path, _ := filepath.Abs(file)
 	dirs := strings.Split(path, string(os.PathSeparator))
 	index := len(dirs)
-	belogs.Debug("GetParentPath():file:", file, " path:", path,
-		"	dirs:", dirs, "  index:", index)
 	if len(dirs) > 2 {
 		index = len(dirs) - 2
 	}
 	ret := strings.Join(dirs[:index], string(os.PathSeparator))
-	belogs.Debug("GetParentPath():file:", file, " path:", path,
-		"	dirs:", dirs, "  new index:", index, " ret:", ret)
 	return ret
 }
+
+// get executable file path: /root/abc/zzz/zz.sh --> /root/abc/zzz
+// if go run, will be temporary program path
 func GetCurPath() string {
 	file, _ := exec.LookPath(os.Args[0])
 	path, _ := filepath.Abs(file)
 	return path
+}
+
+// get current working directory: /root/abc/zzz/zz.exe --> /root/abc/zzz
+// if go run, will current path
+func GetPwd() string {
+	pwd, _ := os.Getwd()
+	return pwd
 }
 
 // will deprecated, will use GetAllFilesBySuffixs()
@@ -266,23 +274,22 @@ func CloseAndRemoveFile(file *os.File) error {
 	return nil
 }
 
-// to find if specificName is subdirectory;
-// specificName eg: conf;
-// return path: ./conf/ or /aa/bbb/cc/conf/;
-func GetPathOfSpecificName(specificName string) (path string, err error) {
-	path = GetCurPath() + string(os.PathSeparator) + specificName + string(os.PathSeparator)
-	exists, err := IsDir(path)
-	belogs.Debug("GetPathOfSpecificName(): relative path:", path, ",   exists:", exists, " err:", err)
-	if exists {
-		return path, nil
+// only use in goutil/conf and goutil/log.    .
+// relativePath: "conf" or "log"
+// dont use in others.
+func GetCurrentOrParentAbsolutePath(relativePath string) (absolutePath string, err error) {
+	path := GetPwd()
+	absolutePath = path + GetPathSeparator() + relativePath
+	ok, err := IsDir(absolutePath)
+	if err == nil && ok {
+		return absolutePath, nil
 	}
-
-	path = GetParentPath() + string(os.PathSeparator) + specificName + string(os.PathSeparator)
-	exists, err = IsDir(path)
-	belogs.Debug("GetPathOfSpecificName(): absolute path:", path, ",   exists:", exists, " fail:", err)
-	if exists {
-		return path, nil
+	pos := strings.LastIndex(path, GetPathSeparator())
+	path = string([]byte(path)[:pos])
+	absolutePath = path + GetPathSeparator() + relativePath
+	ok, err = IsDir(absolutePath)
+	if err == nil && ok {
+		return absolutePath, nil
 	}
-	belogs.Error("GetPathOfSpecificName(): cannot found  specificName:", specificName)
-	return "", errors.New("cannot found  specificName:" + specificName)
+	return "", errors.New("cannot found absolutePath of relativePath " + relativePath)
 }
