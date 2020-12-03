@@ -61,7 +61,7 @@ func init() {
 	if err != nil {
 		panic("found " + path + " failed, " + err.Error())
 	}
-	log := path + logName
+	log := path + string(os.PathSeparator) + logName
 	fmt.Println("log file is ", log)
 
 	logConfig := make(map[string]interface{})
