@@ -52,7 +52,8 @@ func skipAuthUrlsOrRoleHasAuthUrls(skipUrls []string, roleHasUrls map[uint64][]s
 		reqPath := c.Request.URL.Path
 
 		// check if in skipUrls
-		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   skipUrls:", skipUrls)
+		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   skipUrls:", jsonutil.MarshalJson(skipUrls),
+			"   roleHasUrls:", jsonutil.MarshalJson(roleHasUrls))
 		for _, skipUrl := range skipUrls {
 
 			// if equal
@@ -70,19 +71,20 @@ func skipAuthUrlsOrRoleHasAuthUrls(skipUrls []string, roleHasUrls map[uint64][]s
 		// check if role has urls
 		ginUserModel := GinUserModel{}
 		err := GetUserFromSession(c, &ginUserModel)
-		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "  ginUserModel:", jsonutil.MarshalJson(ginUserModel))
+		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls():GetUserFromSession reqPath:", reqPath, "  ginUserModel:", jsonutil.MarshalJson(ginUserModel))
 		if err != nil || ginUserModel.Id == 0 {
-			belogs.Error("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, " get ginUserModel fail, err:", err)
+			belogs.Error("skipAuthUrlsOrRoleHasAuthUrls():get ginUserModel fail or ginUserModel.Id==0, reqPath:", reqPath, " , err:", err)
 			return false
 		}
 
 		if len(roleHasUrls) == 0 {
-			belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, " len(roleHasUrls)==0")
+			belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls():len(roleHasUrls)==0, reqPath:", reqPath)
 			return true
 		}
-
+		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): check roleHasUrls, reqPath:", reqPath, "   roleHasUrls:", jsonutil.MarshalJson(roleHasUrls))
 		roleUrls, ok := roleHasUrls[ginUserModel.RoleId]
-		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): reqPath:", reqPath, "   roleUrls:", jsonutil.MarshalJson(roleUrls))
+		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls(): check roleUrls, reqPath:", reqPath, "  roleId:", ginUserModel.RoleId,
+			"   roleUrls:", jsonutil.MarshalJson(roleUrls))
 		if !ok {
 			return false
 		}
