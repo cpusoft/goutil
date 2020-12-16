@@ -58,11 +58,13 @@ func skipAuthUrlsOrRoleHasAuthUrls(skipUrls []string, roleHasUrls map[uint64][]s
 
 			// if equal
 			if skipUrl == reqPath {
+				belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls():check skipUrl, skipUrl == reqPath, pass:", reqPath)
 				return true
 			} else if strings.HasSuffix(skipUrl, "*") {
 				//if endwith, eg: /static/*
 				reg := regexp.MustCompile(skipUrl).MatchString(reqPath)
 				if reg {
+					belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls():check skipUrl,roleUrl HasSuffix (*), skipUrl,reqPath, pass:", skipUrl, reqPath)
 					return true
 				}
 			}
@@ -90,11 +92,13 @@ func skipAuthUrlsOrRoleHasAuthUrls(skipUrls []string, roleHasUrls map[uint64][]s
 		}
 		for _, roleUrl := range roleUrls {
 			if roleUrl == reqPath {
+				belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls():check roleUrls,roleUrl == reqPath, pass:", reqPath)
 				return true
 			} else if strings.HasSuffix(roleUrl, "*") {
 				//if endwith, eg: /static/*
 				reg := regexp.MustCompile(roleUrl).MatchString(reqPath)
 				if reg {
+					belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls():check roleUrls,roleUrl HasSuffix (*), roleUrl,reqPath, pass:", roleUrl, reqPath)
 					return true
 				}
 			}
