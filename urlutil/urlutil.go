@@ -40,6 +40,16 @@ func Host(urlStr string) (string, error) {
 	return host, nil
 }
 
+// http://server:port/aa/bb/cc.html --> /aa/bb/cc.html
+func Path(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+	path := u.Path
+	return path, nil
+}
+
 // http://server:port/aa/bb/cc.html --> server/aa/bb/cc.html
 func HostAndPathFile(urlStr string) (string, error) {
 	u, err := url.Parse(urlStr)
