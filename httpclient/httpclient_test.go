@@ -51,3 +51,14 @@ func TestPostFile(t *testing.T) {
 	fmt.Println("resp:", resp)
 	fmt.Println("body:", body)
 }
+
+func TestHttpsPostFile(t *testing.T) {
+	resp, body, err := PostFileHttp("https://202.173.14.104:8071/slurm/upload",
+		`G:\Download\rpstir2-std.log`, `file`)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("resp:", resp)
+	fmt.Println("body:", body)
+}
