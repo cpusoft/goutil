@@ -229,3 +229,21 @@ func TestIsAddress(t *testing.T) {
 	fmt.Println(is)
 
 }
+
+func TestIpStrToBinaryString(t *testing.T) {
+	ip := "191.243.248"
+	ipType := GetIpType(ip)
+	ip1, _ := FillAddressWithZero(ip, ipType)
+	binary, _ := IpStrToBinaryString(ip1, ipType)
+	fmt.Println(ip, binary)
+	binary, _ = IpAddressToBinaryString(ip)
+	fmt.Println(ip, binary)
+
+	ip = "2803:5360::"
+	ipType = GetIpType(ip)
+	ip1, _ = FillAddressWithZero(ip, ipType)
+	binary, _ = IpStrToBinaryString(ip1, ipType)
+	fmt.Println(ip, binary)
+	binary, _ = IpAddressToBinaryString(ip)
+	fmt.Println(ip, binary)
+}

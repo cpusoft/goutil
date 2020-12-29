@@ -416,3 +416,47 @@ func SplitAddressAndPrefix(addressPrefix string) (address string, prefix uint64,
 	prefix = uint64(p)
 	return address, prefix, err
 }
+
+// ip to binary string with fill zero: ip:191.243.248.0 --> 10111111111100111111100000000000
+func IpAddressToBinaryString(ip string) (string, error) {
+	ipType := GetIpType(ip)
+	ipp, err := FillAddressWithZero(ip, ipType)
+	if err != nil {
+		return "", err
+	}
+	return IpStrToBinaryString(ipp, ipType)
+}
+
+// ip to binary string with fill zero: ip:191.243.248.0 --> 10111111111100111111100000000000
+func IpStrToBinaryString(ip string, ipType int) (string, error) {
+	ipp := net.IP{}
+	if ipType == Ipv4Type {
+		ipp = net.ParseIP(ip).To4()
+	} else if ipType == Ipv6Type {
+		ipp = net.ParseIP(ip).To16()
+	} else {
+		return "", errors.New("illegal ip type")
+	}
+
+	return IpNetToBinaryString(ipp, ipType)
+}
+
+// ip to binary string with fill zero: ip:191.243.248.0 --> 10111111111100111111100000000000
+func IpNetToBinaryString(ip net.IP, ipType int) (string, error) {
+
+	var buffer bytes.Buffer
+
+	if ipType == Ipv4Type && len(ip) == net.IPv4len {
+		for i := 0; i < net.IPv4len; i++ {
+			buffer.WriteString(fmt.Sprintf("%08b", ip[i]))
+		}
+		return buffer.String(), nil
+	} else if ipType == Ipv6Type && len(ip) == net.IPv6len {
+		for i := 0; i < net.IPv6len; i = i + 2 {
+			buffer.WriteString(fmt.Sprintf("%08b%08b", ip[i], ip[i+1]))
+		}
+		return buffer.String(), nil
+	}
+	return "", errors.New("ip type or ip length is illegal")
+
+}
