@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/cpusoft/goutil/convert"
-
-	ip "."
 )
 
 func TestIpRangeIncludeInParentRange(t *testing.T) {

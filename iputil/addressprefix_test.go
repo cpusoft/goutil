@@ -4,10 +4,6 @@ import (
 	"fmt"
 	"net"
 	"testing"
-
-	"github.com/cpusoft/goutil/convert"
-
-	ip "."
 )
 
 func TestSummarize(t *testing.T) {
