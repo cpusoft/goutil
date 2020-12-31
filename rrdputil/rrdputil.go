@@ -89,7 +89,7 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 	belogs.Debug("GetRrdpSnapshot(): snapshotUrl:", snapshotUrl)
 	resp, body, err := httpclient.GetHttpsVerify(snapshotUrl, true)
 	if err != nil {
-		belogs.Debug("GetRrdpSnapshot(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
+		belogs.Error("GetRrdpSnapshot(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 
 		// then try using curl

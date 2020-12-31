@@ -7,12 +7,15 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
 	"strconv"
 	"time"
 
 	belogs "github.com/astaxie/beego/logs"
+	"github.com/cpusoft/goutil/fileutil"
 	osutil "github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/uuidutil"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -210,13 +213,29 @@ func PostFileHttps(urlStr string, fileName string, formName string) (resp gorequ
 
 func GetByCurl(url string) (result string, err error) {
 	belogs.Debug("GetByCurl(): cmd:  curl ", url)
-	cmd := exec.Command("curl", "-s", url)
+	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
+	defer os.Remove(tmpFile)
+	belogs.Debug("GetByCurl(): url:", url, "   tmpFile:", tmpFile)
+
+	// -s: slient mode
+	// -4: ipv4
+	// --connect-timeout: connect seconds
+	// --ignore-content-length: Ignore the Content-Length header
+	// --retry:
+	// -o : output file
+	cmd := exec.Command("curl", "-s", "-4", "--connect-timeout", "120", "--ignore-content-length",
+		"--retry", "3", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Error("GetByCurl(): exec.Command: curl:", url, "   err: ", err, "   output: "+string(output))
+		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
-	return string(output), nil
+	b, err := fileutil.ReadFileToBytes(tmpFile)
+	if err != nil {
+		belogs.Error("GetByCurl(): ReadFileToBytes fail, url", url, "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
+		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
+	}
+	return string(b), nil
 }
 
 // convert many erros to on error
