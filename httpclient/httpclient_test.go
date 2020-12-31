@@ -32,7 +32,7 @@ func TestGetHttps(t *testing.T) {
 // only in linux
 func TestGetHttpsRrdp(t *testing.T) {
 	//往rp发送请求
-	url := `https://rrdp.arin.net/8fe05c2e-047d-49e7-8398-cd4250a572b1/18592/snapshot.xml`
+	url := `https://rrdp.arin.net/8fe05c2e-047d-49e7-8398-cd4250a572b1/18593/snapshot.xml`
 	resutl, err := GetByCurl(url)
 
 	if err != nil {
