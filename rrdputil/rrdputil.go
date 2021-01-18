@@ -231,7 +231,7 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 
 	err = xmlutil.UnmarshalXml(body, &deltaModel)
 	if err != nil {
-		belogs.Error("GetRrdpDelta(): UnmarshalXml fail, ", deltaUrl, err)
+		belogs.Error("GetRrdpDelta(): UnmarshalXml fail:", deltaUrl, body, err)
 		return deltaModel, err
 	}
 
