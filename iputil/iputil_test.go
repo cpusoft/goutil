@@ -75,29 +75,29 @@ func TestFillAddressPrefixWithZero1(t *testing.T) {
 
 func TestRoaFormtToIp(t *testing.T) {
 	b := []byte{0xb0, 0x10}
-	di := ip.RoaFormtToIp(b, 0x01)
+	di := RoaFormtToIp(b, 0x01)
 	fmt.Println(di)
 
 	b = []byte{0x03, 0x05, 0x00, 0x28, 0x03, 0xEA, 0x80}
-	di = ip.RoaFormtToIp(b, 0x02)
+	di = RoaFormtToIp(b, 0x02)
 	fmt.Println(di)
 
 	b = []byte{0x2a, 0x0, 0x15, 0x28, 0xaa, 0x0, 0xd0}
-	di = ip.RoaFormtToIp(b, 0x02)
+	di = RoaFormtToIp(b, 0x02)
 	fmt.Println(di)
 }
 
 func TestIpToRtrFormat(t *testing.T) {
 	// dig: 13635B00  str:19.99.91.0
 	str := "19.99.91.0"
-	di := ip.IpToRtrFormat(str)
+	di := IpToRtrFormat(str)
 	fmt.Println(di)
 
 	dig := "13635B00"
 	fmt.Println(dig)
 
 	str = "2001:DB8::"
-	di = ip.IpToRtrFormat(str)
+	di = IpToRtrFormat(str)
 	fmt.Println(di)
 
 }
@@ -105,12 +105,12 @@ func TestIpToRtrFormat(t *testing.T) {
 func TestIpToRtrFormatByte(t *testing.T) {
 	// dig: 13635B00  str:19.99.91.0
 	str := "19.99.91.0"
-	di := ip.IpToRtrFormatByte(str)
+	di := IpToRtrFormatByte(str)
 	fmt.Println(di)
 	fmt.Println(convert.Bytes2String(di))
 
 	str = "2001:DB8::"
-	di2 := ip.IpToRtrFormatByte(str)
+	di2 := IpToRtrFormatByte(str)
 	fmt.Println(di2)
 	fmt.Println(convert.Bytes2String(di2))
 
@@ -119,11 +119,11 @@ func TestIpToRtrFormatByte(t *testing.T) {
 func TestRtrFormatToIp(t *testing.T) {
 	dig := []byte{80, 128, 0, 0}
 	fmt.Println(len([]byte(dig)))
-	str := ip.RtrFormatToIp(dig)
+	str := RtrFormatToIp(dig)
 	fmt.Println(str)
 
 	dig = []byte{32, 1, 7, 248, 0, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	str = ip.RtrFormatToIp(dig)
+	str = RtrFormatToIp(dig)
 	fmt.Println(str)
 }
 
@@ -188,7 +188,7 @@ func TestAddressToRtrFormatByte(t *testing.T) {
 
 func TestAddressPrefixToHexRange(t *testing.T) {
 
-	ips := []string{"192.236/23"}
+	ips := []string{"45.5.68.0/24", "45.5.68.0/16"}
 	for _, ip := range ips {
 		ipp, err := FillAddressPrefixWithZero(ip, Ipv4Type)
 		fmt.Println(ip, " --> ", ipp, err)
@@ -196,11 +196,11 @@ func TestAddressPrefixToHexRange(t *testing.T) {
 		fmt.Println(ip, " --> ", min, max, err)
 
 	}
-	ips = []string{"2803:d380/28"}
+	ips = []string{"45.5.69.0/24"}
 	for _, ip := range ips {
-		ipp, err := FillAddressPrefixWithZero(ip, Ipv6Type)
+		ipp, err := FillAddressPrefixWithZero(ip, Ipv4Type)
 		fmt.Println(ip, " --> ", ipp, err)
-		min, max, err := AddressPrefixToHexRange(ipp, Ipv6Type)
+		min, max, err := AddressPrefixToHexRange(ipp, Ipv4Type)
 		fmt.Println(ip, " --> ", min, max, err)
 
 	}
