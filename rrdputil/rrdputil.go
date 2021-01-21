@@ -21,35 +21,21 @@ import (
 )
 
 func GetRrdpNotification(notificationUrl string) (notificationModel NotificationModel, err error) {
-
 	start := time.Now()
-	// 往rp发送请求
+	// get notification.xml
 	// "https://rrdp.apnic.net/notification.xml"
-	belogs.Debug("GetRrdpNotification(): notificationUrl:", notificationUrl)
-	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
-	if err == nil {
-		defer resp.Body.Close()
-		belogs.Debug("GetRrdpNotification(): GetHttpsVerify notificationUrl ok:", notificationUrl, "   resp.Status:",
-			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
-	} else {
-		belogs.Debug("GetRrdpNotification(): GetHttpsVerify notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
-			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
-
-		// then try using curl
-		body, err = httpclient.GetByCurl(notificationUrl)
+	belogs.Info("GetRrdpNotification(): will notificationUrl:", notificationUrl)
+	for i := 0; i < 3; i++ {
+		notificationModel, err = getRrdpNotificationImpl(notificationUrl)
 		if err != nil {
-			belogs.Error("GetRrdpNotification(): GetByCurl notificationUrl fail:", notificationUrl, "   resp:",
-				resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
-			return notificationModel, err
+			belogs.Error("GetRrdpNotification():getRrdpNotificationImpl fail, will try again, notificationUrl:", notificationUrl, "  i:", i, err)
+		} else {
+			break
 		}
-		belogs.Debug("GetRrdpNotification(): GetByCurl deltaUrl ok", notificationUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
-
 	}
-
-	err = xmlutil.UnmarshalXml(body, &notificationModel)
 	if err != nil {
-		belogs.Error("GetRrdpNotification(): UnmarshalXml fail, ", notificationUrl, err)
-		return notificationModel, err
+		belogs.Error("GetRrdpNotification():getRrdpNotificationImpl fail:", notificationUrl, err)
+		return notificationModel, nil
 	}
 
 	// will sort deltas from smaller to bigger
@@ -68,8 +54,40 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 			notificationModel.MinSerail = serial
 		}
 	}
+	belogs.Info("GetRrdpNotification(): notificationUrl ok:", notificationUrl, "  time(s):", time.Now().Sub(start).Seconds())
 	return notificationModel, nil
 }
+
+func getRrdpNotificationImpl(notificationUrl string) (notificationModel NotificationModel, err error) {
+	start := time.Now()
+	belogs.Debug("getRrdpNotificationImpl(): notificationUrl:", notificationUrl)
+	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
+	if err == nil {
+		defer resp.Body.Close()
+		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl ok:", notificationUrl, "   resp.Status:",
+			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+	} else {
+		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
+			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+
+		// then try using curl
+		body, err = httpclient.GetByCurl(notificationUrl)
+		if err != nil {
+			belogs.Error("getRrdpNotificationImpl(): GetByCurl notificationUrl fail:", notificationUrl, "   resp:",
+				resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
+			return notificationModel, err
+		}
+		belogs.Debug("getRrdpNotificationImpl(): GetByCurl deltaUrl ok", notificationUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+	}
+
+	err = xmlutil.UnmarshalXml(body, &notificationModel)
+	if err != nil {
+		belogs.Error("getRrdpNotificationImpl(): UnmarshalXml fail: ", notificationUrl, "        body:", body, err)
+		return notificationModel, err
+	}
+	return notificationModel, nil
+}
+
 func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
 	if notificationModel.Version != "1" {
 		belogs.Error("CheckRrdpNotification():  notificationModel.Version != 1")
@@ -96,40 +114,55 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 	start := time.Now()
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
-	belogs.Debug("GetRrdpSnapshot(): snapshotUrl:", snapshotUrl)
+	belogs.Info("GetRrdpSnapshot():will get snapshotUrl:", snapshotUrl)
+	for i := 0; i < 3; i++ {
+		snapshotModel, err = getRrdpSnapshotImpl(snapshotUrl)
+		if err != nil {
+			belogs.Error("GetRrdpSnapshot():getRrdpSnapshotImpl fail, will try again, snapshotUrl:", snapshotUrl, "  i:", i, err)
+		} else {
+			break
+		}
+	}
+
+	belogs.Info("GetRrdpSnapshot(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Now().Sub(start).Seconds())
+	return snapshotModel, nil
+}
+
+func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err error) {
+	start := time.Now()
+	// get snapshot.xml
+	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
+	belogs.Debug("getRrdpSnapshotImpl(): snapshotUrl:", snapshotUrl)
 	resp, body, err := httpclient.GetHttpsVerify(snapshotUrl, true)
-	belogs.Debug("GetRrdpSnapshot(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "    len(body):", len(body),
+	belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "    len(body):", len(body),
 		"  time(s):", time.Now().Sub(start).Seconds(), "   err:", err)
 	if err == nil {
 		defer resp.Body.Close()
-		belogs.Debug("GetRrdpSnapshot():GetHttpsVerify snapshotUrl ok:", snapshotUrl,
+		belogs.Debug("getRrdpSnapshotImpl():GetHttpsVerify snapshotUrl ok:", snapshotUrl,
 			"    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	} else {
-		belogs.Debug("GetRrdpSnapshot(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
+		belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 
 		// then try using curl
 		body, err = httpclient.GetByCurl(snapshotUrl)
 		if err != nil {
-			belogs.Error("GetRrdpSnapshot(): GetByCurl snapshotUrl fail:", snapshotUrl, "   resp:",
+			belogs.Error("getRrdpSnapshotImpl(): GetByCurl snapshotUrl fail:", snapshotUrl, "   resp:",
 				resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 			return snapshotModel, err
 		}
-		belogs.Debug("GetRrdpSnapshot(): GetByCurl snapshotUrl ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+		belogs.Debug("getRrdpSnapshotImpl(): GetByCurl snapshotUrl ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	}
 
 	// get snapshotModel
 	err = xmlutil.UnmarshalXml(body, &snapshotModel)
 	if err != nil {
-		belogs.Error("GetRrdpSnapshot(): UnmarshalXml fail, ", snapshotUrl, err)
+		belogs.Error("GetRrdpSnapshot(): UnmarshalXml fail:", snapshotUrl, "   body:", body, err)
 		return snapshotModel, err
 	}
-
 	snapshotModel.Hash = hashutil.Sha256([]byte(body))
-
 	return snapshotModel, nil
 }
-
 func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *NotificationModel) (err error) {
 	if snapshotModel.Version != "1" {
 		belogs.Error("CheckRrdpSnapshot():  snapshotModel.Version != 1")
@@ -207,31 +240,49 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 
 	start := time.Now()
-	// 往rp发送请求
+	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
-	belogs.Debug("GetRrdpDelta(): deltaUrl:", deltaUrl)
+	belogs.Info("GetRrdpDelta(): deltaUrl:", deltaUrl)
+	for i := 0; i < 3; i++ {
+		deltaModel, err = getRrdpDeltaImpl(deltaUrl)
+		if err != nil {
+			belogs.Error("GetRrdpDelta():getRrdpSnapshotImpl fail, will try again, deltaUrl:", deltaUrl, "  i:", i, err)
+		} else {
+			break
+		}
+	}
+	belogs.Info("GetRrdpDelta(): deltaUrl ok:", deltaUrl, "  time(s):", time.Now().Sub(start).Seconds())
+	return deltaModel, nil
+}
+
+func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
+
+	start := time.Now()
+	// get delta.xml
+	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
+	belogs.Debug("getRrdpDeltaImpl(): deltaUrl:", deltaUrl)
 	resp, body, err := httpclient.GetHttpsVerify(deltaUrl, true)
 	if err == nil {
 		defer resp.Body.Close()
-		belogs.Debug("GetRrdpDelta(): GetHttpsVerify deltaUrl ok:", deltaUrl, "   resp.Status:",
+		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl ok:", deltaUrl, "   resp.Status:",
 			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	} else {
-		belogs.Debug("GetRrdpDelta(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   resp:",
+		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 
 		// then try using curl
 		body, err = httpclient.GetByCurl(deltaUrl)
 		if err != nil {
-			belogs.Error("GetRrdpDelta(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:",
+			belogs.Error("getRrdpDeltaImpl(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:",
 				resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 			return deltaModel, err
 		}
-		belogs.Debug("GetRrdpDelta(): GetByCurl deltaUrl ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+		belogs.Debug("getRrdpDeltaImpl(): GetByCurl deltaUrl ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	}
 
 	err = xmlutil.UnmarshalXml(body, &deltaModel)
 	if err != nil {
-		belogs.Error("GetRrdpDelta(): UnmarshalXml fail:", deltaUrl, body, err)
+		belogs.Error("getRrdpDeltaImpl(): UnmarshalXml fail:", deltaUrl, "    body:", body, err)
 		return deltaModel, err
 	}
 
@@ -239,7 +290,6 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 	for i := range deltaModel.DeltaPublishs {
 		deltaModel.DeltaPublishs[i].Base64 = stringutil.TrimSpaceAneNewLine(deltaModel.DeltaPublishs[i].Base64)
 	}
-
 	return deltaModel, nil
 }
 
