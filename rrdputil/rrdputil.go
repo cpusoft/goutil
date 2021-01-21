@@ -123,7 +123,10 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 			break
 		}
 	}
-
+	if err != nil {
+		belogs.Error("GetRrdpSnapshot():getRrdpSnapshotImpl fail:", snapshotUrl, err)
+		return snapshotModel, nil
+	}
 	belogs.Info("GetRrdpSnapshot(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Now().Sub(start).Seconds())
 	return snapshotModel, nil
 }
@@ -246,11 +249,16 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 	for i := 0; i < 3; i++ {
 		deltaModel, err = getRrdpDeltaImpl(deltaUrl)
 		if err != nil {
-			belogs.Error("GetRrdpDelta():getRrdpSnapshotImpl fail, will try again, deltaUrl:", deltaUrl, "  i:", i, err)
+			belogs.Error("GetRrdpDelta():getRrdpDeltaImpl fail, will try again, deltaUrl:", deltaUrl, "  i:", i, err)
 		} else {
 			break
 		}
 	}
+	if err != nil {
+		belogs.Error("GetRrdpDelta():getRrdpDeltaImpl fail:", deltaModel, err)
+		return deltaModel, nil
+	}
+
 	belogs.Info("GetRrdpDelta(): deltaUrl ok:", deltaUrl, "  time(s):", time.Now().Sub(start).Seconds())
 	return deltaModel, nil
 }
