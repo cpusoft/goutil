@@ -104,3 +104,9 @@ func VariableString(key string) string {
 	return ""
 
 }
+
+// key:  "aaa::bbb"
+// value: "ccc"
+func SetString(key, value string) error {
+	return Configure.Set(key, value)
+}
