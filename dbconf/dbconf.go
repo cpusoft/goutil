@@ -11,14 +11,14 @@ import (
 )
 
 /*
-CREATE TABLE ***** (
+CREATE TABLE *** (
 	id int(10) unsigned NOT NULL primary key auto_increment,
 	section varchar(128)  NOT NULL COMMENT 'section',
 	myKey varchar(128)  NOT NULL  COMMENT 'key',
 	myValue varchar(1024)  NOT NULL  COMMENT 'value',
 	defaultMyValue varchar(1024)  NOT NULL  COMMENT 'default value',
 	updateTime datetime NOT NULL COMMENT 'update time',
-	unique sectionKeyValue (section,key,value)
+	unique sectionMyKey (section,myKey)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin comment='rpstir2 configuration'
 */
 type dbConfModel struct {
@@ -53,30 +53,30 @@ func InitDbConf(tableName string) (err error) {
 	return nil
 }
 
-func SaveDbConf(tableName, section, myKey, myValue string) (err error) {
+func SetString(tableName, section, myKey, myValue string) (err error) {
 	session, err := xormdb.NewSession()
 	defer session.Close()
 
 	now := time.Now()
-	sql := `update ` + tableName + `set myValue=?, updateTime=? 
+	sql := `update ` + tableName + ` set myValue=?, updateTime=? 
 		where section=? and myKey=? `
 	_, err = session.Exec(sql, myValue, now, section, myKey)
 	if err != nil {
-		belogs.Error("SaveDbConf(): update fail:", tableName, section, myKey, myValue, err)
-		return xormdb.RollbackAndLogError(session, "SaveDbConf(): update fail:"+
+		belogs.Error("SetString(): update fail:", tableName, section, myKey, myValue, err)
+		return xormdb.RollbackAndLogError(session, "SetString(): update fail:"+
 			tableName+","+section+","+myKey+","+myValue+", fail: ", err)
 	}
 	err = conf.SetString(section+"::"+myKey, myValue)
 	if err != nil {
-		belogs.Error("SaveDbConf(): conf.SetString fail:", tableName, section, myKey, myValue, err)
-		return xormdb.RollbackAndLogError(session, "SaveDbConf(): conf.SetString fail:"+
+		belogs.Error("SetString(): conf.SetString fail:", tableName, section, myKey, myValue, err)
+		return xormdb.RollbackAndLogError(session, "SetString(): conf.SetString fail:"+
 			tableName+","+section+","+myKey+","+myValue+", fail: ", err)
 	}
 
 	err = xormdb.CommitSession(session)
 	if err != nil {
-		belogs.Error("SaveDbConf(): CommitSession fail :", tableName, section, myKey, myValue, err)
-		return xormdb.RollbackAndLogError(session, "SaveDbConf(): CommitSession fail:"+
+		belogs.Error("SetString(): CommitSession fail :", tableName, section, myKey, myValue, err)
+		return xormdb.RollbackAndLogError(session, "SetString(): CommitSession fail:"+
 			tableName+","+section+","+myKey+","+myValue+", fail: ", err)
 	}
 	return
