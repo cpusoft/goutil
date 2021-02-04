@@ -42,12 +42,19 @@ type ResponseModel struct {
 	Data   interface{} `json:"data,omitempty"`
 }
 
+func Html(c *gin.Context, html string, v interface{}) {
+	c.Header("Cache-Control", "no-store")
+	c.HTML(http.StatusOK, html, v)
+}
+
 func ResponseOk(c *gin.Context, v interface{}) {
+	c.Header("Cache-Control", "no-store")
 	ret := ResponseModel{Result: "ok", Msg: "", Data: v}
 	responseJSON(c, http.StatusOK, &ret)
 }
 
 func ResponseFail(c *gin.Context, err error, v interface{}) {
+	c.Header("Cache-Control", "no-store")
 	ret := ResponseModel{Result: "fail", Msg: err.Error(), Data: v}
 	responseJSON(c, http.StatusOK, &ret)
 }
