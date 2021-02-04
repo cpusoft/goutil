@@ -254,7 +254,7 @@ func CloseAndRemoveFile(file *os.File) error {
 	}
 	s, err := IsExists(file.Name())
 	if err != nil {
-		belogs.Error("parseMftModel():IsExists:err: ", file.Name(), err)
+		belogs.Debug("CloseAndRemoveFile():IsExists:err: ", file.Name(), err)
 		return err
 	}
 	if !s {
@@ -263,12 +263,12 @@ func CloseAndRemoveFile(file *os.File) error {
 
 	err = file.Close()
 	if err != nil {
-		belogs.Error("parseMftModel():cerfile.Close():err: ", file.Name(), err)
+		belogs.Debug("CloseAndRemoveFile():file.Close():err: ", file.Name(), err)
 		return err
 	}
 	err = os.Remove(file.Name())
 	if err != nil {
-		belogs.Error("parseMftModel():os.Remove:err:", file.Name(), err)
+		belogs.Error("CloseAndRemoveFile():os.Remove:err:", file.Name(), err)
 		return nil
 	}
 	return nil
