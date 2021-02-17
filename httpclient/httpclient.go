@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	belogs "github.com/astaxie/beego/logs"
@@ -29,6 +30,17 @@ const (
 var RetryHttpStatus = []int{http.StatusBadRequest, http.StatusInternalServerError,
 	http.StatusRequestTimeout, http.StatusBadGateway, http.StatusGatewayTimeout}
 
+func Get(urlStr string, verifyHttps bool) (resp gorequest.Response, body string, err error) {
+	if strings.HasPrefix(urlStr, "http://") {
+		return GetHttp(urlStr)
+	} else if strings.HasPrefix(urlStr, "https://") {
+		return GetHttpsVerify(urlStr, verifyHttps)
+	} else {
+		return nil, "", errors.New("unknown protocol")
+	}
+}
+
+/*
 // Http/Https Get Method,
 // protocol: "http" or "https"
 func Get(protocol string, address string, port int, path string) (gorequest.Response, string, error) {
@@ -40,6 +52,7 @@ func Get(protocol string, address string, port int, path string) (gorequest.Resp
 		return nil, "", errors.New("unknown protocol")
 	}
 }
+*/
 
 // Http Get Method, complete url
 func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
@@ -61,7 +74,6 @@ func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
 // Https Get Method, complete url
 func GetHttps(urlStr string) (resp gorequest.Response, body string, err error) {
 	return GetHttpsVerify(urlStr, false)
-
 }
 
 // Https Get Method, complete url
@@ -85,6 +97,18 @@ func GetHttpsVerify(urlStr string, verify bool) (resp gorequest.Response, body s
 
 }
 
+//  http or https
+func Post(urlStr string, postJson string, verifyHttps bool) (gorequest.Response, string, error) {
+	if strings.HasPrefix(urlStr, "http://") {
+		return PostHttp(urlStr, postJson)
+	} else if strings.HasPrefix(urlStr, "https://") {
+		return PostHttpsVerify(urlStr, postJson, verifyHttps)
+	} else {
+		return nil, "", errors.New("unknown protocol")
+	}
+}
+
+/*
 // Http/Https Post Method,
 // protocol: "http" or "https"
 func Post(protocol string, address string, port int, path string, postJson string) (gorequest.Response, string, error) {
@@ -96,7 +120,7 @@ func Post(protocol string, address string, port int, path string, postJson strin
 		return nil, "", errors.New("unknown protocol")
 	}
 }
-
+*/
 // Http Post Method, complete url
 func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
 	belogs.Debug("PostHttp():url:", urlStr, "    len(postJson):", len(postJson))
