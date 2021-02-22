@@ -247,8 +247,9 @@ func GetByCurl(url string) (result string, err error) {
 	// --ignore-content-length: Ignore the Content-Length header
 	// --retry:
 	// -o : output file
+	// --limit-rate:  100k
 	cmd := exec.Command("curl", "-s", "-4", "--connect-timeout", "120", "--ignore-content-length",
-		"--retry", "3", "-o", tmpFile, url)
+		"--retry", "3", "--limit-rate", "1000k", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
