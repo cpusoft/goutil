@@ -30,12 +30,12 @@ func checkAuthUrls(redirectUrl string, failJson string,
 	checkAuthUrlsFuncs ...checkAuthUrlsFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if len(checkAuthUrlsFuncs) > 0 && checkAuthUrlsFuncs[0](c) {
-			belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) pass: ", checkAuthUrlsFuncs[0], "   url:", c.Request.URL.Path)
+			//belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) pass: ", checkAuthUrlsFuncs[0], "   url:", c.Request.URL.Path)
 			c.Next()
 			return
 		}
-		belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) unpass: ", checkAuthUrlsFuncs[0],
-			"    redirectUrl:", redirectUrl, "  or  failJson:", failJson)
+		//belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) unpass: ", checkAuthUrlsFuncs[0],
+		//	"    redirectUrl:", redirectUrl, "  or  failJson:", failJson)
 		if len(redirectUrl) > 0 {
 			c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 		} else if len(failJson) > 0 {
@@ -103,7 +103,8 @@ func skipAuthUrlsOrRoleHasAuthUrls(skipUrls []string, roleHasUrls map[uint64][]s
 				}
 			}
 		}
-		belogs.Info("skipAuthUrlsOrRoleHasAuthUrls():auth false, reqPath:", reqPath)
+		belogs.Info("skipAuthUrlsOrRoleHasAuthUrls():auth false, reqPath:", reqPath,
+			"  ginUserModel.RoleId:", ginUserModel.RoleId, "   roleUrls:", roleUrls)
 		return false
 	}
 }
