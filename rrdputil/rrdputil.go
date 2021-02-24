@@ -378,13 +378,13 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 		if len(files) == 0 {
 			os.RemoveAll(dir)
 		}
-		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Withdraw Remove pathFileName ", pathFileName, "  ok")
 
 		rrdpFile := RrdpFile{
 			FilePath: dir,
 			FileName: file,
 			SyncType: "del",
 		}
+		belogs.Info("SaveRrdpDeltaToRrdpFiles():Withdraw Remove rrdpFile ", jsonutil.MarshalJson(rrdpFile), "  ok")
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}
 
@@ -421,7 +421,6 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 				pathFileName, len(bytes))
 			return nil, err
 		}
-		belogs.Debug("SaveRrdpDeltaToFiles():Publish save pathFileName ", pathFileName, "  ok")
 
 		// some rrdp have no withdraw, only publish, so change to update to del old in db
 		rrdpFile := RrdpFile{
@@ -430,6 +429,7 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 			//SyncType: "add",
 			SyncType: "update",
 		}
+		belogs.Info("SaveRrdpDeltaToRrdpFiles():Publish Remove rrdpFile ", jsonutil.MarshalJson(rrdpFile), "  ok")
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}
 

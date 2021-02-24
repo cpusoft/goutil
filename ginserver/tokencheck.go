@@ -65,7 +65,7 @@ func UserLoginMiddleware(userIdUrls map[uint64][]string, skipper ...SkipperFunc)
 			authUrl := string(strconv.Itoa(int(uid))) + AUTH_URL
 			if session.Get(authUrl) == nil {
 				session.Set(authUrl, JsonUrls)
-				belogs.Debug("JsonUrls:", JsonUrls)
+				//belogs.Debug("JsonUrls:", JsonUrls)
 				session.Save()
 			}
 		}
