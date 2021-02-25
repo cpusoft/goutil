@@ -52,12 +52,12 @@ func GetFromSession(c *gin.Context, key string, value interface{}) error {
 	}
 
 	s := sessions.Default(c)
-	belogs.Debug("GetFromSession(): key:", key, "   c:", c, " s:", jsonutil.MarshalJson(&s))
+	//belogs.Debug("GetFromSession(): key:", key, "   c:", c, " s:", jsonutil.MarshalJson(&s))
 	if s == nil {
 		return nil
 	}
 	v := s.Get(key)
-	belogs.Debug("GetFromSession(): key:", key, "   c:", c, " s:", jsonutil.MarshalJson(&s), " v:", v)
+	//belogs.Debug("GetFromSession(): key:", key, "   c:", c, " s:", jsonutil.MarshalJson(&s), " v:", v)
 	if v == nil {
 		return nil
 	}
