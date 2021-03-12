@@ -9,12 +9,15 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	belogs "github.com/astaxie/beego/logs"
 	"github.com/cpusoft/goutil/fileutil"
+	"github.com/cpusoft/goutil/httpserver"
+	"github.com/cpusoft/goutil/jsonutil"
 	osutil "github.com/cpusoft/goutil/osutil"
 	"github.com/cpusoft/goutil/uuidutil"
 	"github.com/parnurzeal/gorequest"
@@ -106,6 +109,36 @@ func Post(urlStr string, postJson string, verifyHttps bool) (gorequest.Response,
 	} else {
 		return nil, "", errors.New("unknown protocol")
 	}
+}
+
+func PostAndUnmarshalResponse(urlStr, postJson string, verifyHttps bool, response interface{}) (err error) {
+	belogs.Debug("PostAndUnmarshalResponse(): urlStr:", urlStr, "   postJson:", postJson,
+		"   verifyHttps:", verifyHttps, "    response:", reflect.TypeOf(response).Name())
+	resp, body, err := Post(urlStr, postJson, verifyHttps)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponse():Post failed, urlStr:", urlStr, "   postJson:", postJson, err)
+		return err
+	}
+	resp.Body.Close()
+
+	// try UnmarshalJson using HttpResponse to get Result
+	var httpResponse httpserver.HttpResponse
+	err = jsonutil.UnmarshalJson(body, &httpResponse)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponse():UnmarshalJson failed, urlStr:", urlStr, "  body:", body, err)
+		return err
+	}
+	if httpResponse.Result == "fail" {
+		belogs.Error("PostAndUnmarshalResponse():httpResponse.Result is fail, err:", jsonutil.MarshalJson(httpResponse), body)
+		return errors.New(httpResponse.Msg)
+	}
+	// UnmarshalJson to get actual ***Response
+	err = jsonutil.UnmarshalJson(body, response)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponse():UnmarshalJson failed, urlStr:", urlStr, "  body:", body, err)
+		return err
+	}
+	return nil
 }
 
 /*

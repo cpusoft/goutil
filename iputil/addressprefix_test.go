@@ -62,3 +62,16 @@ func TestSummarize(t *testing.T) {
 	*/
 
 }
+
+func TestContains(t *testing.T) {
+	_, ipNet1, err := net.ParseCIDR("204.2.135.0/24")
+	fmt.Println(ipNet1, err)
+
+	_, ipNet2, err := net.ParseCIDR("204.2.226.240/28")
+	fmt.Println(ipNet2, err)
+
+	ipPrefix1 := Prefix{*ipNet1}
+	fmt.Println(ipPrefix1)
+	ipPrefix2 := Prefix{*ipNet2}
+	fmt.Println(ipPrefix2)
+}
