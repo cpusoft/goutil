@@ -111,6 +111,7 @@ func Post(urlStr string, postJson string, verifyHttps bool) (gorequest.Response,
 	}
 }
 
+// response need HttpResponse{}
 func PostAndUnmarshalResponse(urlStr, postJson string, verifyHttps bool, response interface{}) (err error) {
 	belogs.Debug("PostAndUnmarshalResponse(): urlStr:", urlStr, "   postJson:", postJson,
 		"   verifyHttps:", verifyHttps, "    response:", reflect.TypeOf(response).Name())
@@ -136,6 +137,26 @@ func PostAndUnmarshalResponse(urlStr, postJson string, verifyHttps bool, respons
 	err = jsonutil.UnmarshalJson(body, response)
 	if err != nil {
 		belogs.Error("PostAndUnmarshalResponse():UnmarshalJson failed, urlStr:", urlStr, "  body:", body, err)
+		return err
+	}
+	return nil
+}
+
+// response is any struct
+func PostAndUnmarshalStruct(urlStr, postJson string, verifyHttps bool, response interface{}) (err error) {
+	belogs.Debug("PostAndUnmarshalStruct(): urlStr:", urlStr, "   postJson:", postJson,
+		"   verifyHttps:", verifyHttps, "    response:", reflect.TypeOf(response).Name())
+	resp, body, err := Post(urlStr, postJson, verifyHttps)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalStruct():Post failed, urlStr:", urlStr, "   postJson:", postJson, err)
+		return err
+	}
+	resp.Body.Close()
+
+	// UnmarshalJson to get actual ***Response
+	err = jsonutil.UnmarshalJson(body, response)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalStruct():UnmarshalJson failed, urlStr:", urlStr, "  body:", body, err)
 		return err
 	}
 	return nil
