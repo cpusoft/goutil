@@ -105,7 +105,7 @@ func Post(urlStr string, postJson string, verifyHttps bool) (gorequest.Response,
 	if strings.HasPrefix(urlStr, "http://") {
 		return PostHttp(urlStr, postJson)
 	} else if strings.HasPrefix(urlStr, "https://") {
-		return PostHttpsVerify(urlStr, postJson, verifyHttps)
+		return PostHttps(urlStr, postJson, verifyHttps)
 	} else {
 		return nil, "", errors.New("unknown protocol")
 	}
@@ -193,16 +193,17 @@ func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body str
 
 }
 
+/*
 // Https Post Method, complete url
 func PostHttps(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
 	return PostHttpsVerify(urlStr, postJson, false)
-
 }
+*/
 
 // Https Post Method, complete url
 // verify: check https or not
-func PostHttpsVerify(urlStr string, postJson string, verify bool) (resp gorequest.Response, body string, err error) {
-	belogs.Debug("PostHttpsVerify():url:", urlStr, "    len(postJson):", len(postJson), "    verify:", verify)
+func PostHttps(urlStr string, postJson string, verify bool) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("PostHttps():url:", urlStr, "    len(postJson):", len(postJson), "    verify:", verify)
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, "", err
@@ -220,9 +221,21 @@ func PostHttpsVerify(urlStr string, postJson string, verify bool) (resp goreques
 
 }
 
+// fileName: file name ; FormName:id in form
+func PostFile(urlStr string, fileName string, formName string, verifyHttps bool) (gorequest.Response, string, error) {
+	if strings.HasPrefix(urlStr, "http://") {
+		return PostFileHttp(urlStr, fileName, formName)
+	} else if strings.HasPrefix(urlStr, "https://") {
+		return PostFileHttps(urlStr, fileName, formName, verifyHttps)
+	} else {
+		return nil, "", errors.New("unknown protocol")
+	}
+}
+
+/*
 // Http/Https Post Method,
 // protocol: "http" or "https"
-func PostFile(protocol string, address string, port int, path string, fileName string, formName string) (gorequest.Response, string, error) {
+func PostFile(protocol string, address string, port int, path string, fileName string, formName string, verify bool) (gorequest.Response, string, error) {
 	if protocol == "http" {
 		return PostFileHttp(protocol+"://"+address+":"+strconv.Itoa(port)+path, fileName, formName)
 	} else if protocol == "https" {
@@ -231,6 +244,7 @@ func PostFile(protocol string, address string, port int, path string, fileName s
 		return nil, "", errors.New("unknown protocol")
 	}
 }
+*/
 
 // fileName: file name ; FormName:id in form
 func PostFileHttp(urlStr string, fileName string, formName string) (resp gorequest.Response, body string, err error) {
@@ -261,9 +275,9 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 }
 
 // fileName: file name ; FormName:id in form
-func PostFileHttps(urlStr string, fileName string, formName string) (resp gorequest.Response, body string, err error) {
+func PostFileHttps(urlStr string, fileName string, formName string, verify bool) (resp gorequest.Response, body string, err error) {
 
-	belogs.Debug("PostFileHttps():url:", urlStr, "   fileName:", fileName, "   formName:", formName)
+	belogs.Debug("PostFileHttps():url:", urlStr, "   fileName:", fileName, "   formName:", formName, "  verify:", verify)
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, "", err
@@ -275,7 +289,7 @@ func PostFileHttps(urlStr string, fileName string, formName string) (resp gorequ
 	}
 	file := osutil.Base(fileName)
 	belogs.Debug("PostFileHttps():file:", file)
-	config := &tls.Config{InsecureSkipVerify: true}
+	config := &tls.Config{InsecureSkipVerify: !verify}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
 		Timeout(DefaultTimeout*time.Minute).
