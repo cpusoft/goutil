@@ -36,6 +36,7 @@ func checkAuthUrls(redirectUrl string, failJson string,
 		}
 		//belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) unpass: ", checkAuthUrlsFuncs[0],
 		//	"    redirectUrl:", redirectUrl, "  or  failJson:", failJson)
+		//c.Request.Method
 		if len(redirectUrl) > 0 {
 			c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 		} else if len(failJson) > 0 {

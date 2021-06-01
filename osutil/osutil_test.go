@@ -79,7 +79,7 @@ func TestJoinPathFile(t *testing.T) {
 func TestGetAllFileStatsBySuffixs(t *testing.T) {
 	m := make(map[string]string, 0)
 	m[".cer"] = ".cer"
-	f, err := GetAllFileStatsBySuffixs(`G:\Download\cert\cache\rpki.afrinic.net\repository`, m)
+	f, err := GetAllFileStatsBySuffixs(`G:\Download\cert\`, m)
 
 	fmt.Println(jsonutil.MarshalJson(f), err)
 }

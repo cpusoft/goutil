@@ -84,7 +84,7 @@ func (ts *TcpServer) OnConnect(conn *net.TCPConn) {
 	// call process func OnConnect
 	belogs.Debug("OnConnect():conn: ", conn, "   call process func: OnConnect ")
 	ts.tcpServerProcessFunc.OnConnect(conn)
-	belogs.Info("OnConnect():add conn: ", conn, "   len(tcpConns): ", len(ts.tcpConns), "   time(s):", time.Now().Sub(start).Seconds())
+	belogs.Info("OnConnect():add conn: ", conn.RemoteAddr(), "   len(tcpConns): ", len(ts.tcpConns), "   time(s):", time.Now().Sub(start).Seconds())
 }
 
 func (ts *TcpServer) ReceiveAndSend(conn *net.TCPConn) {
