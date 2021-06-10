@@ -47,10 +47,13 @@ func checkAuthUrls(redirectUrl string, failJson string,
 		//	"    redirectUrl:", redirectUrl, "  or  failJson:", failJson)
 		//c.Request.Method
 		if result.Method == "GET" && len(redirectUrl) > 0 {
+			belogs.Debug("checkAuthUrls():will redirectUrl, result.Method:", result.Method, "   redirectUrl:", redirectUrl)
 			c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 		} else if result.Method == "POST" && len(failJson) > 0 {
+			belogs.Debug("checkAuthUrls():will ResponseFail, result.Method:", result.Method, "   failJson:", failJson)
 			ResponseFail(c, errors.New(failJson), nil)
 		} else {
+			belogs.Debug("checkAuthUrls():default redirectUrl, result.Method:", result.Method, "   redirectUrl:", redirectUrl)
 			c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 		}
 
