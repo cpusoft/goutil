@@ -33,16 +33,17 @@ type checkAuthUrlsFuncResult struct {
 func checkAuthUrls(redirectUrl string, failJson string,
 	checkAuthUrlsFuncs ...checkAuthUrlsFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if len(checkAuthUrlsFuncs) > 0 {
+		result := checkAuthUrlsFuncResult{}
+		len := len(checkAuthUrlsFuncs)
+		if len > 0 {
+			result = checkAuthUrlsFuncs[0](c)
+		}
+		if len > 0 && result.Result {
 			belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) pass: ", checkAuthUrlsFuncs[0], "   url:", c.Request.URL.Path)
 			c.Next()
 			return
 		}
-		result := checkAuthUrlsFuncs[0](c)
-		if result.Result {
-			c.Next()
-			return
-		}
+
 		//belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) unpass: ", checkAuthUrlsFuncs[0],
 		//	"    redirectUrl:", redirectUrl, "  or  failJson:", failJson)
 		//c.Request.Method
