@@ -34,11 +34,11 @@ func checkAuthUrls(redirectUrl string, failJson string,
 	checkAuthUrlsFuncs ...checkAuthUrlsFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		result := checkAuthUrlsFuncResult{}
-		len := len(checkAuthUrlsFuncs)
-		if len > 0 {
+		funcLen := len(checkAuthUrlsFuncs)
+		if funcLen > 0 {
 			result = checkAuthUrlsFuncs[0](c)
 		}
-		if len > 0 && result.Result {
+		if funcLen > 0 && result.Result {
 			belogs.Debug("checkAuthUrls(): checkAuthUrlsFuncs[0](c) pass: ", checkAuthUrlsFuncs[0], "   url:", c.Request.URL.Path)
 			c.Next()
 			return
