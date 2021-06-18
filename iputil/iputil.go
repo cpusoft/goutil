@@ -175,10 +175,10 @@ func IpToRtrFormatByte(ip string) []byte {
 func AddressToRtrFormatByte(address string) (ipHex []byte, ipType int, err error) {
 
 	ipType = GetIpType(address)
-	belogs.Debug("AddressToRtrFormatByte(): after GetIpType  :", ipType)
+	//belogs.Debug("AddressToRtrFormatByte(): after GetIpType  :", ipType)
 
 	addressFill, err := FillAddressWithZero(address, ipType)
-	belogs.Debug("AddressToRtrFormatByte(): after FillAddressWithZero  :", addressFill, err)
+	//belogs.Debug("AddressToRtrFormatByte(): after FillAddressWithZero  :", addressFill, err)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -188,7 +188,7 @@ func AddressToRtrFormatByte(address string) (ipHex []byte, ipType int, err error
 	} else if ipType == Ipv6Type {
 		ipHex = net.ParseIP(addressFill).To16()
 	}
-	belogs.Debug("AddressPrefixToRtrFormatByte(): after ParseIP  :", ipHex)
+	//belogs.Debug("AddressPrefixToRtrFormatByte(): after ParseIP  :", ipHex)
 
 	return ipHex, ipType, nil
 
