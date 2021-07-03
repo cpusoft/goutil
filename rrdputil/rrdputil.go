@@ -245,7 +245,7 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 	start := time.Now()
 	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
-	belogs.Info("GetRrdpDelta(): deltaUrl:", deltaUrl)
+	belogs.Debug("GetRrdpDelta(): deltaUrl:", deltaUrl)
 	for i := 0; i < 3; i++ {
 		deltaModel, err = getRrdpDeltaImpl(deltaUrl)
 		if err != nil {
