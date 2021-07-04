@@ -384,7 +384,7 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 			FileName: file,
 			SyncType: "del",
 		}
-		belogs.Info("SaveRrdpDeltaToRrdpFiles():Withdraw Remove rrdpFile ", jsonutil.MarshalJson(rrdpFile), "  ok")
+		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Withdraw Remove rrdpFile ", jsonutil.MarshalJson(rrdpFile), "  ok")
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}
 
