@@ -303,6 +303,7 @@ func PostFileHttps(urlStr string, fileName string, formName string, verify bool)
 }
 
 func GetByCurl(url string) (result string, err error) {
+	start := time.Now()
 	belogs.Debug("GetByCurl(): cmd:  curl ", url)
 	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
 	defer os.Remove(tmpFile)
@@ -324,12 +325,14 @@ func GetByCurl(url string) (result string, err error) {
 		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
+	belogs.Debug("GetByCurl(): curl ok, url:", url, "   tmpFile:", tmpFile, "  time(s):", time.Now().Sub(start).Seconds())
+
 	b, err := fileutil.ReadFileToBytes(tmpFile)
 	if err != nil {
 		belogs.Error("GetByCurl(): ReadFileToBytes fail, url", url, "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
-	belogs.Debug("GetByCurl(): curl ok, url:", url, "   tmpFile:", tmpFile, "  len(b):", len(b))
+	belogs.Debug("GetByCurl(): ReadFileToBytes ok, url:", url, "   tmpFile:", tmpFile, "  len(b):", len(b), "  time(s):", time.Now().Sub(start).Seconds())
 	return string(b), nil
 }
 
