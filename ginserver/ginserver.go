@@ -4,7 +4,10 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
 
+	belogs "github.com/astaxie/beego/logs"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-gonic/gin"
 )
@@ -61,4 +64,24 @@ func ResponseFail(c *gin.Context, err error, v interface{}) {
 
 func responseJSON(c *gin.Context, status int, v interface{}) {
 	c.JSON(status, v)
+}
+
+func ReceiveFile(c *gin.Context, dir string) (receiveFile string, err error) {
+	belogs.Debug("ReceiveFile():dir:", dir)
+	file, err := c.FormFile("file")
+	if err != nil {
+		belogs.Error("ReceiveFile(): FormFile fail:", err)
+		return "", err
+	}
+	if !strings.HasSuffix(dir, string(os.PathSeparator)) {
+		dir = dir + string(os.PathSeparator)
+	}
+	receiveFile = dir + file.Filename
+	err = c.SaveUploadedFile(file, receiveFile)
+	if err != nil {
+		belogs.Error("ReceiveFile(): SaveUploadedFile fail:", receiveFile, err)
+		return "", err
+	}
+	belogs.Info("ReceiveFile(): ok, receiveFile:", receiveFile)
+	return receiveFile, nil
 }
