@@ -12,13 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	TOKEN_KEY     = "X-Token"  //Page token key name
-	USER_ID_Key   = "X-USERID" //Page user ID key name
-	USER_UUID_Key = "X-UUID"   //UUID key name
-	AUTH_URL      = "authurl"  //session key name
-)
-
 // decode json
 func DecodeJson(c *gin.Context, v interface{}) error {
 	content, err := ioutil.ReadAll(c.Request.Body)

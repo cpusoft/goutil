@@ -1,4 +1,4 @@
-package ginserver
+package ginsession
 
 type GinUserModel struct {
 	// user Id

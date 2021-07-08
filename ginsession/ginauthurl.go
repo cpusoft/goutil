@@ -1,4 +1,4 @@
-package ginserver
+package ginsession
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	belogs "github.com/astaxie/beego/logs"
+	"github.com/cpusoft/goutil/ginserver"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-gonic/gin"
 )
@@ -52,7 +53,7 @@ func checkAuthUrls(redirectUrl string, failJson string,
 			c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 		} else if result.Method == "POST" && len(failJson) > 0 {
 			belogs.Error("checkAuthUrls():will ResponseFail, result.Method:", result.Method, "   failJson:", failJson)
-			ResponseFail(c, errors.New(failJson), nil)
+			ginserver.ResponseFail(c, errors.New(failJson), nil)
 		} else {
 			belogs.Error("checkAuthUrls():default redirectUrl, result.Method:", result.Method, "   redirectUrl:", redirectUrl)
 			c.Redirect(http.StatusTemporaryRedirect, redirectUrl)

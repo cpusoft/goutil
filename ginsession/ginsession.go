@@ -1,4 +1,4 @@
-package ginserver
+package ginsession
 
 import (
 	belogs "github.com/astaxie/beego/logs"

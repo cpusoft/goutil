@@ -1,4 +1,4 @@
-package ginserver
+package ginsession
 
 import (
 	"errors"
@@ -6,9 +6,17 @@ import (
 	"time"
 
 	belogs "github.com/astaxie/beego/logs"
+	"github.com/cpusoft/goutil/ginserver"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+)
+
+const (
+	TOKEN_KEY     = "X-Token"  //Page token key name
+	USER_ID_Key   = "X-USERID" //Page user ID key name
+	USER_UUID_Key = "X-UUID"   //UUID key name
+	AUTH_URL      = "authurl"  //session key name
 )
 
 type SessionContent struct {
@@ -28,7 +36,7 @@ func UserLoginMiddleware(userIdUrls map[uint64][]string, skipper ...SkipperFunc)
 		if t := c.GetHeader(TOKEN_KEY); t != "" {
 			userInfo, ok := ParseToken(t)
 			if !ok {
-				ResponseFail(c, errors.New("token invalid"), nil)
+				ginserver.ResponseFail(c, errors.New("token invalid"), nil)
 				c.Abort()
 				return
 			}
@@ -36,7 +44,7 @@ func UserLoginMiddleware(userIdUrls map[uint64][]string, skipper ...SkipperFunc)
 			exp := time.Unix(exptimestamp, 0)
 			ok = exp.After(time.Now())
 			if !ok {
-				ResponseFail(c, errors.New("token expired"), nil)
+				ginserver.ResponseFail(c, errors.New("token expired"), nil)
 				c.Abort()
 				return
 			}
@@ -50,7 +58,7 @@ func UserLoginMiddleware(userIdUrls map[uint64][]string, skipper ...SkipperFunc)
 			userId := session.Get(uuid)
 			belogs.Debug("uuid session:", session.Get(uuid))
 			if userId == "" {
-				ResponseFail(c, errors.New("User is not login"), nil)
+				ginserver.ResponseFail(c, errors.New("User is not login"), nil)
 				c.Abort()
 				return
 			}
@@ -70,7 +78,7 @@ func UserLoginMiddleware(userIdUrls map[uint64][]string, skipper ...SkipperFunc)
 			}
 		}
 		if uuid == "" {
-			ResponseFail(c, errors.New("User is not login"), nil)
+			ginserver.ResponseFail(c, errors.New("User is not login"), nil)
 			c.Abort()
 			return
 		}
@@ -90,7 +98,7 @@ func UserAuthMiddleware(skipper ...SkipperFunc) gin.HandlerFunc {
 
 		authUrl := string(strconv.Itoa(int(uid.(uint64)))) + AUTH_URL
 		if session.Get(authUrl) == nil {
-			ResponseFail(c, errors.New("User has not been assigned permissions"), nil)
+			ginserver.ResponseFail(c, errors.New("User has not been assigned permissions"), nil)
 			c.Abort()
 			return
 		}
@@ -105,7 +113,7 @@ func UserAuthMiddleware(skipper ...SkipperFunc) gin.HandlerFunc {
 			}
 		}
 		if IsAuth {
-			ResponseFail(c, errors.New("No access"), nil)
+			ginserver.ResponseFail(c, errors.New("No access"), nil)
 			c.Abort()
 			return
 		}

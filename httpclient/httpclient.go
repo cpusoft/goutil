@@ -15,6 +15,7 @@ import (
 
 	belogs "github.com/astaxie/beego/logs"
 	"github.com/cpusoft/goutil/fileutil"
+	"github.com/cpusoft/goutil/ginserver"
 	"github.com/cpusoft/goutil/httpserver"
 	"github.com/cpusoft/goutil/jsonutil"
 	osutil "github.com/cpusoft/goutil/osutil"
@@ -156,6 +157,45 @@ func PostAndUnmarshalStruct(urlStr, postJson string, verifyHttps bool, response 
 	err = jsonutil.UnmarshalJson(body, response)
 	if err != nil {
 		belogs.Error("PostAndUnmarshalStruct():UnmarshalJson failed, urlStr:", urlStr, "  body:", body, err)
+		return err
+	}
+	return nil
+}
+
+//
+//type ResponseModel struct {
+//	Result string      `json:"result"`
+//	Msg    string      `json:"msg"`
+//	Data   interface{} `json:"data,omitempty"`
+//}
+//v is ResponseModel.Data
+func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v interface{}) (err error) {
+	belogs.Debug("PostAndUnmarshalResponseModel(): urlStr:", urlStr, "   postJson:", postJson,
+		"   verifyHttps:", verifyHttps, "    v:", reflect.TypeOf(v).Name())
+	resp, body, err := Post(urlStr, postJson, verifyHttps)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponseModel():Post failed, urlStr:", urlStr, "   postJson:", postJson, err)
+		return err
+	}
+	if resp != nil {
+		resp.Body.Close()
+	}
+
+	var responseModel ginserver.ResponseModel
+	err = jsonutil.UnmarshalJson(body, &responseModel)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponseModel():UnmarshalJson responseModel failed, urlStr:", urlStr, "  body:", body, err)
+		return err
+	}
+	if responseModel.Result == "fail" {
+		belogs.Error("PostAndUnmarshalResponseModel():responseModel.Result is fail, err:", jsonutil.MarshalJson(responseModel), body)
+		return errors.New(responseModel.Msg)
+	}
+	// UnmarshalJson to get actual ***Response
+	data := jsonutil.MarshalJson(responseModel.Data)
+	err = jsonutil.UnmarshalJson(data, v)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponseModel():UnmarshalJson data failed, urlStr:", urlStr, "  data:", data, err)
 		return err
 	}
 	return nil
