@@ -60,8 +60,9 @@ func responseJSON(c *gin.Context, status int, v interface{}) {
 }
 
 func ReceiveFile(c *gin.Context, dir string) (receiveFile string, err error) {
-	belogs.Debug("ReceiveFile():dir:", dir)
+	postForm := c.PostForm("name")
 	file, err := c.FormFile("file")
+	belogs.Debug("ReceiveFile():dir:", dir, "  postForm:", postForm, "   file:", file)
 	if err != nil {
 		belogs.Error("ReceiveFile(): FormFile fail:", err)
 		return "", err
