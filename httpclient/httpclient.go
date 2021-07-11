@@ -18,7 +18,7 @@ import (
 	"github.com/cpusoft/goutil/ginserver"
 	"github.com/cpusoft/goutil/httpserver"
 	"github.com/cpusoft/goutil/jsonutil"
-	osutil "github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/osutil"
 	"github.com/cpusoft/goutil/uuidutil"
 	"github.com/parnurzeal/gorequest"
 )
@@ -299,8 +299,8 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 	if err != nil {
 		return nil, "", err
 	}
-	file := osutil.Base(fileName)
-	belogs.Debug("PostFileHttps():file:", file)
+	fileNameStr := osutil.Base(fileName)
+	belogs.Debug("PostFileHttps():fileNameStr:", fileNameStr)
 	return errorsToerror(gorequest.New().Post(urlStr).
 		Timeout(DefaultTimeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
@@ -308,7 +308,7 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 		Set("Connection", "keep-alive").
 		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(b, file).
+		SendFile(b, fileNameStr, "file").
 		End())
 
 }
@@ -326,8 +326,8 @@ func PostFileHttps(urlStr string, fileName string, formName string, verify bool)
 	if err != nil {
 		return nil, "", err
 	}
-	file := osutil.Base(fileName)
-	belogs.Debug("PostFileHttps():file:", file)
+	fileNameStr := osutil.Base(fileName)
+	belogs.Debug("PostFileHttps():fileNameStr:", fileNameStr)
 	config := &tls.Config{InsecureSkipVerify: !verify}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
@@ -337,7 +337,7 @@ func PostFileHttps(urlStr string, fileName string, formName string, verify bool)
 		Set("Connection", "keep-alive").
 		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(b, file).
+		SendFile(b, fileNameStr, "file").
 		End())
 
 }
