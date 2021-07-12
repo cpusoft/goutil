@@ -2,6 +2,7 @@ package ginserver
 
 import (
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -9,6 +10,7 @@ import (
 
 	belogs "github.com/astaxie/beego/logs"
 	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/osutil"
 	"github.com/gin-gonic/gin"
 )
 
@@ -60,22 +62,57 @@ func responseJSON(c *gin.Context, status int, v interface{}) {
 }
 
 func ReceiveFile(c *gin.Context, dir string) (receiveFile string, err error) {
-	postForm := c.PostForm("name")
-	file, err := c.FormFile("file")
-	belogs.Debug("ReceiveFile():dir:", dir, "  postForm:", postForm, "   file:", file)
+	/*
+		postForm := c.PostForm("name")
+		file, err := c.FormFile("file")
+		belogs.Debug("ReceiveFile():dir:", dir, "  postForm:", postForm, "   file:", file)
+		if err != nil {
+			belogs.Error("ReceiveFile(): FormFile fail:", err)
+			return "", err
+		}
+		if !strings.HasSuffix(dir, string(os.PathSeparator)) {
+			dir = dir + string(os.PathSeparator)
+		}
+		receiveFile = dir + file.Filename
+		err = c.SaveUploadedFile(file, receiveFile)
+		if err != nil {
+			belogs.Error("ReceiveFile(): SaveUploadedFile fail:", receiveFile, err)
+			return "", err
+		}
+		belogs.Info("ReceiveFile(): ok, receiveFile:", receiveFile)
+		return receiveFile, nil
+	*/
+	//belogs.Debug("ReceiveFiles(): receiveDir:", receiveDir)
+	r := c.Request
+	defer r.Body.Close()
+
+	reader, err := r.MultipartReader()
 	if err != nil {
-		belogs.Error("ReceiveFile(): FormFile fail:", err)
+		belogs.Error("ReceiveFiles(): err:", err)
 		return "", err
+	}
+
+	part, err := reader.NextPart()
+	if err == io.EOF || part == nil {
+		belogs.Error("ReceiveFiles(): NextPart fail:", err)
+		return "", errors.New("NextPart is empty")
 	}
 	if !strings.HasSuffix(dir, string(os.PathSeparator)) {
 		dir = dir + string(os.PathSeparator)
 	}
-	receiveFile = dir + file.Filename
-	err = c.SaveUploadedFile(file, receiveFile)
-	if err != nil {
-		belogs.Error("ReceiveFile(): SaveUploadedFile fail:", receiveFile, err)
-		return "", err
+	receiveFile = dir + osutil.Base(part.FileName())
+	form := strings.TrimSpace(part.FormName())
+	belogs.Debug("ReceiveFiles():part.FileName:", part.FileName(),
+		"   part.FormName:", part.FormName(),
+		"   receiveFile:", receiveFile, "   form:", form)
+	if part.FileName() == "" { // this is FormData
+		data, _ := ioutil.ReadAll(part)
+		ioutil.WriteFile(receiveFile, data, 0644)
+	} else { // This is FileData
+		dst, _ := os.Create(receiveFile)
+		defer dst.Close()
+		io.Copy(dst, part)
 	}
-	belogs.Info("ReceiveFile(): ok, receiveFile:", receiveFile)
+
 	return receiveFile, nil
 }

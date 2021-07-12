@@ -308,7 +308,7 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 		Set("Connection", "keep-alive").
 		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(b, fileNameStr, "file").
+		SendFile(b, fileNameStr, formName).
 		End())
 
 }
@@ -337,7 +337,7 @@ func PostFileHttps(urlStr string, fileName string, formName string, verify bool)
 		Set("Connection", "keep-alive").
 		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(b, fileNameStr, "file").
+		SendFile(b, fileNameStr, formName).
 		End())
 
 }

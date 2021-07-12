@@ -3,8 +3,6 @@ package httpclient
 import (
 	"fmt"
 	"testing"
-
-	"github.com/cpusoft/goutil/jsonutil"
 )
 
 func TestGetHttp(t *testing.T) {
@@ -64,31 +62,31 @@ func TestPostFile(t *testing.T) {
 }
 
 func TestHttpsPostFile(t *testing.T) {
-	/*
-		resp, body, err := PostFileHttp("https://202.173.14.104:8071/slurm/upload",
-			`G:\Download\rpstir2-std.log`, `file`)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("resp:", resp)
-		fmt.Println("body:", body)
-	*/
+
+	resp, body, err := PostFileHttp("http://202.173.14.105:8070/parsevalidate/parsefilesimple",
+		`G:\Download\cert\oWhEB7GUTj5ZqlXo7X2VbNrJ9xw.cer`, `file`)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("resp:", resp)
+	fmt.Println("body:", body)
+
 }
 
 func TestHttpUnMarshalJson(t *testing.T) {
+	/*
+		url := `http://202.173.14.103:58085/allReset`
+		var httpResponse HttpResponse
+		err := PostAndUnmarshalStruct(url, "", false, &httpResponse)
+		fmt.Println(httpResponse, err)
 
-	url := `http://202.173.14.103:58085/allReset`
-	var httpResponse HttpResponse
-	err := PostAndUnmarshalStruct(url, "", false, &httpResponse)
-	fmt.Println(httpResponse, err)
-
-	resp, body, err := Post(url, "", false)
-	resp.Body.Close()
-	var httpResponse1 HttpResponse
-	err = jsonutil.UnmarshalJson(body, &httpResponse1)
-	fmt.Println(httpResponse1, err)
-
+		resp, body, err := Post(url, "", false)
+		resp.Body.Close()
+		var httpResponse1 HttpResponse
+		err = jsonutil.UnmarshalJson(body, &httpResponse1)
+		fmt.Println(httpResponse1, err)
+	*/
 }
 
 type HttpResponse struct {
