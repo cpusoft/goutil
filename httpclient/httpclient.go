@@ -271,6 +271,45 @@ func PostFile(urlStr string, fileName string, formName string, verifyHttps bool)
 	}
 }
 
+// fileName: file name ; FormName:id in form
+//type ResponseModel struct {
+//	Result string      `json:"result"`
+//	Msg    string      `json:"msg"`
+//	Data   interface{} `json:"data,omitempty"`
+//}
+//v is ResponseModel.Data
+func PostFileAndUnmarshalResponseModel(urlStr string, fileName string,
+	formName string, verifyHttps bool, v interface{}) (err error) {
+	resp, body, err := PostFile(urlStr, fileName, formName, verifyHttps)
+	if err != nil {
+		belogs.Error("PostFileAndUnmarshalResponseModel():PostFile failed, urlStr:", urlStr,
+			"   fileName:", fileName, "   formName:", formName, "   verifyHttps:", verifyHttps, err)
+		return err
+	}
+	if resp != nil {
+		resp.Body.Close()
+	}
+
+	var responseModel ginserver.ResponseModel
+	err = jsonutil.UnmarshalJson(body, &responseModel)
+	if err != nil {
+		belogs.Error("PostFileAndUnmarshalResponseModel():UnmarshalJson responseModel failed, urlStr:", urlStr, "  body:", body, err)
+		return err
+	}
+	if responseModel.Result == "fail" {
+		belogs.Error("PostFileAndUnmarshalResponseModel():responseModel.Result is fail, err:", jsonutil.MarshalJson(responseModel), body)
+		return errors.New(responseModel.Msg)
+	}
+	// UnmarshalJson to get actual ***Response
+	data := jsonutil.MarshalJson(responseModel.Data)
+	err = jsonutil.UnmarshalJson(data, v)
+	if err != nil {
+		belogs.Error("PostFileAndUnmarshalResponseModel():UnmarshalJson data failed, urlStr:", urlStr, "  data:", data, err)
+		return err
+	}
+	return nil
+}
+
 /*
 // Http/Https Post Method,
 // protocol: "http" or "https"
