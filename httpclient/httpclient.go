@@ -191,12 +191,14 @@ func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v 
 		belogs.Error("PostAndUnmarshalResponseModel():responseModel.Result is fail, err:", jsonutil.MarshalJson(responseModel), body)
 		return errors.New(responseModel.Msg)
 	}
-	// UnmarshalJson to get actual ***Response
-	data := jsonutil.MarshalJson(responseModel.Data)
-	err = jsonutil.UnmarshalJson(data, v)
-	if err != nil {
-		belogs.Error("PostAndUnmarshalResponseModel():UnmarshalJson data failed, urlStr:", urlStr, "  data:", data, err)
-		return err
+	if v != nil {
+		// UnmarshalJson to get actual ***Response
+		data := jsonutil.MarshalJson(responseModel.Data)
+		err = jsonutil.UnmarshalJson(data, v)
+		if err != nil {
+			belogs.Error("PostAndUnmarshalResponseModel():UnmarshalJson data failed, urlStr:", urlStr, "  data:", data, err)
+			return err
+		}
 	}
 	return nil
 }
@@ -300,12 +302,14 @@ func PostFileAndUnmarshalResponseModel(urlStr string, fileName string,
 		belogs.Error("PostFileAndUnmarshalResponseModel():responseModel.Result is fail, err:", jsonutil.MarshalJson(responseModel), body)
 		return errors.New(responseModel.Msg)
 	}
-	// UnmarshalJson to get actual ***Response
-	data := jsonutil.MarshalJson(responseModel.Data)
-	err = jsonutil.UnmarshalJson(data, v)
-	if err != nil {
-		belogs.Error("PostFileAndUnmarshalResponseModel():UnmarshalJson data failed, urlStr:", urlStr, "  data:", data, err)
-		return err
+	if v != nil {
+		// UnmarshalJson to get actual ***Response
+		data := jsonutil.MarshalJson(responseModel.Data)
+		err = jsonutil.UnmarshalJson(data, v)
+		if err != nil {
+			belogs.Error("PostFileAndUnmarshalResponseModel():UnmarshalJson data failed, urlStr:", urlStr, "  data:", data, err)
+			return err
+		}
 	}
 	return nil
 }
