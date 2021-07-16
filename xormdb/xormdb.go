@@ -10,8 +10,8 @@ import (
 	conf "github.com/cpusoft/goutil/conf"
 	convert "github.com/cpusoft/goutil/convert"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
+	"xorm.io/xorm/names"
 )
 
 var XormEngine = &xorm.Engine{}
@@ -78,7 +78,7 @@ func InitMySqlParameter(user, password, server, database string, maxidleconns, m
 		url	URL
 
 	*/
-	engine.SetTableMapper(core.SnakeMapper{})
+	engine.SetTableMapper(names.SnakeMapper{})
 
 	return engine, nil
 
