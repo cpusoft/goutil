@@ -137,7 +137,7 @@ func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output 
 
 // were to show files that needed to be transferred, nothing would be listed,
 // not download actually
-func RsyncTestConnect(rsyncUrl string) (isConnected bool, err error) {
+func RsyncTestConnect(rsyncUrl string) (canConnect bool, err error) {
 	belogs.Debug("RsyncTestConnect():rsyncUrl:", rsyncUrl)
 
 	tmpLogFile, err := ioutil.TempFile("", "rsynclist")
