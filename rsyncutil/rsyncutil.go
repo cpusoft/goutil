@@ -2,6 +2,7 @@ package rsyncutil
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -132,6 +133,44 @@ func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output 
 	}
 	belogs.Debug("RsyncQuiet(): rsyncDestPath:", rsyncDestPath, "  output:", string(output))
 	return rsyncDestPath, output, nil
+}
+
+// were to show files that needed to be transferred, nothing would be listed,
+// not download actually
+func RsyncTestConnect(rsyncUrl string) (isConnected bool, err error) {
+	belogs.Debug("RsyncTestConnect():rsyncUrl:", rsyncUrl)
+
+	tmpLogFile, err := ioutil.TempFile("", "rsynclist")
+	defer os.Remove(tmpLogFile.Name())
+	// call rsync
+	//rsync -Lirzts --del --timeout=5 --contimeout=5 --no-motd  -4 rsync://rpki.afrinic.net/repository/afrinic/  /tmp/rpki.afrinic.net/repository/afrinic/
+	//-L  --copy-links            transform symlink into referent file/dir
+	//-r  --recursive             recurse into directories
+	//-z  --compress              compress file data during the transfer
+	//-t  --times                 preserve modification times
+	//-s  --protect-args          no space-splitting; only wildcard special-chars
+	//--del                   an alias for --delete-during
+	//--delete-during         receiver deletes during the transfer
+	//-4  --ipv4                  prefer IPv4
+	//--timeout=SECONDS       set I/O timeout in seconds
+	//--no-motd               suppress daemon-mode MOTD (see manpage caveat)
+	//--list-only             list the files instead of copying them
+	//--log-file=FILE         log what we're doing to the specified FILE
+	//--log-file-format=FMT   log updates using the specified FMT
+	belogs.Debug("RsyncTestConnect(): Command: rsync", "--list-only", "--log-file="+tmpLogFile.Name(), "-q", "-Lzts", "--del", "--timeout="+RSYNC_TIMEOUT_SEC, "--no-motd", "-4", rsyncUrl)
+	cmd := exec.Command("rsync", "--list-only", "--log-file="+tmpLogFile.Name(), "-q", "-Lzts", "--del", "--timeout="+RSYNC_TIMEOUT_SEC, "--no-motd", "-4", rsyncUrl)
+	// if success, the len(output) will be zero
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		belogs.Error("RsyncTestConnect(): exec.Command fail, rsyncUrl is :", rsyncUrl, ", err:", err)
+		return false, err
+	} else if len(output) > 0 {
+		belogs.Error("RsyncTestConnect(): exec.Command fail, len(output)>0, rsyncUrl is :", rsyncUrl, ",  output:", string(output))
+		return false, errors.New(string(output))
+	}
+
+	belogs.Debug("RsyncJustList(): rsyncUrl:", rsyncUrl, "  output:", string(output))
+	return true, nil
 }
 
 // set rsync url and local dest path , then will call rsync

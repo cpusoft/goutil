@@ -14,3 +14,9 @@ func TestRsyncToLogFile(t *testing.T) {
 	rsyncDestPath, rsyncLogFile, err := RsyncToLogFile(rsyncUrl, destPath, logPath)
 	fmt.Println(rsyncDestPath, rsyncLogFile, err)
 }
+
+func TestRsyncTestConnect(t *testing.T) {
+	isConnect, err := RsyncTestConnect("rsync://rpki-repo.as207960.net/repo")
+	fmt.Println(isConnect, err)
+
+}
