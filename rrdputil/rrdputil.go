@@ -164,6 +164,7 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 		return snapshotModel, err
 	}
 	snapshotModel.Hash = hashutil.Sha256([]byte(body))
+	snapshotModel.SnapshotUrl = snapshotUrl
 	return snapshotModel, nil
 }
 func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *NotificationModel) (err error) {

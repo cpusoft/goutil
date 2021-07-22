@@ -57,7 +57,8 @@ type SnapshotModel struct {
 	Serial           uint64            `xml:"serial,attr"`
 	SnapshotPublishs []SnapshotPublish `xml:"publish"`
 	// to check
-	Hash string `xml:"-"`
+	Hash        string `xml:"-"`
+	SnapshotUrl string `xml:"-"`
 }
 
 type SnapshotPublish struct {
