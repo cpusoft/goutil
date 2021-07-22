@@ -76,7 +76,8 @@ type DeltaModel struct {
 	DeltaWithdraws []DeltaWithdraw `xml:"withdraw"`
 
 	// to check
-	Hash string `xml:"-"`
+	Hash     string `xml:"-"`
+	DeltaUrl string `xml:"-"`
 }
 
 type DeltaPublish struct {

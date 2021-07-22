@@ -298,6 +298,7 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 	for i := range deltaModel.DeltaPublishs {
 		deltaModel.DeltaPublishs[i].Base64 = stringutil.TrimSpaceAneNewLine(deltaModel.DeltaPublishs[i].Base64)
 	}
+	deltaModel.DeltaUrl = deltaUrl
 	return deltaModel, nil
 }
 
