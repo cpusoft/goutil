@@ -15,8 +15,8 @@ type NotificationModel struct {
 
 	//map[serial]serial: just save exist serial ,for check
 	MapSerialDeltas map[uint64]uint64 `xml:"-"`
-	MaxSerail       uint64            `xml:"-"`
-	MinSerail       uint64            `xml:"-"`
+	MaxSerial       uint64            `xml:"-"`
+	MinSerial       uint64            `xml:"-"`
 }
 
 type NotificationSnapshot struct {

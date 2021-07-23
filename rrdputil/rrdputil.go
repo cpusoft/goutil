@@ -47,11 +47,11 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 	for i := range notificationModel.Deltas {
 		notificationModel.MapSerialDeltas[notificationModel.Deltas[i].Serial] = notificationModel.Deltas[i].Serial
 		serial := notificationModel.Deltas[i].Serial
-		if serial > notificationModel.MaxSerail {
-			notificationModel.MaxSerail = serial
+		if serial > notificationModel.MaxSerial {
+			notificationModel.MaxSerial = serial
 		}
-		if serial < notificationModel.MinSerail {
-			notificationModel.MinSerail = serial
+		if serial < notificationModel.MinSerial {
+			notificationModel.MinSerial = serial
 		}
 	}
 	belogs.Info("GetRrdpNotification(): notificationUrl ok:", notificationUrl, "  time(s):", time.Now().Sub(start).Seconds())
@@ -167,6 +167,7 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 	snapshotModel.SnapshotUrl = snapshotUrl
 	return snapshotModel, nil
 }
+
 func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *NotificationModel) (err error) {
 	if snapshotModel.Version != "1" {
 		belogs.Error("CheckRrdpSnapshot():  snapshotModel.Version != 1")
