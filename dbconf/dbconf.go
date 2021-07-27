@@ -3,7 +3,7 @@ package dbconf
 import (
 	"time"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/beego/beego/v2/core/logs"
 	"github.com/cpusoft/goutil/conf"
 	_ "github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/jsonutil"

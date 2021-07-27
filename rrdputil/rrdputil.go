@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/beego/beego/v2/core/logs"
 	"github.com/cpusoft/goutil/base64util"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/hashutil"

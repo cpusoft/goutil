@@ -3,7 +3,7 @@ package errorutil
 import (
 	"errors"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/beego/beego/v2/core/logs"
 )
 
 func LogErrAndPanic(msg string, err error, willPanic bool) {

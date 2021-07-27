@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/beego/beego/v2/core/logs"
 )
 
 func ReadFileToLines(file string) (lines []string, err error) {

@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/beego/beego/v2/core/logs"
 )
 
 var oid = map[string]string{

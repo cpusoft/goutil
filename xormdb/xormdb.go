@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	belogs "github.com/astaxie/beego/logs"
+	belogs "github.com/beego/beego/v2/core/logs"
 	conf "github.com/cpusoft/goutil/conf"
 	convert "github.com/cpusoft/goutil/convert"
 	_ "github.com/go-sql-driver/mysql"
