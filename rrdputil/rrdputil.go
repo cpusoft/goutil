@@ -3,21 +3,22 @@ package rrdputil
 import (
 	"errors"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"sort"
 	"strings"
 	"time"
 
 	belogs "github.com/astaxie/beego/logs"
-	base64util "github.com/cpusoft/goutil/base64util"
-	fileutil "github.com/cpusoft/goutil/fileutil"
-	hashutil "github.com/cpusoft/goutil/hashutil"
-	httpclient "github.com/cpusoft/goutil/httpclient"
-	jsonutil "github.com/cpusoft/goutil/jsonutil"
-	osutil "github.com/cpusoft/goutil/osutil"
-	stringutil "github.com/cpusoft/goutil/stringutil"
-	urlutil "github.com/cpusoft/goutil/urlutil"
-	xmlutil "github.com/cpusoft/goutil/xmlutil"
+	"github.com/cpusoft/goutil/base64util"
+	"github.com/cpusoft/goutil/fileutil"
+	"github.com/cpusoft/goutil/hashutil"
+	"github.com/cpusoft/goutil/httpclient"
+	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/stringutil"
+	"github.com/cpusoft/goutil/urlutil"
+	"github.com/cpusoft/goutil/xmlutil"
 )
 
 func GetRrdpNotification(notificationUrl string) (notificationModel NotificationModel, err error) {
@@ -25,17 +26,10 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 	// get notification.xml
 	// "https://rrdp.apnic.net/notification.xml"
 	belogs.Info("GetRrdpNotification(): will notificationUrl:", notificationUrl)
-	for i := 0; i < 3; i++ {
-		notificationModel, err = getRrdpNotificationImpl(notificationUrl)
-		if err != nil {
-			belogs.Error("GetRrdpNotification():getRrdpNotificationImpl fail, will try again, notificationUrl:", notificationUrl, "  i:", i, err)
-		} else {
-			break
-		}
-	}
+	notificationModel, err = getRrdpNotificationImpl(notificationUrl)
 	if err != nil {
 		belogs.Error("GetRrdpNotification():getRrdpNotificationImpl fail:", notificationUrl, err)
-		return notificationModel, nil
+		return notificationModel, err
 	}
 
 	// will sort deltas from smaller to bigger
@@ -64,8 +58,16 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
 	if err == nil {
 		defer resp.Body.Close()
-		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl ok:", notificationUrl, "   resp.Status:",
-			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl:", notificationUrl,
+			"   resp.Status:", resp.Status, "    len(body):", len(body),
+			"   time(s):", time.Now().Sub(start).Seconds())
+
+		if resp.StatusCode != http.StatusOK {
+			belogs.Error("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl, is not StatusOK:", notificationUrl,
+				"   resp.Status:", resp.Status, "    body:", body)
+			return notificationModel, errors.New("http status code is of " + notificationUrl + " is " + resp.Status)
+		}
+
 	} else {
 		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
@@ -77,13 +79,14 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 				resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
 			return notificationModel, err
 		}
-		belogs.Debug("getRrdpNotificationImpl(): GetByCurl deltaUrl ok", notificationUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+		belogs.Debug("getRrdpNotificationImpl(): GetByCurl deltaUrl ok", notificationUrl, "    len(body):", len(body),
+			"  time(s):", time.Now().Sub(start).Seconds())
 	}
 
 	err = xmlutil.UnmarshalXml(body, &notificationModel)
 	if err != nil {
 		belogs.Error("getRrdpNotificationImpl(): UnmarshalXml fail: ", notificationUrl, "        body:", body, err)
-		return notificationModel, err
+		return notificationModel, errors.New("response of " + notificationUrl + " is not a legal rrdp file")
 	}
 	return notificationModel, nil
 }
