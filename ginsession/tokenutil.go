@@ -3,7 +3,7 @@ package ginsession
 import (
 	"fmt"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
 )
 
 const jwtKey = "adtkls"
