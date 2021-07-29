@@ -59,26 +59,31 @@ func init() {
 	//
 	path, err := osutil.GetCurrentOrParentAbsolutePath("log")
 	if err != nil {
-		panic("found " + path + " failed, " + err.Error())
+		fmt.Println("found " + path + " failed, " + err.Error())
 	}
 	filePath := path + string(os.PathSeparator) + logName
 	fmt.Println("log file is ", filePath)
 
 	logConfig := make(map[string]interface{})
-	logConfig["filename"] = filePath // + "." + ts
-	logConfig["level"] = logLevelInt
-	// no max lines
-	logConfig["maxlines"] = 0
-	logConfig["maxsize"] = 0
 	logConfig["daily"] = true
+	logConfig["hourly"] = false
+	logConfig["filename"] = filePath // + "." + ts
+	logConfig["maxlines"] = 0
+	logConfig["maxfiles"] = 0
+	logConfig["maxsize"] = 0
 	logConfig["maxdays"] = 30
+	logConfig["maxhours"] = 0
+	logConfig["level"] = logLevelInt
 
 	logConfigStr, _ := json.Marshal(logConfig)
 	fmt.Println("log:logConfigStr", string(logConfigStr))
-	logs.NewLogger(1000000)
-	logs.SetLogger(logs.AdapterFile, string(logConfigStr))
+	log := logs.NewLogger(1000000)
+	err = log.SetLogger(logs.AdapterFile, string(logConfigStr))
+	if err != nil {
+		fmt.Println("set logger " + path + " failed, " + err.Error())
+	}
 	if async {
-		logs.Async()
+		log.Async()
 	}
 
 }
