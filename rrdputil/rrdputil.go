@@ -215,20 +215,31 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 
 		// if dir is notexist ,then mkdir
 		dir, file := osutil.Split(pathFileName)
-		isExist, _ := osutil.IsExists(dir)
+		isExist, err := osutil.IsExists(dir)
+		if err != nil {
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): IsExists dir, fail:", dir, err)
+			return nil, err
+		}
+
 		if !isExist {
-			os.MkdirAll(dir, os.ModePerm)
+			err = os.MkdirAll(dir, os.ModePerm)
+			if err != nil {
+				belogs.Error("SaveRrdpSnapshotToRrdpFiles(): MkdirAll dir, fail:", dir, err)
+				return nil, err
+			}
 		}
 
 		bytes, err := base64util.DecodeBase64(strings.TrimSpace(snapshotModel.SnapshotPublishs[i].Base64))
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): DecodeBase64 fail:", snapshotModel.SnapshotPublishs[i].Base64)
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): DecodeBase64 fail:",
+				snapshotModel.SnapshotPublishs[i].Base64, err)
 			return nil, err
 		}
 
 		err = fileutil.WriteBytesToFile(pathFileName, bytes)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): WriteBytesToFile fail:", pathFileName, len(bytes))
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): WriteBytesToFile fail:", pathFileName,
+				len(bytes), err)
 			return nil, err
 		}
 		belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save pathFileName ", pathFileName, "  ok")
@@ -380,7 +391,11 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 
 		// if in this dir, no more files, then del dir
 		dir, file := osutil.Split(pathFileName)
-		files, _ := ioutil.ReadDir(dir)
+		files, err := ioutil.ReadDir(dir)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles(): Withdraw ReadDir fail:", dir, err)
+			return nil, err
+		}
 		if len(files) == 0 {
 			os.RemoveAll(dir)
 		}
@@ -405,9 +420,17 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 
 		// if dir is notexist ,then mkdir
 		dir, file := osutil.Split(pathFileName)
-		isExist, _ := osutil.IsExists(dir)
+		isExist, err := osutil.IsExists(dir)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles(): Publish ReadDir fail:", dir, err)
+			return nil, err
+		}
 		if !isExist {
-			os.MkdirAll(dir, os.ModePerm)
+			err = os.MkdirAll(dir, os.ModePerm)
+			if err != nil {
+				belogs.Error("SaveRrdpDeltaToRrdpFiles(): Publish MkdirAll fail:", dir, err)
+				return nil, err
+			}
 		}
 
 		// decode base65 to bytes
@@ -415,7 +438,7 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 		if err != nil {
 			belogs.Error("SaveRrdpDeltaToRrdpFiles():Publish DecodeBase64 fail:",
 				deltaModel.Serial,
-				deltaModel.DeltaPublishs[i].Uri, deltaModel.DeltaPublishs[i].Base64)
+				deltaModel.DeltaPublishs[i].Uri, deltaModel.DeltaPublishs[i].Base64, err)
 			return nil, err
 		}
 
@@ -424,7 +447,7 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 			belogs.Error("SaveRrdpDeltaToRrdpFiles():Publish WriteBytesToFile fail:",
 				deltaModel.Serial,
 				deltaModel.DeltaPublishs[i].Uri,
-				pathFileName, len(bytes))
+				pathFileName, len(bytes), err)
 			return nil, err
 		}
 
