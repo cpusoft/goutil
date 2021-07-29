@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	belogs "github.com/beego/beego/v2/core/logs"
-	conf "github.com/cpusoft/goutil/conf"
-	osutil "github.com/cpusoft/goutil/osutil"
+	logs "github.com/beego/beego/v2/core/logs"
+	"github.com/cpusoft/goutil/conf"
+	"github.com/cpusoft/goutil/osutil"
 )
 
 /*
@@ -35,24 +35,24 @@ func init() {
 	async := conf.DefaultBool("logs::async", false)
 	//fmt.Println("log", logLevel, logName)
 
-	var logLevelInt int = belogs.LevelInformational
+	var logLevelInt int = logs.LevelInformational
 	switch logLevel {
 	case "LevelEmergency":
-		logLevelInt = belogs.LevelEmergency
+		logLevelInt = logs.LevelEmergency
 	case "LevelAlert":
-		logLevelInt = belogs.LevelAlert
+		logLevelInt = logs.LevelAlert
 	case "LevelCritical":
-		logLevelInt = belogs.LevelCritical
+		logLevelInt = logs.LevelCritical
 	case "LevelError":
-		logLevelInt = belogs.LevelError
+		logLevelInt = logs.LevelError
 	case "LevelWarning":
-		logLevelInt = belogs.LevelWarning
+		logLevelInt = logs.LevelWarning
 	case "LevelNotice":
-		logLevelInt = belogs.LevelNotice
+		logLevelInt = logs.LevelNotice
 	case "LevelInformational":
-		logLevelInt = belogs.LevelInformational
+		logLevelInt = logs.LevelInformational
 	case "LevelDebug":
-		logLevelInt = belogs.LevelDebug
+		logLevelInt = logs.LevelDebug
 	}
 	//ts := time.Now().Format("2006-01-02")
 
@@ -61,11 +61,11 @@ func init() {
 	if err != nil {
 		panic("found " + path + " failed, " + err.Error())
 	}
-	log := path + string(os.PathSeparator) + logName
-	fmt.Println("log file is ", log)
+	filePath := path + string(os.PathSeparator) + logName
+	fmt.Println("log file is ", filePath)
 
 	logConfig := make(map[string]interface{})
-	logConfig["filename"] = log // + "." + ts
+	logConfig["filename"] = filePath // + "." + ts
 	logConfig["level"] = logLevelInt
 	// no max lines
 	logConfig["maxlines"] = 0
@@ -74,18 +74,18 @@ func init() {
 	logConfig["maxdays"] = 30
 
 	logConfigStr, _ := json.Marshal(logConfig)
-	//fmt.Println("log:logConfigStr", string(logConfigStr))
-	belogs.NewLogger(1000000)
-	belogs.SetLogger(belogs.AdapterFile, string(logConfigStr))
+	fmt.Println("log:logConfigStr", string(logConfigStr))
+	logs.NewLogger(1000000)
+	logs.SetLogger(logs.AdapterFile, string(logConfigStr))
 	if async {
-		belogs.Async()
+		logs.Async()
 	}
 
 }
 
 func LogDebugBytes(title string, buf []byte) {
 
-	belogs.Debug(title)
+	logs.Debug(title)
 
 	dataLines := make([]string, (len(buf)/30)+1)
 	for i, b := range buf {
@@ -93,6 +93,6 @@ func LogDebugBytes(title string, buf []byte) {
 	}
 
 	for i := 0; i < len(dataLines); i++ {
-		belogs.Debug(dataLines[i])
+		logs.Debug(dataLines[i])
 	}
 }
