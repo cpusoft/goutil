@@ -77,13 +77,13 @@ func init() {
 
 	logConfigStr, _ := json.Marshal(logConfig)
 	fmt.Println("log:logConfigStr", string(logConfigStr))
-	log := logs.NewLogger(1000000)
-	err = log.SetLogger(logs.AdapterFile, string(logConfigStr))
+	//logs.NewLogger(1000000)
+	err = logs.SetLogger(logs.AdapterFile, string(logConfigStr))
 	if err != nil {
-		fmt.Println("set logger " + path + " failed, " + err.Error())
+		fmt.Println(filePath + " SetLogger failed, " + err.Error() + ",   " + string(logConfigStr))
 	}
 	if async {
-		log.Async()
+		logs.Async()
 	}
 
 }
