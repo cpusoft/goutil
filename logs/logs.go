@@ -79,7 +79,7 @@ func init() {
 	fmt.Println("log:logConfigStr", string(logConfigStr))
 	logs.NewLogger(1024)
 	//AdapterFile
-	err = logs.SetLogger(logs.AdapterMultiFile, string(logConfigStr))
+	err = logs.SetLogger(logs.AdapterFile, string(logConfigStr))
 	if err != nil {
 		fmt.Println(filePath + " SetLogger failed, " + err.Error() + ",   " + string(logConfigStr))
 	}
