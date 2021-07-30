@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	belogs "github.com/beego/beego/v2/core/logs"
+	belogs "github.com/cpusoft/goutil/belogs"
 	osutil "github.com/cpusoft/goutil/osutil"
 )
 

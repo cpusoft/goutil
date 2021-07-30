@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	belogs "github.com/beego/beego/v2/core/logs"
+	belogs "github.com/cpusoft/goutil/belogs"
 )
 
 // server: **.**.**.**:port

@@ -1,7 +1,7 @@
 package ginsession
 
 import (
-	belogs "github.com/beego/beego/v2/core/logs"
+	belogs "github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"

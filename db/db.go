@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 
-	belogs "github.com/beego/beego/v2/core/logs"
+	belogs "github.com/cpusoft/goutil/belogs"
 	_ "github.com/go-sql-driver/mysql"
 
 	conf "github.com/cpusoft/goutil/conf"

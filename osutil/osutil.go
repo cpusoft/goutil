@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	belogs "github.com/beego/beego/v2/core/logs"
+	belogs "github.com/cpusoft/goutil/belogs"
 	hashutil "github.com/cpusoft/goutil/hashutil"
 )
 

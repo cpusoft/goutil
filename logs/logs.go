@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	logs "github.com/beego/beego/v2/core/logs"
+	logs "github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/osutil"
 )

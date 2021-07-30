@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	belogs "github.com/beego/beego/v2/core/logs"
+	belogs "github.com/cpusoft/goutil/belogs"
 	fileutil "github.com/cpusoft/goutil/fileutil"
 	jsonutil "github.com/cpusoft/goutil/jsonutil"
 	osutil "github.com/cpusoft/goutil/osutil"
