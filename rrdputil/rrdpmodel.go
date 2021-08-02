@@ -98,4 +98,6 @@ type RrdpFile struct {
 	FileName string
 	// add /del
 	SyncType string
+	//snapshoturl or deltaurl
+	SourceUrl string
 }

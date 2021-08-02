@@ -245,9 +245,10 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 		belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save pathFileName ", pathFileName, "  ok")
 
 		rrdpFile := RrdpFile{
-			FilePath: dir,
-			FileName: file,
-			SyncType: "add",
+			FilePath:  dir,
+			FileName:  file,
+			SyncType:  "add",
+			SourceUrl: snapshotModel.SnapshotUrl,
 		}
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}
@@ -402,9 +403,10 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 		}
 
 		rrdpFile := RrdpFile{
-			FilePath: dir,
-			FileName: file,
-			SyncType: "del",
+			FilePath:  dir,
+			FileName:  file,
+			SyncType:  "del",
+			SourceUrl: deltaModel.DeltaUrl,
 		}
 		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Withdraw Remove rrdpFile, pathFileName:",
 			pathFileName, "   dir:", dir, "   rrdpFile:", jsonutil.MarshalJson(rrdpFile), "  ok")
@@ -458,7 +460,8 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 			FilePath: dir,
 			FileName: file,
 			//SyncType: "add",
-			SyncType: "update",
+			SyncType:  "update",
+			SourceUrl: deltaModel.DeltaUrl,
 		}
 		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Publish Remove rrdpFile ", jsonutil.MarshalJson(rrdpFile), "  ok")
 		rrdpFiles = append(rrdpFiles, rrdpFile)

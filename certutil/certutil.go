@@ -115,7 +115,7 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 
 	faterCert, err := x509.ParseCertificate(fatherCertByte)
 	if err != nil {
-		belogs.Error("VerifyCerByteByX509():parse fatherCertFile fail, ParseCertificate err:", err)
+		belogs.Info("VerifyCerByteByX509():parse fatherCertFile fail, ParseCertificate err:", err)
 		return "fail", err
 	}
 	faterCert.UnhandledCriticalExtensions = make([]asn1.ObjectIdentifier, 0)
@@ -125,7 +125,7 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 
 	childCert, err := x509.ParseCertificate(childCertByte)
 	if err != nil {
-		belogs.Error("VerifyCerByteByX509():parse childCertFile fail:  father issuer:", faterCert.Issuer.String(), " ParseCertificate err:", err)
+		belogs.Info("VerifyCerByteByX509():parse childCertFile fail:  father issuer:", faterCert.Issuer.String(), " ParseCertificate err:", err)
 		return "fail", err
 	}
 	childCert.UnhandledCriticalExtensions = make([]asn1.ObjectIdentifier, 0)
