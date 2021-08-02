@@ -387,13 +387,14 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 			belogs.Error("SaveRrdpDeltaToRrdpFiles(): JoinPrefixPathAndUrlFileName fail:", deltaModel.DeltaWithdraws[i].Uri)
 			return nil, err
 		}
-		os.Remove(pathFileName)
 
 		// if in this dir, no more files, then del dir
 		dir, file := osutil.Split(pathFileName)
 		files, err := ioutil.ReadDir(dir)
+		os.Remove(pathFileName)
 		if err != nil {
-			belogs.Error("SaveRrdpDeltaToRrdpFiles(): Withdraw ReadDir fail:", dir, err)
+			belogs.Error("SaveRrdpDeltaToRrdpFiles(): Withdraw ReadDir fail, pathFileName:",
+				pathFileName, "   dir:", dir, err)
 			return nil, err
 		}
 		if len(files) == 0 {
@@ -405,7 +406,8 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 			FileName: file,
 			SyncType: "del",
 		}
-		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Withdraw Remove rrdpFile ", jsonutil.MarshalJson(rrdpFile), "  ok")
+		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Withdraw Remove rrdpFile, pathFileName:",
+			pathFileName, "   dir:", dir, "   rrdpFile:", jsonutil.MarshalJson(rrdpFile), "  ok")
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}
 
