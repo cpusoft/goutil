@@ -33,7 +33,7 @@ func init() {
 		logName = conf.String("logs::name")
 	}
 	async := conf.DefaultBool("logs::async", false)
-	fmt.Println("logLevel", logLevel, "  logName:", logName, "  async:", async)
+	fmt.Println("logLevel:", logLevel, "  logName:", logName, "  async:", async)
 
 	var logLevelInt int = logs.LevelInformational
 	switch logLevel {
