@@ -332,7 +332,8 @@ func (w *fileLogWriter) doRotate(logTime time.Time) error {
 			_, err = os.Lstat(fName)
 		}
 	} else {
-		fName = w.fileNameOnly + fmt.Sprintf(".%s.%s", openTime.Format(format), w.suffix)
+		// suffix has .
+		fName = w.fileNameOnly + fmt.Sprintf(".%s%s", openTime.Format(format), w.suffix)
 		_, err = os.Lstat(fName)
 		w.MaxFilesCurFiles = num
 	}
