@@ -65,7 +65,7 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 		if resp.StatusCode != http.StatusOK {
 			belogs.Error("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl, is not StatusOK:", notificationUrl,
 				"   resp.Status:", resp.Status, "    body:", body)
-			return notificationModel, errors.New("http status code is of " + notificationUrl + " is " + resp.Status)
+			return notificationModel, errors.New("http status code of " + notificationUrl + " is " + resp.Status)
 		}
 
 	} else {
@@ -77,7 +77,7 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 		if err != nil {
 			belogs.Error("getRrdpNotificationImpl(): GetByCurl notificationUrl fail:", notificationUrl, "   resp:",
 				resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
-			return notificationModel, err
+			return notificationModel, errors.New("http error of " + notificationUrl + " is " + err.Error())
 		}
 		belogs.Debug("getRrdpNotificationImpl(): GetByCurl deltaUrl ok", notificationUrl, "    len(body):", len(body),
 			"  time(s):", time.Now().Sub(start).Seconds())
