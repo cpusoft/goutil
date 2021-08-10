@@ -440,3 +440,94 @@ func AddCerToRsyncResults(rsyncDestPath string, rsyncResults []RsyncResult) (err
 	return nil
 
 }
+
+func GetFilesHashFromDisk(destPath string) (files map[string]RsyncFileHash, err error) {
+	start := time.Now()
+	path := destPath
+	if !strings.HasSuffix(destPath, osutil.GetPathSeparator()) {
+		path = destPath + osutil.GetPathSeparator()
+	}
+	belogs.Debug("GetFilesHashFromDisk():destPath:", destPath, "  path:", path)
+
+	m := make(map[string]string, 4)
+	m[".cer"] = ".cer"
+	m[".crl"] = ".crl"
+	m[".roa"] = ".roa"
+	m[".mft"] = ".mft"
+
+	fileStats, err := osutil.GetAllFileStatsBySuffixs(path, m)
+	if err != nil {
+		belogs.Error("GetFilesHashFromDisk(): GetAllFileStatsBySuffixs fail:", destPath, err)
+		return nil, err
+	}
+	belogs.Debug("GetFilesHashFromDisk(): len(fileStats):", len(fileStats), "    fileStats:", jsonutil.MarshalJson(fileStats))
+	files = make(map[string]RsyncFileHash, len(fileStats))
+	for i := range fileStats {
+		fileHash := RsyncFileHash{}
+		fileHash.FileHash = fileStats[i].Hash256
+		fileHash.FileName = fileStats[i].FileName
+		fileHash.FilePath = fileStats[i].FilePath
+		fileHash.FileType = strings.Replace(osutil.Ext(fileStats[i].FileName), ".", "", -1) //remove dot, should be cer/crl/roa/mft
+		files[osutil.JoinPathFile(fileStats[i].FilePath, fileStats[i].FileName)] = fileHash
+	}
+
+	belogs.Info("GetFilesHashFromDisk(): len(files):", len(files), "  time(s):", time.Now().Sub(start).Seconds())
+	return files, nil
+
+}
+
+// db is old, disk is new
+func DiffFiles(filesFromDb, filesFromDisk map[string]RsyncFileHash) (addFiles,
+	delFiles, updateFiles, noChangeFiles map[string]RsyncFileHash, err error) {
+
+	start := time.Now()
+	// if db is empty, so all filesFromDisk is add
+	if len(filesFromDb) == 0 {
+		return filesFromDisk, nil, nil, nil, nil
+	}
+
+	// if disk is empty, so all filesFromDb is del
+	if len(filesFromDisk) == 0 {
+		return nil, filesFromDb, nil, nil, nil
+	}
+
+	// for db, check. add/update/nochange from disk, del from db
+	addFiles = make(map[string]RsyncFileHash, len(filesFromDb))
+	delFiles = make(map[string]RsyncFileHash, len(filesFromDb))
+	updateFiles = make(map[string]RsyncFileHash, len(filesFromDb))
+	noChangeFiles = make(map[string]RsyncFileHash, len(filesFromDb))
+
+	// for db, check disk
+	for keyDb, valueDb := range filesFromDb {
+		// if found in disk,
+		if valueDisk, ok := filesFromDisk[keyDb]; ok {
+			// if hash is equal, then save to noChangeFiles, else save to updateFiles
+			// and db.jsonall should save as lasjsonall
+			if valueDb.FileHash == valueDisk.FileHash {
+				valueDisk.LastJsonAll = valueDb.LastJsonAll
+				noChangeFiles[keyDb] = valueDisk
+
+			} else {
+				valueDisk.LastJsonAll = valueDb.LastJsonAll
+				updateFiles[keyDb] = valueDisk
+			}
+			//have found in disk, then del it in disk map, so remain in disk will be add
+			delete(filesFromDisk, keyDb)
+		} else {
+
+			// if not found in disk ,then is del, so save to delFiles, and value is db
+			delFiles[keyDb] = valueDb
+		}
+	}
+	addFiles = filesFromDisk
+	belogs.Debug("DiffFiles(): len(addFiles):", len(addFiles), jsonutil.MarshalJson(addFiles))
+	belogs.Debug("DiffFiles(): len(delFiles):", len(delFiles), jsonutil.MarshalJson(delFiles))
+	belogs.Debug("DiffFiles(): len(updateFiles):", len(updateFiles), jsonutil.MarshalJson(updateFiles))
+	belogs.Debug("DiffFiles(): len(noChangeFiles):", len(noChangeFiles), jsonutil.MarshalJson(noChangeFiles))
+	belogs.Debug("DiffFiles(): time(s):", time.Now().Sub(start).Seconds())
+	belogs.Info("DiffFiles(): len(addFiles):", len(addFiles), "  len(delFiles):", len(delFiles),
+		"  len(updateFiles):", len(updateFiles), "  len(noChangeFiles):", len(noChangeFiles), "  time(s):", time.Now().Sub(start).Seconds())
+
+	return addFiles, delFiles, updateFiles, noChangeFiles, nil
+
+}
