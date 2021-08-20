@@ -91,6 +91,35 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 	return notificationModel, nil
 }
 
+func RrdpNotificationTestConnect(notificationUrl string) (err error) {
+	start := time.Now()
+	belogs.Debug("RrdpNotificationTestConnect(): notificationUrl:", notificationUrl)
+
+	// test http connect
+	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
+	if err != nil {
+		belogs.Error("RrdpNotificationTestConnect(): GetHttpsVerify notificationUrl:", notificationUrl, err)
+		return errors.New("http error of " + notificationUrl + " is " + err.Error())
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		belogs.Error("RrdpNotificationTestConnect(): GetHttpsVerify notificationUrl, is not StatusOK:", notificationUrl,
+			"   resp.Status:", resp.Status, "    body:", body)
+		return errors.New("http status code of " + notificationUrl + " is " + resp.Status)
+	}
+
+	// test is legal
+	var notificationModel NotificationModel
+	err = xmlutil.UnmarshalXml(body, &notificationModel)
+	if err != nil {
+		belogs.Error("RrdpNotificationTestConnect(): UnmarshalXml fail: ", notificationUrl, "        body:", body, err)
+		return errors.New("response of " + notificationUrl + " is not a legal rrdp file")
+	}
+	belogs.Info("RrdpNotificationTestConnect(): GetHttpsVerify notificationUrl:", notificationUrl,
+		"   time(s):", time.Now().Sub(start).Seconds())
+	return nil
+}
+
 func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
 	if notificationModel.Version != "1" {
 		belogs.Error("CheckRrdpNotification():  notificationModel.Version != 1")

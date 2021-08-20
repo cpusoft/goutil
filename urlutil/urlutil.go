@@ -1,11 +1,21 @@
 package urlutil
 
 import (
+	"net"
 	"net/url"
 	"strings"
 
 	"github.com/cpusoft/goutil/osutil"
 )
+
+// http://server:port/aa/bb/cc.html --> server port
+func HostAndPort(urlStr string) (host, port string, err error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", "", err
+	}
+	return net.SplitHostPort(u.Host)
+}
 
 // http://server:port/aa/bb/cc.html --> server/aa/bb/
 func HostAndPath(urlStr string) (string, error) {

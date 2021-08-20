@@ -2,10 +2,24 @@ package tcpudputil
 
 import (
 	"net"
+	"time"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 )
 
+func TestTcpConnection(address string, port string) (err error) {
+	server := net.JoinHostPort(address, port)
+	// 3 秒超时
+	conn, err := net.DialTimeout("tcp", server, 3*time.Second)
+	if err != nil {
+		belogs.Error("TestTcpConnection(): Dial fail: ", server, err)
+		return err
+	}
+	conn.Close()
+	return nil
+}
+
+/*
 // shoud add defer conn.Close()
 type clientProcess func(conn net.Conn) error
 
@@ -54,3 +68,4 @@ func CreateTcpServer(server string, serverProcess serverProcess) (err error) {
 		go serverProcess(conn)
 	}
 }
+*/
