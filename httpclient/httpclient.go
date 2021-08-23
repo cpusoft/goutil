@@ -441,6 +441,6 @@ func SetTimeout(minute uint64) {
 		httpClientConfig.Timeout = time.Duration(minute)
 	}
 }
-func ResetTimeount() {
+func ResetTimeout() {
 	httpClientConfig.Timeout = time.Duration(DefaultTimeout)
 }
