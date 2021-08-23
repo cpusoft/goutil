@@ -9,12 +9,16 @@ import (
 )
 
 // http://server:port/aa/bb/cc.html --> server port
+// http://server/aa/bb/cc.html --> server ""
 func HostAndPort(urlStr string) (host, port string, err error) {
 	u, err := url.Parse(urlStr)
 	if err != nil {
 		return "", "", err
 	}
-	return net.SplitHostPort(u.Host)
+	if strings.Contains(u.Host, ":") {
+		return net.SplitHostPort(u.Host)
+	}
+	return u.Host, "", nil
 }
 
 // http://server:port/aa/bb/cc.html --> server/aa/bb/

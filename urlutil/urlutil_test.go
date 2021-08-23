@@ -32,3 +32,9 @@ func TestPath(t *testing.T) {
 	u, err := Path(url)
 	fmt.Println(u, err)
 }
+
+func TestHostAndPort(t *testing.T) {
+	url := `rsync://rpki.apnic.net/member_repository/A91270E6/75648ECED63511E896631322C4F9AE02/dVNRzYJvKfhxtLyVlPTpSNvnc-k.mft?aa=bbb`
+	host, port, err := HostAndPort(url)
+	fmt.Println("host:", host, "   port:", port, err)
+}

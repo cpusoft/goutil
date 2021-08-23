@@ -147,6 +147,8 @@ func RsyncTestConnect(rsyncUrl string) (err error) {
 		port = "873"
 	}
 
+	belogs.Debug("RsyncTestConnect():rsyncUrl:", rsyncUrl,
+		"   host:", host, "   port:", port)
 	err = tcpudputil.TestTcpConnection(host, port)
 	if err != nil {
 		belogs.Error("RsyncTestConnect(): TestTcpConnection fail:", rsyncUrl, err)
