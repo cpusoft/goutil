@@ -23,12 +23,8 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
-const (
-	DefaultUserAgent     = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36 RPSTIR2"
-	DefaultTimeout       = 10
-	RetryCount           = 3
-	RetryIntervalSeconds = 5
-)
+//
+var httpClientConfig = NewHttpClientConfig()
 
 var RetryHttpStatus = []int{http.StatusBadRequest, http.StatusInternalServerError,
 	http.StatusRequestTimeout, http.StatusBadGateway, http.StatusGatewayTimeout}
@@ -65,7 +61,7 @@ func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
 		return nil, "", err
 	}
 	return errorsToerror(gorequest.New().Get(urlStr).
-		Timeout(DefaultTimeout*time.Minute).
+		Timeout(httpClientConfig.Timeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -91,7 +87,7 @@ func GetHttpsVerify(urlStr string, verify bool) (resp gorequest.Response, body s
 
 	return errorsToerror(gorequest.New().Get(urlStr).
 		TLSClientConfig(config).
-		Timeout(DefaultTimeout*time.Minute).
+		Timeout(httpClientConfig.Timeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -224,7 +220,7 @@ func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body str
 		return nil, "", err
 	}
 	return errorsToerror(gorequest.New().Post(urlStr).
-		Timeout(DefaultTimeout*time.Minute).
+		Timeout(httpClientConfig.Timeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -252,7 +248,7 @@ func PostHttps(urlStr string, postJson string, verify bool) (resp gorequest.Resp
 	config := &tls.Config{InsecureSkipVerify: !verify}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
-		Timeout(DefaultTimeout*time.Minute).
+		Timeout(httpClientConfig.Timeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -345,7 +341,7 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 	fileNameStr := osutil.Base(fileName)
 	belogs.Debug("PostFileHttps():fileNameStr:", fileNameStr)
 	return errorsToerror(gorequest.New().Post(urlStr).
-		Timeout(DefaultTimeout*time.Minute).
+		Timeout(httpClientConfig.Timeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -374,7 +370,7 @@ func PostFileHttps(urlStr string, fileName string, formName string, verify bool)
 	config := &tls.Config{InsecureSkipVerify: !verify}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
-		Timeout(DefaultTimeout*time.Minute).
+		Timeout(httpClientConfig.Timeout*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -430,4 +426,21 @@ func errorsToerror(resps gorequest.Response, bodys string, errs []error) (resp g
 		return resps, bodys, errors.New(buffer.String())
 	}
 	return resps, bodys, nil
+}
+
+func NewHttpClientConfig() *HttpClientConfig {
+	httpClientConfig := new(HttpClientConfig)
+	httpClientConfig.Timeout = DefaultTimeout
+	httpClientConfig.RetryCount = RetryCount
+	return httpClientConfig
+}
+
+// Minutes
+func SetTimeout(minute uint64) {
+	if minute > 0 {
+		httpClientConfig.Timeout = time.Duration(minute)
+	}
+}
+func ResetTimeount() {
+	httpClientConfig.Timeout = time.Duration(DefaultTimeout)
 }
