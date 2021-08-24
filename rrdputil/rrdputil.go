@@ -502,14 +502,12 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 		}
 
 		// if in this dir, no more files, then del dir
+		// will ignore error
 		dir, file := osutil.Split(pathFileName)
-		files, err := ioutil.ReadDir(dir)
+		files, _ := ioutil.ReadDir(dir)
+		belogs.Debug("SaveRrdpDeltaToRrdpFiles():will remove pathFileName:", pathFileName,
+			"   dir:", dir, "   files:", len(files))
 		os.Remove(pathFileName)
-		if err != nil {
-			belogs.Error("SaveRrdpDeltaToRrdpFiles(): Withdraw ReadDir fail, pathFileName:",
-				pathFileName, "   dir:", dir, err)
-			return nil, err
-		}
 		if len(files) == 0 {
 			os.RemoveAll(dir)
 		}
@@ -520,7 +518,7 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 			SyncType:  "del",
 			SourceUrl: deltaModel.DeltaUrl,
 		}
-		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Withdraw Remove rrdpFile, pathFileName:",
+		belogs.Debug("SaveRrdpDeltaToRrdpFiles(): rrdpFile, pathFileName:",
 			pathFileName, "   dir:", dir, "   rrdpFile:", jsonutil.MarshalJson(rrdpFile), "  ok")
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}
