@@ -33,19 +33,19 @@ type NotificationDelta struct {
 
 // support sort: from smaller to bigger
 //	v := []NotificationDelta{{Serial: 1, Uri: "3", Hash: "333"},{Serial: 0, Uri: "6", Hash: "666"},{Serial: 3, Uri: "2", Hash: "2222"},{Serial: 8, Uri: "7", Hash: "7777"}}
-//	sort.Sort(NotificationDeltas(v))
-type NotificationDeltas []NotificationDelta
+//	sort.Sort(NotificationDeltasSort(v))
+type NotificationDeltasSort []NotificationDelta
 
-func (v NotificationDeltas) Len() int {
+func (v NotificationDeltasSort) Len() int {
 	return len(v)
 }
 
-func (v NotificationDeltas) Swap(i, j int) {
+func (v NotificationDeltasSort) Swap(i, j int) {
 	v[i], v[j] = v[j], v[i]
 }
 
 // default comparison.
-func (v NotificationDeltas) Less(i, j int) bool {
+func (v NotificationDeltasSort) Less(i, j int) bool {
 	return v[i].Serial < v[j].Serial
 }
 
@@ -79,6 +79,24 @@ type DeltaModel struct {
 	// to check
 	Hash     string `xml:"-"`
 	DeltaUrl string `xml:"-"`
+}
+
+// support sort: from smaller to bigger
+//	v := []NotificationDelta{{Serial: 1, Uri: "3", Hash: "333"},{Serial: 0, Uri: "6", Hash: "666"},{Serial: 3, Uri: "2", Hash: "2222"},{Serial: 8, Uri: "7", Hash: "7777"}}
+//	sort.Sort(DeltaModelsSort(v))
+type DeltaModelsSort []DeltaModel
+
+func (v DeltaModelsSort) Len() int {
+	return len(v)
+}
+
+func (v DeltaModelsSort) Swap(i, j int) {
+	v[i], v[j] = v[j], v[i]
+}
+
+// default comparison.
+func (v DeltaModelsSort) Less(i, j int) bool {
+	return v[i].Serial < v[j].Serial
 }
 
 type DeltaPublish struct {

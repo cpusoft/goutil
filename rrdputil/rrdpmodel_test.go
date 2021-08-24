@@ -12,6 +12,6 @@ func TestSort(t *testing.T) {
 		{Serial: 3, Uri: "2", Hash: "2222"},
 		{Serial: 8, Uri: "7", Hash: "7777"}}
 	fmt.Println(v2)
-	sort.Sort(NotificationDeltas(v2))
+	sort.Sort(NotificationDeltasSort(v2))
 	fmt.Println(v2)
 }

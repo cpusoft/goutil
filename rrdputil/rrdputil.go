@@ -5,8 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cpusoft/goutil/base64util"
@@ -33,7 +35,7 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 	}
 
 	// will sort deltas from smaller to bigger
-	sort.Sort(NotificationDeltas(notificationModel.Deltas))
+	sort.Sort(NotificationDeltasSort(notificationModel.Deltas))
 	belogs.Debug("GetRrdpNotification(): after sort, len(notificationModel.Deltas):", len(notificationModel.Deltas))
 
 	// get maxserial and minserial, and set map[serial]serial
@@ -284,6 +286,87 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save rrdpFiles ", jsonutil.MarshalJson(rrdpFiles))
 	return rrdpFiles, nil
 
+}
+
+func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (deltaModels []DeltaModel, err error) {
+	start := time.Now()
+	belogs.Info("GetRrdpDeltas(): len(notificationModel.Deltas),lastSerial :",
+		len(notificationModel.Deltas), lastSerial)
+
+	var wg sync.WaitGroup
+	errorMsgCh := make(chan string, len(notificationModel.Deltas))
+	deltaModelCh := make(chan DeltaModel, len(notificationModel.Deltas))
+	countCh := make(chan int, runtime.NumCPU()*2)
+	// serial need from small to large
+	for i := len(notificationModel.Deltas) - 1; i >= 0; i-- {
+		belogs.Debug("GetRrdpDeltas(): i:", i, "   notificationModel.Deltas[i].Serial:", notificationModel.Deltas[i].Serial)
+		if notificationModel.Deltas[i].Serial <= lastSerial {
+			belogs.Debug("GetRrdpDeltas():continue, notificationModel.Deltas[i].Serial <= lastSerial:", notificationModel.Deltas[i].Serial, lastSerial)
+			continue
+		}
+
+		countCh <- 1
+		wg.Add(1)
+		go getRrdpDeltasImpl(notificationModel, i, deltaModelCh, errorMsgCh, countCh, &wg)
+		//
+	}
+	wg.Wait()
+	close(countCh)
+	close(errorMsgCh)
+	close(deltaModelCh)
+
+	belogs.Debug("GetRrdpDeltas():will get errorMsgCh, and deltaModelCh", len(errorMsgCh), len(deltaModelCh))
+	// if has error, then return error
+	for errorMsg := range errorMsgCh {
+		belogs.Error("GetRrdpDeltas(): getRrdpDeltasImpl fail:", errorMsg, "   time(s):", time.Now().Sub(start).Seconds())
+		return nil, errors.New(errorMsg)
+	}
+	// get deltaModels, and sort
+	deltaModels = make([]DeltaModel, 0, len(notificationModel.MapSerialDeltas))
+	for deltaModel := range deltaModelCh {
+		deltaModels = append(deltaModels, deltaModel)
+	}
+	sort.Sort(DeltaModelsSort(deltaModels))
+
+	belogs.Info("GetRrdpDeltas():len(deltaModels):", len(deltaModels),
+		"   len(notificationModel.Deltas) :", len(notificationModel.Deltas),
+		"   lastSerial:", lastSerial, "   time(s):", time.Now().Sub(start).Seconds())
+
+	return deltaModels, nil
+}
+
+func getRrdpDeltasImpl(notificationModel *NotificationModel, i int, deltaModelCh chan DeltaModel,
+	errorMsgCh chan string, countCh chan int, wg *sync.WaitGroup) {
+	defer func() {
+		<-countCh
+		wg.Done()
+	}()
+
+	start := time.Now()
+	belogs.Debug("getRrdpDeltasImpl():will notificationModel.Deltas[i].Uri:", i, notificationModel.Deltas[i].Uri)
+	deltaModel, err := GetRrdpDelta(notificationModel.Deltas[i].Uri)
+	if err != nil {
+		belogs.Error("getRrdpDeltasImpl(): GetRrdpDelta fail, delta.Uri :", i,
+			notificationModel.Deltas[i].Uri, err, "   time(s):", time.Now().Sub(start).Seconds())
+		errorMsgCh <- "get delta " + notificationModel.Deltas[i].Uri + " fail, error is " + err.Error()
+		return
+	}
+	belogs.Debug("getRrdpDeltasImpl():ok notificationModel.Deltas[i].Uri:", i, notificationModel.Deltas[i].Uri,
+		"   time(s):", time.Now().Sub(start).Seconds())
+
+	err = CheckRrdpDelta(&deltaModel, notificationModel)
+	if err != nil {
+		belogs.Error("getRrdpDeltasImpl(): CheckRrdpDelta fail, delta.Uri :", i,
+			notificationModel.Deltas[i].Uri, err, "   time(s):", time.Now().Sub(start).Seconds())
+		errorMsgCh <- "check delta " + notificationModel.Deltas[i].Uri + " fail, error is " + err.Error()
+		return
+	}
+	belogs.Info("getRrdpDeltasImpl(): delta.Uri:", notificationModel.Deltas[i].Uri,
+		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
+		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
+		"   time(s):", time.Now().Sub(start).Seconds())
+	deltaModelCh <- deltaModel
+	return
 }
 
 func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
