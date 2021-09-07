@@ -520,10 +520,12 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 		}
 		if len(files) == 0 {
 			err = os.RemoveAll(dir)
-			belogs.Error("SaveRrdpDeltaToRrdpFiles():DeltaWithdraws RemoveAll dir fail:", pathFileName,
-				"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
-				"   err:", err)
-			// ignore return
+			if err != nil {
+				belogs.Error("SaveRrdpDeltaToRrdpFiles():DeltaWithdraws RemoveAll dir fail:", pathFileName,
+					"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+					"   err:", err)
+				// ignore return
+			}
 		}
 
 		rrdpFile := RrdpFile{
