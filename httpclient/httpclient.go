@@ -167,7 +167,7 @@ func PostAndUnmarshalStruct(urlStr, postJson string, verifyHttps bool, response 
 //v is ResponseModel.Data
 func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v interface{}) (err error) {
 	belogs.Debug("PostAndUnmarshalResponseModel(): urlStr:", urlStr, "   postJson:", postJson,
-		"   verifyHttps:", verifyHttps, "    v:", reflect.TypeOf(v).Name())
+		"   verifyHttps:", verifyHttps)
 	resp, body, err := Post(urlStr, postJson, verifyHttps)
 	if err != nil {
 		belogs.Error("PostAndUnmarshalResponseModel():Post failed, urlStr:", urlStr, "   postJson:", postJson, err)
@@ -188,6 +188,7 @@ func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v 
 		return errors.New(responseModel.Msg)
 	}
 	if v != nil {
+		belogs.Debug("PostAndUnmarshalResponseModel(): v:", reflect.TypeOf(v).Name())
 		// UnmarshalJson to get actual ***Response
 		data := jsonutil.MarshalJson(responseModel.Data)
 		err = jsonutil.UnmarshalJson(data, v)
