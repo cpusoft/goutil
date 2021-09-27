@@ -27,7 +27,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shiena/ansicolor v0.0.0-20151119151921-a422bbe96644
-	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/wendal/errors v0.0.0-20130201093226-f66c77a7882b // indirect
 	go.etcd.io/etcd/client/v3 v3.5.0
@@ -36,5 +35,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	moul.io/http2curl v1.0.0 // indirect
-	xorm.io/xorm v1.1.2
+	xorm.io/xorm v1.2.4
 )

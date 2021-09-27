@@ -509,7 +509,7 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 		// will ignore error
 		dir, file := osutil.Split(pathFileName)
 		files, err := ioutil.ReadDir(dir)
-		belogs.Debug("SaveRrdpDeltaToRrdpFiles():DeltaWithdraws will remove pathFileName:", pathFileName,
+		belogs.Info("SaveRrdpDeltaToRrdpFiles():DeltaWithdraws will remove pathFileName:", pathFileName,
 			"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl, "  err:", err)
 		err = os.Remove(pathFileName)
 		if err != nil {
