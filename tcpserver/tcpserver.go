@@ -94,6 +94,7 @@ func (ts *TcpServer) ReceiveAndSend(conn *net.TCPConn) {
 	// one packet
 	buffer := make([]byte, 2048)
 	// wait for new packet to read
+	var err error
 	for {
 		n, err := conn.Read(buffer)
 		start := time.Now()
@@ -124,6 +125,7 @@ func (ts *TcpServer) ReceiveAndSend(conn *net.TCPConn) {
 			break
 		}
 	}
+	belogs.Info("OnReceiveAndSend():break for, will remove this conn: ", conn)
 }
 
 func (ts *TcpServer) OnClose(conn *net.TCPConn) {
