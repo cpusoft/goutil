@@ -125,7 +125,7 @@ func (ts *TcpServer) ReceiveAndSend(conn *net.TCPConn) {
 			break
 		}
 	}
-	belogs.Info("OnReceiveAndSend():break for, will remove this conn: ", conn)
+	belogs.Info("OnReceiveAndSend():break for, will remove this conn: ", conn, "  err:", err)
 }
 
 func (ts *TcpServer) OnClose(conn *net.TCPConn) {
