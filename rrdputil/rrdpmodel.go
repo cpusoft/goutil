@@ -20,15 +20,15 @@ type NotificationModel struct {
 }
 
 type NotificationSnapshot struct {
-	XMLName xml.Name `xml:"snapshot"`
-	Uri     string   `xml:"uri,attr"`
-	Hash    string   `xml:"hash,attr"`
+	XMLName xml.Name `xml:"snapshot" json:"snapshot"`
+	Uri     string   `xml:"uri,attr" json:"uri"`
+	Hash    string   `xml:"hash,attr" json:"-"`
 }
 type NotificationDelta struct {
-	XMLName xml.Name `xml:"delta"`
-	Serial  uint64   `xml:"serial,attr"`
-	Uri     string   `xml:"uri,attr"`
-	Hash    string   `xml:"hash,attr"`
+	XMLName xml.Name `xml:"delta" json:"delta"`
+	Serial  uint64   `xml:"serial,attr" json:"serial"`
+	Uri     string   `xml:"uri,attr" json:"uri"`
+	Hash    string   `xml:"hash,attr" json:"-"`
 }
 
 // support sort: from smaller to bigger
@@ -50,31 +50,31 @@ func (v NotificationDeltasSort) Less(i, j int) bool {
 }
 
 type SnapshotModel struct {
-	XMLName          xml.Name          `xml:"snapshot"`
-	Xmlns            string            `xml:"xmlns,attr"`
-	Version          string            `xml:"version,attr"`
-	SessionId        string            `xml:"session_id,attr"`
-	Serial           uint64            `xml:"serial,attr"`
-	SnapshotPublishs []SnapshotPublish `xml:"publish"`
+	XMLName          xml.Name          `xml:"snapshot" json:"snapshot"`
+	Xmlns            string            `xml:"xmlns,attr" json:"xmlns"`
+	Version          string            `xml:"version,attr" json:"version"`
+	SessionId        string            `xml:"session_id,attr" json:"session_id"`
+	Serial           uint64            `xml:"serial,attr" json:"serial"`
+	SnapshotPublishs []SnapshotPublish `xml:"publish"  json:"publish"`
 	// to check
 	Hash        string `xml:"-"`
 	SnapshotUrl string `xml:"-"`
 }
 
 type SnapshotPublish struct {
-	XMLName xml.Name `xml:"publish"`
-	Uri     string   `xml:"uri,attr"`
-	Base64  string   `xml:",chardata"`
+	XMLName xml.Name `xml:"publish" json:"publish"`
+	Uri     string   `xml:"uri,attr" json:"uri"`
+	Base64  string   `xml:",chardata" json:"-"`
 }
 
 type DeltaModel struct {
-	XMLName        xml.Name        `xml:"delta"`
-	Xmlns          string          `xml:"xmlns,attr"`
-	Version        string          `xml:"version,attr"`
-	SessionId      string          `xml:"session_id,attr"`
-	Serial         uint64          `xml:"serial,attr"`
-	DeltaPublishs  []DeltaPublish  `xml:"publish"`
-	DeltaWithdraws []DeltaWithdraw `xml:"withdraw"`
+	XMLName        xml.Name        `xml:"delta" json:"delta"`
+	Xmlns          string          `xml:"xmlns,attr" json:"xmlns"`
+	Version        string          `xml:"version,attr" json:"version"`
+	SessionId      string          `xml:"session_id,attr" json:"session_id"`
+	Serial         uint64          `xml:"serial,attr" json:"serial"`
+	DeltaPublishs  []DeltaPublish  `xml:"publish" json:"publish"`
+	DeltaWithdraws []DeltaWithdraw `xml:"withdraw" json:"withdraw"`
 
 	// to check
 	Hash     string `xml:"-"`
@@ -100,22 +100,22 @@ func (v DeltaModelsSort) Less(i, j int) bool {
 }
 
 type DeltaPublish struct {
-	XMLName xml.Name `xml:"publish"`
-	Uri     string   `xml:"uri,attr"`
-	Hash    string   `xml:"hash,attr"`
-	Base64  string   `xml:",chardata"`
+	XMLName xml.Name `xml:"publish" json:"publish"`
+	Uri     string   `xml:"uri,attr" json:"uri"`
+	Hash    string   `xml:"hash,attr" json:"-"`
+	Base64  string   `xml:",chardata" json:"-"`
 }
 type DeltaWithdraw struct {
-	XMLName xml.Name `xml:"withdraw"`
-	Uri     string   `xml:"uri,attr"`
-	Hash    string   `xml:"hash,attr"`
+	XMLName xml.Name `xml:"withdraw" json:"withdraw"`
+	Uri     string   `xml:"uri,attr" json:"uri"`
+	Hash    string   `xml:"hash,attr" json:"-"`
 }
 
 type RrdpFile struct {
-	FilePath string
-	FileName string
+	FilePath string `json:"filePath"`
+	FileName string `json:"fileName"`
 	// add /del
-	SyncType string
+	SyncType string `json:"syncType"`
 	//snapshoturl or deltaurl
-	SourceUrl string
+	SourceUrl string `json:"sourceUrl"`
 }
