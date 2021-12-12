@@ -3,7 +3,6 @@ package rrdputil
 import (
 	"errors"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"runtime"
 	"sort"
@@ -23,275 +22,6 @@ import (
 	"github.com/cpusoft/goutil/xmlutil"
 )
 
-func GetRrdpNotification(notificationUrl string) (notificationModel NotificationModel, err error) {
-	start := time.Now()
-	// get notification.xml
-	// "https://rrdp.apnic.net/notification.xml"
-	belogs.Info("GetRrdpNotification(): will notificationUrl:", notificationUrl)
-	notificationModel, err = getRrdpNotificationImpl(notificationUrl)
-	if err != nil {
-		belogs.Error("GetRrdpNotification():getRrdpNotificationImpl fail:", notificationUrl, err)
-		return notificationModel, err
-	}
-
-	// will sort deltas from smaller to bigger
-	sort.Sort(NotificationDeltasSort(notificationModel.Deltas))
-	belogs.Debug("GetRrdpNotification(): after sort, len(notificationModel.Deltas):", len(notificationModel.Deltas))
-
-	// get maxserial and minserial, and set map[serial]serial
-	notificationModel.MapSerialDeltas = make(map[uint64]uint64, len(notificationModel.Deltas)+10)
-	for i := range notificationModel.Deltas {
-		notificationModel.MapSerialDeltas[notificationModel.Deltas[i].Serial] = notificationModel.Deltas[i].Serial
-		serial := notificationModel.Deltas[i].Serial
-		if serial > notificationModel.MaxSerial {
-			notificationModel.MaxSerial = serial
-		}
-		if serial < notificationModel.MinSerial {
-			notificationModel.MinSerial = serial
-		}
-	}
-	belogs.Info("GetRrdpNotification(): notificationUrl ok:", notificationUrl, "  time(s):", time.Now().Sub(start).Seconds())
-	return notificationModel, nil
-}
-
-func getRrdpNotificationImpl(notificationUrl string) (notificationModel NotificationModel, err error) {
-	start := time.Now()
-	belogs.Debug("getRrdpNotificationImpl(): notificationUrl:", notificationUrl)
-	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
-	if err == nil {
-		defer resp.Body.Close()
-		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl:", notificationUrl,
-			"   resp.Status:", resp.Status, "    len(body):", len(body),
-			"   time(s):", time.Now().Sub(start).Seconds())
-
-		if resp.StatusCode != http.StatusOK {
-			belogs.Error("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl, is not StatusOK:", notificationUrl,
-				"   resp.Status:", resp.Status, "    body:", body)
-			return notificationModel, errors.New("http status code of " + notificationUrl + " is " + resp.Status)
-		}
-
-	} else {
-		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
-			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
-
-		// then try using curl
-		body, err = httpclient.GetByCurl(notificationUrl)
-		if err != nil {
-			belogs.Error("getRrdpNotificationImpl(): GetByCurl notificationUrl fail:", notificationUrl, "   resp:",
-				resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
-			return notificationModel, errors.New("http error of " + notificationUrl + " is " + err.Error())
-		}
-		belogs.Debug("getRrdpNotificationImpl(): GetByCurl deltaUrl ok", notificationUrl, "    len(body):", len(body),
-			"  time(s):", time.Now().Sub(start).Seconds())
-	}
-
-	err = xmlutil.UnmarshalXml(body, &notificationModel)
-	if err != nil {
-		belogs.Error("getRrdpNotificationImpl(): UnmarshalXml fail: ", notificationUrl, "        body:", body, err)
-		return notificationModel, errors.New("response of " + notificationUrl + " is not a legal rrdp file")
-	}
-	return notificationModel, nil
-}
-
-func RrdpNotificationTestConnect(notificationUrl string) (err error) {
-	start := time.Now()
-	belogs.Debug("RrdpNotificationTestConnect(): notificationUrl:", notificationUrl)
-
-	// test http connect
-	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
-	if err != nil {
-		belogs.Error("RrdpNotificationTestConnect(): GetHttpsVerify notificationUrl:", notificationUrl, err)
-		return errors.New("http error of " + notificationUrl + " is " + err.Error())
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		belogs.Error("RrdpNotificationTestConnect(): GetHttpsVerify notificationUrl, is not StatusOK:", notificationUrl,
-			"   resp.Status:", resp.Status, "    body:", body)
-		return errors.New("http status code of " + notificationUrl + " is " + resp.Status)
-	}
-
-	// test is legal
-	var notificationModel NotificationModel
-	err = xmlutil.UnmarshalXml(body, &notificationModel)
-	if err != nil {
-		belogs.Error("RrdpNotificationTestConnect(): UnmarshalXml fail: ", notificationUrl, "        body:", body, err)
-		return errors.New("response of " + notificationUrl + " is not a legal rrdp file")
-	}
-	belogs.Info("RrdpNotificationTestConnect(): GetHttpsVerify notificationUrl:", notificationUrl,
-		"   time(s):", time.Now().Sub(start).Seconds())
-	return nil
-}
-
-func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
-	if notificationModel.Version != "1" {
-		belogs.Error("CheckRrdpNotification():  notificationModel.Version != 1")
-		return errors.New("notification version is error, version is not 1, it is " + notificationModel.Version)
-	}
-	if len(notificationModel.SessionId) == 0 {
-		belogs.Error("CheckRrdpNotification(): len(notificationModel.SessionId) == 0")
-		return errors.New("notification session_id is error, session_id is empty ")
-	}
-	if notificationModel.Serial == 0 {
-		belogs.Error("CheckRrdpNotification(): len(notificationModel.Serial) == 0")
-		return errors.New("notification serial is error, serial is empty ")
-	}
-	if len(notificationModel.MapSerialDeltas) > 0 {
-		if _, ok := notificationModel.MapSerialDeltas[notificationModel.Serial]; !ok {
-			belogs.Error("CheckRrdpNotification(): notification has not such serial in deltas:", notificationModel.Serial)
-			return errors.New("notification has not such serial in deltas")
-		}
-	}
-	return nil
-}
-
-func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error) {
-	start := time.Now()
-	// get snapshot.xml
-	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
-	belogs.Info("GetRrdpSnapshot():will get snapshotUrl:", snapshotUrl)
-	for i := 0; i < 3; i++ {
-		snapshotModel, err = getRrdpSnapshotImpl(snapshotUrl)
-		if err != nil {
-			belogs.Error("GetRrdpSnapshot():getRrdpSnapshotImpl fail, will try again, snapshotUrl:", snapshotUrl, "  i:", i, err)
-		} else {
-			break
-		}
-	}
-	if err != nil {
-		belogs.Error("GetRrdpSnapshot():getRrdpSnapshotImpl fail:", snapshotUrl, err)
-		return snapshotModel, nil
-	}
-	belogs.Info("GetRrdpSnapshot(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Now().Sub(start).Seconds())
-	return snapshotModel, nil
-}
-
-func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err error) {
-	start := time.Now()
-	// get snapshot.xml
-	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
-	belogs.Debug("getRrdpSnapshotImpl(): snapshotUrl:", snapshotUrl)
-	resp, body, err := httpclient.GetHttpsVerify(snapshotUrl, true)
-	belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "    len(body):", len(body),
-		"  time(s):", time.Now().Sub(start).Seconds(), "   err:", err)
-	if err == nil {
-		defer resp.Body.Close()
-		belogs.Debug("getRrdpSnapshotImpl():GetHttpsVerify snapshotUrl ok:", snapshotUrl,
-			"    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
-	} else {
-		belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
-			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
-
-		// then try using curl
-		body, err = httpclient.GetByCurl(snapshotUrl)
-		if err != nil {
-			belogs.Error("getRrdpSnapshotImpl(): GetByCurl snapshotUrl fail:", snapshotUrl, "   resp:",
-				resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
-			return snapshotModel, err
-		}
-		belogs.Debug("getRrdpSnapshotImpl(): GetByCurl snapshotUrl ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
-	}
-
-	// get snapshotModel
-	err = xmlutil.UnmarshalXml(body, &snapshotModel)
-	if err != nil {
-		belogs.Error("GetRrdpSnapshot(): UnmarshalXml fail:", snapshotUrl, "   body:", body, err)
-		return snapshotModel, err
-	}
-	snapshotModel.Hash = hashutil.Sha256([]byte(body))
-	snapshotModel.SnapshotUrl = snapshotUrl
-	return snapshotModel, nil
-}
-
-func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *NotificationModel) (err error) {
-	if snapshotModel.Version != "1" {
-		belogs.Error("CheckRrdpSnapshot():  snapshotModel.Version != 1")
-		return errors.New("snapshot version is error, version is not 1, it is " + snapshotModel.Version)
-	}
-	if len(snapshotModel.SessionId) == 0 {
-		belogs.Error("CheckRrdpSnapshot(): len(snapshotModel.SessionId) == 0")
-		return errors.New("snapshot session_id is error, session_id is empty  ")
-	}
-	if notificationModel.SessionId != snapshotModel.SessionId {
-		belogs.Error("CheckRrdpSnapshot(): snapshotModel.SessionId:", snapshotModel.SessionId,
-			"    notificationModel.SessionId:", notificationModel.SessionId)
-		return errors.New("snapshot's session_id is different from  notification's session_id")
-	}
-	if len(notificationModel.MapSerialDeltas) > 0 {
-		if _, ok := notificationModel.MapSerialDeltas[snapshotModel.Serial]; !ok {
-			belogs.Error("CheckRrdpSnapshot(): notification has not such  snapshot's serial:", snapshotModel.Serial)
-			return errors.New("notification has not such  snapshot's serial")
-		}
-	}
-	if strings.ToLower(notificationModel.Snapshot.Hash) != strings.ToLower(snapshotModel.Hash) {
-		belogs.Error("CheckRrdpSnapshot(): snapshotModel.Hash:", snapshotModel.Hash,
-			"    notificationModel.Snapshot.Hash:", notificationModel.Snapshot.Hash, " but just continue")
-		//return errors.New("snapshot's hash is different from  notification's snapshot's hash")
-	}
-	return nil
-
-}
-
-// repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
-func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) (rrdpFiles []RrdpFile, err error) {
-	if snapshotModel == nil || len(snapshotModel.SnapshotPublishs) == 0 {
-		belogs.Error("SaveRrdpSnapshotToRrdpFiles(): len(snapshotModel.SnapshotPublishs)==0")
-		return nil, errors.New("snapshot's publishs is empty")
-	}
-	for i := range snapshotModel.SnapshotPublishs {
-		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, snapshotModel.SnapshotPublishs[i].Uri)
-		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): JoinPrefixPathAndUrlFileName fail:", snapshotModel.SnapshotPublishs[i].Uri,
-				"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
-			return nil, err
-		}
-
-		// if dir is notexist ,then mkdir
-		dir, file := osutil.Split(pathFileName)
-		isExist, err := osutil.IsExists(dir)
-		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): IsExists dir, fail:", dir, err)
-			return nil, err
-		}
-
-		if !isExist {
-			err = os.MkdirAll(dir, os.ModePerm)
-			if err != nil {
-				belogs.Error("SaveRrdpSnapshotToRrdpFiles(): MkdirAll dir, fail:", dir, "    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
-				return nil, err
-			}
-		}
-
-		bytes, err := base64util.DecodeBase64(strings.TrimSpace(snapshotModel.SnapshotPublishs[i].Base64))
-		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): DecodeBase64 fail:",
-				snapshotModel.SnapshotPublishs[i].Base64,
-				"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
-			return nil, err
-		}
-
-		err = fileutil.WriteBytesToFile(pathFileName, bytes)
-		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): WriteBytesToFile fail:", pathFileName,
-				len(bytes), "    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
-			return nil, err
-		}
-		belogs.Info("SaveRrdpSnapshotToRrdpFiles(): update pathFileName:", pathFileName,
-			"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, "  ok")
-		belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save pathFileName ", pathFileName, "  ok")
-
-		rrdpFile := RrdpFile{
-			FilePath:  dir,
-			FileName:  file,
-			SyncType:  "add",
-			SourceUrl: snapshotModel.SnapshotUrl,
-		}
-		rrdpFiles = append(rrdpFiles, rrdpFile)
-	}
-	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save rrdpFiles ", jsonutil.MarshalJson(rrdpFiles))
-	return rrdpFiles, nil
-
-}
-
 func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (deltaModels []DeltaModel, err error) {
 	start := time.Now()
 	belogs.Info("GetRrdpDeltas(): len(notificationModel.Deltas),lastSerial :",
@@ -301,8 +31,8 @@ func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (del
 	errorMsgCh := make(chan string, len(notificationModel.Deltas))
 	deltaModelCh := make(chan DeltaModel, len(notificationModel.Deltas))
 	countCh := make(chan int, runtime.NumCPU()*2)
-	// serial need from small to large
-	for i := len(notificationModel.Deltas) - 1; i >= 0; i-- {
+	// serial need from newest to oldest
+	for i := 0; i < len(notificationModel.Deltas); i++ {
 		belogs.Debug("GetRrdpDeltas(): i:", i, "   notificationModel.Deltas[i].Serial:", notificationModel.Deltas[i].Serial)
 		if notificationModel.Deltas[i].Serial <= lastSerial {
 			belogs.Debug("GetRrdpDeltas():continue, notificationModel.Deltas[i].Serial <= lastSerial:", notificationModel.Deltas[i].Serial, lastSerial)
@@ -326,11 +56,12 @@ func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (del
 		return nil, errors.New(errorMsg)
 	}
 	// get deltaModels, and sort
-	deltaModels = make([]DeltaModel, 0, len(notificationModel.MapSerialDeltas))
+	oldDeltaModels := make([]DeltaModel, 0, len(notificationModel.MapSerialDeltas))
 	for deltaModel := range deltaModelCh {
-		deltaModels = append(deltaModels, deltaModel)
+		oldDeltaModels = append(oldDeltaModels, deltaModel)
 	}
-	sort.Sort(DeltaModelsSort(deltaModels))
+	// sort, from newest to oldest
+	sort.Sort(DeltaModelsSort(oldDeltaModels))
 
 	belogs.Info("GetRrdpDeltas():len(deltaModels):", len(deltaModels),
 		"   len(notificationModel.Deltas) :", len(notificationModel.Deltas),
@@ -388,8 +119,8 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 		}
 	}
 	if err != nil {
-		belogs.Error("GetRrdpDelta():getRrdpDeltaImpl fail:", deltaModel, err)
-		return deltaModel, nil
+		belogs.Error("GetRrdpDelta():getRrdpDeltaImpl fail:", deltaUrl, err)
+		return deltaModel, err
 	}
 
 	belogs.Info("GetRrdpDelta(): deltaUrl ok:", deltaUrl, "  time(s):", time.Now().Sub(start).Seconds())
@@ -487,7 +218,197 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 
 }
 
+func SaveRrdpDeltasToRrdpFiles(deltaModels []DeltaModel, notifyUrl, destPath string) (rrdpFilesAll []RrdpFile, err error) {
+
+	rrdpFilesAll = make([]RrdpFile, 0)
+	rrdpUris := make(map[string]uint64, len(deltaModels)+20)
+	// from latest to oldest
+	// will use latest serial delta, and ignore same url files in older serial delta
+	for i := range deltaModels {
+		// save publish files and remove withdraw files
+		rrdpFiles, err := saveRrdpDeltaToRrdpFiles(&deltaModels[i], rrdpUris, destPath)
+		if err != nil {
+			belogs.Error("processRrdpDelta(): SaveRrdpDeltaToRrdpFiles fail, notifyUrl:", notifyUrl,
+				"   deltaModels[i].SessionId:", deltaModels[i].SessionId,
+				"   deltaModels[i].Serial:", deltaModels[i].Serial, "   deltaModels[i].DeltaUrl:", deltaModels[i].DeltaUrl,
+				"   snapshotDeltaResult.DestPath: ", destPath, err)
+			return nil, err
+		}
+		// add to head
+		rrdpFilesAll = append(rrdpFiles, rrdpFilesAll...)
+	}
+	return rrdpFilesAll, nil
+}
+
 // repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
+func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64, repoPath string) (rrdpFiles []RrdpFile, err error) {
+
+	// delta may have no publishes and no withdraws
+	if deltaModel == nil || (len(deltaModel.DeltaPublishs) == 0 && len(deltaModel.DeltaWithdraws) == 0) {
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): len(snapshotModel.DeltaPublishs)==0 && len(deltaModel.DeltaWithdraws)==0, deltaModel:",
+			jsonutil.MarshalJson(deltaModel), "   repoPath:", repoPath)
+		return rrdpFiles, nil
+	}
+	belogs.Info("saveRrdpDeltaToRrdpFiles():serial:", deltaModel.Serial,
+		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
+		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws))
+	if len(deltaModel.DeltaWithdraws) > 0 {
+		belogs.Info("saveRrdpDeltaToRrdpFiles():len(deltaModel.DeltaWithdraws)>0, deltaModel:", jsonutil.MarshalJson(deltaModel))
+	}
+	rrdpFiles = make([]RrdpFile, 0)
+
+	// first , del withdraw files
+	for i := range deltaModel.DeltaWithdraws {
+		uri := deltaModel.DeltaWithdraws[i].Uri
+		if v, ok := rrdpUris[uri]; ok {
+			belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws in rrdpUris , uri:", uri,
+				"    this:", jsonutil.MarshalJson(deltaModel.DeltaWithdraws[i]),
+				"    last:", jsonutil.MarshalJson(v))
+			continue
+		} else {
+			rrdpUris[uri] = deltaModel.Serial
+		}
+
+		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
+		if err != nil {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws JoinPrefixPathAndUrlFileName fail,uri:", uri, err)
+			return nil, err
+		}
+
+		// if in this dir, no more files, then del dir
+		// will ignore error
+		dir, file := osutil.Split(pathFileName)
+		files, err := ioutil.ReadDir(dir)
+		belogs.Info("saveRrdpDeltaToRrdpFiles():DeltaWithdraws will remove pathFileName, uri:", uri,
+			"  	pathFileName:", pathFileName, "   dir:", dir,
+			"   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+			"   err:", err)
+		exist, err := osutil.IsExists(pathFileName)
+		if err != nil {
+			belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws IsExists pathFileName fail:", pathFileName,
+				"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+				"   err:", err)
+			// ignore return
+		}
+		if exist {
+			err = os.Remove(pathFileName)
+			if err != nil {
+				belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws remove pathFileName fail:", pathFileName,
+					"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+					"   err:", err)
+				// ignore return
+			}
+		}
+		if len(files) == 0 {
+			err = os.RemoveAll(dir)
+			if err != nil {
+				belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws RemoveAll dir fail:", pathFileName,
+					"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+					"   err:", err)
+				// ignore return
+			}
+		}
+
+		rrdpFile := RrdpFile{
+			FilePath:  dir,
+			FileName:  file,
+			SyncType:  "del",
+			SourceUrl: deltaModel.DeltaUrl,
+		}
+		belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws, del pathFileName:", pathFileName,
+			"    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+			"    rrdpFile:", jsonutil.MarshalJson(rrdpFile), "  ok")
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws,  pathFileName:", pathFileName,
+			"   dir:", dir, "   rrdpFile:", jsonutil.MarshalJson(rrdpFile),
+			"   deltaModel.DeltaUrl:", deltaModel.DeltaUrl, "  ok")
+
+		rrdpFiles = append(rrdpFiles, rrdpFile)
+	}
+	belogs.Info("saveRrdpDeltaToRrdpFiles():after DeltaWithdraws, len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
+		"   len(rrdpFiles):", len(rrdpFiles))
+
+	// seconde, save publish files
+	for i := range deltaModel.DeltaPublishs {
+		uri := deltaModel.DeltaPublishs[i].Uri
+		if v, ok := rrdpUris[uri]; ok {
+			belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaPublishs in rrdpUris, uri:", uri,
+				"    this:", jsonutil.MarshalJson(deltaModel.DeltaPublishs[i]),
+				"    last:", jsonutil.MarshalJson(v))
+			continue
+		} else {
+			rrdpUris[uri] = deltaModel.Serial
+		}
+
+		// get absolute dir /dest/***/***/**.**
+		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles(): JoinPrefixPathAndUrlFileName fail, uri:",
+				uri, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)
+			return nil, err
+		}
+
+		// if dir is notexist ,then mkdir
+		dir, file := osutil.Split(pathFileName)
+		isExist, err := osutil.IsExists(dir)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles(): Publish ReadDir fail:", dir, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)
+			return nil, err
+		}
+		if !isExist {
+			err = os.MkdirAll(dir, os.ModePerm)
+			if err != nil {
+				belogs.Error("SaveRrdpDeltaToRrdpFiles(): Publish MkdirAll fail:", dir, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+					err)
+				return nil, err
+			}
+		}
+
+		// decode base65 to bytes
+		bytes, err := base64util.DecodeBase64(strings.TrimSpace(deltaModel.DeltaPublishs[i].Base64))
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles():Publish DecodeBase64 fail:",
+				"  deltaModel.Serial:", deltaModel.Serial,
+				"  deltaModel.DeltaPublishs[i].Uri:", uri,
+				"  deltaModel.DeltaPublishs[i].Base64:", deltaModel.DeltaPublishs[i].Base64,
+				"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)
+			return nil, err
+		}
+
+		err = fileutil.WriteBytesToFile(pathFileName, bytes)
+		if err != nil {
+			belogs.Error("SaveRrdpDeltaToRrdpFiles():Publish WriteBytesToFile fail:",
+				"  deltaModel.Serial:", deltaModel.Serial,
+				"  deltaModel.DeltaPublishs[i].Uri:", uri,
+				"  pathFileName:", pathFileName,
+				"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+				"  len(bytes):", len(bytes),
+				err)
+			return nil, err
+		}
+
+		// some rrdp have no withdraw, only publish, so change to update to del old in db
+		rrdpFile := RrdpFile{
+			FilePath: dir,
+			FileName: file,
+			//SyncType: "add",
+			SyncType:  "update",
+			SourceUrl: deltaModel.DeltaUrl,
+		}
+		belogs.Info("SaveRrdpDeltaToRrdpFiles(): Publish, update pathFileName:", pathFileName,
+			"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+			"  rrdpFile:", jsonutil.MarshalJson(rrdpFile), "  ok")
+		belogs.Debug("SaveRrdpDeltaToRrdpFiles():Publish update rrdpFile ", jsonutil.MarshalJson(rrdpFile), "  ok")
+		rrdpFiles = append(rrdpFiles, rrdpFile)
+	}
+	belogs.Info("SaveRrdpSnapshotToRrdpFiles(): after all, len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
+		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
+		"   len(rrdpFiles): ", len(rrdpFiles))
+	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save rrdpFiles: ", jsonutil.MarshalJson(rrdpFiles))
+	return rrdpFiles, nil
+
+}
+
+// deprecated
 func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFiles []RrdpFile, err error) {
 
 	// delta may have no publishes and no withdraws
@@ -629,5 +550,4 @@ func SaveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, repoPath string) (rrdpFile
 		"   len(rrdpFiles): ", len(rrdpFiles))
 	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save rrdpFiles: ", jsonutil.MarshalJson(rrdpFiles))
 	return rrdpFiles, nil
-
 }

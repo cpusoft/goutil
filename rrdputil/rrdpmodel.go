@@ -31,8 +31,8 @@ type NotificationDelta struct {
 	Hash    string   `xml:"hash,attr" json:"-"`
 }
 
-// support sort: from smaller to bigger
-//	v := []NotificationDelta{{Serial: 1, Uri: "3", Hash: "333"},{Serial: 0, Uri: "6", Hash: "666"},{Serial: 3, Uri: "2", Hash: "2222"},{Serial: 8, Uri: "7", Hash: "7777"}}
+// support sort: from  bigger to smaller: from newer to older
+//	v := []NotificationDelta{{Serial: 10, Uri: "3", Hash: "333"},{Serial: 9, Uri: "6", Hash: "666"},{Serial: 8, Uri: "2", Hash: "2222"},{Serial: 7, Uri: "7", Hash: "7777"}}
 //	sort.Sort(NotificationDeltasSort(v))
 type NotificationDeltasSort []NotificationDelta
 
@@ -46,7 +46,7 @@ func (v NotificationDeltasSort) Swap(i, j int) {
 
 // default comparison.
 func (v NotificationDeltasSort) Less(i, j int) bool {
-	return v[i].Serial < v[j].Serial
+	return v[i].Serial > v[j].Serial
 }
 
 type SnapshotModel struct {
@@ -81,8 +81,8 @@ type DeltaModel struct {
 	DeltaUrl string `xml:"-"`
 }
 
-// support sort: from smaller to bigger
-//	v := []NotificationDelta{{Serial: 1, Uri: "3", Hash: "333"},{Serial: 0, Uri: "6", Hash: "666"},{Serial: 3, Uri: "2", Hash: "2222"},{Serial: 8, Uri: "7", Hash: "7777"}}
+// support sort: from  bigger to smaller
+//	v := []NotificationDelta{{Serial: 10, Uri: "3", Hash: "333"},{Serial: 9, Uri: "6", Hash: "666"},{Serial: 8, Uri: "2", Hash: "2222"},{Serial: 7, Uri: "7", Hash: "7777"}}
 //	sort.Sort(DeltaModelsSort(v))
 type DeltaModelsSort []DeltaModel
 
@@ -96,7 +96,7 @@ func (v DeltaModelsSort) Swap(i, j int) {
 
 // default comparison.
 func (v DeltaModelsSort) Less(i, j int) bool {
-	return v[i].Serial < v[j].Serial
+	return v[i].Serial > v[j].Serial
 }
 
 type DeltaPublish struct {
