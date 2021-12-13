@@ -251,7 +251,8 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 	}
 	belogs.Info("saveRrdpDeltaToRrdpFiles():serial:", deltaModel.Serial,
 		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
-		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws))
+		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
+		"   len(rrdpUris):", len(rrdpUris), "    repoPath:", repoPath)
 	if len(deltaModel.DeltaWithdraws) > 0 {
 		belogs.Info("saveRrdpDeltaToRrdpFiles():len(deltaModel.DeltaWithdraws)>0, deltaModel:", jsonutil.MarshalJson(deltaModel))
 	}
@@ -325,7 +326,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}
 	belogs.Info("saveRrdpDeltaToRrdpFiles():after DeltaWithdraws, len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
-		"   len(rrdpFiles):", len(rrdpFiles))
+		"   len(rrdpFiles):", len(rrdpFiles), "   len(rrdpUris):", len(rrdpUris))
 
 	// seconde, save publish files
 	for i := range deltaModel.DeltaPublishs {
@@ -402,7 +403,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 	}
 	belogs.Info("SaveRrdpSnapshotToRrdpFiles(): after all, len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
 		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
-		"   len(rrdpFiles): ", len(rrdpFiles))
+		"   len(rrdpFiles): ", len(rrdpFiles), "   len(rrdpUris):", len(rrdpUris))
 	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save rrdpFiles: ", jsonutil.MarshalJson(rrdpFiles))
 	return rrdpFiles, nil
 
