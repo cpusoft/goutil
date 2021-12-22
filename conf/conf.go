@@ -96,7 +96,10 @@ func VariableString(key string) string {
 		//rpstir2::datadir -->get  "/root/rpki/data"
 		replaceValue := String(replaceKey)
 		prefix := string(value[:start])
-		suffix := string(value[end+1:])
+		suffix := ""
+		if end+1 < len(value) {
+			suffix = string(value[end+1:])
+		}
 		///root/rpki/data/rsyncrepo
 		newValue := prefix + replaceValue + suffix
 		return newValue
