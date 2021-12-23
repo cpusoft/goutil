@@ -3,14 +3,19 @@ package ginserver
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strings"
 
 	belogs "github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/fileutil"
+	"github.com/cpusoft/goutil/httpclient"
+	"github.com/cpusoft/goutil/httpserver"
 	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/osutil"
 	"github.com/gin-gonic/gin"
 )
 
@@ -128,22 +133,95 @@ func ReceiveFileAndUnmarshalJson(c *gin.Context, dir string, f interface{}) (rec
 
 	receiveFile, err = ReceiveFile(c, dir)
 	if err != nil {
-		belogs.Error("RushNodeBatchPass():ReceiveFile fail, dir:", dir, err)
+		belogs.Error("ReceiveFileAndUnmarshalJson():ReceiveFile fail, dir:", dir, err)
 		return "", err
 	}
 
 	bytes, err := fileutil.ReadFileToBytes(receiveFile)
 	if err != nil {
-		belogs.Error("RushNodeBatchPass():ReadFileToBytes fail, receiveFile:", receiveFile, err)
+		belogs.Error("ReceiveFileAndUnmarshalJson():ReadFileToBytes fail, receiveFile:", receiveFile, err)
 		return receiveFile, err
 	}
 
 	err = json.Unmarshal(bytes, &f)
 	if err != nil {
-		belogs.Error("RushNodeBatchPass():Unmarshal fail,receiveFile :", receiveFile,
+		belogs.Error("ReceiveFileAndUnmarshalJson():Unmarshal fail,receiveFile :", receiveFile,
 			"   content:", string(bytes), err)
 		return receiveFile, err
 	}
-	belogs.Info("RushNodeBatchPass():receiveFile:", receiveFile, "   f:", jsonutil.MarshalJson(f))
+	belogs.Info("ReceiveFileAndUnmarshalJson():receiveFile:", receiveFile, "   f:", jsonutil.MarshalJson(f))
 	return receiveFile, nil
+}
+
+func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
+
+	belogs.Debug("ReceiveFileAndPostNewUrl(): newUrl:", newUrl)
+	fileHeader, err := c.FormFile("file")
+	tmpFile, tmpDir, err := saveToTmpFile(fileHeader)
+	defer func() {
+		osutil.CloseAndRemoveFile(tmpFile)
+		os.Remove(tmpDir)
+	}()
+	if err != nil {
+		belogs.Error("ReceiveFileAndPostNewUrl(): saveToTmpFile fail:", err)
+		return err
+	}
+	belogs.Info("ReceiveFileAndPostNewUrl():saveToTmpFile tmpFile:", tmpFile.Name(), "  newUrl:", newUrl)
+
+	resp, body, err := httpclient.PostFile(newUrl, tmpFile.Name(), "file", false)
+	if err != nil {
+		belogs.Error("ReceiveFileAndPostNewUrl(): upload PostFileHttps failed, err:", newUrl, err)
+		return err
+	}
+	resp.Body.Close()
+	belogs.Debug("ReceiveFileAndPostNewUrl():upload body:", body)
+
+	httpResponse := httpserver.HttpResponse{}
+	jsonutil.UnmarshalJson(body, &httpResponse)
+	belogs.Debug("ReceiveFileAndPostNewUrl(): upload response:", newUrl, jsonutil.MarshalJson(httpResponse))
+	if httpResponse.Result == "fail" {
+		belogs.Error("ReceiveFileAndPostNewUrl(): upload response failed, err:", newUrl, jsonutil.MarshalJson(httpResponse))
+		return errors.New(httpResponse.Msg)
+
+	}
+	belogs.Info("ReceiveFileAndPostNewUrl(): upload ok ", fileHeader.Filename, jsonutil.MarshalJson(httpResponse))
+	return nil
+}
+
+func saveToTmpFile(fileHeader *multipart.FileHeader) (tmpFile *os.File, tmpDir string, err error) {
+	if fileHeader == nil {
+		belogs.Error("saveToTmpFile(): fileHeader is nil")
+		return nil, tmpDir, errors.New("upload file is empty")
+	}
+	// get file
+	file, err := fileHeader.Open()
+	if err != nil {
+		belogs.Error("saveToTmpFile(): fileHeader.Open fail:", err)
+		return nil, tmpDir, err
+	}
+	defer file.Close()
+	belogs.Debug("saveToTmpFile(): fileHeader.Filename:", fileHeader.Filename)
+
+	// create tmp file
+	tmpDir, err = ioutil.TempDir("", "tmp-")
+	if err != nil {
+		belogs.Error("saveToTmpFile(): TempDir fail:", err)
+		return nil, tmpDir, err
+	}
+	tmpFile, err = os.Create(tmpDir + string(os.PathSeparator) + fileHeader.Filename)
+	if err != nil {
+		belogs.Error("saveToTmpFile(): TempFile fail:", err)
+		return nil, tmpDir, err
+	}
+
+	belogs.Debug("saveToTmpFile(): tmpFile:", tmpFile.Name())
+
+	// save to tmp file
+	_, err = io.Copy(tmpFile, file)
+	if err != nil {
+		belogs.Error("saveToTmpFile(): Copy fail:", err)
+		return nil, tmpDir, err
+	}
+
+	return tmpFile, tmpDir, nil
 }

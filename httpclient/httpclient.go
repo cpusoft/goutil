@@ -15,7 +15,6 @@ import (
 
 	belogs "github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/fileutil"
-	"github.com/cpusoft/goutil/ginserver"
 	"github.com/cpusoft/goutil/httpserver"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
@@ -159,11 +158,12 @@ func PostAndUnmarshalStruct(urlStr, postJson string, verifyHttps bool, response 
 }
 
 //
-//type ResponseModel struct {
-//	Result string      `json:"result"`
-//	Msg    string      `json:"msg"`
-//	Data   interface{} `json:"data,omitempty"`
-//}
+type ResponseModel struct {
+	Result string      `json:"result"`
+	Msg    string      `json:"msg"`
+	Data   interface{} `json:"data,omitempty"`
+}
+
 //v is ResponseModel.Data
 func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v interface{}) (err error) {
 	belogs.Debug("PostAndUnmarshalResponseModel(): urlStr:", urlStr, "   postJson:", postJson,
@@ -177,7 +177,7 @@ func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v 
 		resp.Body.Close()
 	}
 
-	var responseModel ginserver.ResponseModel
+	var responseModel ResponseModel
 	err = jsonutil.UnmarshalJson(body, &responseModel)
 	if err != nil {
 		belogs.Error("PostAndUnmarshalResponseModel():UnmarshalJson responseModel failed, urlStr:", urlStr, "  body:", body, err)
@@ -271,11 +271,6 @@ func PostFile(urlStr string, fileName string, formName string, verifyHttps bool)
 }
 
 // fileName: file name ; FormName:id in form
-//type ResponseModel struct {
-//	Result string      `json:"result"`
-//	Msg    string      `json:"msg"`
-//	Data   interface{} `json:"data,omitempty"`
-//}
 //v is ResponseModel.Data
 func PostFileAndUnmarshalResponseModel(urlStr string, fileName string,
 	formName string, verifyHttps bool, v interface{}) (err error) {
@@ -289,7 +284,7 @@ func PostFileAndUnmarshalResponseModel(urlStr string, fileName string,
 		resp.Body.Close()
 	}
 
-	var responseModel ginserver.ResponseModel
+	var responseModel ResponseModel
 	err = jsonutil.UnmarshalJson(body, &responseModel)
 	if err != nil {
 		belogs.Error("PostFileAndUnmarshalResponseModel():UnmarshalJson responseModel failed, urlStr:", urlStr, "  body:", body, err)
