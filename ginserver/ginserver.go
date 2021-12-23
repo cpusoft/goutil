@@ -1,6 +1,7 @@
 package ginserver
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-gonic/gin"
 )
@@ -115,4 +117,33 @@ func ReceiveFile(c *gin.Context, dir string) (receiveFile string, err error) {
 
 		return receiveFile, nil
 	*/
+}
+
+// if dir=="", then will use tempDir
+// outside: if receiveFile!="" then should call os.Remove(receiveFile)
+func ReceiveFileAndUnmarshalJson(c *gin.Context, dir string, f interface{}) (receiveFile string, err error) {
+	if len(dir) == 0 {
+		dir = os.TempDir()
+	}
+
+	receiveFile, err = ReceiveFile(c, dir)
+	if err != nil {
+		belogs.Error("RushNodeBatchPass():ReceiveFile fail, dir:", dir, err)
+		return "", err
+	}
+
+	bytes, err := fileutil.ReadFileToBytes(receiveFile)
+	if err != nil {
+		belogs.Error("RushNodeBatchPass():ReadFileToBytes fail, receiveFile:", receiveFile, err)
+		return receiveFile, err
+	}
+
+	err = json.Unmarshal(bytes, &f)
+	if err != nil {
+		belogs.Error("RushNodeBatchPass():Unmarshal fail,receiveFile :", receiveFile,
+			"   content:", string(bytes), err)
+		return receiveFile, err
+	}
+	belogs.Info("RushNodeBatchPass():receiveFile:", receiveFile, "   f:", jsonutil.MarshalJson(f))
+	return receiveFile, nil
 }
