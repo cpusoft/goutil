@@ -182,3 +182,36 @@ func Struct2Map(obj interface{}) map[string]interface{} {
 	}
 	return data
 }
+
+func ByteIsDigit(b byte) bool {
+	return ('0' <= b) && (b <= '9')
+}
+
+func ByteToDigit(b byte) (digit int, ok bool) {
+	if ByteIsDigit(b) {
+		digit = int(b - '0')
+		return digit, true
+	}
+	return 0, false
+}
+
+func DigitToByte(digit int) (b byte, ok bool) {
+	if (0 <= digit) && (digit <= 9) {
+		b = byte('0' + digit)
+		return b, true
+	}
+	return 0, false
+}
+
+func CloneBytes(a []byte) []byte {
+	b := make([]byte, len(a))
+	copy(b, a)
+	return b
+}
+
+func PrintBytesOneLine(data []byte) (ret string) {
+	for _, b := range data {
+		ret += fmt.Sprintf("%02x ", b)
+	}
+	return strings.TrimSpace(ret)
+}
