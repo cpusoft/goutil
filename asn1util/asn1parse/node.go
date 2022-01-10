@@ -141,7 +141,11 @@ func DecodeNode(data []byte, n *Node) (rest []byte, err error) {
 	var header Header
 	data, err = DecodeHeader(data, &header)
 	if err != nil {
-		belogs.Error("DecodeNode(): DecodeHeader fail:", data, err)
+		if err == io.EOF {
+			belogs.Debug("DecodeNode(): DecodeHeader is end:", data, err)
+		} else {
+			belogs.Error("DecodeNode(): DecodeHeader fail:", data, err)
+		}
 		return nil, err
 	}
 	err = n.setHeader(header)
