@@ -1,4 +1,4 @@
-package asn1parse
+package asn1node
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/cpusoft/goutil/asn1util/asn1"
+	"github.com/cpusoft/goutil/asn1util/asn1base"
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
 )
@@ -421,5 +421,5 @@ func (n *Node) GetGeneralizedTime() (time.Time, error) {
 }
 
 func (n *Node) GetBigInt() (*big.Int, error) {
-	return asn1.ParseBigInt(n.Data)
+	return asn1base.ParseBigInt(n.Data)
 }

@@ -1,7 +1,7 @@
-package asn1parse
+package asn1node
 
 import (
-	"github.com/cpusoft/goutil/asn1util/asn1"
+	"github.com/cpusoft/goutil/asn1util/asn1base"
 )
 
 func BoolEncode(x bool) []byte {
@@ -17,5 +17,5 @@ func BoolDecode(data []byte) (bool, error) {
 	//		return false, ErrorUnmarshalBytes{data, reflect.Bool}
 	//	}
 	//	return (data[0] != 0), nil
-	return asn1.ParseBool(data)
+	return asn1base.ParseBool(data)
 }

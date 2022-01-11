@@ -1,4 +1,4 @@
-package asn1parse
+package asn1node
 
 const (
 	//sizeOfUint8  = 1

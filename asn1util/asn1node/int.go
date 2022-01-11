@@ -1,10 +1,10 @@
-package asn1parse
+package asn1node
 
 import (
 	"encoding/binary"
 	"reflect"
 
-	"github.com/cpusoft/goutil/asn1util/asn1"
+	"github.com/cpusoft/goutil/asn1util/asn1base"
 )
 
 var byteOrder = binary.BigEndian
@@ -83,7 +83,7 @@ func IntDecode(data []byte) (int64, error) {
 	//	return int64(byteOrder.Uint64(completedData)), nil
 	//}
 	//return 0, ErrorUnmarshalBytes{data, reflect.Int}
-	return asn1.ParseInt64(data)
+	return asn1base.ParseInt64(data)
 }
 
 func UintDecode(data []byte) (uint64, error) {

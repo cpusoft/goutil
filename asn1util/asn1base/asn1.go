@@ -1,4 +1,4 @@
-package asn1
+package asn1base
 
 // from "encoding/asn1"
 // Copyright 2009 The Go Authors. All rights reserved.
