@@ -251,7 +251,7 @@ func decodeValue(data []byte, n *Node) error {
 		}
 		return nil
 	} else {
-
+		n.Data = convert.CloneBytes(data)
 		ns, err := decodeNodes(data)
 		if err != nil {
 			return err
