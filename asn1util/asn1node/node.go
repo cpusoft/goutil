@@ -139,7 +139,8 @@ func encodeNodes(ns []*Node) (data []byte, err error) {
 
 func DecodeNode(data []byte, n *Node) (rest []byte, err error) {
 	// set fulldata
-	n.FullData = convert.CloneBytes(data)
+	n.FullData = make([]byte, len(data))
+	copy(n.FullData, data)
 	belogs.Debug("DecodeNode(): len(FullData):", len(n.FullData), "  FullData:", convert.PrintBytesOneLine(n.FullData))
 
 	var header Header
@@ -176,6 +177,7 @@ func DecodeNode(data []byte, n *Node) (rest []byte, err error) {
 	}
 
 	rest = data[length:]
+	belogs.Debug("DecodeNode():after all, len(FullData):", len(n.FullData), "  FullData:", convert.PrintBytesOneLine(n.FullData))
 	return rest, nil
 }
 
