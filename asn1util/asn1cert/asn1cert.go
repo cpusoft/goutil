@@ -135,12 +135,24 @@ func ParseToIpAddressBlocks(data []byte) ([]IpAddrBlock, error) {
 	belogs.Debug("ParseToIpAddressBlocks(): ipAddrAsn1s:", jsonutil.MarshalJson(ipAddrAsn1s))
 
 	for _, ipAddrssAsn1 := range ipAddrAsn1s {
+		// compatible
 		var family uint64
-		if len(ipAddrssAsn1.AddressFamily) == 2 && ipAddrssAsn1.AddressFamily[1] == 1 {
-			family = 1
+		if len(ipAddrssAsn1.AddressFamily) == 2 {
+			if ipAddrssAsn1.AddressFamily[1] == 1 {
+				family = 1
+			} else if ipAddrssAsn1.AddressFamily[1] == 2 {
+				family = 2
+			}
+		} else if len(ipAddrssAsn1.AddressFamily) == 1 {
+			if ipAddrssAsn1.AddressFamily[0] == 1 {
+				family = 1
+			} else if ipAddrssAsn1.AddressFamily[0] == 2 {
+				family = 2
+			}
 		}
-		if len(ipAddrssAsn1.AddressFamily) == 2 && ipAddrssAsn1.AddressFamily[1] == 2 {
-			family = 2
+		if family == 0 {
+			belogs.Error("ParseToIpAddressBlocks(): family fail:", family)
+			return ipAddrBlocks, errors.New("family is error")
 		}
 		belogs.Debug("ParseToIpAddressBlocks(): ipAddrssAsn1.AddressFamily:", ipAddrssAsn1.AddressFamily,
 			" family:", family)

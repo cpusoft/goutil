@@ -60,7 +60,7 @@ func TestParseToIpAddressBlock(t *testing.T) {
 
 	// from sig
 	hexStr = `3010300E04010230090307002001067C208C` // error: 040102 --> 04020002
-	hexStr = `3011300F0402000230090307002001067C208C`
+	//hexStr = `3011300F0402000230090307002001067C208C`
 	by, err = hex.DecodeString(hexStr)
 	fmt.Println(convert.PrintBytesOneLine(by), err)
 	ipAddrBlocks, err = ParseToIpAddressBlocks(by)
