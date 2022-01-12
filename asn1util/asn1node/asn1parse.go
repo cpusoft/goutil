@@ -75,7 +75,7 @@ func ParseHex(hexStr string) (n *Node, err error) {
 }
 
 func ParseBytes(data []byte) (n *Node, err error) {
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		belogs.Error("ParseBytes(): data is emtpy:", len(data))
 		return nil, errors.New("data is empty")
 	}
