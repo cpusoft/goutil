@@ -39,17 +39,16 @@ func init() {
 	if conf == "" {
 		path, err := osutil.GetCurrentOrParentAbsolutePath("conf")
 		if err != nil {
-			panic("found " + path + " failed, " + err.Error())
-
+			fmt.Println("found " + path + " failed, " + err.Error())
+			return
 		}
 		conf = path + string(os.PathSeparator) + "project.conf"
-
 	}
 	fmt.Println("conf file is ", conf)
 	Configure, err = config.NewConfig("ini", conf)
 	if err != nil {
-		panic("load " + conf + " failed, " + err.Error())
-
+		fmt.Println("load " + conf + " failed, " + err.Error())
+		return
 	}
 
 }
