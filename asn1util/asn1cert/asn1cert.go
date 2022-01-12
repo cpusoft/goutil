@@ -74,6 +74,8 @@ type IpAddrRangeAsn1 struct {
 }
 
 func ParseToAddressMinMax(data []byte, ipType int) (min, max string, err error) {
+	belogs.Debug("ParseToAddressMinMax():data:", convert.PrintBytesOneLine(data), ipType)
+
 	var size int
 	if ipType == 1 {
 		size = 4
@@ -119,18 +121,18 @@ func ParseToAddressMinMax(data []byte, ipType int) (min, max string, err error) 
 
 }
 
-func ParseToIpAddressBlock(data []byte) ([]IpAddrBlock, error) {
+func ParseToIpAddressBlocks(data []byte) ([]IpAddrBlock, error) {
 
-	belogs.Debug("ParseToIpAddressBlock(): data:", convert.PrintBytesOneLine(data))
+	belogs.Debug("ParseToIpAddressBlocks(): data:", convert.PrintBytesOneLine(data))
 	ipAddrBlocks := make([]IpAddrBlock, 0)
 
 	var ipAddrAsn1s []IpAddrAsn1
 	_, err := asn1.Unmarshal(data, &ipAddrAsn1s)
 	if err != nil {
-		belogs.Error("ParseToIpAddressBlock(): Unmarshal data fail:", convert.PrintBytesOneLine(data), err)
+		belogs.Error("ParseToIpAddressBlocks(): Unmarshal data fail:", convert.PrintBytesOneLine(data), err)
 		return ipAddrBlocks, err
 	}
-	belogs.Debug("ParseToIpAddressBlock(): ipAddrAsn1s:", jsonutil.MarshalJson(ipAddrAsn1s))
+	belogs.Debug("ParseToIpAddressBlocks(): ipAddrAsn1s:", jsonutil.MarshalJson(ipAddrAsn1s))
 
 	for _, ipAddrssAsn1 := range ipAddrAsn1s {
 		var family uint64
@@ -140,52 +142,52 @@ func ParseToIpAddressBlock(data []byte) ([]IpAddrBlock, error) {
 		if len(ipAddrssAsn1.AddressFamily) == 2 && ipAddrssAsn1.AddressFamily[1] == 2 {
 			family = 2
 		}
-		belogs.Debug("ParseToIpAddressBlock(): ipAddrssAsn1.AddressFamily:", ipAddrssAsn1.AddressFamily,
+		belogs.Debug("ParseToIpAddressBlocks(): ipAddrssAsn1.AddressFamily:", ipAddrssAsn1.AddressFamily,
 			" family:", family)
 
 		if ipAddrssAsn1.IpAddressChoice.Tag == asn1.TagNull {
 			// is null
 			ipAddrBlock := IpAddrBlock{AddressFamily: family}
-			belogs.Debug("ParseToIpAddressBlock():ipAddrssAsn1 is TagNull:", ipAddrssAsn1.IpAddressChoice.Tag, ipAddrBlock)
+			belogs.Debug("ParseToIpAddressBlocks():ipAddrssAsn1 is TagNull:", ipAddrssAsn1.IpAddressChoice.Tag, ipAddrBlock)
 			ipAddrBlocks = append(ipAddrBlocks, ipAddrBlock)
 
 		} else if ipAddrssAsn1.IpAddressChoice.Tag == asn1.TagSequence {
 			// have ips
-			belogs.Debug("ParseToIpAddressBlock():ipAddrssAsn1 is TagSequence:", ipAddrssAsn1.IpAddressChoice.Tag)
+			belogs.Debug("ParseToIpAddressBlocks():ipAddrssAsn1 is TagSequence:", ipAddrssAsn1.IpAddressChoice.Tag)
 
 			var ipAddrRawValues []asn1.RawValue
 			_, err = asn1.Unmarshal(ipAddrssAsn1.IpAddressChoice.FullBytes, &ipAddrRawValues)
 			if err != nil {
-				belogs.Error("ParseToIpAddressBlock():ipAddrRawValues Unmarshal fail:",
+				belogs.Error("ParseToIpAddressBlocks():ipAddrRawValues Unmarshal fail:",
 					convert.PrintBytesOneLine(ipAddrssAsn1.IpAddressChoice.FullBytes),
 					err)
 				return ipAddrBlocks, err
 			}
-			belogs.Debug("ParseToIpAddressBlock(): len(ipAddrRawValues):", len(ipAddrRawValues))
+			belogs.Debug("ParseToIpAddressBlocks(): len(ipAddrRawValues):", len(ipAddrRawValues))
 
 			for _, ipAddrRawValue := range ipAddrRawValues {
 				if ipAddrRawValue.Tag == asn1.TagBitString {
 
 					addressPrefix, err := ParseToAddressPrefix(ipAddrRawValue.Bytes, int(family))
 					if err != nil {
-						belogs.Error("ParseToIpAddressBlock():TagBitString ParseToAddressPrefix fail:",
+						belogs.Error("ParseToIpAddressBlocks():TagBitString ParseToAddressPrefix fail:",
 							convert.PrintBytesOneLine(ipAddrRawValue.Bytes), family, err)
 						return ipAddrBlocks, err
 					}
 					ipAddrBlock := IpAddrBlock{
 						AddressFamily: family,
 						AddressPrefix: addressPrefix}
-					belogs.Debug("ParseToIpAddressBlock():TagBitString  ipAddrBlock:", ipAddrssAsn1.IpAddressChoice.Tag, ipAddrBlock)
+					belogs.Debug("ParseToIpAddressBlocks():TagBitString  ipAddrBlock:", ipAddrssAsn1.IpAddressChoice.Tag, ipAddrBlock)
 					ipAddrBlocks = append(ipAddrBlocks, ipAddrBlock)
 
 				} else if ipAddrRawValue.Tag == asn1.TagSequence {
 
 					//var ipAddrRangeAsn1 IpAddrRangeAsn1
 					//_, err := asn1.Unmarshal(ipAddrRawValue.FullBytes, &ipAddrRangeAsn1)
-					//belogs.Debug("ParseToIpAddressBlock():TagSequence ipAddrRangeAsn1:", jsonutil.MarshalJson(ipAddrRangeAsn1))
+					//belogs.Debug("ParseToIpAddressBlocks():TagSequence ipAddrRangeAsn1:", jsonutil.MarshalJson(ipAddrRangeAsn1))
 					min, max, err := ParseToAddressMinMax(ipAddrRawValue.FullBytes, int(family))
 					if err != nil {
-						belogs.Error("ParseToIpAddressBlock():TagSequence ParseToAddressMinMax fail:",
+						belogs.Error("ParseToIpAddressBlocks():TagSequence ParseToAddressMinMax fail:",
 							convert.PrintBytesOneLine(ipAddrRawValue.FullBytes), family, err)
 						return ipAddrBlocks, err
 					}
@@ -193,12 +195,29 @@ func ParseToIpAddressBlock(data []byte) ([]IpAddrBlock, error) {
 						AddressFamily: family,
 						Min:           min,
 						Max:           max}
-					belogs.Debug("ParseToIpAddressBlock():TagSequence ipAddrBlock:", ipAddrssAsn1.IpAddressChoice.Tag, ipAddrBlock)
+					belogs.Debug("ParseToIpAddressBlocks():TagSequence ipAddrBlock:", ipAddrssAsn1.IpAddressChoice.Tag, ipAddrBlock)
 					ipAddrBlocks = append(ipAddrBlocks, ipAddrBlock)
 				}
 			}
 		}
 	}
-	belogs.Info("ParseToIpAddressBlock():ipAddrBlocks:", jsonutil.MarshalJson(ipAddrBlocks))
+	belogs.Info("ParseToIpAddressBlocks():ipAddrBlocks:", jsonutil.MarshalJson(ipAddrBlocks))
 	return ipAddrBlocks, nil
+}
+
+type FileAndHash struct {
+	File string `asn1:"ia5" json:"file"`
+	Hash []byte `json:"hash"`
+}
+
+func ParseToFileAndHashs(data []byte) ([]FileAndHash, error) {
+	belogs.Debug("ParseToFileAndHashs(): data:", convert.PrintBytesOneLine(data))
+	fileAndHashs := make([]FileAndHash, 0)
+	_, err := asn1.Unmarshal(data, &fileAndHashs)
+	if err != nil {
+		belogs.Error("ParseToFileAndHashs(): Unmarshal data fail:", convert.PrintBytesOneLine(data), err)
+		return fileAndHashs, err
+	}
+	belogs.Debug("ParseToFileAndHashs(): fileAndHashs:", jsonutil.MarshalJson(fileAndHashs))
+	return fileAndHashs, nil
 }
