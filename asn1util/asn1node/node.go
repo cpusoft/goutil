@@ -30,9 +30,10 @@ type Node struct {
 	tag         int
 	constructed bool // isCompound
 
-	Data  []byte      `json:"data"`            // Primitive:   (isCompound = false)
-	Value interface{} `json:"value,omitempty"` // Primitive:  int/bool/string/time... (isCompound = false)
-	Nodes []*Node     `json:"nodes,omitempty"` // Constructed: (isCompound = true)
+	FullData []byte      `json:"-"`               // all data include class/tag
+	Data     []byte      `json:"data"`            // Primitive:   (isCompound = false)
+	Value    interface{} `json:"value,omitempty"` // Primitive:  int/bool/string/time... (isCompound = false)
+	Nodes    []*Node     `json:"nodes,omitempty"` // Constructed: (isCompound = true)
 }
 
 func NewNode(class int, tag int) *Node {
@@ -137,7 +138,8 @@ func encodeNodes(ns []*Node) (data []byte, err error) {
 }
 
 func DecodeNode(data []byte, n *Node) (rest []byte, err error) {
-
+	// set fulldata
+	n.FullData = data
 	var header Header
 	data, err = DecodeHeader(data, &header)
 	if err != nil {
