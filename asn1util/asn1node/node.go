@@ -30,7 +30,7 @@ type Node struct {
 	tag         int
 	constructed bool // isCompound
 
-	Data  []byte      `json:"-"`               // Primitive:   (isCompound = false)
+	Data  []byte      `json:"data"`            // Primitive:   (isCompound = false)
 	Value interface{} `json:"value,omitempty"` // Primitive:  int/bool/string/time... (isCompound = false)
 	Nodes []*Node     `json:"nodes,omitempty"` // Constructed: (isCompound = true)
 }
