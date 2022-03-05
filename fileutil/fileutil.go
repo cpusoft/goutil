@@ -49,3 +49,11 @@ func ReadFileToBytes(file string) (bytes []byte, err error) {
 func WriteBytesToFile(file string, bytes []byte) (err error) {
 	return ioutil.WriteFile(file, bytes, 0664)
 }
+
+func GetFileLength(file string) (length int64, err error) {
+	f, err := os.Stat(file)
+	if err != nil {
+		return 0, err
+	}
+	return f.Size(), nil
+}
