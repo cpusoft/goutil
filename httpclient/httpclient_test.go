@@ -62,16 +62,16 @@ func TestPostFile(t *testing.T) {
 }
 
 func TestHttpsPostFile(t *testing.T) {
-	/*
-		resp, body, err := PostFileHttp("http://202.173.14.105:8070/parsevalidate/parsefilesimple",
-			`G:\Download\cert\oWhEB7GUTj5ZqlXo7X2VbNrJ9xw.cer`, `file`)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("resp:", resp)
-		fmt.Println("body:", body)
-	*/
+
+	resp, body, err := PostFileHttp("http://202.173.14.105:8070/parsevalidate/parsefilesimple",
+		`G:\Download\cert\oWhEB7GUTj5ZqlXo7X2VbNrJ9xw.cer`, `file`)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("resp:", resp)
+	fmt.Println("body:", body)
+
 }
 
 func TestHttpUnMarshalJson(t *testing.T) {
@@ -87,12 +87,6 @@ func TestHttpUnMarshalJson(t *testing.T) {
 		err = jsonutil.UnmarshalJson(body, &httpResponse1)
 		fmt.Println(httpResponse1, err)
 	*/
-}
-
-func TestGetByCurl(t *testing.T) {
-	url := `https://www.baidu.com`
-	r, err := GetByCurl(url)
-	fmt.Println(r, err)
 }
 
 type HttpResponse struct {

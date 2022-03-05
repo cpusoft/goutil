@@ -133,7 +133,6 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
 	belogs.Debug("getRrdpDeltaImpl(): deltaUrl:", deltaUrl)
-	httpclient.ResetTimeout()
 	resp, body, err := httpclient.GetHttpsVerify(deltaUrl, true)
 	if err == nil {
 		defer resp.Body.Close()
