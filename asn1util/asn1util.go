@@ -184,6 +184,10 @@ func ReadFileAndDecodeBase64(file string) (fileByte []byte, fileDecodeBase64Byte
 		belogs.Error("ReadFileAndDecodeBase64():ReadFile err:", file, err)
 		return nil, nil, err
 	}
+	if len(fileByte) == 0 {
+		belogs.Error("ReadFileAndDecodeBase64():fileByte is emtpy:", file)
+		return nil, nil, errors.New("file is emtpy")
+	}
 	fileDecodeBase64Byte, err = DecodeBase64(fileByte)
 	if err != nil {
 		belogs.Error("ReadFileAndDecodeBase64():DecodeBase64 err:", file, err)
