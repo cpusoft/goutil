@@ -45,6 +45,7 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 func getRrdpNotificationImpl(notificationUrl string) (notificationModel NotificationModel, err error) {
 	start := time.Now()
 	belogs.Debug("getRrdpNotificationImpl(): notificationUrl:", notificationUrl)
+	httpclient.ResetTimeout()
 	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
 	if err == nil {
 		defer resp.Body.Close()

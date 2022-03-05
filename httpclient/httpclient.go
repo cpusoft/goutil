@@ -14,6 +14,7 @@ import (
 	"time"
 
 	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/httpserver"
 	"github.com/cpusoft/goutil/jsonutil"
@@ -382,7 +383,6 @@ func GetByCurl(url string) (result string, err error) {
 	belogs.Debug("GetByCurl(): cmd:  curl ", url)
 	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
 	defer os.Remove(tmpFile)
-	belogs.Debug("GetByCurl():will curl url:", url, "   tmpFile:", tmpFile)
 
 	// -s: slient mode
 	// -4: ipv4
@@ -392,8 +392,13 @@ func GetByCurl(url string) (result string, err error) {
 	// -o : output file
 	// --limit-rate:  100k
 	// -m: --max-time SECONDS  Maximum time allowed for the transfer
-	cmd := exec.Command("curl", "-s", "-4", "--connect-timeout", "300",
-		"--ignore-content-length", "-m", "300",
+
+	// timeout seconds:
+	timeOut := convert.ToString((httpClientConfig.Timeout * time.Minute).Seconds())
+	belogs.Debug("GetByCurl():will curl url:", url, "   tmpFile:", tmpFile,
+		"  timeOut:", (httpClientConfig.Timeout * time.Minute).Seconds(), timeOut)
+	cmd := exec.Command("curl", "-s", "-4", "--connect-timeout", timeOut,
+		"--ignore-content-length", "-m", timeOut,
 		"--retry", "3", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
