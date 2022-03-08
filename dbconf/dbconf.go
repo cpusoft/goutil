@@ -38,7 +38,7 @@ func InitDbConf(tableName string) (err error) {
 		`select id, section, myKey, myValue, DefaultMyValue
 	    from ` + tableName + `    
 		order by id `
-	err = xormdb.XormEngine.Sql(sql).Find(&dbConfModels)
+	err = xormdb.XormEngine.SQL(sql).Find(&dbConfModels)
 	if err != nil {
 		belogs.Error("InitDbConf(): find fail:", err)
 		return err
