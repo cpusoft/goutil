@@ -75,3 +75,19 @@ func TestTime2String(t *testing.T) {
 	s = Time2StringZone(tt)
 	fmt.Println(s)
 }
+
+func TestByteToDigit(t *testing.T) {
+	b := []byte{0x00, 0x18, 0x2d}
+	fmt.Println(b)
+	bb := Bytes2Uint64(b)
+	fmt.Println(bb)
+
+	bb1 := BytesToBigInt(b)
+	fmt.Println(bb1, bb1.Int64())
+
+	var bbb byte
+	bbb = 0x01
+	bb1 = ByteToBigInt(bbb)
+	fmt.Println(bb1, bb1.Int64())
+
+}

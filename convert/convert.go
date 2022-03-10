@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 	"strconv"
 	"strings"
@@ -14,11 +15,50 @@ import (
 	"github.com/cpusoft/goutil/osutil"
 )
 
+// Deprecated
 func Bytes2Uint64(bytes []byte) uint64 {
 	lens := 8 - len(bytes)
 	bb := make([]byte, lens)
 	bb = append(bb, bytes...)
 	return binary.BigEndian.Uint64(bb)
+}
+
+// Deprecated
+func IntToBytes(n int) ([]byte, error) {
+	data := int64(n)
+	bytebuf := bytes.NewBuffer([]byte{})
+	err := binary.Write(bytebuf, binary.BigEndian, data)
+	if err != nil {
+		return nil, err
+	}
+	return bytebuf.Bytes(), nil
+}
+
+// Deprecated
+func ByteToDigit(b byte) (digit int, ok bool) {
+	if ByteIsDigit(b) {
+		digit = int(b - '0')
+		return digit, true
+	}
+	return 0, false
+}
+
+// Deprecated
+func DigitToByte(digit int) (b byte, ok bool) {
+	if (0 <= digit) && (digit <= 9) {
+		b = byte('0' + digit)
+		return b, true
+	}
+	return 0, false
+}
+
+func BytesToBigInt(bytes []byte) *big.Int {
+	return big.NewInt(0).SetBytes(bytes)
+}
+func ByteToBigInt(b byte) *big.Int {
+	bytes := make([]byte, 0)
+	bytes = append(bytes, b)
+	return BytesToBigInt(bytes)
 }
 
 //0102abc1
@@ -185,22 +225,6 @@ func Struct2Map(obj interface{}) map[string]interface{} {
 
 func ByteIsDigit(b byte) bool {
 	return ('0' <= b) && (b <= '9')
-}
-
-func ByteToDigit(b byte) (digit int, ok bool) {
-	if ByteIsDigit(b) {
-		digit = int(b - '0')
-		return digit, true
-	}
-	return 0, false
-}
-
-func DigitToByte(digit int) (b byte, ok bool) {
-	if (0 <= digit) && (digit <= 9) {
-		b = byte('0' + digit)
-		return b, true
-	}
-	return 0, false
 }
 
 func CloneBytes(a []byte) []byte {
