@@ -77,17 +77,17 @@ func TestTime2String(t *testing.T) {
 }
 
 func TestByteToDigit(t *testing.T) {
-	b := []byte{0x00, 0x18, 0x2d}
+	b := []byte{0x00, 0x02}
 	fmt.Println(b)
 	bb := Bytes2Uint64(b)
 	fmt.Println(bb)
 
 	bb1 := BytesToBigInt(b)
-	fmt.Println(bb1, bb1.Int64())
+	fmt.Println("BytesToBigInt:", bb1, bb1.Int64())
 
 	var bbb byte
 	bbb = 0x01
 	bb1 = ByteToBigInt(bbb)
-	fmt.Println(bb1, bb1.Int64())
+	fmt.Println("ByteToBigInt:", bb1, bb1.Int64())
 
 }
