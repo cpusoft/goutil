@@ -180,6 +180,16 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 			"    notificationModel.SessionId:", notificationModel.SessionId)
 		return errors.New("delta's session_id is different from  notification's session_id")
 	}
+
+	for i := range notificationModel.Deltas {
+		if notificationModel.Deltas[i].Serial == deltaModel.Serial {
+			if deltaModel.Hash != notificationModel.Deltas[i].Hash {
+				belogs.Error("CheckRrdpDelta():     deltaModel.Serial:", deltaModel.Serial,
+					"    deltaModel.Hash:", deltaModel.Hash,
+					"    notificationModel.Deltas[i].Hash:", notificationModel.Deltas[i].Hash, " but just continue")
+			}
+		}
+	}
 	/* hash256 comes from the last file
 	for i := range deltaModel.DeltaPublishs {
 		base64Hash := hashutil.Sha256([]byte((deltaModel.DeltaPublishs[i].Base64)))
@@ -196,24 +206,7 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 			return errors.New("notification has not such  delta's serial")
 		}
 	}
-	/*
-		found := false
-		for i := range notificationModel.Deltas {
-			if notificationModel.Deltas[i].Serial == deltaModel.Serial &&
-				strings.ToLower(notificationModel.Deltas[i].Hash) != strings.ToLower(deltaModel.Hash) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			belogs.Error("CheckRrdpDelta(): compare notificationModel.MapSerialDeltas:",
-				notificationModel.MapSerialDeltas, "  eltaModel.Serial: ", deltaModel.Serial,
-				"    notificationModel.Deltas[i].Hash not found, ",
-				"    deltaModel.Hash:", deltaModel.Hash)
-			//shaodebug ,not return ,just log error
-			//return errors.New("delta's hash is different from  notification's snapshot's hash")
-		}
-	*/
+
 	return nil
 
 }
