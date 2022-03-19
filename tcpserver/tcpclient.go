@@ -45,11 +45,11 @@ func (tc *TcpClient) Start(server string) (err error) {
 	}
 	conn, err := net.DialTCP("tcp4", nil, tcpServer)
 	if err != nil {
-		belogs.Error("Start(): Dial fail: ", server, tcpServer, err)
+		belogs.Error("Start(): Dial fail, server:", server, "  tcpServer:", tcpServer, err)
 		return err
 	}
 	defer conn.Close()
-	belogs.Debug("Start():create client ok, server is  ", server, "   conn:", conn)
+	belogs.Debug("Start():create client ok, server:", server, "   conn:", conn)
 
 	// get process func to active send to server
 	go tc.waitActiveSend(conn)
