@@ -176,6 +176,8 @@ func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v 
 	if resp != nil {
 		resp.Body.Close()
 	}
+	belogs.Debug("PostAndUnmarshalResponseModel(): len(body):", len(body))
+	belogs.Debug("PostAndUnmarshalResponseModel(): body:", body)
 
 	var responseModel ResponseModel
 	err = jsonutil.UnmarshalJson(body, &responseModel)
@@ -188,7 +190,7 @@ func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v 
 		return errors.New(responseModel.Msg)
 	}
 	if v != nil {
-		belogs.Debug("PostAndUnmarshalResponseModel(): v:", reflect.TypeOf(v).Name())
+		belogs.Debug("PostAndUnmarshalResponseModel(): v:", reflect.TypeOf(v).Name(), "  len(body):", len(body))
 		// UnmarshalJson to get actual ***Response
 		data := jsonutil.MarshalJson(responseModel.Data)
 		err = jsonutil.UnmarshalJson(data, v)
