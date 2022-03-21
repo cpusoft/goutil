@@ -185,10 +185,13 @@ func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v 
 		belogs.Error("PostAndUnmarshalResponseModel():UnmarshalJson responseModel failed, urlStr:", urlStr, "  body:", body, err)
 		return err
 	}
+	belogs.Debug("PostAndUnmarshalResponseModel():get response, urlStr:", urlStr, "   postJson:", postJson,
+		" responseModel:", jsonutil.MarshalJson(responseModel))
 	if responseModel.Result == "fail" {
 		belogs.Error("PostAndUnmarshalResponseModel():responseModel.Result is fail, err:", jsonutil.MarshalJson(responseModel), body)
 		return errors.New(responseModel.Msg)
 	}
+
 	if v != nil {
 		belogs.Debug("PostAndUnmarshalResponseModel(): v:", reflect.TypeOf(v).Name(), "  len(body):", len(body))
 		// UnmarshalJson to get actual ***Response
