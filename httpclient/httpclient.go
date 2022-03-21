@@ -426,7 +426,7 @@ func errorsToerror(resps gorequest.Response, bodys string, errs []error) (resp g
 
 func NewHttpClientConfig() *HttpClientConfig {
 	httpClientConfig := new(HttpClientConfig)
-	httpClientConfig.Timeout = DefaultTimeout
+	httpClientConfig.Timeout = time.Duration(DefaultTimeout)
 	httpClientConfig.RetryCount = RetryCount
 	return httpClientConfig
 }
