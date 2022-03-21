@@ -389,17 +389,16 @@ func GetByCurl(url string) (result string, err error) {
 	defer os.Remove(tmpFile)
 	belogs.Debug("GetByCurl():will curl url:", url, "   tmpFile:", tmpFile)
 
-	// -s: slient mode
-	// -4: ipv4
+	// -s: slient mode  --no use
+	// -4: ipv4  --no use
 	// --connect-timeout: SECONDS  Maximum time allowed for connection
-	// --ignore-content-length: Ignore the Content-Length header
+	// --ignore-content-length: Ignore the Content-Length header  --no use
 	// --retry:
 	// -o : output file
-	// --limit-rate:  100k
+	// --limit-rate:  100k  --no use
 	// -m: --max-time SECONDS  Maximum time allowed for the transfer
-	cmd := exec.Command("curl", "-s", "-4", "--connect-timeout", "300",
-		"--ignore-content-length", "-m", "300",
-		"--retry", "3", "-o", tmpFile, url)
+	cmd := exec.Command("curl", "--connect-timeout", "600",
+		"-m", "600", "--retry", "3", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
