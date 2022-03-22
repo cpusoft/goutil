@@ -56,12 +56,12 @@ func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (del
 		return nil, errors.New(errorMsg)
 	}
 	// get deltaModels, and sort
-	oldDeltaModels := make([]DeltaModel, 0, len(notificationModel.MapSerialDeltas))
+	deltaModels = make([]DeltaModel, 0, len(notificationModel.MapSerialDeltas))
 	for deltaModel := range deltaModelCh {
-		oldDeltaModels = append(oldDeltaModels, deltaModel)
+		deltaModels = append(deltaModels, deltaModel)
 	}
 	// sort, from newest to oldest
-	sort.Sort(DeltaModelsSort(oldDeltaModels))
+	sort.Sort(DeltaModelsSort(deltaModels))
 
 	belogs.Info("GetRrdpDeltas():len(deltaModels):", len(deltaModels),
 		"   len(notificationModel.Deltas) :", len(notificationModel.Deltas),
