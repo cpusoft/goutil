@@ -129,9 +129,9 @@ func (tc *TcpClient) waitReceive(conn *net.TCPConn) {
 		receiveData := make([]byte, n)
 		copy(receiveData, buffer[0:n])
 		belogs.Info("waitReceive():conn: ", conn, "  len(receiveData): ", len(receiveData),
-			" , will call client tcpClientProcessFunc,  time(s):", time.Now().Sub(start).Seconds())
+			" , will call client tcpClientProcessFunc,  time(s):", time.Since(start))
 		err = tc.tcpClientProcessFunc.OnReceive(conn, receiveData)
-		belogs.Debug("waitReceive():conn: ", conn, "  len(receiveData): ", len(receiveData), "  time(s):", time.Now().Sub(start).Seconds())
+		belogs.Debug("waitReceive():conn: ", conn, "  len(receiveData): ", len(receiveData), "  time(s):", time.Since(start))
 		if err != nil {
 			belogs.Error("waitReceive(): fail ,will remove this conn : ", conn, err)
 			break
