@@ -184,7 +184,7 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 	for i := range notificationModel.Deltas {
 		if notificationModel.Deltas[i].Serial == deltaModel.Serial {
 			if deltaModel.Hash != notificationModel.Deltas[i].Hash {
-				belogs.Error("CheckRrdpDelta():     deltaModel.Serial:", deltaModel.Serial,
+				belogs.Info("CheckRrdpDelta(): deltaModel.Serial:", deltaModel.Serial,
 					"    deltaModel.Hash:", deltaModel.Hash,
 					"    notificationModel.Deltas[i].Hash:", notificationModel.Deltas[i].Hash, " but just continue")
 			}
