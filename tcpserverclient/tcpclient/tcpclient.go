@@ -22,7 +22,7 @@ type TcpClient struct {
 }
 
 // server: 0.0.0.0:port
-func NewTcpClient(stopFlag string, tcpClientProcessFunc TcpClientProcessFunc) (tc *TcpClient) {
+func NewTcpClient(tcpClientProcessFunc TcpClientProcessFunc) (tc *TcpClient) {
 
 	belogs.Debug("NewTcpClient():tcpClientProcessFuncs:", tcpClientProcessFunc)
 	tc = &TcpClient{}

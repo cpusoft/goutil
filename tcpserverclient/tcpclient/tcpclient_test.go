@@ -21,7 +21,7 @@ func CreateTcpClient() {
 	clientProcessFunc := new(ClientProcessFunc)
 
 	//CreateTcpClient("127.0.0.1:9999", ClientProcess1)
-	TcpTestClient = NewTcpClient("stop", clientProcessFunc)
+	TcpTestClient = NewTcpClient(clientProcessFunc)
 	err := TcpTestClient.Start("192.168.83.139:9999")
 	belogs.Debug("CreateTcpClient(): tcpclient: ", TcpTestClient, err)
 	if err != nil {
