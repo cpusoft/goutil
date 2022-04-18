@@ -55,6 +55,15 @@ func DigitToByte(digit int) (b byte, ok bool) {
 func BytesToBigInt(bytes []byte) *big.Int {
 	return big.NewInt(0).SetBytes(bytes)
 }
+
+func BytesToInt64(bytes []byte) (int64, error) {
+	i := BytesToBigInt(bytes)
+	if i != nil && i.IsInt64() {
+		return i.Int64(), nil
+	}
+	return 0, errors.New("is not int")
+}
+
 func ByteToBigInt(b byte) *big.Int {
 	bytes := make([]byte, 0)
 	bytes = append(bytes, b)

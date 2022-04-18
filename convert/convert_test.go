@@ -77,7 +77,7 @@ func TestTime2String(t *testing.T) {
 }
 
 func TestByteToDigit(t *testing.T) {
-	b := []byte{0x00, 0x02}
+	b := []byte{0x00, 0x10}
 	fmt.Println(b)
 	bb := Bytes2Uint64(b)
 	fmt.Println(bb)
