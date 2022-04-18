@@ -17,41 +17,41 @@ type TcpServer struct {
 	tcpServerProcessFunc TcpServerProcessFunc
 }
 
-// server: 0.0.0.0:port
+//
 func NewTcpServer(tcpServerProcessFunc TcpServerProcessFunc) (ts *TcpServer) {
 
 	belogs.Debug("NewTcpServer():tcpProcessFunc:", tcpServerProcessFunc)
 	ts = &TcpServer{}
 	ts.tcpConns = make(map[string]*net.TCPConn, 16)
 	ts.tcpServerProcessFunc = tcpServerProcessFunc
-	belogs.Debug("NewTcpServer():ts:", ts, "   ts.tcpConnsMutex:", ts.tcpConnsMutex)
-	return ts
+	belogs.Debug("NewTcpServer():ts:", ts)
 }
 
-// server: 0.0.0.0:port
-func (ts *TcpServer) Start(server string) (err error) {
-	tcpServer, err := net.ResolveTCPAddr("tcp", server)
+// port: `8888` --> `0.0.0.0:8888`
+func (ts *TcpServer) Start(port string) (err error) {
+	tcpServer, err := net.ResolveTCPAddr("tcp", "0.0.0.0:"+port)
 	if err != nil {
-		belogs.Error("Start(): tcpserver  ResolveTCPAddr fail: ", server, err)
+		belogs.Error("Start(): tcpserver  ResolveTCPAddr fail: ", port, err)
 		return err
 	}
 
 	listen, err := net.ListenTCP("tcp", tcpServer)
 	if err != nil {
-		belogs.Error("Start(): tcpserver  ListenTCP fail: ", server, err)
+		belogs.Error("Start(): tcpserver  ListenTCP fail: ", port, err)
 		return err
 	}
 	defer listen.Close()
-	belogs.Debug("Start(): tcpserver  create server ok, server is ", server, "  will accept client")
+	belogs.Debug("Start(): tcpserver  create server ok, server is ", port, "  will accept client")
 
 	for {
 		tcpConn, err := listen.AcceptTCP()
 		belogs.Info("Start(): tcpserver  Accept remote: ", tcpConn.RemoteAddr().String())
-		if err != nil {
-			belogs.Error("Start(): tcpserver  Accept remote fail: ", server, tcpConn.RemoteAddr().String(), err)
+		if tcpConn == nil {
+			belogs.Error("Start(): tcpserver AcceptTCP tcpConn is nil: ", port)
 			continue
 		}
-		if tcpConn == nil {
+		if err != nil {
+			belogs.Error("Start(): tcpserver  AcceptTCP remote fail: ", port, tcpConn.RemoteAddr().String(), err)
 			continue
 		}
 

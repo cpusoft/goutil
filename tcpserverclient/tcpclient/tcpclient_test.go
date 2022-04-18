@@ -22,7 +22,7 @@ func CreateTcpClient() {
 
 	//CreateTcpClient("127.0.0.1:9999", ClientProcess1)
 	TcpTestClient = NewTcpClient(clientProcessFunc)
-	err := TcpTestClient.Start("192.168.83.139:9999")
+	err := TcpTestClient.Start("127.0.0.1:9999")
 	belogs.Debug("CreateTcpClient(): tcpclient: ", TcpTestClient, err)
 	if err != nil {
 		return
@@ -30,7 +30,7 @@ func CreateTcpClient() {
 	belogs.Debug("CreateTcpClient(): tcpclient will SendData")
 	tcpClientMsg := &TcpClientMsg{NextConnectClosePolicy: util.NEXT_CONNECT_POLICE_KEEP,
 		NextRwPolice: util.NEXT_RW_POLICE_WAIT_READ,
-		SendData:     GetClientData(),
+		SendData:     GetTcpClientData(),
 	}
 	TcpTestClient.SendMsg(tcpClientMsg)
 	time.Sleep(60 * time.Second)
@@ -62,7 +62,7 @@ func (sq *ClientProcessFunc) OnReceiveProcess(tcpConn *net.TCPConn, receiveData 
 	return util.NEXT_RW_POLICE_END_READ, make([]byte, 0), nil
 }
 
-func GetClientData() (buffer []byte) {
+func GetTcpClientData() (buffer []byte) {
 
 	return []byte{0x00, 0x0a, 0x00, 0x01, 0x00, 0x00, 0x00, 0x10,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

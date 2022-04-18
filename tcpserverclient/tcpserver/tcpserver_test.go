@@ -27,9 +27,9 @@ const (
 func CreateTcpServer() {
 	serverProcessFunc := new(ServerProcessFunc)
 	tcpTestServer = NewTcpServer(serverProcessFunc)
-	tcpTestServer.Start("0.0.0.0:9999")
+	tcpTestServer.Start("9999")
 	time.Sleep(2 * time.Second)
-	tcpTestServer.ActiveSend(GetServerData(), "")
+	tcpTestServer.ActiveSend(GetTcpServerData(), "")
 }
 
 type ServerProcessFunc struct {
@@ -94,7 +94,7 @@ func (spf *ServerProcessFunc) ActiveSendProcess(tcpConn *net.TCPConn, sendData [
 	return nil
 }
 
-func GetServerData() (buffer []byte) {
+func GetTcpServerData() (buffer []byte) {
 
 	return []byte{0x00, 0x0a, 0x00, 0x01, 0x00, 0x00, 0x00, 0x10,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -104,6 +104,6 @@ func GetServerData() (buffer []byte) {
 
 func RtrProcess(receiveData []byte) (sendData []byte, err error) {
 	buf := bytes.NewReader(receiveData)
-	belogs.Debug("RtrProcess(): buf:", buf)
-	return GetServerData(), nil
+	belogs.Debug("RtrProcess(): tcpserver buf:", buf)
+	return GetTcpServerData(), nil
 }
