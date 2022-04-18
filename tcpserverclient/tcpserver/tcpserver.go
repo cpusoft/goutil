@@ -75,10 +75,7 @@ func (ts *TcpServer) OnConnect(tcpConn *net.TCPConn) {
 	tcpConn.SetKeepAlivePeriod(time.Second * 300)
 	connKey := tcpConn.RemoteAddr().String()
 	ts.tcpConns[connKey] = tcpConn
-	belogs.Debug("OnConnect():tcp tcpConn: ", tcpConn.RemoteAddr().String(), ", connKey:", connKey, "  new len(tcpConns): ", len(ts.tcpConns))
-
-	// call process func OnConnect
-	belogs.Debug("OnConnect():tcp tcpConn: ", tcpConn.RemoteAddr().String(), "   call process func: OnConnect ")
+	belogs.Debug("OnConnect(): tcpserver tcpConn: ", tcpConn.RemoteAddr().String(), ", connKey:", connKey, "  new len(tcpConns): ", len(ts.tcpConns))
 	ts.tcpServerProcessFunc.OnConnectProcess(tcpConn)
 	belogs.Info("OnConnect(): tcpserver add tcpConn: ", tcpConn.RemoteAddr().String(), "   len(tcpConns): ", len(ts.tcpConns), "   time(s):", time.Now().Sub(start).Seconds())
 
