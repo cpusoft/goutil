@@ -25,6 +25,7 @@ func NewTcpServer(tcpServerProcessFunc TcpServerProcessFunc) (ts *TcpServer) {
 	ts.tcpConns = make(map[string]*net.TCPConn, 16)
 	ts.tcpServerProcessFunc = tcpServerProcessFunc
 	belogs.Debug("NewTcpServer():ts:", ts)
+	return ts
 }
 
 // port: `8888` --> `0.0.0.0:8888`
