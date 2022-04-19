@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"io"
 	"io/ioutil"
+	"net"
 	"sync"
 	"time"
 
@@ -71,11 +72,22 @@ func (ts *TlsServer) Start(port string) (err error) {
 	if ts.verifyClient {
 		clientAuthType = tls.RequireAndVerifyClientCert
 	}
+	// https://stackoverflow.com/questions/63676241/how-to-set-setkeepaliveperiod-on-a-tls-conn
+	setTCPKeepAlive := func(clientHello *tls.ClientHelloInfo) (*tls.Config, error) {
+		// Check that the underlying connection really is TCP.
+		if tcpConn, ok := clientHello.Conn.(*net.TCPConn); ok {
+			tcpConn.SetKeepAlive(true)
+			tcpConn.SetKeepAlivePeriod(time.Second * 300)
+		}
+		// Make sure to return nil, nil to let the caller fall back on the default behavior.
+		return nil, nil
+	}
 	config := &tls.Config{
 		Certificates:       []tls.Certificate{cert},
 		ClientAuth:         clientAuthType,
 		RootCAs:            rootCertPool,
 		InsecureSkipVerify: false,
+		GetConfigForClient: setTCPKeepAlive,
 	}
 	listen, err := tls.Listen("tcp", ":"+port, config)
 	if err != nil {
