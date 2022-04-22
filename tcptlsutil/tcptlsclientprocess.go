@@ -1,4 +1,4 @@
-package main
+package tcptlsutil
 
 type TcpTlsClientProcessFunc interface {
 	OnConnectProcess(tcpTlsConn *TcpTlsConn)

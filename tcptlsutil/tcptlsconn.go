@@ -1,4 +1,4 @@
-package main
+package tcptlsutil
 
 import (
 	"crypto/tls"

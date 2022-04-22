@@ -1,4 +1,4 @@
-package main
+package tcptlsutil
 
 // tcp server extension interface: need to expand yourself process
 type TcpTlsServerProcessFunc interface {

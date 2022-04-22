@@ -1,11 +1,11 @@
-package main
+package tcptlsutil
 
 import (
 	"crypto/tls"
 	"net"
 	"time"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 )
 
 // https://stackoverflow.com/questions/66755407/cancelling-a-net-listener-via-context-in-golang

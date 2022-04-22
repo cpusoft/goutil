@@ -1,4 +1,4 @@
-package main
+package tcptlsutil
 
 import (
 	"crypto/tls"
@@ -9,7 +9,7 @@ import (
 	"net"
 	"time"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
 )
