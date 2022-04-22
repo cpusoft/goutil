@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 )
 
 type TcpServer struct {

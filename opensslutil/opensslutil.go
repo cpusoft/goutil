@@ -5,8 +5,8 @@ import (
 	"os/exec"
 	"strings"
 
-	belogs "github.com/cpusoft/goutil/belogs"
-	osutil "github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/osutil"
 )
 
 func GetResultsByOpensslX509(certFile string) (results []string, err error) {

@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	belogs "github.com/cpusoft/goutil/belogs"
-	stringutil "github.com/cpusoft/goutil/stringutil"
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/stringutil"
 )
 
 const (

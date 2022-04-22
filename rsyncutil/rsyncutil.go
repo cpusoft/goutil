@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	belogs "github.com/cpusoft/goutil/belogs"
-	fileutil "github.com/cpusoft/goutil/fileutil"
-	jsonutil "github.com/cpusoft/goutil/jsonutil"
-	osutil "github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/fileutil"
+	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/osutil"
 	"github.com/cpusoft/goutil/tcptlsutil"
-	urlutil "github.com/cpusoft/goutil/urlutil"
+	"github.com/cpusoft/goutil/urlutil"
 )
 
 // rsync type

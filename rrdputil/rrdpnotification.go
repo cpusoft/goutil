@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/httpclient"
 	"github.com/cpusoft/goutil/xmlutil"
 )

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	base64util "github.com/cpusoft/goutil/base64util"
-	fileutil "github.com/cpusoft/goutil/fileutil"
+	"github.com/cpusoft/goutil/fileutil"
 )
 
 func TestSha256(t *testing.T) {

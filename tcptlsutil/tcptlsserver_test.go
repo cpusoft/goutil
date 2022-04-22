@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"time"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 	_ "github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
 	_ "github.com/cpusoft/goutil/logs"

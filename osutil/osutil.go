@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	belogs "github.com/cpusoft/goutil/belogs"
-	hashutil "github.com/cpusoft/goutil/hashutil"
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/hashutil"
 )
 
 // judge file is or not exists.

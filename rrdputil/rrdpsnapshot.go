@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/base64util"
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/hashutil"
 	"github.com/cpusoft/goutil/httpclient"

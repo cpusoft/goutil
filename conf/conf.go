@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	config "github.com/cpusoft/goutil/beconfig"
-	osutil "github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/osutil"
 )
 
 var Configure config.Configer

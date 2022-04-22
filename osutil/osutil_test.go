@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	jsonutil "github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/jsonutil"
 )
 
 func TestGetFilePathAndFileName(t *testing.T) {

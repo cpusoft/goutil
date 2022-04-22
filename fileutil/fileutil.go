@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 )
 
 func ReadFileToLines(file string) (lines []string, err error) {

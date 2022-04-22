@@ -1,8 +1,9 @@
 package redisutil
-import (
 
+import (
 	"context"
-	conf "github.com/cpusoft/goutil/conf"
+
+	"github.com/cpusoft/goutil/conf"
 	"github.com/go-redis/redis"
 )
 
@@ -24,7 +25,6 @@ import (
 //	}
 //}
 
-
 //
 //
 //rdb := redis.NewClient(&redis.Options{
@@ -37,7 +37,6 @@ import (
 //fmt.Println(pong, err)
 //// Output: PONG <nil>
 
-
 var (
 	Ctx = context.Background()
 	Rdb *redis.Client
@@ -47,9 +46,8 @@ func InitRedis() (err error) {
 	addr := conf.String("redis::addr")
 	password := conf.String("redis::password")
 	Rdb = redis.NewClient(&redis.Options{
-		Addr:     addr, // use default Addr
-		Password: password,               // no password set
+		Addr:     addr,     // use default Addr
+		Password: password, // no password set
 	})
 	return nil
 }
-

@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/httpclient"
 	"github.com/cpusoft/goutil/httpserver"

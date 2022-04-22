@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/cpusoft/go-json-rest/rest"
-	belogs "github.com/cpusoft/goutil/belogs"
-	osutil "github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/osutil"
 )
 
 // result:ok/fail

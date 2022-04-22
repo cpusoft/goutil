@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 )
 
 var oid = map[string]string{

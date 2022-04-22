@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	belogs "github.com/cpusoft/goutil/belogs"
-	conf "github.com/cpusoft/goutil/conf"
-	convert "github.com/cpusoft/goutil/convert"
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/conf"
+	"github.com/cpusoft/goutil/convert"
 	_ "github.com/go-sql-driver/mysql"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"

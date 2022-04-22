@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/httpserver"
 	"github.com/cpusoft/goutil/jsonutil"

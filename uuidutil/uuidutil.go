@@ -1,7 +1,7 @@
 package uuidutil
 
 import (
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 	uuid "github.com/satori/go.uuid"
 )
 

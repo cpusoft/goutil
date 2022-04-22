@@ -3,7 +3,7 @@ package dbconf
 import (
 	"time"
 
-	belogs "github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
 	_ "github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/jsonutil"
