@@ -42,6 +42,15 @@ func (c *TcpTlsConn) RemoteAddr() net.Addr {
 	return nil
 }
 
+func (c *TcpTlsConn) LocalAddr() net.Addr {
+	if c.isTcpConn && c.tcpConn != nil {
+		return c.tcpConn.LocalAddr()
+	} else if c.tlsConn != nil {
+		return c.tlsConn.LocalAddr()
+	}
+	return nil
+}
+
 func (c *TcpTlsConn) Write(b []byte) (n int, err error) {
 	if c.isTcpConn && c.tcpConn != nil {
 		return c.tcpConn.Write(b)

@@ -116,3 +116,11 @@ func TestTcpConnection(address string, port string) (err error) {
 	conn.Close()
 	return nil
 }
+
+func getConnKey(tcpTlsConn *TcpTlsConn) string {
+	if tcpTlsConn == nil {
+		return ""
+	}
+	return tcpTlsConn.LocalAddr().String() + "-" +
+		tcpTlsConn.RemoteAddr().String()
+}

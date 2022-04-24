@@ -307,7 +307,7 @@ func (ts *TcpTlsServer) OnConnect(tcpTlsConn *TcpTlsConn) {
 	ts.tcpTlsConnsMutex.Lock()
 	defer ts.tcpTlsConnsMutex.Unlock()
 
-	connKey := tcpTlsConn.RemoteAddr().String()
+	connKey := getConnKey(tcpTlsConn)
 	ts.tcpTlsConns[connKey] = tcpTlsConn
 	belogs.Debug("OnConnect(): tcptlsserver tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), ", connKey:", connKey, "  new len(tcpTlsConns): ", len(ts.tcpTlsConns))
 	ts.tcpTlsServerProcessFunc.OnConnectProcess(tcpTlsConn)
@@ -334,7 +334,7 @@ func (ts *TcpTlsServer) OnClose(tcpTlsConn *TcpTlsConn) {
 	newTlsTcpConns := make(map[string]*TcpTlsConn, len(ts.tcpTlsConns))
 	for i := range ts.tcpTlsConns {
 		if ts.tcpTlsConns[i] != tcpTlsConn {
-			connKey := tcpTlsConn.RemoteAddr().String()
+			connKey := getConnKey(tcpTlsConn)
 			newTlsTcpConns[connKey] = tcpTlsConn
 		}
 	}
