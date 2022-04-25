@@ -117,7 +117,7 @@ func TestTcpConnection(address string, port string) (err error) {
 	return nil
 }
 
-func getConnKey(tcpTlsConn *TcpTlsConn) string {
+func GetConnKey(tcpTlsConn *TcpTlsConn) string {
 	if tcpTlsConn == nil {
 		return ""
 	}
