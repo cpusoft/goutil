@@ -330,13 +330,7 @@ func (ts *TcpTlsServer) OnClose(tcpTlsConn *TcpTlsConn) {
 	ts.tcpTlsConnsMutex.Lock()
 	defer ts.tcpTlsConnsMutex.Unlock()
 	belogs.Debug("OnClose(): tcptlsserver will close old tcpTlsConns, tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), "   old len(tcpTlsConns): ", len(ts.tcpTlsConns))
-	newTlsTcpConns := make(map[string]*TcpTlsConn, len(ts.tcpTlsConns))
-	for connKey, tcpTlsConnOne := range ts.tcpTlsConns {
-		if tcpTlsConnOne != tcpTlsConn {
-			newTlsTcpConns[connKey] = tcpTlsConnOne
-		}
-	}
-	ts.tcpTlsConns = newTlsTcpConns
+	delete(ts.tcpTlsConns, GetConnKey(tcpTlsConn))
 	ts.tcpTlsServerProcessFunc.OnCloseProcess(tcpTlsConn)
 	belogs.Info("OnClose(): tcptlsserver new len(tcpTlsConns): ", len(ts.tcpTlsConns), "  time(s):", time.Now().Sub(start).Seconds())
 }
