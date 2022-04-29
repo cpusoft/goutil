@@ -10,6 +10,12 @@ import (
 	"github.com/cpusoft/goutil/belogs"
 )
 
+const (
+	// /usr/include/linux/limits.h
+	FILENAME_MAXLENGTH = 256
+	PATHNAME_MAXLENGTH = 4096
+)
+
 func ReadFileToLines(file string) (lines []string, err error) {
 	fi, err := os.Open(file)
 	if err != nil {
@@ -56,4 +62,18 @@ func GetFileLength(file string) (length int64, err error) {
 		return 0, err
 	}
 	return f.Size(), nil
+}
+
+func CheckFileNameMaxLength(fileName string) bool {
+	if len(fileName) > 0 && len(fileName) <= FILENAME_MAXLENGTH {
+		return true
+	}
+	return false
+}
+
+func CheckPathNameMaxLength(pathName string) bool {
+	if len(pathName) > 0 && len(pathName) <= PATHNAME_MAXLENGTH {
+		return true
+	}
+	return false
 }

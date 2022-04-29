@@ -279,6 +279,14 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 		// if in this dir, no more files, then del dir
 		// will ignore error
 		dir, file := osutil.Split(pathFileName)
+		if !fileutil.CheckPathNameMaxLength(dir) {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws CheckPathNameMaxLength fail,dir:", dir)
+			return nil, errors.New("DeltaWithdraw path name is too long")
+		}
+		if !fileutil.CheckFileNameMaxLength(file) {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws CheckFileNameMaxLength fail,file:", file)
+			return nil, errors.New("DeltaWithdraw file name is too long")
+		}
 		files, err := ioutil.ReadDir(dir)
 		belogs.Info("saveRrdpDeltaToRrdpFiles():DeltaWithdraws will remove pathFileName, uri:", uri,
 			"  	pathFileName:", pathFileName, "   dir:", dir,
@@ -350,6 +358,15 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 
 		// if dir is notexist ,then mkdir
 		dir, file := osutil.Split(pathFileName)
+		if !fileutil.CheckPathNameMaxLength(dir) {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): Publish CheckPathNameMaxLength fail,dir:", dir)
+			return nil, errors.New("Publish path name is too long")
+		}
+		if !fileutil.CheckFileNameMaxLength(file) {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): Publish CheckFileNameMaxLength fail,file:", file)
+			return nil, errors.New("Publish file name is too long")
+		}
+
 		isExist, err := osutil.IsExists(dir)
 		if err != nil {
 			belogs.Error("SaveRrdpDeltaToRrdpFiles(): Publish ReadDir fail:", dir, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)

@@ -126,6 +126,15 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 
 		// if dir is notexist ,then mkdir
 		dir, file := osutil.Split(pathFileName)
+		if !fileutil.CheckPathNameMaxLength(dir) {
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): CheckPathNameMaxLength fail,dir:", dir)
+			return nil, errors.New("snapshot path name is too long")
+		}
+		if !fileutil.CheckFileNameMaxLength(file) {
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): CheckFileNameMaxLength fail,file:", file)
+			return nil, errors.New("snapshot file name is too long")
+		}
+
 		isExist, err := osutil.IsExists(dir)
 		if err != nil {
 			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): IsExists dir, fail:", dir, err)
