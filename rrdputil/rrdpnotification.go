@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
@@ -72,7 +73,14 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 		belogs.Debug("getRrdpNotificationImpl(): GetByCurl deltaUrl ok", notificationUrl, "    len(body):", len(body),
 			"  time(s):", time.Now().Sub(start).Seconds())
 	}
+	// check if body is xml file
+	if !strings.Contains(body, `<notification`) {
+		belogs.Error("getRrdpNotificationImpl(): body is not xml file:", notificationUrl, "   resp:",
+			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
+		return notificationModel, errors.New("body of " + notificationUrl + " is not xml")
+	}
 
+	// unmarshal xml
 	err = xmlutil.UnmarshalXml(body, &notificationModel)
 	if err != nil {
 		belogs.Error("getRrdpNotificationImpl(): UnmarshalXml fail: ", notificationUrl, "        body:", body, err)

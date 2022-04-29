@@ -152,6 +152,13 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 		belogs.Debug("getRrdpDeltaImpl(): GetByCurl deltaUrl ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	}
 
+	// check if body is xml file
+	if !strings.Contains(body, `<delta`) {
+		belogs.Error("GetRrdpSnapshot(): body is not xml file:", deltaUrl, "   resp:",
+			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
+		return deltaModel, errors.New("body of " + deltaUrl + " is not xml")
+	}
+
 	err = xmlutil.UnmarshalXml(body, &deltaModel)
 	if err != nil {
 		belogs.Error("getRrdpDeltaImpl(): UnmarshalXml fail:", deltaUrl, "    body:", body, err)

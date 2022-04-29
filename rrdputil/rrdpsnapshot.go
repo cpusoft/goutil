@@ -63,6 +63,12 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 		}
 		belogs.Debug("getRrdpSnapshotImpl(): GetByCurl snapshotUrl ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	}
+	// check if body is xml file
+	if !strings.Contains(body, `<snapshot`) {
+		belogs.Error("GetRrdpSnapshot(): body is not xml file:", snapshotUrl, "   resp:",
+			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
+		return snapshotModel, errors.New("body of " + snapshotUrl + " is not xml")
+	}
 
 	// get snapshotModel
 	err = xmlutil.UnmarshalXml(body, &snapshotModel)
