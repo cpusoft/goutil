@@ -117,7 +117,10 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 		return nil, errors.New("snapshot's publishs is empty")
 	}
 	for i := range snapshotModel.SnapshotPublishs {
-		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, snapshotModel.SnapshotPublishs[i].Uri)
+		uri := strings.Replace(snapshotModel.SnapshotPublishs[i].Uri, "../", "/", -1) //fix Path traversal
+		belogs.Debug("SaveRrdpSnapshotToRrdpFiles():snapshotModel.SnapshotPublishs[i].Uri:", snapshotModel.SnapshotPublishs[i].Uri,
+			" uri:", uri)
+		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
 		if err != nil {
 			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): JoinPrefixPathAndUrlFileName fail:", snapshotModel.SnapshotPublishs[i].Uri,
 				"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)

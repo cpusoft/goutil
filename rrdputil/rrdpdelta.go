@@ -261,6 +261,9 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 	// first , del withdraw files
 	for i := range deltaModel.DeltaWithdraws {
 		uri := deltaModel.DeltaWithdraws[i].Uri
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws, uri:", uri)
+		uri = strings.Replace(uri, "../", "/", -1) //fix Path traversal
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws Replace, uri:", uri)
 		if v, ok := rrdpUris[uri]; ok {
 			belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws in rrdpUris , uri:", uri,
 				"    this:", jsonutil.MarshalJson(deltaModel.DeltaWithdraws[i]),
@@ -339,6 +342,9 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 	// seconde, save publish files
 	for i := range deltaModel.DeltaPublishs {
 		uri := deltaModel.DeltaPublishs[i].Uri
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaPublishs, uri:", uri)
+		uri = strings.Replace(uri, "../", "/", -1) //fix Path traversal
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaPublishs Replace, uri:", uri)
 		if v, ok := rrdpUris[uri]; ok {
 			belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaPublishs in rrdpUris, uri:", uri,
 				"    this:", jsonutil.MarshalJson(deltaModel.DeltaPublishs[i]),
