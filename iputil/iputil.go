@@ -16,6 +16,12 @@ import (
 const (
 	Ipv4Type = 0x01
 	Ipv6Type = 0x02
+	//posix的<netinet/in.h>
+	IPv4_MAXLENGTH = 15
+	IPv6_MAXLENGTH = 45
+	//
+	IPv4_PREFIX_MAXLENGTH = 32
+	IPv6_PREFIX_MAXLENGTH = 128
 )
 
 func RoaFormtToIp(ans1Ip []byte, ipType int) string {
@@ -29,7 +35,11 @@ func RoaFormtToIp(ans1Ip []byte, ipType int) string {
 				buffer.WriteString(fmt.Sprintf("%d", ip))
 			}
 		}
-		return buffer.String()
+		ipv4 := buffer.String()
+		if len(ipv4) == 0 || len(ipv4) > IPv4_MAXLENGTH {
+			return ""
+		}
+		return ipv4
 	} else if ipType == Ipv6Type {
 		asn1IpTmp := ans1Ip
 		if len(ans1Ip)%2 != 0 {
@@ -43,9 +53,26 @@ func RoaFormtToIp(ans1Ip []byte, ipType int) string {
 				buffer.WriteString(fmt.Sprintf("%02x%02x", asn1IpTmp[i], asn1IpTmp[i+1]))
 			}
 		}
-		return buffer.String()
+		ipv6 := buffer.String()
+		if len(ipv6) == 0 || len(ipv6) > IPv6_MAXLENGTH {
+			return ""
+		}
+		return ipv6
 	}
 	return ""
+}
+
+func CheckPrefixLengthOrMaxLength(length, ipType int) bool {
+	if ipType == Ipv4Type {
+		if length > 0 && length <= IPv4_PREFIX_MAXLENGTH {
+			return true
+		}
+	} else if ipType == Ipv6Type {
+		if length > 0 && length <= IPv6_PREFIX_MAXLENGTH {
+			return true
+		}
+	}
+	return false
 }
 
 func RtrFormatToIp(rtrIp []byte) string {
