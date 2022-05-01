@@ -10,10 +10,10 @@ import (
 type TcpTlsConn struct {
 	// tcp: true
 	// tls: false
-	isTcpConn bool
-	tcpConn   *net.TCPConn
-	tlsConn   *tls.Conn
-
+	isTcpConn         bool
+	tcpConn           *net.TCPConn
+	tlsConn           *tls.Conn
+	isClose           bool
 	nextConnectPolicy int
 }
 
@@ -21,6 +21,7 @@ func NewFromTcpConn(tcpConn *net.TCPConn) (c *TcpTlsConn) {
 	c = &TcpTlsConn{}
 	c.tcpConn = tcpConn
 	c.isTcpConn = true
+	c.isClose = false
 	c.nextConnectPolicy = NEXT_CONNECT_POLICE_KEEP
 	return c
 }
@@ -29,6 +30,7 @@ func NewFromTlsConn(tlsConn *tls.Conn) (c *TcpTlsConn) {
 	c = &TcpTlsConn{}
 	c.tlsConn = tlsConn
 	c.isTcpConn = false
+	c.isClose = false
 	c.nextConnectPolicy = NEXT_CONNECT_POLICE_KEEP
 	return c
 }
@@ -52,38 +54,32 @@ func (c *TcpTlsConn) LocalAddr() net.Addr {
 }
 
 func (c *TcpTlsConn) Write(b []byte) (n int, err error) {
-	if c.isTcpConn && c.tcpConn != nil {
+	if c.isTcpConn && c.tcpConn != nil && !c.isClose {
 		return c.tcpConn.Write(b)
-	} else if c.tlsConn != nil {
+	} else if c.tlsConn != nil && !c.isClose {
 		return c.tlsConn.Write(b)
 	}
 	return -1, errors.New("is not conn")
 }
 
 func (c *TcpTlsConn) Read(b []byte) (n int, err error) {
-	if c.isTcpConn && c.tcpConn != nil {
+	if c.isTcpConn && c.tcpConn != nil && !c.isClose {
 		return c.tcpConn.Read(b)
-	} else if c.tlsConn != nil {
+	} else if c.tlsConn != nil && !c.isClose {
 		return c.tlsConn.Read(b)
 	}
 	return -1, errors.New("is not conn")
 }
 
 func (c *TcpTlsConn) Close() (err error) {
-	if c.isTcpConn && c.tcpConn != nil {
+	if c.isTcpConn && c.tcpConn != nil && !c.isClose {
+		c.isClose = true
 		return c.tcpConn.Close()
-	} else if c.tlsConn != nil {
+	} else if c.tlsConn != nil && !c.isClose {
+		c.isClose = true
 		return c.tlsConn.Close()
 	}
 	return errors.New("is not conn")
-}
-
-func (c *TcpTlsConn) SetNil() {
-	if c.isTcpConn && c.tcpConn != nil {
-		c.tcpConn = nil
-	} else if c.tlsConn != nil {
-		c.tlsConn = nil
-	}
 }
 
 func (c *TcpTlsConn) SetDeadline(t time.Time) error {
@@ -93,4 +89,8 @@ func (c *TcpTlsConn) SetDeadline(t time.Time) error {
 		return c.tlsConn.SetDeadline(t)
 	}
 	return errors.New("is not conn")
+}
+
+func (c *TcpTlsConn) IsClose() bool {
+	return c.isClose
 }
