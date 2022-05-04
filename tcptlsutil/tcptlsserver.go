@@ -334,6 +334,9 @@ func (ts *TcpTlsServer) OnClose(tcpTlsConn *TcpTlsConn) {
 		tcpTlsConn.Close()
 		//tcpTlsConn.SetNil()
 	}()
+	if tcpTlsConn == nil {
+		return
+	}
 	start := time.Now()
 
 	// call process func OnClose
@@ -387,9 +390,7 @@ func (ts *TcpTlsServer) WaitMsg() {
 					ts.OnClose(ts.tcpTlsConns[connKey])
 				}
 				belogs.Info("WaitMsg(): close connect, connKey:", connKey)
-				return
 			}
-
 		}
 	}
 }
