@@ -37,11 +37,11 @@ type TcpTlsServer struct {
 	closeGraceful  chan struct{}
 
 	// for channel
-	TcpTlsMsgChan chan TcpTlsMsg
+	TcpTlsMsg chan TcpTlsMsg
 }
 
 //
-func NewTcpServer(tcpTlsServerProcessFunc TcpTlsServerProcess, tcpTlsMsgChan chan TcpTlsMsg) (ts *TcpTlsServer) {
+func NewTcpServer(tcpTlsServerProcessFunc TcpTlsServerProcess, tcpTlsMsg chan TcpTlsMsg) (ts *TcpTlsServer) {
 
 	belogs.Debug("NewTcpServer():tcpTlsServerProcessFunc:", tcpTlsServerProcessFunc)
 	ts = &TcpTlsServer{}
@@ -50,12 +50,12 @@ func NewTcpServer(tcpTlsServerProcessFunc TcpTlsServerProcess, tcpTlsMsgChan cha
 	ts.tcpTlsConns = make(map[string]*TcpTlsConn, 16)
 	ts.tcpTlsServerProcessFunc = tcpTlsServerProcessFunc
 	ts.closeGraceful = make(chan struct{})
-	ts.TcpTlsMsgChan = tcpTlsMsgChan
+	ts.TcpTlsMsg = tcpTlsMsg
 	belogs.Debug("NewTcpServer():ts:", ts)
 	return ts
 }
 func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string, tlsVerifyClient bool,
-	tcpTlsServerProcessFunc TcpTlsServerProcess, tcpTlsMsgChan chan TcpTlsMsg) (ts *TcpTlsServer, err error) {
+	tcpTlsServerProcessFunc TcpTlsServerProcess, tcpTlsMsg chan TcpTlsMsg) (ts *TcpTlsServer, err error) {
 
 	belogs.Debug("NewTcpServer():tlsRootCrtFileName:", tlsRootCrtFileName, "  tlsPublicCrtFileName:", tlsPublicCrtFileName,
 		"   tlsPrivateKeyFileName:", tlsPrivateKeyFileName, "   tlsVerifyClient:", tlsVerifyClient,
@@ -65,7 +65,7 @@ func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	ts.isTcpServer = false
 	ts.tcpTlsConns = make(map[string]*TcpTlsConn, 16)
 	ts.closeGraceful = make(chan struct{})
-	ts.TcpTlsMsgChan = tcpTlsMsgChan
+	ts.TcpTlsMsg = tcpTlsMsg
 	ts.tcpTlsServerProcessFunc = tcpTlsServerProcessFunc
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
@@ -360,7 +360,7 @@ func (ts *TcpTlsServer) CloseGraceful() {
 func (ts *TcpTlsServer) WaitMsg() {
 	for {
 		select {
-		case tcpTlsMsg := <-ts.TcpTlsMsgChan:
+		case tcpTlsMsg := <-ts.TcpTlsMsg:
 			belogs.Debug("WaitMsg(): tcpTlsMsg:", jsonutil.MarshalJson(tcpTlsMsg))
 			switch tcpTlsMsg.MsgType {
 			case MSG_TYPE_TO_SERVER_CLOSE_SERVER_FORCIBLE:
