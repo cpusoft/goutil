@@ -23,6 +23,10 @@ const (
 
 	// no need more read
 	NEXT_RW_POLICE_END_READ = 5
+
+	SERVER_STATE_INIT    = 0
+	SERVER_STATE_RUNNING = 1
+	SERVER_STATE_CLOSING = 2
 )
 
 // packets: if Len==0,means no complete package

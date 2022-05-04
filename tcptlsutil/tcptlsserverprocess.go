@@ -1,7 +1,7 @@
 package tcptlsutil
 
 // tcp server extension interface: need to expand yourself process
-type TcpTlsServerProcessFunc interface {
+type TcpTlsServerProcess interface {
 	OnConnectProcess(tcpTlsConn *TcpTlsConn)
 	ReceiveAndSendProcess(tcpTlsConn *TcpTlsConn, receiveData []byte) (nextConnectPolicy int, leftData []byte, err error)
 	OnCloseProcess(tcpTlsConn *TcpTlsConn)

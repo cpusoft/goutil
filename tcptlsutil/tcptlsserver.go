@@ -11,16 +11,19 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
 )
 
 // core struct: Start/OnConnect/ReceiveAndSend....
 type TcpTlsServer struct {
+	// state
+	state uint64
 	// both tcp and tls
 	isTcpServer             bool
 	tcpTlsConns             map[string]*TcpTlsConn // map[addr]*net.TCPConn
 	tcpTlsConnsMutex        sync.RWMutex
-	tcpTlsServerProcessFunc TcpTlsServerProcessFunc
+	tcpTlsServerProcessFunc TcpTlsServerProcess
 
 	// for tls
 	tlsRootCrtFileName    string
@@ -32,30 +35,37 @@ type TcpTlsServer struct {
 	// for close
 	tcpTlsListener *TcpTlsListener
 	closeGraceful  chan struct{}
+
+	// for channel
+	TcpTlsMsgChan chan TcpTlsMsg
 }
 
 //
-func NewTcpServer(tcpTlsServerProcessFunc TcpTlsServerProcessFunc) (ts *TcpTlsServer) {
+func NewTcpServer(tcpTlsServerProcessFunc TcpTlsServerProcess, tcpTlsMsgChan chan TcpTlsMsg) (ts *TcpTlsServer) {
 
 	belogs.Debug("NewTcpServer():tcpTlsServerProcessFunc:", tcpTlsServerProcessFunc)
 	ts = &TcpTlsServer{}
+	ts.state = SERVER_STATE_INIT
 	ts.isTcpServer = true
 	ts.tcpTlsConns = make(map[string]*TcpTlsConn, 16)
 	ts.tcpTlsServerProcessFunc = tcpTlsServerProcessFunc
 	ts.closeGraceful = make(chan struct{})
+	ts.TcpTlsMsgChan = tcpTlsMsgChan
 	belogs.Debug("NewTcpServer():ts:", ts)
 	return ts
 }
 func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string, tlsVerifyClient bool,
-	tcpTlsServerProcessFunc TcpTlsServerProcessFunc) (ts *TcpTlsServer, err error) {
+	tcpTlsServerProcessFunc TcpTlsServerProcess, tcpTlsMsgChan chan TcpTlsMsg) (ts *TcpTlsServer, err error) {
 
 	belogs.Debug("NewTcpServer():tlsRootCrtFileName:", tlsRootCrtFileName, "  tlsPublicCrtFileName:", tlsPublicCrtFileName,
 		"   tlsPrivateKeyFileName:", tlsPrivateKeyFileName, "   tlsVerifyClient:", tlsVerifyClient,
 		"   tcpTlsServerProcessFunc:", tcpTlsServerProcessFunc)
 	ts = &TcpTlsServer{}
+	ts.state = SERVER_STATE_INIT
 	ts.isTcpServer = false
 	ts.tcpTlsConns = make(map[string]*TcpTlsConn, 16)
 	ts.closeGraceful = make(chan struct{})
+	ts.TcpTlsMsgChan = tcpTlsMsgChan
 	ts.tcpTlsServerProcessFunc = tcpTlsServerProcessFunc
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
@@ -103,6 +113,8 @@ func (ts *TcpTlsServer) StartTcpServer(port string) (err error) {
 		return err
 	}
 	belogs.Info("StartTcpServer(): tcpserver  create server ok, port:", port, "  will accept client")
+
+	go ts.WaitMsg()
 
 	// wait new conn
 	ts.AcceptNewConn()
@@ -183,12 +195,13 @@ func (ts *TcpTlsServer) StartTlsServer(port string) (err error) {
 func (ts *TcpTlsServer) AcceptNewConn() {
 
 	defer ts.tcpTlsListener.Close()
+	ts.state = SERVER_STATE_RUNNING
 	for {
 		tcpTlsConn, err := ts.tcpTlsListener.Accept()
 		if err != nil {
 			select {
 			case <-ts.closeGraceful:
-				belogs.Error("AcceptNewConn(): Accept remote fail and closeGraceful, will return: ", err)
+				belogs.Info("AcceptNewConn(): Accept remote fail and closeGraceful, will return: ", err)
 				return
 			default:
 				belogs.Error("AcceptNewConn(): Accept remote fail: ", err)
@@ -222,7 +235,7 @@ ReadLoop:
 			belogs.Info("ReceiveAndSend(): tcptlsserver closeGraceful, will return: ", tcpTlsConn.RemoteAddr().String())
 			return
 		default:
-			tcpTlsConn.SetDeadline(time.Now().Add(500 * time.Millisecond))
+			tcpTlsConn.SetDeadline(time.Now().Add(5 * time.Second))
 			start := time.Now()
 			n, err := tcpTlsConn.Read(buffer)
 			//	if n == 0 {
@@ -341,14 +354,42 @@ func (ts *TcpTlsServer) CloseGraceful() {
 	close(ts.closeGraceful)
 }
 
-func (ts *TcpTlsServer) CloseForceful() {
-	belogs.Info("CloseForceful(): tcptlsserver will close forceful")
-	// close listener/conns loop
-	go ts.CloseGraceful()
-	// ignore conns's writing/reading, just close
-	ts.tcpTlsListener.Close()
-	for i := range ts.tcpTlsConns {
-		ts.tcpTlsConns[i].Close()
-	}
+func (ts *TcpTlsServer) WaitMsg() {
+	for {
+		select {
+		case tcpTlsMsg := <-ts.TcpTlsMsgChan:
+			belogs.Debug("WaitMsg(): tcpTlsMsg:", jsonutil.MarshalJson(tcpTlsMsg))
+			switch tcpTlsMsg.MsgType {
+			case MSG_TYPE_TO_SERVER_CLOSE_SERVER_FORCIBLE:
+				// ignore conns's writing/reading, just close
+				ts.tcpTlsListener.Close()
+				for connKey := range ts.tcpTlsConns {
+					ts.OnClose(ts.tcpTlsConns[connKey])
+				}
+				// just close
+				close(ts.closeGraceful)
+				belogs.Info("WaitMsg(): will close server forcible:")
+				return
+			case MSG_TYPE_TO_SERVER_CLOSE_SERVER_GRACEFUL:
+				// close and wait connect.Read and Accept
+				close(ts.closeGraceful)
+				time.Sleep(5 * time.Second)
+				ts.tcpTlsListener.Close()
+				for connKey := range ts.tcpTlsConns {
+					ts.OnClose(ts.tcpTlsConns[connKey])
+				}
+				belogs.Info("WaitMsg(): will close server graceful:")
+				return
+			case MSG_TYPE_TO_SERVER_CLOSE_CONNECT_FORCIBLE:
+				// close and wait connect.Read and Accept
+				connKey, ok := tcpTlsMsg.MsgDetail.(string)
+				if ok {
+					ts.OnClose(ts.tcpTlsConns[connKey])
+				}
+				belogs.Info("WaitMsg(): close connect, connKey:", connKey)
+				return
+			}
 
+		}
+	}
 }
