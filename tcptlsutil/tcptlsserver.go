@@ -330,15 +330,16 @@ func (ts *TcpTlsServer) OnConnect(tcpTlsConn *TcpTlsConn) {
 
 func (ts *TcpTlsServer) OnClose(tcpTlsConn *TcpTlsConn) {
 	// close in the end
+	if tcpTlsConn == nil {
+		return
+	}
+
 	defer func() {
 		tcpTlsConn.Close()
 		//tcpTlsConn.SetNil()
 	}()
-	if tcpTlsConn == nil {
-		return
-	}
-	start := time.Now()
 
+	start := time.Now()
 	// call process func OnClose
 	belogs.Debug("OnClose(): tcptlsserver tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), "   call process func: OnClose ")
 

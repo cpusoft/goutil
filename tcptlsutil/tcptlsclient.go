@@ -33,29 +33,34 @@ type TcpTlsClient struct {
 
 	// for close
 	tcpTlsConn *TcpTlsConn
+
+	// for channel
+	TcpTlsMsg chan TcpTlsMsg
 }
 
 // server: 0.0.0.0:port
-func NewTcpClient(tcpTlsClientProcess TcpTlsClientProcess) (tc *TcpTlsClient) {
+func NewTcpClient(tcpTlsClientProcess TcpTlsClientProcess, tcpTlsMsg chan TcpTlsMsg) (tc *TcpTlsClient) {
 
 	belogs.Debug("NewTcpClient():tcpTlsClientProcess:", tcpTlsClientProcess)
 	tc = &TcpTlsClient{}
 	tc.isTcpClient = true
 	tc.tcpTlsClientSendMsg = make(chan TcpTlsClientSendMsg)
 	tc.tcpTlsClientProcess = tcpTlsClientProcess
+	tc.TcpTlsMsg = tcpTlsMsg
 	belogs.Info("NewTcpClient():tc:", tc)
 	return tc
 }
 
 // server: 0.0.0.0:port
 func NewTlsClient(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string,
-	tcpTlsClientProcess TcpTlsClientProcess) (tc *TcpTlsClient, err error) {
+	tcpTlsClientProcess TcpTlsClientProcess, tcpTlsMsg chan TcpTlsMsg) (tc *TcpTlsClient, err error) {
 
 	belogs.Debug("NewTlsClient():tcpTlsClientProcess:", &tcpTlsClientProcess)
 	tc = &TcpTlsClient{}
 	tc.isTcpClient = false
 	tc.tcpTlsClientSendMsg = make(chan TcpTlsClientSendMsg)
 	tc.tcpTlsClientProcess = tcpTlsClientProcess
+	tc.TcpTlsMsg = tcpTlsMsg
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
 	if !rootExists {
@@ -95,21 +100,7 @@ func (tc *TcpTlsClient) StartTcpClient(server string) (err error) {
 		belogs.Error("StartTcpClient(): conn cannot conver to tcpConn: ", conn.RemoteAddr().String(), err)
 		return err
 	}
-	/*
-		tcpServer, err := net.ResolveTCPAddr("tcp", server)
-		if err != nil {
-			belogs.Error("StartTcpClient():  ResolveTCPAddr fail: ", server, err)
-			return err
-		}
-		belogs.Debug("StartTcpClient(): create client, server is  ", server, "  tcpServer:", tcpServer)
 
-
-		tcpConn, err := net.DialTCP("tcp", nil, tcpServer)
-		if err != nil {
-			belogs.Error("StartTcpClient(): Dial fail, server:", server, "  tcpServer:", tcpServer, err)
-			return err
-		}
-	*/
 	tc.tcpTlsConn = NewFromTcpConn(tcpConn)
 	tc.OnConnect()
 	belogs.Info("StartTcpClient(): OnConnect, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
