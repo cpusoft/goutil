@@ -172,6 +172,7 @@ func (tc *TcpTlsClient) OnClose() {
 	// close in the end
 	belogs.Info("OnClose(): tcptlsclient , tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
 	tc.tcpTlsConn.Close()
+	tc.tcpTlsClientProcess.OnCloseProcess(tc.tcpTlsConn)
 }
 
 func (tc *TcpTlsClient) SendMsg(tcpTlsClientSendMsg *TcpTlsClientSendMsg) {
