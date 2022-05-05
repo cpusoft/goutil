@@ -22,9 +22,9 @@ type TcpTlsClientSendMsg struct {
 
 type TcpTlsClient struct {
 	// both tcp and tls
-	isTcpClient             bool
-	tcpTlsClientSendMsg     chan TcpTlsClientSendMsg
-	tcpTlsClientProcessFunc TcpTlsClientProcessFunc
+	isTcpClient         bool
+	tcpTlsClientSendMsg chan TcpTlsClientSendMsg
+	tcpTlsClientProcess TcpTlsClientProcess
 
 	// for tls
 	tlsRootCrtFileName    string
@@ -36,26 +36,26 @@ type TcpTlsClient struct {
 }
 
 // server: 0.0.0.0:port
-func NewTcpClient(tcpTlsClientProcessFunc TcpTlsClientProcessFunc) (tc *TcpTlsClient) {
+func NewTcpClient(tcpTlsClientProcess TcpTlsClientProcess) (tc *TcpTlsClient) {
 
-	belogs.Debug("NewTcpClient():tcpTlsClientProcessFunc:", tcpTlsClientProcessFunc)
+	belogs.Debug("NewTcpClient():tcpTlsClientProcess:", tcpTlsClientProcess)
 	tc = &TcpTlsClient{}
 	tc.isTcpClient = true
 	tc.tcpTlsClientSendMsg = make(chan TcpTlsClientSendMsg)
-	tc.tcpTlsClientProcessFunc = tcpTlsClientProcessFunc
+	tc.tcpTlsClientProcess = tcpTlsClientProcess
 	belogs.Info("NewTcpClient():tc:", tc)
 	return tc
 }
 
 // server: 0.0.0.0:port
 func NewTlsClient(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string,
-	tcpTlsClientProcessFunc TcpTlsClientProcessFunc) (tc *TcpTlsClient, err error) {
+	tcpTlsClientProcess TcpTlsClientProcess) (tc *TcpTlsClient, err error) {
 
-	belogs.Debug("NewTlsClient():tcpTlsClientProcessFunc:", &tcpTlsClientProcessFunc)
+	belogs.Debug("NewTlsClient():tcpTlsClientProcess:", &tcpTlsClientProcess)
 	tc = &TcpTlsClient{}
 	tc.isTcpClient = false
 	tc.tcpTlsClientSendMsg = make(chan TcpTlsClientSendMsg)
-	tc.tcpTlsClientProcessFunc = tcpTlsClientProcessFunc
+	tc.tcpTlsClientProcess = tcpTlsClientProcess
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
 	if !rootExists {
@@ -173,7 +173,7 @@ func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
 
 func (tc *TcpTlsClient) OnConnect() {
 	// call process func OnConnect
-	tc.tcpTlsClientProcessFunc.OnConnectProcess(tc.tcpTlsConn)
+	tc.tcpTlsClientProcess.OnConnectProcess(tc.tcpTlsConn)
 	belogs.Info("OnConnect(): tcptlsclient  after OnConnectProcess, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
 }
 
@@ -267,11 +267,11 @@ func (tc *TcpTlsClient) OnReceive() (err error) {
 
 		belogs.Debug("OnReceive(): tcptlsclient, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
 			"  Read n", n, "  time(s):", time.Now().Sub(start))
-		nextRwPolicy, leftData, err := tc.tcpTlsClientProcessFunc.OnReceiveProcess(tc.tcpTlsConn, append(leftData, buffer[:n]...))
-		belogs.Info("OnReceive(): tcptlsclient  tcpTlsClientProcessFunc.OnReceiveProcess, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(), " receive n: ", n,
+		nextRwPolicy, leftData, err := tc.tcpTlsClientProcess.OnReceiveProcess(tc.tcpTlsConn, append(leftData, buffer[:n]...))
+		belogs.Info("OnReceive(): tcptlsclient  tcpTlsClientProcess.OnReceiveProcess, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(), " receive n: ", n,
 			"  len(leftData):", len(leftData), "  nextRwPolicy:", nextRwPolicy, "  time(s):", time.Now().Sub(start))
 		if err != nil {
-			belogs.Error("OnReceive(): tcptlsclient  tcpTlsClientProcessFunc.OnReceiveProcess  fail ,will close this tcpTlsConn : ", tc.tcpTlsConn.RemoteAddr().String(), err)
+			belogs.Error("OnReceive(): tcptlsclient  tcpTlsClientProcess.OnReceiveProcess  fail ,will close this tcpTlsConn : ", tc.tcpTlsConn.RemoteAddr().String(), err)
 			return err
 		}
 		if nextRwPolicy == NEXT_RW_POLICE_END_READ {

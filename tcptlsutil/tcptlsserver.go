@@ -20,10 +20,10 @@ type TcpTlsServer struct {
 	// state
 	state uint64
 	// both tcp and tls
-	isTcpServer             bool
-	tcpTlsConns             map[string]*TcpTlsConn // map[addr]*net.TCPConn
-	tcpTlsConnsMutex        sync.RWMutex
-	tcpTlsServerProcessFunc TcpTlsServerProcess
+	isTcpServer         bool
+	tcpTlsConns         map[string]*TcpTlsConn // map[addr]*net.TCPConn
+	tcpTlsConnsMutex    sync.RWMutex
+	tcpTlsServerProcess TcpTlsServerProcess
 
 	// for tls
 	tlsRootCrtFileName    string
@@ -41,32 +41,32 @@ type TcpTlsServer struct {
 }
 
 //
-func NewTcpServer(tcpTlsServerProcessFunc TcpTlsServerProcess, tcpTlsMsg chan TcpTlsMsg) (ts *TcpTlsServer) {
+func NewTcpServer(tcpTlsServerProcess TcpTlsServerProcess, tcpTlsMsg chan TcpTlsMsg) (ts *TcpTlsServer) {
 
-	belogs.Debug("NewTcpServer():tcpTlsServerProcessFunc:", tcpTlsServerProcessFunc)
+	belogs.Debug("NewTcpServer():tcpTlsServerProcess:", tcpTlsServerProcess)
 	ts = &TcpTlsServer{}
 	ts.state = SERVER_STATE_INIT
 	ts.isTcpServer = true
 	ts.tcpTlsConns = make(map[string]*TcpTlsConn, 16)
-	ts.tcpTlsServerProcessFunc = tcpTlsServerProcessFunc
+	ts.tcpTlsServerProcess = tcpTlsServerProcess
 	ts.closeGraceful = make(chan struct{})
 	ts.TcpTlsMsg = tcpTlsMsg
 	belogs.Debug("NewTcpServer():ts:", ts)
 	return ts
 }
 func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string, tlsVerifyClient bool,
-	tcpTlsServerProcessFunc TcpTlsServerProcess, tcpTlsMsg chan TcpTlsMsg) (ts *TcpTlsServer, err error) {
+	tcpTlsServerProcess TcpTlsServerProcess, tcpTlsMsg chan TcpTlsMsg) (ts *TcpTlsServer, err error) {
 
 	belogs.Debug("NewTcpServer():tlsRootCrtFileName:", tlsRootCrtFileName, "  tlsPublicCrtFileName:", tlsPublicCrtFileName,
 		"   tlsPrivateKeyFileName:", tlsPrivateKeyFileName, "   tlsVerifyClient:", tlsVerifyClient,
-		"   tcpTlsServerProcessFunc:", tcpTlsServerProcessFunc)
+		"   tcpTlsServerProcess:", tcpTlsServerProcess)
 	ts = &TcpTlsServer{}
 	ts.state = SERVER_STATE_INIT
 	ts.isTcpServer = false
 	ts.tcpTlsConns = make(map[string]*TcpTlsConn, 16)
 	ts.closeGraceful = make(chan struct{})
 	ts.TcpTlsMsg = tcpTlsMsg
-	ts.tcpTlsServerProcessFunc = tcpTlsServerProcessFunc
+	ts.tcpTlsServerProcess = tcpTlsServerProcess
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
 	if !rootExists {
@@ -258,7 +258,7 @@ ReadLoop:
 			// copy to leftData
 			belogs.Debug("ReceiveAndSend(): tcptlsserver tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
 				" , Read n:", n, "  time(s):", time.Since(start))
-			nextConnectPolicy, leftData, err := ts.tcpTlsServerProcessFunc.ReceiveAndSendProcess(tcpTlsConn, append(leftData, buffer[:n]...))
+			nextConnectPolicy, leftData, err := ts.tcpTlsServerProcess.ReceiveAndSendProcess(tcpTlsConn, append(leftData, buffer[:n]...))
 			belogs.Debug("ReceiveAndSend(): tcptlsserver  after ReceiveAndSendProcess,server tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), " receive n: ", n,
 				"  len(leftData):", len(leftData), "  time(s):", time.Since(start))
 			if err != nil {
@@ -287,7 +287,7 @@ func (ts *TcpTlsServer) ActiveSend(sendData []byte, connKey string) (err error) 
 		belogs.Debug("ActiveSend(): tcptlsserver to all, len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpTlsConns))
 		for i := range ts.tcpTlsConns {
 			belogs.Debug("ActiveSend(): tcptlsserver   to all, client: ", i, "    ts.tcpConns[i]:", ts.tcpTlsConns[i], "   call process func: ActiveSend ")
-			err = ts.tcpTlsServerProcessFunc.ActiveSendProcess(ts.tcpTlsConns[i], sendData)
+			err = ts.tcpTlsServerProcess.ActiveSendProcess(ts.tcpTlsConns[i], sendData)
 			if err != nil {
 				// just logs, not return or break
 				belogs.Error("ActiveSend(): tcptlsserver  ActiveSendProcess fail, to all, client: ", i, "    ts.tcpTlsConns[i]:", ts.tcpTlsConns[i], err)
@@ -299,7 +299,7 @@ func (ts *TcpTlsServer) ActiveSend(sendData []byte, connKey string) (err error) 
 	} else {
 		belogs.Debug("ActiveSend(): tcptlsserver  to connKey:", connKey)
 		if tcpTlsConn, ok := ts.tcpTlsConns[connKey]; ok {
-			err = ts.tcpTlsServerProcessFunc.ActiveSendProcess(tcpTlsConn, sendData)
+			err = ts.tcpTlsServerProcess.ActiveSendProcess(tcpTlsConn, sendData)
 			if err != nil {
 				// just logs, not return or break
 				belogs.Error("ActiveSend(): tcptlsserver  fail, to connKey: ", connKey, "   tcpTlsConn:", tcpTlsConn.RemoteAddr().String(), err)
@@ -323,7 +323,7 @@ func (ts *TcpTlsServer) OnConnect(tcpTlsConn *TcpTlsConn) {
 	connKey := GetConnKey(tcpTlsConn)
 	ts.tcpTlsConns[connKey] = tcpTlsConn
 	belogs.Debug("OnConnect(): tcptlsserver tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), ", connKey:", connKey, "  new len(tcpTlsConns): ", len(ts.tcpTlsConns))
-	ts.tcpTlsServerProcessFunc.OnConnectProcess(tcpTlsConn)
+	ts.tcpTlsServerProcess.OnConnectProcess(tcpTlsConn)
 	belogs.Info("OnConnect(): tcptlsserver add tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), "   len(tcpTlsConns): ", len(ts.tcpTlsConns), "   time(s):", time.Now().Sub(start).Seconds())
 
 }
@@ -347,7 +347,7 @@ func (ts *TcpTlsServer) OnClose(tcpTlsConn *TcpTlsConn) {
 	defer ts.tcpTlsConnsMutex.Unlock()
 	belogs.Debug("OnClose(): tcptlsserver will close old tcpTlsConns, tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), "   old len(tcpTlsConns): ", len(ts.tcpTlsConns))
 	delete(ts.tcpTlsConns, GetConnKey(tcpTlsConn))
-	ts.tcpTlsServerProcessFunc.OnCloseProcess(tcpTlsConn)
+	ts.tcpTlsServerProcess.OnCloseProcess(tcpTlsConn)
 	belogs.Info("OnClose(): tcptlsserver new len(tcpTlsConns): ", len(ts.tcpTlsConns), "  time(s):", time.Now().Sub(start).Seconds())
 }
 
