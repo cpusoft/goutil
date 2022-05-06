@@ -14,9 +14,9 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/goccy/go-json v0.9.5 // indirect
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/gorilla/sessions v1.2.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -28,7 +28,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shiena/ansicolor v0.0.0-20200904210342-c7312218db18
-	github.com/stretchr/testify v1.7.0
+	github.com/shirou/gopsutil/v3 v3.22.4
+	github.com/stretchr/testify v1.7.1
 	github.com/ugorji/go v1.2.7 // indirect
 	github.com/wendal/errors v0.0.0-20130201093226-f66c77a7882b // indirect
 	go.etcd.io/etcd/client/v3 v3.5.2
