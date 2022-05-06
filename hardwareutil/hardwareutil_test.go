@@ -22,7 +22,7 @@ func TestGetMemoryInfo(t *testing.T) {
 		fmt.Println(pars[i])
 		serialNumber, _ := disk.SerialNumber(pars[i].Device)
 		fmt.Println(serialNumber)
-		/* only linux
+		/*  // only linux
 		var st syscall.Stat_t
 		syscall.Stat(pars[i].Device, &st)
 		fmt.Printf("%+v\n", st)
