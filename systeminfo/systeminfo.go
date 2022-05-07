@@ -18,6 +18,7 @@ type SystemInfoUniqueId struct {
 	HostOs         string `json:"hostOs"`
 	HostKernelArch string `json:"hostKernelArch"`
 	HostId         string `json:"hostId"`
+	CpuVendorId    string `json:"cpuVendorId"`
 	CpuPhysicalId  string `json:"cpuPhysicalId"`
 	CpuModelName   string `json:"cpuModelName"`
 	MemoryTotal    string `json:"memoryTotal"`
@@ -96,6 +97,7 @@ func GetSystemInfoUniqueId() (systemInfoUniqueId SystemInfoUniqueId, err error) 
 		HostOs:         hostInfo.OS,
 		HostKernelArch: hostInfo.KernelArch,
 		HostId:         hostInfo.HostID,
+		CpuVendorId:    cpusInfo[0].VendorID,
 		CpuPhysicalId:  cpusInfo[0].PhysicalID,
 		CpuModelName:   cpusInfo[0].ModelName,
 		MemoryTotal:    convert.ToString(memoryInfo.Total),
