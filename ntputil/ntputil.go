@@ -24,3 +24,11 @@ func GetNtpTime() (time.Time, error) {
 	}
 	return time.Now(), errors.New("no ntp server is availble")
 }
+
+func GetFormatNtpTime(format string) (string, error) {
+	tm, err := GetNtpTime()
+	if err != nil {
+		return "", err
+	}
+	return tm.Format(format), nil
+}
