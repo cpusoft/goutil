@@ -30,5 +30,8 @@ func GetFormatNtpTime(format string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return tm.Format(format), nil
+	if len(format) == 0 {
+		format = "2006-01-02 15:04:05 MST"
+	}
+	return tm.Local().Format(format), nil
 }
