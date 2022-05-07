@@ -1,4 +1,4 @@
-package hardwareutil
+package systeminfo
 
 import (
 	"fmt"
@@ -34,4 +34,7 @@ func TestGetMemoryInfo(t *testing.T) {
 	for i := range cpus {
 		fmt.Println(cpus[i])
 	}
+
+	sys, err := GetSystemInfoUniqueIdSha256()
+	fmt.Println(sys, err)
 }
