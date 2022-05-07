@@ -32,6 +32,7 @@ func GetMemoryInfo() (*mem.VirtualMemoryStat, error) {
 	}
 	return v, nil
 }
+
 func GetKernelVersion() (string, error) {
 	version, err := host.KernelVersion()
 	if err != nil {
@@ -40,6 +41,7 @@ func GetKernelVersion() (string, error) {
 	}
 	return version, nil
 }
+
 func GetHostInfo() (*host.InfoStat, error) {
 	hostInfo, err := host.Info()
 	if err != nil {
@@ -48,6 +50,7 @@ func GetHostInfo() (*host.InfoStat, error) {
 	}
 	return hostInfo, nil
 }
+
 func GetDiskPartitions() ([]disk.PartitionStat, error) {
 	parts, err := disk.Partitions(false)
 	if err != nil {
@@ -59,6 +62,7 @@ func GetDiskPartitions() ([]disk.PartitionStat, error) {
 	}
 	return parts, nil
 }
+
 func GetCpusInfo() ([]cpu.InfoStat, error) {
 	cpus, err := cpu.Info()
 	if err != nil {
