@@ -6,6 +6,7 @@ require (
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible // indirect
 	github.com/beego/goyaml2 v0.0.0-20130207012346-5545475820dd
 	github.com/beego/x2j v0.0.0-20131220205130-a0352aadc542
+	github.com/beevik/ntp v0.3.0
 	github.com/cpusoft/go-json-rest v4.0.0+incompatible
 	github.com/elazarl/goproxy v0.0.0-20210110162100-a92cc753f88e // indirect
 	github.com/gin-contrib/sessions v0.0.5-0.20220203234948-94f4072df8b8
