@@ -32,3 +32,19 @@ func TrimeSuffixAll(str, trim string) (s string) {
 	return s
 
 }
+
+// line: a=***&b=***&c=***
+// key: a
+// separator: &
+func GetValueFromJointStr(line, key, separator string) string {
+	split := strings.Split(line, separator)
+	if len(split) == 0 {
+		return ""
+	}
+	for i := range split {
+		if strings.HasPrefix(split[i], key+"=") {
+			return strings.Replace(split[i], key+"=", "", -1)
+		}
+	}
+	return ""
+}

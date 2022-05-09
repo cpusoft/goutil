@@ -14,3 +14,13 @@ func TestTrimeSuffixAll(t *testing.T) {
 
 	}
 }
+
+func TestGetValueFromJointStr(t *testing.T) {
+	str := `a=111&b=222&c=333`
+	v := GetValueFromJointStr(str, "a", "&")
+	fmt.Println(v)
+	v = GetValueFromJointStr(str, "b", "&")
+	fmt.Println(v)
+	v = GetValueFromJointStr(str, "c", "&")
+	fmt.Println(v)
+}
