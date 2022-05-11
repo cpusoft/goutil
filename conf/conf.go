@@ -44,7 +44,7 @@ func init() {
 		}
 		conf = path + string(os.PathSeparator) + "project.conf"
 	}
-	fmt.Println("conf file is ", conf)
+	//fmt.Println("conf file is ", conf)
 	Configure, err = config.NewConfig("ini", conf)
 	if err != nil {
 		fmt.Println("load " + conf + " failed, " + err.Error())

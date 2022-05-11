@@ -32,8 +32,8 @@ func init() {
 	} else {
 		logName = conf.String("logs::name")
 	}
-	async := conf.DefaultBool("logs::async", false)
-	fmt.Println("logLevel:", logLevel, "  logName:", logName, "  async:", async)
+	//async := conf.DefaultBool("logs::async", false)
+	//fmt.Println("logLevel:", logLevel, "  logName:", logName, "  async:", async)
 
 	var logLevelInt int = logs.LevelInformational
 	switch logLevel {
@@ -62,7 +62,7 @@ func init() {
 		fmt.Println("found " + path + " failed, " + err.Error())
 	}
 	filePath := path + string(os.PathSeparator) + logName
-	fmt.Println("log file is ", filePath)
+	//fmt.Println("log file is ", filePath)
 
 	logConfig := make(map[string]interface{})
 	logConfig["daily"] = true
@@ -76,7 +76,7 @@ func init() {
 	logConfig["level"] = logLevelInt
 
 	logConfigStr, _ := json.Marshal(logConfig)
-	fmt.Println("log:logConfigStr", string(logConfigStr))
+	//fmt.Println("log:logConfigStr", string(logConfigStr))
 	//logs.NewLogger(1024)
 	//AdapterFile
 	err = logs.SetLogger(logs.AdapterFile, string(logConfigStr))
