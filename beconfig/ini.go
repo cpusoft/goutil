@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -505,7 +504,7 @@ func init() {
 
 	err := InitGlobalInstance("ini", "conf/app.conf")
 	if err != nil {
-		fmt.Println("init global config instance failed. If you donot use this, just ignore it. ", err)
+		//	fmt.Println("init global config instance failed. If you donot use this, just ignore it. ", err)
 	}
 }
 
