@@ -33,6 +33,7 @@ require (
 	github.com/stretchr/testify v1.7.1
 	github.com/ugorji/go v1.2.7 // indirect
 	github.com/wendal/errors v0.0.0-20130201093226-f66c77a7882b // indirect
+	github.com/wenzhenxi/gorsa v0.0.0-20220418014903-15feec0f05a6
 	go.etcd.io/etcd/client/v3 v3.5.2
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect

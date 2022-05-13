@@ -11,6 +11,7 @@ import (
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
+	"github.com/wenzhenxi/gorsa"
 )
 
 // get rsa public/private key
@@ -84,6 +85,64 @@ func RsaDecrypt(encryptedData, privateKey []byte) (plainData []byte, err error) 
 	plainData, err = rsa.DecryptPKCS1v15(rand.Reader, rsaPrivateKey, encryptedData)
 	if err != nil {
 		belogs.Error("RsaDecrypt(): DecryptPKCS1v15 fail:")
+		return nil, err
+	}
+	return plainData, nil
+}
+
+func RsaEncryptByPublicKey(plainData []byte, publicKey string) (encryptedData []byte, err error) {
+
+	grsa := gorsa.RSASecurity{}
+	grsa.SetPublicKey(publicKey)
+	belogs.Debug(publicKey)
+
+	encryptedData, err = grsa.PubKeyENCTYPT(plainData)
+	if err != nil {
+		belogs.Error("RsaEncryptByPublicKey(): PubKeyENCTYPT fail:", err)
+		return nil, err
+	}
+	return encryptedData, nil
+}
+
+func RsaDecryptByPrivateKey(encryptedData []byte, privateKey string) (plainData []byte, err error) {
+	grsa := gorsa.RSASecurity{}
+	err = grsa.SetPrivateKey(privateKey)
+	if err != nil {
+		belogs.Error("RsaDecryptByPrivateKey(): SetPrivateKey:", err)
+		return nil, err
+	}
+
+	plainData, err = grsa.PriKeyDECRYPT(encryptedData)
+	if err != nil {
+		belogs.Error("RsaDecryptByPrivateKey(): PriKeyDECRYPT:", err)
+		return nil, err
+	}
+	return plainData, nil
+}
+
+func RsaEncryptByPrivateKey(plainData []byte, privateKey string) (encryptedData []byte, err error) {
+	grsa := gorsa.RSASecurity{}
+	grsa.SetPrivateKey(privateKey)
+
+	encryptedData, err = grsa.PriKeyENCTYPT(plainData)
+	if err != nil {
+		belogs.Error("RsaEncryptByPrivateKey(): PriKeyENCTYPT:", err)
+		return nil, err
+	}
+	return encryptedData, nil
+}
+
+func RsaDecryptByPublicKey(encryptedData []byte, publicKey string) (plainData []byte, err error) {
+	grsa := gorsa.RSASecurity{}
+	err = grsa.SetPublicKey(publicKey)
+	if err != nil {
+		belogs.Error("RsaDecryptByPublicKey(): SetPublicKey:", err)
+		return nil, err
+	}
+
+	plainData, err = grsa.PubKeyDECRYPT(encryptedData)
+	if err != nil {
+		belogs.Error("RsaDecryptByPublicKey(): PubKeyDECRYPT:", err)
 		return nil, err
 	}
 	return plainData, nil
