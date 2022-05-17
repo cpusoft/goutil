@@ -9,6 +9,7 @@ import (
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/httpclient"
+	"github.com/cpusoft/goutil/netutil"
 	"github.com/cpusoft/goutil/xmlutil"
 )
 
@@ -50,7 +51,8 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 	if err == nil {
 		defer resp.Body.Close()
 		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl:", notificationUrl,
-			"   resp.Status:", resp.Status, "    len(body):", len(body),
+			"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp.Status:", resp.Status,
+			"   len(body):", len(body),
 			"   time(s):", time.Now().Sub(start).Seconds())
 
 		if resp.StatusCode != http.StatusOK {
@@ -66,8 +68,9 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 		// then try using curl
 		body, err = httpclient.GetByCurl(notificationUrl)
 		if err != nil {
-			belogs.Error("getRrdpNotificationImpl(): GetByCurl notificationUrl fail:", notificationUrl, "   resp:",
-				resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
+			belogs.Error("getRrdpNotificationImpl(): GetByCurl notificationUrl fail:", notificationUrl,
+				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp:", resp,
+				"   len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
 			return notificationModel, errors.New("http error of " + notificationUrl + " is " + err.Error())
 		}
 		belogs.Debug("getRrdpNotificationImpl(): GetByCurl deltaUrl ok", notificationUrl, "    len(body):", len(body),

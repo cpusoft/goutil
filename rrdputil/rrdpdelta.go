@@ -16,6 +16,7 @@ import (
 	"github.com/cpusoft/goutil/hashutil"
 	"github.com/cpusoft/goutil/httpclient"
 	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/netutil"
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/cpusoft/goutil/stringutil"
 	"github.com/cpusoft/goutil/urlutil"
@@ -136,8 +137,9 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 	resp, body, err := httpclient.GetHttpsVerify(deltaUrl, true)
 	if err == nil {
 		defer resp.Body.Close()
-		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl ok:", deltaUrl, "   resp.Status:",
-			resp.Status, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl ok:", deltaUrl, "   resp.Status:", resp.Status,
+			"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
+			"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	} else {
 		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
@@ -145,8 +147,9 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 		// then try using curl
 		body, err = httpclient.GetByCurl(deltaUrl)
 		if err != nil {
-			belogs.Error("getRrdpDeltaImpl(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:",
-				resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+			belogs.Error("getRrdpDeltaImpl(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:", resp,
+				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
+				"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 			return deltaModel, err
 		}
 		belogs.Debug("getRrdpDeltaImpl(): GetByCurl deltaUrl ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())

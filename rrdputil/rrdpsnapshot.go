@@ -12,6 +12,7 @@ import (
 	"github.com/cpusoft/goutil/hashutil"
 	"github.com/cpusoft/goutil/httpclient"
 	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/netutil"
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/cpusoft/goutil/urlutil"
 	"github.com/cpusoft/goutil/xmlutil"
@@ -49,7 +50,8 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 	if err == nil {
 		defer resp.Body.Close()
 		belogs.Debug("getRrdpSnapshotImpl():GetHttpsVerify snapshotUrl ok:", snapshotUrl,
-			"    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+			"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
+			"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	} else {
 		belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
@@ -57,8 +59,9 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 		// then try using curl
 		body, err = httpclient.GetByCurl(snapshotUrl)
 		if err != nil {
-			belogs.Error("getRrdpSnapshotImpl(): GetByCurl snapshotUrl fail:", snapshotUrl, "   resp:",
-				resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+			belogs.Error("getRrdpSnapshotImpl(): GetByCurl snapshotUrl fail:", snapshotUrl,
+				"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl), "   resp:", resp,
+				"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 			return snapshotModel, err
 		}
 		belogs.Debug("getRrdpSnapshotImpl(): GetByCurl snapshotUrl ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
