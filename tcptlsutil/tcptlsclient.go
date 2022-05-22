@@ -44,7 +44,7 @@ func NewTcpClient(tcpTlsClientProcess TcpTlsClientProcess, tcpTlsMsg chan TcpTls
 	belogs.Debug("NewTcpClient():tcpTlsClientProcess:", tcpTlsClientProcess)
 	tc = &TcpTlsClient{}
 	tc.isTcpClient = true
-	tc.tcpTlsClientSendMsg = make(chan TcpTlsClientSendMsg)
+	tc.tcpTlsClientSendMsg = make(chan TcpTlsClientSendMsg, 16)
 	tc.tcpTlsClientProcess = tcpTlsClientProcess
 	tc.TcpTlsMsg = tcpTlsMsg
 	belogs.Info("NewTcpClient():tc:", tc)
@@ -153,12 +153,13 @@ func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
 		}
 	*/
 	tc.tcpTlsConn = NewFromTlsConn(tlsConn)
+	belogs.Debug("StartTlsClient(): will SendAndReceive, server:", server, "   tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
+	//active send to server, and receive from server, loop
+	go tc.SendAndReceive()
+
 	tc.OnConnect()
 	belogs.Info("StartTlsClient(): OnConnect, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 
-	//active send to server, and receive from server, loop
-	go tc.SendAndReceive()
-	belogs.Debug("StartTlsClient(): SendAndReceive, server:", server, "   tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 	return nil
 }
 
