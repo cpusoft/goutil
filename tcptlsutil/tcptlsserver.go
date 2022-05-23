@@ -239,7 +239,7 @@ ReadLoop:
 			belogs.Info("ReceiveAndSend(): tcptlsserver closeGraceful, will return: ", tcpTlsConn.RemoteAddr().String())
 			return
 		default:
-			tcpTlsConn.SetDeadline(time.Now().Add(5 * time.Second))
+			tcpTlsConn.SetDeadline(time.Now().Add(60 * time.Second))
 			start := time.Now()
 			n, err := tcpTlsConn.Read(buffer)
 			//	if n == 0 {
