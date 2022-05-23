@@ -2,22 +2,23 @@ package tcptlsutil
 
 import (
 	"bytes"
+	"fmt"
+	"testing"
 	"time"
 
-	"github.com/cpusoft/goutil/belogs"
 	_ "github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
 	_ "github.com/cpusoft/goutil/logs"
-	"github.com/gogo/protobuf/test"
 )
 
-func CreateTcpServer(t *test.T) {
+func TestCreateTcpServer(t *testing.T) {
 	serverProcessFunc := new(ServerProcessFunc)
-	ts := NewTcpServer(serverProcessFunc)
-	belogs.Debug("CreateTcpServer():", 9999)
+	tcpTlsMsg := make(chan TcpTlsMsg, 16)
+	ts := NewTcpServer(serverProcessFunc, tcpTlsMsg)
+	fmt.Println("CreateTcpServer():", 9999)
 	err := ts.StartTcpServer("9999")
 	if err != nil {
-		belogs.Error("CreateTcpServer(): StartTcpServer ts fail: ", &ts, err)
+		fmt.Println("CreateTcpServer(): StartTcpServer ts fail: ", &ts, err)
 		return
 	}
 	time.Sleep(2 * time.Second)
@@ -26,18 +27,19 @@ func CreateTcpServer(t *test.T) {
 	time.Sleep(5 * time.Second)
 	ts.CloseGraceful()
 }
-func CreateTlsServer(t *test.T) {
+func TestCreateTlsServer(t *testing.T) {
 	serverProcessFunc := new(ServerProcessFunc)
-	tlsRootCrtFileName := `ca.cer`
-	tlsPublicCrtFileName := `server.cer`
-	tlsPrivateKeyFileName := `serverkey.pem`
-	belogs.Debug("CreateTlsServer(): tlsRootCrtFileName:", tlsRootCrtFileName,
+	tlsRootCrtFileName := `catlsroot.cer`       //`ca.cer`
+	tlsPublicCrtFileName := `servertlscrt.cer`  //`server.cer`
+	tlsPrivateKeyFileName := `servertlskey.pem` //`serverkey.pem`
+	fmt.Println("CreateTlsServer(): tlsRootCrtFileName:", tlsRootCrtFileName,
 		"tlsPublicCrtFileName:", tlsPublicCrtFileName,
 		"tlsPrivateKeyFileName:", tlsPrivateKeyFileName)
-
-	ts, err := NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName, true, serverProcessFunc)
+	tcpTlsMsg := make(chan TcpTlsMsg, 16)
+	ts, err := NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName,
+		tlsPrivateKeyFileName, true, serverProcessFunc, tcpTlsMsg)
 	if err != nil {
-		belogs.Error("CreateTlsServer(): NewTlsServer ts fail: ", &ts, err)
+		fmt.Println("CreateTlsServer(): NewTlsServer ts fail: ", &ts, err)
 		return
 	}
 	go ts.StartTlsServer("9999")
@@ -49,7 +51,7 @@ func CreateTlsServer(t *test.T) {
 }
 func RtrProcess(receiveData []byte) (sendData []byte, err error) {
 	buf := bytes.NewReader(receiveData)
-	belogs.Debug("RtrProcess(): buf:", buf)
+	fmt.Println("RtrProcess(): buf:", buf)
 	return nil, nil
 }
 func GetData() (buffer []byte) {
@@ -67,28 +69,28 @@ func (spf *ServerProcessFunc) OnConnectProcess(tcpTlsConn *TcpTlsConn) {
 
 }
 func (spf *ServerProcessFunc) ReceiveAndSendProcess(tcpTlsConn *TcpTlsConn, receiveData []byte) (nextConnectPolicy int, leftData []byte, err error) {
-	belogs.Debug("ReceiveAndSendProcess(): len(receiveData):", len(receiveData), "   receiveData:", convert.Bytes2String(receiveData))
+	fmt.Println("ReceiveAndSendProcess(): len(receiveData):", len(receiveData), "   receiveData:", convert.Bytes2String(receiveData))
 	// need recombine
 	packets, leftData, err := RecombineReceiveData(receiveData, PDU_TYPE_MIN_LEN, PDU_TYPE_LENGTH_START, PDU_TYPE_LENGTH_END)
 	if err != nil {
-		belogs.Error("ReceiveAndSendProcess(): RecombineReceiveData fail:", err)
+		fmt.Println("ReceiveAndSendProcess(): RecombineReceiveData fail:", err)
 		return NEXT_CONNECT_POLICE_CLOSE_FORCIBLE, nil, err
 	}
-	belogs.Debug("ReceiveAndSendProcess(): RecombineReceiveData packets.Len():", packets.Len())
+	fmt.Println("ReceiveAndSendProcess(): RecombineReceiveData packets.Len():", packets.Len())
 
 	if packets == nil || packets.Len() == 0 {
-		belogs.Debug("ReceiveAndSendProcess(): RecombineReceiveData packets is empty:  len(leftData):", len(leftData))
+		fmt.Println("ReceiveAndSendProcess(): RecombineReceiveData packets is empty:  len(leftData):", len(leftData))
 		return NEXT_CONNECT_POLICE_CLOSE_GRACEFUL, leftData, nil
 	}
 	for e := packets.Front(); e != nil; e = e.Next() {
 		packet, ok := e.Value.([]byte)
 		if !ok || packet == nil || len(packet) == 0 {
-			belogs.Debug("ReceiveAndSendProcess(): for packets fail:", convert.ToString(e.Value))
+			fmt.Println("ReceiveAndSendProcess(): for packets fail:", convert.ToString(e.Value))
 			break
 		}
 		_, err := RtrProcess(packet)
 		if err != nil {
-			belogs.Error("ReceiveAndSendProcess(): RtrProcess fail:", err)
+			fmt.Println("ReceiveAndSendProcess(): RtrProcess fail:", err)
 			return NEXT_CONNECT_POLICE_CLOSE_FORCIBLE, nil, err
 		}
 
@@ -96,7 +98,7 @@ func (spf *ServerProcessFunc) ReceiveAndSendProcess(tcpTlsConn *TcpTlsConn, rece
 
 	_, err = tcpTlsConn.Write(GetData())
 	if err != nil {
-		belogs.Error("ReceiveAndSendProcess(): tcp  Write fail:  tcpTlsConn:", tcpTlsConn.RemoteAddr().String(), err)
+		fmt.Println("ReceiveAndSendProcess(): tcp  Write fail:  tcpTlsConn:", tcpTlsConn.RemoteAddr().String(), err)
 		return NEXT_CONNECT_POLICE_CLOSE_FORCIBLE, nil, err
 	}
 	// continue to receive next receiveData

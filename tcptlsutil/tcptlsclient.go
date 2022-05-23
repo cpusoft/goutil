@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
 )
@@ -117,12 +118,15 @@ func (tc *TcpTlsClient) StartTcpClient(server string) (err error) {
 
 // server: **.**.**.**:port
 func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
-	belogs.Debug("StartTlsClient(): create client, server is  ", server)
+	belogs.Debug("StartTlsClient(): create client, server is  ", server,
+		"  tlsPublicCrtFileName:", tc.tlsPublicCrtFileName,
+		"  tlsPrivateKeyFileName:", tc.tlsPrivateKeyFileName)
 
 	cert, err := tls.LoadX509KeyPair(tc.tlsPublicCrtFileName, tc.tlsPrivateKeyFileName)
 	if err != nil {
 		belogs.Error("StartTlsClient(): LoadX509KeyPair fail: server:", server,
-			"  tlsPublicCrtFileName, tlsPrivateKeyFileName:", tc.tlsPublicCrtFileName, tc.tlsPrivateKeyFileName, err)
+			"  tlsPublicCrtFileName:", tc.tlsPublicCrtFileName,
+			"  tlsPrivateKeyFileName:", tc.tlsPrivateKeyFileName, err)
 		return err
 	}
 	belogs.Debug("StartTlsClient(): LoadX509KeyPair ok, server is  ", server)
@@ -203,13 +207,15 @@ func (tc *TcpTlsClient) SendAndReceive() (err error) {
 			nextConnectClosePolicy := tcpTlsClientSendMsg.NextConnectClosePolicy
 			nextRwPolice := tcpTlsClientSendMsg.NextRwPolice
 			sendData := tcpTlsClientSendMsg.SendData
-			belogs.Debug("SendAndReceive(): tcptlsclient , tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(),
-				"  tcpTlsClientSendMsg: ", jsonutil.MarshalJson(tcpTlsClientSendMsg))
+			belogs.Debug("SendAndReceive(): tcptlsclient  send to server:", tc.tcpTlsConn.RemoteAddr().String(),
+				"   nextConnectClosePolicy: ", nextConnectClosePolicy,
+				"   nextRwPolice:", nextRwPolice,
+				"   sendData:", convert.PrintBytesOneLine(sendData))
 
 			// if close
 			if nextConnectClosePolicy == NEXT_CONNECT_POLICE_CLOSE_GRACEFUL ||
 				nextConnectClosePolicy == NEXT_CONNECT_POLICE_CLOSE_FORCIBLE {
-				belogs.Info("SendAndReceive(): tcptlsclient   nextConnectClosePolicy close end client, will end tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
+				belogs.Info("SendAndReceive(): tcptlsclient  nextConnectClosePolicy close end client, will end tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
 					"   nextConnectClosePolicy:", nextConnectClosePolicy)
 				tc.OnClose()
 				return nil
