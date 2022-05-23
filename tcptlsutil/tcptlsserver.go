@@ -99,12 +99,14 @@ func (ts *TcpTlsServer) StartTcpServer(port string) (err error) {
 		belogs.Error("StartTcpServer(): tcpserver  ResolveTCPAddr fail, port:", port, err)
 		return err
 	}
+	belogs.Debug("StartTcpServer(): ResolveTCPAddr ok,  port:", port)
 
 	listener, err := net.ListenTCP("tcp", tcpServer)
 	if err != nil {
 		belogs.Error("StartTcpServer(): tcpserver  ListenTCP fail, port:", port, err)
 		return err
 	}
+	belogs.Debug("StartTcpServer(): ListenTCP ok,  port:", port)
 
 	// get tcpTlsListener
 	ts.tcpTlsListener, err = NewFromTcpListener(listener)
@@ -179,6 +181,8 @@ func (ts *TcpTlsServer) StartTlsServer(port string) (err error) {
 		belogs.Error("StartTlsServer(): tlsserver  Listen fail, port:", port, err)
 		return err
 	}
+	belogs.Debug("StartTlsServer(): Listen ok,  port:", port)
+
 	// get tcpTlsListener
 	ts.tcpTlsListener, err = NewFromTlsListener(listener)
 	if err != nil {

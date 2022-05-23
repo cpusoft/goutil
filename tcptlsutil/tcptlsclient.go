@@ -95,19 +95,23 @@ func (tc *TcpTlsClient) StartTcpClient(server string) (err error) {
 		belogs.Error("StartTcpClient(): DialTimeout fail, server:", server, err)
 		return err
 	}
+	belogs.Debug("StartTcpClient(): DialTimeout ok, server is  ", server)
+
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
 		belogs.Error("StartTcpClient(): conn cannot conver to tcpConn: ", conn.RemoteAddr().String(), err)
 		return err
 	}
+	belogs.Debug("StartTcpClient(): tcpConn ok, server is  ", server)
 
 	tc.tcpTlsConn = NewFromTcpConn(tcpConn)
+	//active send to server, and receive from server, loop
+	belogs.Debug("StartTcpClient(): NewFromTcpConn ok, server:", server, "   tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
+	go tc.SendAndReceive()
+
 	tc.OnConnect()
 	belogs.Info("StartTcpClient(): OnConnect, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 
-	//active send to server, and receive from server, loop
-	go tc.SendAndReceive()
-	belogs.Debug("StartTcpClient(): SendAndReceive, server:", server, "   tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 	return nil
 }
 
@@ -121,12 +125,16 @@ func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
 			"  tlsPublicCrtFileName, tlsPrivateKeyFileName:", tc.tlsPublicCrtFileName, tc.tlsPrivateKeyFileName, err)
 		return err
 	}
+	belogs.Debug("StartTlsClient(): LoadX509KeyPair ok, server is  ", server)
+
 	rootCrtBytes, err := ioutil.ReadFile(tc.tlsRootCrtFileName)
 	if err != nil {
 		belogs.Error("StartTlsClient(): ReadFile tlsRootCrtFileName fail, server:", server,
 			"  tlsRootCrtFileName:", tc.tlsRootCrtFileName, err)
 		return err
 	}
+	belogs.Debug("StartTlsClient(): ReadFile ok, server is  ", server)
+
 	rootCertPool := x509.NewCertPool()
 	ok := rootCertPool.AppendCertsFromPEM(rootCrtBytes)
 	if !ok {
@@ -134,6 +142,8 @@ func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
 			"  tlsRootCrtFileName:", tc.tlsRootCrtFileName, "  len(rootCrtBytes):", len(rootCrtBytes), err)
 		return err
 	}
+	belogs.Debug("StartTlsClient(): AppendCertsFromPEM ok, server is  ", server)
+
 	config := &tls.Config{
 		Certificates:       []tls.Certificate{cert},
 		RootCAs:            rootCertPool,
@@ -145,6 +155,8 @@ func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
 		belogs.Error("StartTlsClient(): DialWithDialer fail, server:", server, err)
 		return err
 	}
+	belogs.Debug("StartTlsClient(): DialWithDialer ok, server is  ", server)
+
 	/*
 		tlsConn, err := tls.Dial("tcp", server, config)
 		if err != nil {
@@ -153,7 +165,7 @@ func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
 		}
 	*/
 	tc.tcpTlsConn = NewFromTlsConn(tlsConn)
-	belogs.Debug("StartTlsClient(): will SendAndReceive, server:", server, "   tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
+	belogs.Debug("StartTlsClient(): NewFromTlsConn ok, server:", server, "   tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 	//active send to server, and receive from server, loop
 	go tc.SendAndReceive()
 
