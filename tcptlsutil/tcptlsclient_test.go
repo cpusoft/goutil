@@ -19,8 +19,8 @@ func TestCreateTcpClient(t *testing.T) {
 		return
 	}
 	fmt.Println("CreateTcpClient(): tcpclient will SendData")
-	tcpClientSendMsg := &TcpTlsClientSendMsg{NextConnectClosePolicy: NEXT_CONNECT_POLICE_KEEP,
-		NextRwPolice: NEXT_RW_POLICE_WAIT_READ,
+	tcpClientSendMsg := &TcpTlsClientSendMsg{NextConnectClosePolicy: NEXT_CONNECT_POLICY_KEEP,
+		NextRwPolicy: NEXT_RW_POLICY_WAIT_READ,
 		SendData:     GetTcpClientData(),
 	}
 	tc.SendMsg(tcpClientSendMsg)
@@ -51,15 +51,15 @@ func TestCreateTlsClient(t *testing.T) {
 		return
 	}
 	fmt.Println("CreateTcpClient(): tcpclient will SendData")
-	tcpClientSendMsg := &TcpTlsClientSendMsg{NextConnectClosePolicy: NEXT_CONNECT_POLICE_KEEP,
-		NextRwPolice: NEXT_RW_POLICE_WAIT_READ,
+	tcpClientSendMsg := &TcpTlsClientSendMsg{NextConnectClosePolicy: NEXT_CONNECT_POLICY_KEEP,
+		NextRwPolicy: NEXT_RW_POLICY_WAIT_READ,
 		SendData:     GetTcpClientData(),
 	}
 	tc.SendMsg(tcpClientSendMsg)
 	time.Sleep(60 * time.Second)
 
 	fmt.Println("CreateTcpClient(): tcpclient will stop")
-	tcpClientSendMsg.NextConnectClosePolicy = NEXT_CONNECT_POLICE_CLOSE_GRACEFUL
+	tcpClientSendMsg.NextConnectClosePolicy = NEXT_CONNECT_POLICY_CLOSE_GRACEFUL
 	tcpClientSendMsg.SendData = nil
 	tc.SendMsg(tcpClientSendMsg)
 
@@ -82,7 +82,7 @@ func (cp *ClientProcessFunc) OnCloseProcess(tcpTlsConn *TcpTlsConn) {
 func (sq *ClientProcessFunc) OnReceiveProcess(tcpTlsConn *TcpTlsConn, receiveData []byte) (nextRwPolicy int, leftData []byte, err error) {
 
 	fmt.Println("OnReceiveProcess() tcpclient  :", tcpTlsConn, convert.Bytes2String(receiveData))
-	return NEXT_RW_POLICE_END_READ, make([]byte, 0), nil
+	return NEXT_RW_POLICY_END_READ, make([]byte, 0), nil
 }
 
 func GetTcpClientData() (buffer []byte) {

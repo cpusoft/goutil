@@ -270,8 +270,8 @@ ReadLoop:
 				return
 			}
 
-			if nextConnectPolicy == NEXT_CONNECT_POLICE_CLOSE_GRACEFUL ||
-				nextConnectPolicy == NEXT_CONNECT_POLICE_CLOSE_FORCIBLE {
+			if nextConnectPolicy == NEXT_CONNECT_POLICY_CLOSE_GRACEFUL ||
+				nextConnectPolicy == NEXT_CONNECT_POLICY_CLOSE_FORCIBLE {
 				belogs.Info("ReceiveAndSend(): tcptlsserver  nextConnectPolicy return : ", tcpTlsConn.RemoteAddr().String(), nextConnectPolicy)
 				return
 			}

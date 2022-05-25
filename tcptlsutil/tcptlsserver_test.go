@@ -74,13 +74,13 @@ func (spf *ServerProcessFunc) ReceiveAndSendProcess(tcpTlsConn *TcpTlsConn, rece
 	packets, leftData, err := RecombineReceiveData(receiveData, PDU_TYPE_MIN_LEN, PDU_TYPE_LENGTH_START, PDU_TYPE_LENGTH_END)
 	if err != nil {
 		fmt.Println("ReceiveAndSendProcess(): RecombineReceiveData fail:", err)
-		return NEXT_CONNECT_POLICE_CLOSE_FORCIBLE, nil, err
+		return NEXT_CONNECT_POLICY_CLOSE_FORCIBLE, nil, err
 	}
 	fmt.Println("ReceiveAndSendProcess(): RecombineReceiveData packets.Len():", packets.Len())
 
 	if packets == nil || packets.Len() == 0 {
 		fmt.Println("ReceiveAndSendProcess(): RecombineReceiveData packets is empty:  len(leftData):", len(leftData))
-		return NEXT_CONNECT_POLICE_CLOSE_GRACEFUL, leftData, nil
+		return NEXT_CONNECT_POLICY_CLOSE_GRACEFUL, leftData, nil
 	}
 	for e := packets.Front(); e != nil; e = e.Next() {
 		packet, ok := e.Value.([]byte)
@@ -91,7 +91,7 @@ func (spf *ServerProcessFunc) ReceiveAndSendProcess(tcpTlsConn *TcpTlsConn, rece
 		_, err := RtrProcess(packet)
 		if err != nil {
 			fmt.Println("ReceiveAndSendProcess(): RtrProcess fail:", err)
-			return NEXT_CONNECT_POLICE_CLOSE_FORCIBLE, nil, err
+			return NEXT_CONNECT_POLICY_CLOSE_FORCIBLE, nil, err
 		}
 
 	}
@@ -99,10 +99,10 @@ func (spf *ServerProcessFunc) ReceiveAndSendProcess(tcpTlsConn *TcpTlsConn, rece
 	_, err = tcpTlsConn.Write(GetData())
 	if err != nil {
 		fmt.Println("ReceiveAndSendProcess(): tcp  Write fail:  tcpTlsConn:", tcpTlsConn.RemoteAddr().String(), err)
-		return NEXT_CONNECT_POLICE_CLOSE_FORCIBLE, nil, err
+		return NEXT_CONNECT_POLICY_CLOSE_FORCIBLE, nil, err
 	}
 	// continue to receive next receiveData
-	return NEXT_CONNECT_POLICE_KEEP, leftData, nil
+	return NEXT_CONNECT_POLICY_KEEP, leftData, nil
 }
 func (spf *ServerProcessFunc) OnCloseProcess(tcpTlsConn *TcpTlsConn) {
 

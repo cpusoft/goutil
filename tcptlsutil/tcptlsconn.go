@@ -22,7 +22,7 @@ func NewFromTcpConn(tcpConn *net.TCPConn) (c *TcpTlsConn) {
 	c.tcpConn = tcpConn
 	c.isTcpConn = true
 	c.isClose = false
-	c.nextConnectPolicy = NEXT_CONNECT_POLICE_KEEP
+	c.nextConnectPolicy = NEXT_CONNECT_POLICY_KEEP
 	return c
 }
 
@@ -31,7 +31,7 @@ func NewFromTlsConn(tlsConn *tls.Conn) (c *TcpTlsConn) {
 	c.tlsConn = tlsConn
 	c.isTcpConn = false
 	c.isClose = false
-	c.nextConnectPolicy = NEXT_CONNECT_POLICE_KEEP
+	c.nextConnectPolicy = NEXT_CONNECT_POLICY_KEEP
 	return c
 }
 
