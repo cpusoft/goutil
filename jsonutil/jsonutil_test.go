@@ -8,6 +8,23 @@ import (
 	"time"
 )
 
+type Bs struct {
+	Pbs PrintableBytes
+	S   string
+	N   []byte
+}
+
+func TestPrintableBytes(t *testing.T) {
+	s := `测试类型`
+	bs := Bs{Pbs: []byte(s), S: s, N: []byte(s)}
+	str := MarshalJson(bs)
+	fmt.Println(str)
+
+	bs2 := Bs{}
+	UnmarshalJson(str, &bs2)
+	fmt.Println(bs2)
+}
+
 type User struct {
 	Id    int
 	Name  string

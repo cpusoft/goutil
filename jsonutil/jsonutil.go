@@ -35,3 +35,17 @@ func UnmarshalJson(str string, f interface{}) error {
 
 	return json.Unmarshal([]byte(str), &f)
 }
+
+// []byte: show in string
+type PrintableBytes []byte
+
+func (c PrintableBytes) MarshalText() ([]byte, error) {
+	str := string(c)
+	return []byte(str), nil
+}
+
+func (i *PrintableBytes) UnmarshalText(b []byte) error {
+	str := string(b)
+	*i = []byte(str)
+	return nil
+}
