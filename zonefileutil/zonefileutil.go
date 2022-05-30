@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"sync"
 
 	zonefile "github.com/bwesterb/go-zonefile"
 	"github.com/cpusoft/goutil/belogs"
@@ -18,9 +19,10 @@ import (
 type ZoneFileModel struct {
 	zonefile *zonefile.Zonefile `json:"-"`
 
-	Origin          string           `json:"origin"`
-	Ttl             null.Int         `json:"ttl"`
-	ResourceRecords []ResourceRecord `json:"resourceRecords"`
+	Origin              string           `json:"origin"`
+	Ttl                 null.Int         `json:"ttl"`
+	ResourceRecords     []ResourceRecord `json:"resourceRecords"`
+	resourceRecordMutex sync.RWMutex     `json:"-"`
 }
 
 func (c *ZoneFileModel) String() string {
@@ -32,6 +34,8 @@ func (c *ZoneFileModel) String() string {
 		b.WriteString(fmt.Sprintf("%-10s%-20s", "$TTL",
 			strconv.Itoa(int(c.Ttl.ValueOrZero()))) + osutil.GetNewLineSep())
 	}
+	c.resourceRecordMutex.RLock()
+	defer c.resourceRecordMutex.RUnlock()
 	for i := range c.ResourceRecords {
 		b.WriteString(c.ResourceRecords[i].String())
 	}
@@ -40,14 +44,14 @@ func (c *ZoneFileModel) String() string {
 
 func newZoneFileModel(zonefile *zonefile.Zonefile) *ZoneFileModel {
 	c := &ZoneFileModel{}
-	c.zonefile = c.zonefile
+	c.zonefile = zonefile
 	c.ResourceRecords = make([]ResourceRecord, 0)
 	return c
 }
 
 // type is golang keyword, so use Rr***
 type ResourceRecord struct {
-	RrDomain string   `json:"rrDomain"`
+	RrName   string   `json:"rrName"`
 	RrClass  string   `json:"rrClass"`
 	RrType   string   `json:"rrType"`
 	RrTtl    null.Int `json:"rrTtl"`
@@ -56,13 +60,13 @@ type ResourceRecord struct {
 
 func (c ResourceRecord) String() string {
 	var b strings.Builder
-	b.Grow(512)
+	b.Grow(128)
 	ttl := ""
 	if !c.RrTtl.IsZero() {
 		ttl = strconv.Itoa(int(c.RrTtl.ValueOrZero()))
 	}
 	var space string
-	b.WriteString(fmt.Sprintf("%-20s%-6s%-4s%-6s%-4s", c.RrDomain, ttl, c.RrClass, c.RrType, space))
+	b.WriteString(fmt.Sprintf("%-20s%-6s%-4s%-6s%-4s", c.RrName, ttl, c.RrClass, c.RrType, space))
 	for i := range c.RrValues {
 		b.WriteString(c.RrValues[i] + " ")
 	}
@@ -71,6 +75,7 @@ func (c ResourceRecord) String() string {
 }
 
 // not support $include
+// ttl must be digital
 func LoadZoneFile(file string) (zoneFileModel *ZoneFileModel, err error) {
 	// Load zonefile
 	data, err := ioutil.ReadFile(file)
@@ -86,14 +91,14 @@ func LoadZoneFile(file string) (zoneFileModel *ZoneFileModel, err error) {
 		return nil, errors.New(perr.Error())
 	}
 	belogs.Debug("LoadZoneFile():len(zf.Entries):", file, len(zf.Entries()))
-
+	var lastRrName string
 	zoneFileModel = newZoneFileModel(zf)
 	for i, e := range zf.Entries() {
 		belogs.Debug("LoadZoneFile(): i :", i, "  e:", e)
 		if len(e.Command()) > 0 {
 			belogs.Debug("LoadZoneFile(): Command:", string(e.Command()), e.Values())
 			if string(e.Command()) == "$ORIGIN" && len(e.Values()) > 0 {
-				zoneFileModel.Origin = string(e.Values()[0])
+				zoneFileModel.Origin = strings.TrimSpace(strings.ToLower(string(e.Values()[0])))
 			} else if string(e.Command()) == "$TTL" && len(e.Values()) > 0 {
 				ttlStr := string(e.Values()[0])
 				belogs.Debug("LoadZoneFile(): ttlStr:", ttlStr)
@@ -102,12 +107,16 @@ func LoadZoneFile(file string) (zoneFileModel *ZoneFileModel, err error) {
 			}
 		} else {
 			resourceRecord := ResourceRecord{
-				RrDomain: string(e.Domain()),
-				RrClass:  string(e.Class()),
-				RrType:   string(e.Type()),
+				RrName:  strings.TrimSpace(strings.ToLower(string(e.Domain()))),
+				RrClass: strings.TrimSpace(strings.ToUpper(string(e.Class()))),
+				RrType:  strings.TrimSpace(strings.ToUpper(string(e.Type()))),
 			}
-			belogs.Debug("LoadZoneFile(): resourceRecord:", resourceRecord)
-
+			// if omity name, then use last rr's name
+			if len(resourceRecord.RrName) == 0 && len(lastRrName) > 0 {
+				resourceRecord.RrName = lastRrName
+			} else if len(resourceRecord.RrName) > 0 {
+				lastRrName = resourceRecord.RrName
+			}
 			if e.TTL() != nil {
 				resourceRecord.RrTtl = null.IntFrom(int64(*e.TTL()))
 			}
@@ -137,7 +146,7 @@ func SaveZoneFile(zoneFileModel *ZoneFileModel, file string) (err error) {
 	return fileutil.WriteBytesToFile(file, []byte(b))
 }
 
-// resourceRecord should have RrDomain and RrType and RrValues
+// resourceRecord should have RrName and RrType and RrValues
 // domain: ***, or @, or ""
 func DelResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord ResourceRecord) (err error) {
 	if err := checkZoneFileModel(zoneFileModel); err != nil {
@@ -151,16 +160,17 @@ func DelResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord ResourceR
 
 	belogs.Debug("DelResourceRecord(): oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord))
 	rr := make([]ResourceRecord, 0)
+	zoneFileModel.resourceRecordMutex.Lock()
+	defer zoneFileModel.resourceRecordMutex.Unlock()
 	for i := range zoneFileModel.ResourceRecords {
-		if !(zoneFileModel.ResourceRecords[i].RrDomain == oldResourceRecord.RrDomain &&
+		if !(zoneFileModel.ResourceRecords[i].RrName == oldResourceRecord.RrName &&
 			zoneFileModel.ResourceRecords[i].RrType == oldResourceRecord.RrType &&
 			jsonutil.MarshalJson(zoneFileModel.ResourceRecords[i].RrValues) == jsonutil.MarshalJson(oldResourceRecord.RrValues)) {
 			rr = append(rr, zoneFileModel.ResourceRecords[i])
-			break
 		}
 	}
 	zoneFileModel.ResourceRecords = rr
-	belogs.Info("DelResourceRecord(): found and delete ,new zoneFileModel.ResourceRecords:", jsonutil.MarshalJson(rr))
+	belogs.Info("DelResourceRecord(): found and delete, new zoneFileModel.ResourceRecords:", jsonutil.MarshalJson(rr))
 	return nil
 }
 
@@ -182,8 +192,10 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 	belogs.Debug("UpdateResourceRecord():  oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord),
 		"  newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 
+	zoneFileModel.resourceRecordMutex.Lock()
+	defer zoneFileModel.resourceRecordMutex.Unlock()
 	for i := range zoneFileModel.ResourceRecords {
-		if zoneFileModel.ResourceRecords[i].RrDomain == oldResourceRecord.RrDomain &&
+		if zoneFileModel.ResourceRecords[i].RrName == oldResourceRecord.RrName &&
 			zoneFileModel.ResourceRecords[i].RrType == oldResourceRecord.RrType &&
 			jsonutil.MarshalJson(zoneFileModel.ResourceRecords[i].RrValues) == jsonutil.MarshalJson(oldResourceRecord.RrValues) {
 			zoneFileModel.ResourceRecords[i] = newResourceRecord
@@ -208,13 +220,18 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 	}
 	belogs.Debug("AddResourceRecord():  afterResourceRecord :", jsonutil.MarshalJson(afterResourceRecord),
 		"   newResourceRecord :", jsonutil.MarshalJson(afterResourceRecord))
+	zoneFileModel.resourceRecordMutex.Lock()
+	defer zoneFileModel.resourceRecordMutex.Unlock()
 	if checkResourceRecord(afterResourceRecord) == nil { // afterResourceRecord Domain and Type and Values are not all empty
 		rr := make([]ResourceRecord, 0)
 		for i := range zoneFileModel.ResourceRecords {
 			rr = append(rr, zoneFileModel.ResourceRecords[i])
-			if zoneFileModel.ResourceRecords[i].RrDomain == afterResourceRecord.RrDomain &&
+			if zoneFileModel.ResourceRecords[i].RrName == afterResourceRecord.RrName &&
 				zoneFileModel.ResourceRecords[i].RrType == afterResourceRecord.RrType &&
 				jsonutil.MarshalJson(zoneFileModel.ResourceRecords[i].RrValues) == jsonutil.MarshalJson(afterResourceRecord.RrValues) {
+				if len(newResourceRecord.RrName) == 0 {
+					newResourceRecord.RrName = afterResourceRecord.RrName
+				}
 				rr = append(rr, newResourceRecord) // add newResourceRecord after afterResourceRecord
 			}
 		}
@@ -224,6 +241,39 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 	}
 	belogs.Info("AddResourceRecord(): add ,new zoneFileModel.ResourceRecords :", jsonutil.MarshalJson(zoneFileModel.ResourceRecords))
 	return nil
+}
+
+// rrName: ==hostname, or empty --> @,
+// rrType: ==***, or "any" or "all" or "" --> all
+func GetResourceRecord(zoneFileModel *ZoneFileModel, rrName, rrType string) (resourceRecords []ResourceRecord) {
+	belogs.Debug("GetResourceRecord(): rrName:", rrName, "    rrType:", rrType)
+	rrName = strings.TrimSpace(strings.ToLower(rrName))
+	if len(rrName) == 0 {
+		rrName = "@"
+	}
+	rrType = strings.TrimSpace(strings.ToUpper(rrType))
+	if len(rrType) == 0 || rrType == "ANY" {
+		rrType = "ALL"
+	}
+	belogs.Debug("GetResourceRecord(): trim and lower/upper, rrName:", rrName, "    rrType:", rrType)
+
+	resourceRecords = make([]ResourceRecord, 0)
+	zoneFileModel.resourceRecordMutex.RLock()
+	defer zoneFileModel.resourceRecordMutex.RUnlock()
+	for i := range zoneFileModel.ResourceRecords {
+		if zoneFileModel.ResourceRecords[i].RrName == rrName {
+			if rrType == "ALL" {
+				resourceRecords = append(resourceRecords, zoneFileModel.ResourceRecords[i])
+			} else {
+				if zoneFileModel.ResourceRecords[i].RrType == rrType {
+					resourceRecords = append(resourceRecords, zoneFileModel.ResourceRecords[i])
+				}
+			}
+		}
+	}
+	belogs.Info("GetResourceRecord(): trim and lower/upper, rrName:", rrName,
+		"    rrType:", rrType, "   resourceRecords :", jsonutil.MarshalJson(resourceRecords))
+	return resourceRecords
 }
 
 func checkZoneFileModel(zoneFileModel *ZoneFileModel) error {
@@ -239,10 +289,17 @@ func checkZoneFileModel(zoneFileModel *ZoneFileModel) error {
 }
 
 func checkResourceRecord(resourceRecord ResourceRecord) error {
-	if len(resourceRecord.RrDomain) == 0 && len(resourceRecord.RrType) == 0 &&
+	if len(resourceRecord.RrName) == 0 && len(resourceRecord.RrType) == 0 &&
 		len(resourceRecord.RrValues) == 0 {
-		belogs.Error("checkResourceRecord():rrDomain,rrType and rrValues are all empty, fail:")
-		return errors.New("rrDomain,rrType and rrValues are all empty")
+		belogs.Error("checkResourceRecord():rrName,rrType and rrValues are all empty, fail:")
+		return errors.New("rrName,rrType and rrValues are all empty")
 	}
 	return nil
+}
+
+func getResourceRecordKey(resourceRecord ResourceRecord) string {
+	return resourceRecord.RrName + "#" + resourceRecord.RrType
+}
+func getKey(rrName, rrType string) string {
+	return rrName + "#" + rrType
 }

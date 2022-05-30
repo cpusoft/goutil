@@ -16,16 +16,19 @@ func TestLoadZoneFile(t *testing.T) {
 	//fmt.Println("del\n"+zf.String(), err)
 
 	afterV := []string{"101.228.10.127"}
-	afterR := ResourceRecord{RrDomain: "test", RrType: "A", RrValues: afterV}
+	afterR := ResourceRecord{RrName: "test", RrType: "A", RrValues: afterV}
 	newV := []string{"101.228.10.128"}
-	newR := ResourceRecord{RrDomain: "", RrType: "A", RrTtl: null.IntFrom(600), RrValues: newV}
+	newR := ResourceRecord{RrName: "", RrType: "A", RrTtl: null.IntFrom(600), RrValues: newV}
 	AddResourceRecord(zf, afterR, newR)
 	fmt.Println("add\n"+zf.String(), err)
 
 	oldV := []string{"101.228.10.127"}
-	oldR := ResourceRecord{RrDomain: "test", RrType: "A", RrValues: oldV}
+	oldR := ResourceRecord{RrName: "test", RrType: "A", RrValues: oldV}
 	newV1 := []string{"101.228.10.129"}
-	newR1 := ResourceRecord{RrDomain: "test", RrType: "A", RrTtl: null.IntFrom(500), RrValues: newV1}
+	newR1 := ResourceRecord{RrName: "test", RrType: "A", RrTtl: null.IntFrom(500), RrValues: newV1}
 	UpdateResourceRecord(zf, oldR, newR1)
 	fmt.Println("update\n", zf.String(), err)
+
+	rrs := GetResourceRecord(zf, "treefrog.ca.", "txt")
+	fmt.Println("get\n", rrs)
 }
