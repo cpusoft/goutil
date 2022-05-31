@@ -53,6 +53,7 @@ func newZoneFileModel(zonefile *zonefile.Zonefile, zoneFileName string) *ZoneFil
 
 // type is golang keyword, so use Rr***
 type ResourceRecord struct {
+	// will remove the end "."
 	RrName   string   `json:"rrName"`
 	RrClass  string   `json:"rrClass"`
 	RrType   string   `json:"rrType"`
@@ -111,7 +112,7 @@ func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error)
 			}
 		} else {
 			resourceRecord := ResourceRecord{
-				RrName:  strings.TrimSpace(strings.ToLower(string(e.Domain()))),
+				RrName:  strings.TrimRight(strings.TrimSpace(strings.ToLower(string(e.Domain()))), "."),
 				RrClass: strings.TrimSpace(strings.ToUpper(string(e.Class()))),
 				RrType:  strings.TrimSpace(strings.ToUpper(string(e.Type()))),
 			}
