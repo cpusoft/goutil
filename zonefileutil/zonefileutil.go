@@ -23,6 +23,7 @@ type ZoneFileModel struct {
 	Ttl                 null.Int         `json:"ttl"`
 	ResourceRecords     []ResourceRecord `json:"resourceRecords"`
 	resourceRecordMutex sync.RWMutex     `json:"-"`
+	ZoneFileName        string           `json:"zoneFileName"`
 }
 
 func (c *ZoneFileModel) String() string {
@@ -42,10 +43,11 @@ func (c *ZoneFileModel) String() string {
 	return b.String()
 }
 
-func newZoneFileModel(zonefile *zonefile.Zonefile) *ZoneFileModel {
+func newZoneFileModel(zonefile *zonefile.Zonefile, zoneFileName string) *ZoneFileModel {
 	c := &ZoneFileModel{}
 	c.zonefile = zonefile
 	c.ResourceRecords = make([]ResourceRecord, 0)
+	c.ZoneFileName = zoneFileName
 	return c
 }
 
@@ -74,25 +76,26 @@ func (c ResourceRecord) String() string {
 	return b.String()
 }
 
-// not support $include
-// ttl must be digital
-func LoadZoneFile(file string) (zoneFileModel *ZoneFileModel, err error) {
+// not support $include ;
+// ttl must be digital ;
+// zoneFileName absolute path file name;
+func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error) {
 	// Load zonefile
-	data, err := ioutil.ReadFile(file)
+	data, err := ioutil.ReadFile(zoneFileName)
 	if err != nil {
-		belogs.Error("LoadZoneFile(): ReadFile fail:", file, err)
+		belogs.Error("LoadZoneFile(): ReadFile fail:", zoneFileName, err)
 		return nil, err
 	}
-	belogs.Debug("LoadZoneFile():len(data):", file, len(data))
+	belogs.Debug("LoadZoneFile():len(data):", zoneFileName, len(data))
 
 	zf, perr := zonefile.Load(data)
 	if perr != nil {
-		belogs.Error("LoadZoneFile():Load fail:", file, perr.LineNo(), perr)
+		belogs.Error("LoadZoneFile():Load fail:", zoneFileName, perr.LineNo(), perr)
 		return nil, errors.New(perr.Error())
 	}
-	belogs.Debug("LoadZoneFile():len(zf.Entries):", file, len(zf.Entries()))
+	belogs.Debug("LoadZoneFile():len(zf.Entries):", zoneFileName, len(zf.Entries()))
 	var lastRrName string
-	zoneFileModel = newZoneFileModel(zf)
+	zoneFileModel = newZoneFileModel(zf, zoneFileName)
 	for i, e := range zf.Entries() {
 		belogs.Debug("LoadZoneFile(): i :", i, "  e:", e)
 		if len(e.Command()) > 0 {
@@ -136,13 +139,19 @@ func LoadZoneFile(file string) (zoneFileModel *ZoneFileModel, err error) {
 	return zoneFileModel, nil
 }
 
+// if file is empty, then save to zoneFileName in LoadZoneFile()
 func SaveZoneFile(zoneFileModel *ZoneFileModel, file string) (err error) {
+	belogs.Debug("SaveZoneFile(): file:", file)
+
 	if err := checkZoneFileModel(zoneFileModel); err != nil {
 		belogs.Error("SaveZoneFile(): checkZoneFileModel fail:", file, err)
 		return err
 	}
 	b := zoneFileModel.String()
-	belogs.Debug("SaveZoneFile(): file:", file, "  len(b):", len(b))
+	if len(file) == 0 {
+		file = zoneFileModel.ZoneFileName
+	}
+	belogs.Debug("SaveZoneFile(): save to file:", file, "  len(b):", len(b))
 	return fileutil.WriteBytesToFile(file, []byte(b))
 }
 
@@ -244,7 +253,7 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 }
 
 // rrName: ==hostname, or empty --> @,
-// rrType: ==***, or "any" or "all" or "" --> all
+// rrType: ==***, or "any" /"all" / "" --> all
 func GetResourceRecord(zoneFileModel *ZoneFileModel, rrName, rrType string) (resourceRecords []ResourceRecord) {
 	belogs.Debug("GetResourceRecord(): rrName:", rrName, "    rrType:", rrType)
 	rrName = strings.TrimSpace(strings.ToLower(rrName))
