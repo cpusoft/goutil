@@ -103,7 +103,12 @@ func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error)
 		if len(e.Command()) > 0 {
 			belogs.Debug("LoadZoneFile(): Command:", string(e.Command()), e.Values())
 			if string(e.Command()) == "$ORIGIN" && len(e.Values()) > 0 {
-				zoneFileModel.Origin = strings.TrimSpace(strings.ToLower(string(e.Values()[0])))
+				origin := strings.TrimSpace(strings.ToLower(string(e.Values()[0])))
+				// should have "." as end
+				if !strings.HasSuffix(origin, ".") {
+					origin += "."
+				}
+				zoneFileModel.Origin = origin
 			} else if string(e.Command()) == "$TTL" && len(e.Values()) > 0 {
 				ttlStr := string(e.Values()[0])
 				belogs.Debug("LoadZoneFile(): ttlStr:", ttlStr)
@@ -263,8 +268,8 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 
 // rrName: ==hostname, or empty --> @,
 // rrType: ==***, or "any" /"all" / "" --> all
-func GetResourceRecord(zoneFileModel *ZoneFileModel, rrName, rrType string) (resourceRecords []ResourceRecord) {
-	belogs.Debug("GetResourceRecord(): rrName:", rrName, "    rrType:", rrType)
+func QueryResourceRecords(zoneFileModel *ZoneFileModel, rrName, rrType string) (resourceRecords []ResourceRecord) {
+	belogs.Debug("QueryResourceRecords(): rrName:", rrName, "    rrType:", rrType)
 	rrName = strings.TrimSpace(strings.ToLower(rrName))
 	if len(rrName) == 0 {
 		rrName = "@"
@@ -273,7 +278,7 @@ func GetResourceRecord(zoneFileModel *ZoneFileModel, rrName, rrType string) (res
 	if len(rrType) == 0 || rrType == "ANY" {
 		rrType = "ALL"
 	}
-	belogs.Debug("GetResourceRecord(): trim and lower/upper, rrName:", rrName, "    rrType:", rrType)
+	belogs.Debug("QueryResourceRecords(): trim and lower/upper, rrName:", rrName, "    rrType:", rrType)
 
 	resourceRecords = make([]ResourceRecord, 0)
 	zoneFileModel.resourceRecordMutex.RLock()
@@ -289,7 +294,7 @@ func GetResourceRecord(zoneFileModel *ZoneFileModel, rrName, rrType string) (res
 			}
 		}
 	}
-	belogs.Info("GetResourceRecord(): trim and lower/upper, rrName:", rrName,
+	belogs.Info("QueryResourceRecords(): trim and lower/upper, rrName:", rrName,
 		"    rrType:", rrType, "   resourceRecords :", jsonutil.MarshalJson(resourceRecords))
 	return resourceRecords
 }
@@ -313,11 +318,4 @@ func checkResourceRecord(resourceRecord ResourceRecord) error {
 		return errors.New("rrName,rrType and rrValues are all empty")
 	}
 	return nil
-}
-
-func getResourceRecordKey(resourceRecord ResourceRecord) string {
-	return resourceRecord.RrName + "#" + resourceRecord.RrType
-}
-func getKey(rrName, rrType string) string {
-	return rrName + "#" + rrType
 }
