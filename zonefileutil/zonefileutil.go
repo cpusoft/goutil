@@ -76,9 +76,10 @@ func (c ResourceRecord) String() string {
 	return b.String()
 }
 
+// $origin must exist ;
 // not support $include ;
-// ttl must be digital ;
-// zoneFileName absolute path file name;
+// all ttl must be digital ;
+// zoneFileName must be absolute path filename;
 func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error) {
 	// Load zonefile
 	data, err := ioutil.ReadFile(zoneFileName)
