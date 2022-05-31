@@ -91,7 +91,7 @@ func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error)
 
 	zf, perr := zonefile.Load(data)
 	if perr != nil {
-		belogs.Error("LoadZoneFile():Load fail:", zoneFileName, perr.LineNo(), perr)
+		belogs.Error("LoadZoneFile():Load fail:", zoneFileName, perr)
 		return nil, errors.New(perr.Error())
 	}
 	belogs.Debug("LoadZoneFile():len(zf.Entries):", zoneFileName, len(zf.Entries()))
@@ -136,6 +136,13 @@ func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error)
 			zoneFileModel.ResourceRecords = append(zoneFileModel.ResourceRecords, resourceRecord)
 		}
 	}
+
+	// check
+	if len(zoneFileModel.Origin) == 0 {
+		belogs.Error("LoadZoneFile():Origin must be exist, fail:", zoneFileName)
+		return nil, errors.New("Origin must be exist")
+	}
+
 	belogs.Info("LoadZoneFile(): zoneFileModel:", jsonutil.MarshalJson(zoneFileModel))
 	return zoneFileModel, nil
 }
