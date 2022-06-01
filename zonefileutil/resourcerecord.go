@@ -41,6 +41,18 @@ func NewResourceRecord(rrDomain, rrName, rrClass, rrType string,
 	return
 }
 
+func FormatResourceRecord(oldResourceRecord *ResourceRecord) (newResourceRecord *ResourceRecord) {
+	newResourceRecord = &ResourceRecord{
+		RrDomain: FormatRrDomain(oldResourceRecord.RrDomain),
+		RrName:   FormatRrName(oldResourceRecord.RrName),
+		RrClass:  FormatRrClassOrRrType(oldResourceRecord.RrClass),
+		RrType:   FormatRrClassOrRrType(oldResourceRecord.RrType),
+		RrTtl:    oldResourceRecord.RrTtl,
+		RrValues: oldResourceRecord.RrValues,
+	}
+	return newResourceRecord
+}
+
 func FormatRrClassOrRrType(t string) string {
 	return strings.TrimSpace(strings.ToUpper(t))
 }
@@ -169,13 +181,13 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 
 // rrName: ==hostname, or empty --> @,
 // rrType: ==***, or "any" /"all" / "" --> all
-func QueryResourceRecords(zoneFileModel *ZoneFileModel, rrName, rrType string) (resourceRecords []*ResourceRecord) {
-	belogs.Debug("QueryResourceRecords(): rrName:", rrName, "    rrType:", rrType)
-	rrName = strings.TrimSpace(strings.ToLower(rrName))
+func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *ResourceRecord) (resourceRecords []*ResourceRecord) {
+	belogs.Debug("QueryResourceRecords(): queryResourceRecord:", jsonutil.MarshalJson(queryResourceRecord))
+	rrName := queryResourceRecord.RrName
 	if len(rrName) == 0 {
 		rrName = "@"
 	}
-	rrType = strings.TrimSpace(strings.ToUpper(rrType))
+	rrType := queryResourceRecord.RrType
 	if len(rrType) == 0 || rrType == "ANY" {
 		rrType = "ALL"
 	}
