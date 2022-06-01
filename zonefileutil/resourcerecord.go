@@ -75,6 +75,7 @@ func FormatRrDomain(t string) string {
 func (c *ResourceRecord) String() string {
 	var b strings.Builder
 	b.Grow(128)
+
 	ttl := ""
 	if !c.RrTtl.IsZero() {
 		ttl = strconv.Itoa(int(c.RrTtl.ValueOrZero()))

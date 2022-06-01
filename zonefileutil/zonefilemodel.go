@@ -30,6 +30,9 @@ type ZoneFileModel struct {
 
 func (c *ZoneFileModel) String() string {
 	var b strings.Builder
+	c.resourceRecordMutex.RLock()
+	defer c.resourceRecordMutex.RUnlock()
+
 	b.WriteString(fmt.Sprintf("%-10s%-20s", "$ORIGIN", c.Origin) + osutil.GetNewLineSep())
 	if c.Ttl.IsZero() {
 		b.WriteString(osutil.GetNewLineSep())
@@ -37,8 +40,6 @@ func (c *ZoneFileModel) String() string {
 		b.WriteString(fmt.Sprintf("%-10s%-20s", "$TTL",
 			strconv.Itoa(int(c.Ttl.ValueOrZero()))) + osutil.GetNewLineSep())
 	}
-	c.resourceRecordMutex.RLock()
-	defer c.resourceRecordMutex.RUnlock()
 	for i := range c.ResourceRecords {
 		b.WriteString(c.ResourceRecords[i].String())
 	}
