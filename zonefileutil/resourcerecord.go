@@ -145,22 +145,23 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 }
 
 // newResourceRecord: should have Domain and Type and Values
-// afterResourceRecord: some rr must after the specified record, eg: ignored domain
+// afterResourceRecord: maybe nil, some rr must after the specified record, eg: ignored domain
 // if afterResourceRecord Domain and Type and Values all are empty , newResourceRecord will add in the end
 func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newResourceRecord *ResourceRecord) (err error) {
 	if err := checkZoneFileModel(zoneFileModel); err != nil {
 		belogs.Error("AddResourceRecord(): checkZoneFileModel fail:", err)
 		return err
 	}
+	// not check afterResourceRecord
 	if err := checkResourceRecord(newResourceRecord); err != nil {
 		belogs.Error("AddResourceRecord(): checkResourceRecord newResourceRecord fail:", err)
 		return err
 	}
-	belogs.Debug("AddResourceRecord():  afterResourceRecord :", jsonutil.MarshalJson(afterResourceRecord),
-		"   newResourceRecord :", jsonutil.MarshalJson(afterResourceRecord))
+	belogs.Debug("AddResourceRecord():  afterResourceRecord :", afterResourceRecord,
+		"   newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 	zoneFileModel.resourceRecordMutex.Lock()
 	defer zoneFileModel.resourceRecordMutex.Unlock()
-	if checkResourceRecord(afterResourceRecord) == nil { // afterResourceRecord Domain and Type and Values are not all empty
+	if afterResourceRecord != nil && checkResourceRecord(afterResourceRecord) == nil { // afterResourceRecord Domain and Type and Values are not all empty
 		rr := make([]*ResourceRecord, 0)
 		for i := range zoneFileModel.ResourceRecords {
 			rr = append(rr, zoneFileModel.ResourceRecords[i])
