@@ -96,8 +96,8 @@ func DelResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord *Resource
 		belogs.Error("DelResourceRecord(): checkZoneFileModel fail:", err)
 		return err
 	}
-	if err := checkResourceRecord(oldResourceRecord); err != nil {
-		belogs.Error("DelResourceRecord(): checkResourceRecord oldResourceRecord fail:", err)
+	if err := CheckResourceRecord(oldResourceRecord); err != nil {
+		belogs.Error("DelResourceRecord(): CheckResourceRecord oldResourceRecord fail:", err)
 		return err
 	}
 
@@ -121,12 +121,12 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 		belogs.Error("UpdateResourceRecord(): checkZoneFileModel fail:", err)
 		return err
 	}
-	if err := checkResourceRecord(oldResourceRecord); err != nil {
-		belogs.Error("UpdateResourceRecord(): checkResourceRecord oldResourceRecord fail:", err)
+	if err := CheckResourceRecord(oldResourceRecord); err != nil {
+		belogs.Error("UpdateResourceRecord(): CheckResourceRecord oldResourceRecord fail:", err)
 		return err
 	}
-	if err := checkResourceRecord(newResourceRecord); err != nil {
-		belogs.Error("UpdateResourceRecord(): checkResourceRecord newResourceRecord fail:", err)
+	if err := CheckResourceRecord(newResourceRecord); err != nil {
+		belogs.Error("UpdateResourceRecord(): CheckResourceRecord newResourceRecord fail:", err)
 		return err
 	}
 
@@ -154,15 +154,15 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 		return err
 	}
 	// not check afterResourceRecord
-	if err := checkResourceRecord(newResourceRecord); err != nil {
-		belogs.Error("AddResourceRecord(): checkResourceRecord newResourceRecord fail:", err)
+	if err := CheckResourceRecord(newResourceRecord); err != nil {
+		belogs.Error("AddResourceRecord(): CheckResourceRecord newResourceRecord fail:", err)
 		return err
 	}
 	belogs.Debug("AddResourceRecord():  afterResourceRecord :", afterResourceRecord,
 		"   newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 	zoneFileModel.resourceRecordMutex.Lock()
 	defer zoneFileModel.resourceRecordMutex.Unlock()
-	if afterResourceRecord != nil && checkResourceRecord(afterResourceRecord) == nil { // afterResourceRecord Domain and Type and Values are not all empty
+	if afterResourceRecord != nil && CheckResourceRecord(afterResourceRecord) == nil { // afterResourceRecord Domain and Type and Values are not all empty
 		rr := make([]*ResourceRecord, 0)
 		for i := range zoneFileModel.ResourceRecords {
 			rr = append(rr, zoneFileModel.ResourceRecords[i])
@@ -214,13 +214,13 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 	return resourceRecords
 }
 
-func checkResourceRecord(resourceRecord *ResourceRecord) error {
+func CheckResourceRecord(resourceRecord *ResourceRecord) error {
 	if resourceRecord == nil {
 		return errors.New("resourceRecord is nill")
 	}
 	if len(resourceRecord.RrName) == 0 && len(resourceRecord.RrType) == 0 &&
 		len(resourceRecord.RrValues) == 0 {
-		belogs.Error("checkResourceRecord():rrName,rrType and rrValues are all empty, fail:")
+		belogs.Error("CheckResourceRecord():rrName,rrType and rrValues are all empty, fail:")
 		return errors.New("rrName,rrType and rrValues are all empty")
 	}
 	return nil
