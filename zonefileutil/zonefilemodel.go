@@ -89,24 +89,37 @@ func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error)
 			}
 		} else {
 			// check Domain,if is empty, get last rrName
-			rrName := string(e.Domain())
+			rrName := FormatRrName(string(e.Domain()))
 			if len(rrName) == 0 && len(lastRrName) > 0 {
 				rrName = lastRrName
 			} else if len(rrName) > 0 {
 				lastRrName = rrName
 			}
+			belogs.Debug("LoadZoneFile(): rrName:", rrName)
+			// rrDomain
+			var rrDomain string
+			if len(rrName) == 0 || rrName == "@" {
+				rrDomain = zoneFileModel.Origin
+			} else {
+				rrDomain = rrName + "." + zoneFileModel.Origin
+			}
+			belogs.Debug("LoadZoneFile(): rrDomain:", rrDomain, "  origin:", zoneFileModel.Origin)
+
 			// get ttl
 			rrTtl := null.NewInt(0, false)
 			if e.TTL() != nil {
 				rrTtl = null.IntFrom(int64(*e.TTL()))
 			}
+			belogs.Debug("LoadZoneFile(): rrTtl:", rrTtl)
+
 			vs := make([]string, 0)
 			for j := range e.Values() {
 				vs = append(vs, string(e.Values()[j]))
-				belogs.Debug("LoadZoneFile(): vs:", vs)
 			}
-			resourceRecord := NewResourceRecord("", rrName,
-				string(e.Class()), string(e.Type()), rrTtl, vs)
+			belogs.Debug("LoadZoneFile(): vs:", vs)
+
+			resourceRecord := NewResourceRecord(rrDomain, rrName,
+				string(e.Type()), string(e.Class()), rrTtl, vs)
 			belogs.Debug("LoadZoneFile(): resourceRecord.Ttl:", resourceRecord.RrTtl)
 
 			resourceRecord.RrValues = vs

@@ -19,22 +19,22 @@ type ResourceRecord struct {
 	// will remove the end "." // remove origin, only hostname // lower
 	RrName string `json:"rrName,omitempty"`
 	// upper
-	RrClass string `json:"rrClass,omitempty"`
-	// upper
 	RrType string `json:"rrType,omitempty"`
+	// upper
+	RrClass string `json:"rrClass,omitempty"`
 	// null.NewInt(0, false) or null.NewInt(i64, true)
 	RrTtl    null.Int `json:"rrTtl,omitempty"`
 	RrValues []string `json:"rrValues,omitempty"`
 }
 
 //
-func NewResourceRecord(rrDomain, rrName, rrClass, rrType string,
+func NewResourceRecord(rrDomain, rrName, rrType, rrClass string,
 	rrTtl null.Int, rrValues []string) (resourceRecord *ResourceRecord) {
 	resourceRecord = &ResourceRecord{
 		RrDomain: FormatRrDomain(rrDomain),
 		RrName:   FormatRrName(rrName),
-		RrClass:  FormatRrClassOrRrType(rrClass),
 		RrType:   FormatRrClassOrRrType(rrType),
+		RrClass:  FormatRrClassOrRrType(rrClass),
 		RrTtl:    rrTtl,
 		RrValues: rrValues,
 	}
@@ -72,6 +72,7 @@ func FormatRrDomain(t string) string {
 	return s
 }
 
+// not include Domain:
 func (c *ResourceRecord) String() string {
 	var b strings.Builder
 	b.Grow(128)
@@ -129,7 +130,10 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 		belogs.Error("UpdateResourceRecord(): CheckResourceRecord newResourceRecord fail:", err)
 		return err
 	}
-
+	// rrdomain
+	if len(newResourceRecord.RrDomain) == 0 {
+		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
+	}
 	belogs.Debug("UpdateResourceRecord():  oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord),
 		"  newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 
@@ -158,6 +162,10 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 		belogs.Error("AddResourceRecord(): CheckResourceRecord newResourceRecord fail:", err)
 		return err
 	}
+	// rrdomain
+	if len(newResourceRecord.RrDomain) == 0 {
+		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
+	}
 	belogs.Debug("AddResourceRecord():  afterResourceRecord :", afterResourceRecord,
 		"   newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 	zoneFileModel.resourceRecordMutex.Lock()
@@ -185,13 +193,14 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 // rrType: ==***, or "any" /"all" / "" --> all
 func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *ResourceRecord) (resourceRecords []*ResourceRecord) {
 	belogs.Debug("QueryResourceRecords(): queryResourceRecord:", jsonutil.MarshalJson(queryResourceRecord))
+
 	rrName := queryResourceRecord.RrName
 	if len(rrName) == 0 {
 		rrName = "@"
 	}
 	rrType := queryResourceRecord.RrType
-	if len(rrType) == 0 || rrType == "ANY" {
-		rrType = "ALL"
+	if len(rrType) == 0 {
+		rrType = "ANY"
 	}
 	belogs.Debug("QueryResourceRecords(): trim and lower/upper, rrName:", rrName, "    rrType:", rrType)
 
@@ -200,7 +209,7 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 	defer zoneFileModel.resourceRecordMutex.RUnlock()
 	for i := range zoneFileModel.ResourceRecords {
 		if zoneFileModel.ResourceRecords[i].RrName == rrName {
-			if rrType == "ALL" {
+			if rrType == "ANY" {
 				resourceRecords = append(resourceRecords, zoneFileModel.ResourceRecords[i])
 			} else {
 				if zoneFileModel.ResourceRecords[i].RrType == rrType {
