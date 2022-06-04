@@ -22,7 +22,7 @@ func TestCreateTcpServer(t *testing.T) {
 		return
 	}
 	time.Sleep(2 * time.Second)
-	ts.ActiveSend(GetData(), "")
+	ts.ActiveSend("", GetData())
 
 	time.Sleep(5 * time.Second)
 	ts.CloseGraceful()
@@ -45,7 +45,7 @@ func TestCreateTlsServer(t *testing.T) {
 	go ts.StartTlsServer("9999")
 
 	time.Sleep(5 * time.Second)
-	ts.ActiveSend(GetData(), "")
+	ts.ActiveSend("", GetData())
 	time.Sleep(8 * time.Second)
 	ts.CloseGraceful()
 }
