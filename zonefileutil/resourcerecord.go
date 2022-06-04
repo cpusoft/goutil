@@ -209,11 +209,15 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 	defer zoneFileModel.resourceRecordMutex.RUnlock()
 	for i := range zoneFileModel.ResourceRecords {
 		if zoneFileModel.ResourceRecords[i].RrName == rrName {
+			rrTmp := deepcopyResourceRecord(zoneFileModel.ResourceRecords[i])
+			if rrTmp.RrTtl.IsZero() {
+				rrTmp.RrTtl = zoneFileModel.Ttl
+			}
 			if rrType == "ANY" {
-				resourceRecords = append(resourceRecords, zoneFileModel.ResourceRecords[i])
+				resourceRecords = append(resourceRecords, rrTmp)
 			} else {
-				if zoneFileModel.ResourceRecords[i].RrType == rrType {
-					resourceRecords = append(resourceRecords, zoneFileModel.ResourceRecords[i])
+				if rrType == rrTmp.RrType {
+					resourceRecords = append(resourceRecords, rrTmp)
 				}
 			}
 		}
@@ -245,4 +249,17 @@ func equalResourceRecord(leftResourceRecord, rightResourceRecord *ResourceRecord
 		return true
 	}
 	return false
+}
+
+func deepcopyResourceRecord(resourceRecord *ResourceRecord) (newResourceRecord *ResourceRecord) {
+	newResourceRecord = &ResourceRecord{
+		RrDomain: resourceRecord.RrDomain,
+		RrName:   resourceRecord.RrName,
+		RrType:   resourceRecord.RrType,
+		RrClass:  resourceRecord.RrClass,
+		RrTtl:    resourceRecord.RrTtl,
+	}
+	newResourceRecord.RrValues = make([]string, 0)
+	copy(newResourceRecord.RrValues, resourceRecord.RrValues)
+	return newResourceRecord
 }
