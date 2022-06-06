@@ -94,15 +94,15 @@ func (c *ResourceRecord) String() string {
 // domain: ***, or @, or ""
 func DelResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord *ResourceRecord) (err error) {
 	if err := checkZoneFileModel(zoneFileModel); err != nil {
-		belogs.Error("DelResourceRecord(): checkZoneFileModel fail:", err)
+		belogs.Error("DelResourceRecord(): checkZoneFileModel fail:", zoneFileModel, err)
 		return err
 	}
 	if err := CheckResourceRecord(oldResourceRecord); err != nil {
-		belogs.Error("DelResourceRecord(): CheckResourceRecord oldResourceRecord fail:", err)
+		belogs.Error("DelResourceRecord(): CheckResourceRecord oldResourceRecord fail:", oldResourceRecord, err)
 		return err
 	}
 
-	belogs.Debug("DelResourceRecord(): oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord))
+	belogs.Info("DelResourceRecord(): oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord))
 	rr := make([]*ResourceRecord, 0)
 	zoneFileModel.resourceRecordMutex.Lock()
 	defer zoneFileModel.resourceRecordMutex.Unlock()
@@ -119,22 +119,22 @@ func DelResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord *Resource
 // oldResourceRecord/newResourceRecord: should have Domain and Type and Values
 func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newResourceRecord *ResourceRecord) (err error) {
 	if err := checkZoneFileModel(zoneFileModel); err != nil {
-		belogs.Error("UpdateResourceRecord(): checkZoneFileModel fail:", err)
+		belogs.Error("UpdateResourceRecord(): checkZoneFileModel fail:", zoneFileModel, err)
 		return err
 	}
 	if err := CheckResourceRecord(oldResourceRecord); err != nil {
-		belogs.Error("UpdateResourceRecord(): CheckResourceRecord oldResourceRecord fail:", err)
+		belogs.Error("UpdateResourceRecord(): CheckResourceRecord oldResourceRecord fail:", oldResourceRecord, err)
 		return err
 	}
-	if err := CheckResourceRecord(newResourceRecord); err != nil {
-		belogs.Error("UpdateResourceRecord(): CheckResourceRecord newResourceRecord fail:", err)
+	if err := CheckAddOrUpdateResourceRecord(newResourceRecord, true); err != nil {
+		belogs.Error("UpdateResourceRecord(): CheckResourceRecord newResourceRecord fail:", newResourceRecord, err)
 		return err
 	}
 	// rrdomain
 	if len(newResourceRecord.RrDomain) == 0 {
 		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
 	}
-	belogs.Debug("UpdateResourceRecord():  oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord),
+	belogs.Info("UpdateResourceRecord():  oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord),
 		"  newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 
 	zoneFileModel.resourceRecordMutex.Lock()
@@ -154,19 +154,20 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 // if afterResourceRecord Domain and Type and Values all are empty , newResourceRecord will add in the end
 func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newResourceRecord *ResourceRecord) (err error) {
 	if err := checkZoneFileModel(zoneFileModel); err != nil {
-		belogs.Error("AddResourceRecord(): checkZoneFileModel fail:", err)
+		belogs.Error("AddResourceRecord(): checkZoneFileModel fail:", zoneFileModel, err)
 		return err
 	}
-	// not check afterResourceRecord
-	if err := CheckResourceRecord(newResourceRecord); err != nil {
-		belogs.Error("AddResourceRecord(): CheckResourceRecord newResourceRecord fail:", err)
+	// if afterResourceRecord==nil, then need check RrName
+	needRrName := (afterResourceRecord == nil)
+	if err := CheckAddOrUpdateResourceRecord(newResourceRecord, needRrName); err != nil {
+		belogs.Error("AddResourceRecord(): CheckAddOrUpdateResourceRecord newResourceRecord fail:", newResourceRecord, "   needRrName:", needRrName, err)
 		return err
 	}
 	// rrdomain
 	if len(newResourceRecord.RrDomain) == 0 {
 		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
 	}
-	belogs.Debug("AddResourceRecord():  afterResourceRecord :", afterResourceRecord,
+	belogs.Info("AddResourceRecord():  afterResourceRecord :", afterResourceRecord,
 		"   newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 	zoneFileModel.resourceRecordMutex.Lock()
 	defer zoneFileModel.resourceRecordMutex.Unlock()
@@ -191,8 +192,16 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 
 // rrName: ==hostname, or empty --> @,
 // rrType: ==***, or "any" /"all" / "" --> all
-func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *ResourceRecord) (resourceRecords []*ResourceRecord) {
-	belogs.Debug("QueryResourceRecords(): queryResourceRecord:", jsonutil.MarshalJson(queryResourceRecord))
+func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *ResourceRecord) (resourceRecords []*ResourceRecord, err error) {
+
+	if err := checkZoneFileModel(zoneFileModel); err != nil {
+		belogs.Error("QueryResourceRecords(): checkZoneFileModel fail:", zoneFileModel, err)
+		return nil, err
+	}
+	if err := CheckResourceRecord(queryResourceRecord); err != nil {
+		belogs.Error("QueryResourceRecords(): CheckResourceRecord queryResourceRecord fail:", queryResourceRecord, err)
+		return nil, err
+	}
 
 	rrName := queryResourceRecord.RrName
 	if len(rrName) == 0 {
@@ -202,7 +211,7 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 	if len(rrType) == 0 {
 		rrType = "ANY"
 	}
-	belogs.Debug("QueryResourceRecords(): trim and lower/upper, rrName:", rrName, "    rrType:", rrType)
+	belogs.Info("QueryResourceRecords(): queryResourceRecord:", jsonutil.MarshalJson(queryResourceRecord))
 
 	resourceRecords = make([]*ResourceRecord, 0)
 	zoneFileModel.resourceRecordMutex.RLock()
@@ -222,18 +231,36 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 			}
 		}
 	}
-	belogs.Info("QueryResourceRecords(): trim and lower/upper, rrName:", rrName,
-		"    rrType:", rrType, "   resourceRecords :", jsonutil.MarshalJson(resourceRecords))
-	return resourceRecords
+	belogs.Info("QueryResourceRecords():queryResourceRecord:", jsonutil.MarshalJson(queryResourceRecord),
+		"   resourceRecords :", jsonutil.MarshalJson(resourceRecords))
+	return resourceRecords, nil
 }
 
 func CheckResourceRecord(resourceRecord *ResourceRecord) error {
 	if resourceRecord == nil {
+		belogs.Error("CheckResourceRecord():resourceRecord is nil, fail:")
 		return errors.New("resourceRecord is nill")
 	}
 	if len(resourceRecord.RrName) == 0 && len(resourceRecord.RrType) == 0 &&
 		len(resourceRecord.RrValues) == 0 {
 		belogs.Error("CheckResourceRecord():rrName,rrType and rrValues are all empty, fail:")
+		return errors.New("rrName,rrType and rrValues are all empty")
+	}
+	return nil
+}
+
+func CheckAddOrUpdateResourceRecord(resourceRecord *ResourceRecord, needRrName bool) error {
+	if resourceRecord == nil {
+		belogs.Error("CheckAddOrUpdateResourceRecord():resourceRecord is nil, fail:")
+		return errors.New("resourceRecord is nill")
+	}
+	if needRrName && len(resourceRecord.RrName) == 0 {
+		belogs.Error("CheckAddOrUpdateResourceRecord():rrName is empty, fail:")
+		return errors.New("rrName,rrType and rrValues are all empty")
+	}
+	if len(resourceRecord.RrType) == 0 ||
+		len(resourceRecord.RrValues) == 0 {
+		belogs.Error("CheckAddOrUpdateResourceRecord():rrType or rrValues is empty, fail:")
 		return errors.New("rrName,rrType and rrValues are all empty")
 	}
 	return nil
