@@ -92,22 +92,22 @@ func (c *ResourceRecord) String() string {
 
 // resourceRecord should have RrName and RrType and RrValues
 // domain: ***, or @, or ""
-func DelResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord *ResourceRecord) (err error) {
+func DelResourceRecord(zoneFileModel *ZoneFileModel, delResourceRecord *ResourceRecord) (err error) {
 	if err := checkZoneFileModel(zoneFileModel); err != nil {
 		belogs.Error("DelResourceRecord(): checkZoneFileModel fail:", zoneFileModel, err)
 		return err
 	}
-	if err := CheckResourceRecord(oldResourceRecord); err != nil {
-		belogs.Error("DelResourceRecord(): CheckResourceRecord oldResourceRecord fail:", oldResourceRecord, err)
+	if err := CheckResourceRecord(delResourceRecord); err != nil {
+		belogs.Error("DelResourceRecord(): CheckResourceRecord oldResourceRecord fail:", delResourceRecord, err)
 		return err
 	}
 
-	belogs.Info("DelResourceRecord(): oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord))
+	belogs.Info("DelResourceRecord(): delResourceRecord :", jsonutil.MarshalJson(delResourceRecord))
 	rr := make([]*ResourceRecord, 0)
 	zoneFileModel.resourceRecordMutex.Lock()
 	defer zoneFileModel.resourceRecordMutex.Unlock()
 	for i := range zoneFileModel.ResourceRecords {
-		if !equalResourceRecord(zoneFileModel.ResourceRecords[i], oldResourceRecord) {
+		if !equalResourceRecord(zoneFileModel.ResourceRecords[i], delResourceRecord) {
 			rr = append(rr, zoneFileModel.ResourceRecords[i])
 		}
 	}
@@ -134,6 +134,14 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 	if len(newResourceRecord.RrDomain) == 0 {
 		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
 	}
+
+	if oldResourceRecord.RrName != newResourceRecord.RrName ||
+		oldResourceRecord.RrType != newResourceRecord.RrType {
+		belogs.Error("UpdateResourceRecord(): oldRr's rrName or rrType is not equal to newRr's RrName or rrType, fail:",
+			"  oldRr:", jsonutil.MarshalJson(oldResourceRecord), " newRr", jsonutil.MarshalJson(newResourceRecord))
+		return errors.New("OldRr's rrName and rrType all should  be equal to newRr")
+	}
+
 	belogs.Info("UpdateResourceRecord():  oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord),
 		"  newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 
