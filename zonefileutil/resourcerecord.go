@@ -230,6 +230,8 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 			if rrTmp.RrTtl.IsZero() {
 				rrTmp.RrTtl = zoneFileModel.Ttl
 			}
+			belogs.Debug("QueryResourceRecords(): rrTmp:", jsonutil.MarshalJson(rrTmp))
+
 			if rrType == "ANY" {
 				resourceRecords = append(resourceRecords, rrTmp)
 			} else {
@@ -294,7 +296,8 @@ func deepcopyResourceRecord(resourceRecord *ResourceRecord) (newResourceRecord *
 		RrClass:  resourceRecord.RrClass,
 		RrTtl:    resourceRecord.RrTtl,
 	}
-	newResourceRecord.RrValues = make([]string, 0)
+	newResourceRecord.RrValues = make([]string, len(resourceRecord.RrValues))
 	copy(newResourceRecord.RrValues, resourceRecord.RrValues)
+	belogs.Debug("deepcopyResourceRecord(): newResourceRecord:", jsonutil.MarshalJson(newResourceRecord))
 	return newResourceRecord
 }
