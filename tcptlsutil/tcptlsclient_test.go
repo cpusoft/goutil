@@ -19,11 +19,11 @@ func TestCreateTcpClient(t *testing.T) {
 		return
 	}
 	fmt.Println("CreateTcpClient(): tcpclient will SendData")
-	tcpClientSendMsg := &TcpTlsClientSendMsg{NextConnectClosePolicy: NEXT_CONNECT_POLICY_KEEP,
+	tcpTlsMsg := &TcpTlsMsg{NextConnectClosePolicy: NEXT_CONNECT_POLICY_KEEP,
 		NextRwPolicy: NEXT_RW_POLICY_WAIT_READ,
 		SendData:     GetTcpClientData(),
 	}
-	tc.SendMsg(tcpClientSendMsg)
+	tc.SendMsg(tcpTlsMsg)
 	time.Sleep(60 * time.Second)
 
 	fmt.Println("CreateTcpClient(): tcpclient will stop")
@@ -51,11 +51,11 @@ func TestCreateTlsClient(t *testing.T) {
 		return
 	}
 	fmt.Println("CreateTcpClient(): tcpclient will SendData")
-	tcpClientSendMsg := &TcpTlsClientSendMsg{NextConnectClosePolicy: NEXT_CONNECT_POLICY_KEEP,
+	tcpTlsMsg := &TcpTlsMsg{NextConnectClosePolicy: NEXT_CONNECT_POLICY_KEEP,
 		NextRwPolicy: NEXT_RW_POLICY_WAIT_READ,
 		SendData:     GetTcpClientData(),
 	}
-	tc.SendMsg(tcpClientSendMsg)
+	tc.SendMsg(tcpTlsMsg)
 	time.Sleep(60 * time.Second)
 
 	fmt.Println("CreateTcpClient(): tcpclient will stop")

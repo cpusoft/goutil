@@ -116,7 +116,7 @@ func (ts *TcpTlsServer) StartTcpServer(port string) (err error) {
 	}
 	belogs.Info("StartTcpServer(): tcpserver  create server ok, port:", port, "  will accept client")
 
-	go ts.WaitMsg()
+	go ts.WaitTcpTlsMsg()
 
 	// wait new conn
 	ts.AcceptNewConn()
@@ -362,13 +362,13 @@ func (ts *TcpTlsServer) CloseGraceful() {
 	close(ts.closeGraceful)
 }
 
-func (ts *TcpTlsServer) WaitMsg() {
+func (ts *TcpTlsServer) WaitTcpTlsMsg() {
 	for {
 		select {
 		case tcpTlsMsg := <-ts.TcpTlsMsg:
-			belogs.Debug("WaitMsg(): tcpTlsMsg:", jsonutil.MarshalJson(tcpTlsMsg))
+			belogs.Debug("WaitTcpTlsMsg(): tcptlsserver tcpTlsMsg:", jsonutil.MarshalJson(tcpTlsMsg))
 			switch tcpTlsMsg.MsgType {
-			case MSG_TYPE_TO_SERVER_CLOSE_SERVER_FORCIBLE:
+			case MSG_TYPE_CLOSE_FORCIBLE:
 				// ignore conns's writing/reading, just close
 				ts.tcpTlsListener.Close()
 				for connKey := range ts.tcpTlsConns {
@@ -376,9 +376,9 @@ func (ts *TcpTlsServer) WaitMsg() {
 				}
 				// just close
 				close(ts.closeGraceful)
-				belogs.Info("WaitMsg(): will close server forcible:")
+				belogs.Info("WaitTcpTlsMsg(): tcptlsserver will close server forcible:")
 				return
-			case MSG_TYPE_TO_SERVER_CLOSE_SERVER_GRACEFUL:
+			case MSG_TYPE_CLOSE_GRACEFUL:
 				// close and wait connect.Read and Accept
 				close(ts.closeGraceful)
 				time.Sleep(5 * time.Second)
@@ -386,15 +386,14 @@ func (ts *TcpTlsServer) WaitMsg() {
 				for connKey := range ts.tcpTlsConns {
 					ts.OnClose(ts.tcpTlsConns[connKey])
 				}
-				belogs.Info("WaitMsg(): will close server graceful:")
+				belogs.Info("WaitTcpTlsMsg(): tcptlsserver will close server graceful:")
 				return
-			case MSG_TYPE_TO_SERVER_CLOSE_CONNECT_FORCIBLE:
+			case MSG_TYPE_CLOSE_ONE_CONNECT_FORCIBLE:
 				// close and wait connect.Read and Accept
-				connKey, ok := tcpTlsMsg.MsgDetail.(string)
-				if ok {
-					ts.OnClose(ts.tcpTlsConns[connKey])
+				if len(tcpTlsMsg.ConnKey) > 0 {
+					ts.OnClose(ts.tcpTlsConns[tcpTlsMsg.ConnKey])
 				}
-				belogs.Info("WaitMsg(): close connect, connKey:", connKey)
+				belogs.Info("WaitTcpTlsMsg(): tcptlsserver close connect, connKey:", tcpTlsMsg.ConnKey)
 			}
 		}
 	}
