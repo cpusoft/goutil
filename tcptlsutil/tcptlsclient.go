@@ -99,10 +99,10 @@ func (tc *TcpTlsClient) StartTcpClient(server string) (err error) {
 	tc.tcpTlsConn = NewFromTcpConn(tcpConn)
 	//active send to server, and receive from server, loop
 	belogs.Debug("StartTcpClient(): NewFromTcpConn ok, server:", server, "   tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
-	go tc.WaitTcpTlsMsg()
+	go tc.waitTcpTlsMsg()
 
-	tc.OnConnect()
-	belogs.Info("StartTcpClient(): OnConnect, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
+	tc.onConnect()
+	belogs.Info("StartTcpClient(): onConnect, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 
 	return nil
 }
@@ -162,91 +162,90 @@ func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
 	tc.tcpTlsConn = NewFromTlsConn(tlsConn)
 	belogs.Debug("StartTlsClient(): NewFromTlsConn ok, server:", server, "   tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 	//active send to server, and receive from server, loop
-	go tc.WaitTcpTlsMsg()
+	go tc.waitTcpTlsMsg()
 
-	tc.OnConnect()
-	belogs.Info("StartTlsClient(): OnConnect, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
+	tc.onConnect()
+	belogs.Info("StartTlsClient(): onConnect, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 
 	return nil
 }
 
-func (tc *TcpTlsClient) OnConnect() {
-	// call process func OnConnect
+func (tc *TcpTlsClient) onConnect() {
+	// call process func onConnect
 	tc.tcpTlsClientProcess.OnConnectProcess(tc.tcpTlsConn)
-	belogs.Info("OnConnect(): tcptlsclient  after OnConnectProcess, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
+	belogs.Info("onConnect(): tcptlsclient  after OnConnectProcess, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
 }
 
-func (tc *TcpTlsClient) OnClose() {
+func (tc *TcpTlsClient) onClose() {
 	// close in the end
-	belogs.Info("OnClose(): tcptlsclient , tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
+	belogs.Info("onClose(): tcptlsclient , tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
 	tc.tcpTlsClientProcess.OnCloseProcess(tc.tcpTlsConn)
 	tc.tcpTlsConn.Close()
 
 }
 
-func (tc *TcpTlsClient) SendMsg(tcpTlsMsg *TcpTlsMsg) {
-
-	belogs.Debug("SendMsg(): tcptlsclient, tcpTlsMsg:", jsonutil.MarshalJson(*tcpTlsMsg))
-	tc.TcpTlsMsg <- *tcpTlsMsg
-}
-
-func (tc *TcpTlsClient) WaitTcpTlsMsg() (err error) {
-	belogs.Debug("WaitTcpTlsMsg(): tcptlsclient , tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
+func (tc *TcpTlsClient) waitTcpTlsMsg() (err error) {
+	belogs.Debug("waitTcpTlsMsg(): tcptlsclient , tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 	for {
 		// wait next tcpTlsMsg: only error or NEXT_CONNECT_POLICY_CLOSE_** will end loop
 		select {
 		case tcpTlsMsg := <-tc.TcpTlsMsg:
-			nextConnectClosePolicy := tcpTlsMsg.NextConnectClosePolicy
-			nextRwPolicy := tcpTlsMsg.NextRwPolicy
-			sendData := tcpTlsMsg.SendData
-			belogs.Debug("WaitTcpTlsMsg(): tcptlsclient  send to server:", tc.tcpTlsConn.RemoteAddr().String(),
-				"   nextConnectClosePolicy: ", nextConnectClosePolicy,
-				"   nextRwPolicy:", nextRwPolicy,
-				"   sendData:", convert.PrintBytesOneLine(sendData))
+			belogs.Info("waitTcpTlsMsg(): tcpTlsMsg:", jsonutil.MarshalJson(tcpTlsMsg),
+				"  tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
 
-			// if close
-			if nextConnectClosePolicy == NEXT_CONNECT_POLICY_CLOSE_GRACEFUL ||
-				nextConnectClosePolicy == NEXT_CONNECT_POLICY_CLOSE_FORCIBLE {
-				belogs.Info("WaitTcpTlsMsg(): tcptlsclient  nextConnectClosePolicy close end client, will end tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
-					"   nextConnectClosePolicy:", nextConnectClosePolicy)
-				tc.OnClose()
+			switch tcpTlsMsg.MsgType {
+			case MSG_TYPE_CLIENT_CLOSE_CONNECT:
+				belogs.Info("waitTcpTlsMsg(): tcptlsclient msgType is MSG_TYPE_CLIENT_CLOSE_CONNECT,",
+					" will close for tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
+				tc.onClose()
+				// end for/select
 				return nil
-			}
+			case MSG_TYPE_ACTIVE_SEND_DATA:
+				belogs.Info("waitTcpTlsMsg(): tcptlsclient msgType is MSG_TYPE_ACTIVE_SEND_DATA,",
+					" will send to tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
+				nextConnectClosePolicy := tcpTlsMsg.NextConnectClosePolicy
+				nextRwPolicy := tcpTlsMsg.NextRwPolicy
+				sendData := tcpTlsMsg.SendData
+				belogs.Debug("waitTcpTlsMsg(): tcptlsclient  send to server:", tc.tcpTlsConn.RemoteAddr().String(),
+					"   nextConnectClosePolicy: ", nextConnectClosePolicy,
+					"   nextRwPolicy:", nextRwPolicy,
+					"   sendData:", convert.PrintBytesOneLine(sendData))
 
-			// send data
-			start := time.Now()
-			n, err := tc.tcpTlsConn.Write(sendData)
-			if err != nil {
-				belogs.Error("WaitTcpTlsMsg(): tcptlsclient   Write fail:  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(), err)
-				return err
-			}
-			belogs.Debug("WaitTcpTlsMsg(): tcptlsclient   Write to tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(),
-				"  len(sendData):", len(sendData), "  write n:", n, "   nextRwPolicy:", nextRwPolicy,
-				"  time(s):", time.Since(start))
-
-			// if wait receive, then wait next tcpTlsMsg
-			if nextRwPolicy == NEXT_RW_POLICY_WAIT_READ {
-				// if server tell client: end this loop, or end conn
-				err := tc.OnReceive()
+				// send data
+				start := time.Now()
+				n, err := tc.tcpTlsConn.Write(sendData)
 				if err != nil {
-					belogs.Error("WaitTcpTlsMsg(): tcptlsclient   Write fail:  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(), err)
+					belogs.Error("waitTcpTlsMsg(): tcptlsclient   Write fail:  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(), err)
 					return err
 				}
-				belogs.Info("WaitTcpTlsMsg(): tcptlsclient NEXT_RW_POLICY_WAIT_READ, OnReceive, tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(),
-					"  len(sendData):", len(sendData), "  write n:", n,
+				belogs.Debug("waitTcpTlsMsg(): tcptlsclient   Write to tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(),
+					"  len(sendData):", len(sendData), "  write n:", n, "   nextRwPolicy:", nextRwPolicy,
 					"  time(s):", time.Since(start))
-				continue
-			} else {
-				belogs.Info("WaitTcpTlsMsg(): tcptlsclient no NEXT_RW_POLICY_WAIT_READ, OnReceive, will return: ", tc.tcpTlsConn.RemoteAddr().String())
-				continue
+
+				// if wait receive, then wait next tcpTlsMsg
+				if nextRwPolicy == NEXT_RW_POLICY_WAIT_READ {
+					// if server tell client: end this loop, or end conn
+					err := tc.onReceive()
+					if err != nil {
+						belogs.Error("waitTcpTlsMsg(): tcptlsclient   Write fail:  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(), err)
+						return err
+					}
+					belogs.Info("waitTcpTlsMsg(): tcptlsclient NEXT_RW_POLICY_WAIT_READ, onReceive, tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(),
+						"  len(sendData):", len(sendData), "  write n:", n,
+						"  time(s):", time.Since(start))
+					continue
+				} else {
+					belogs.Info("waitTcpTlsMsg(): tcptlsclient no NEXT_RW_POLICY_WAIT_READ, onReceive, will return: ", tc.tcpTlsConn.RemoteAddr().String())
+					continue
+				}
 			}
 		}
 	}
 
 }
 
-func (tc *TcpTlsClient) OnReceive() (err error) {
-	belogs.Debug("OnReceive(): tcptlsclient  wait for OnReceive, tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
+func (tc *TcpTlsClient) onReceive() (err error) {
+	belogs.Debug("onReceive(): tcptlsclient  wait for onReceive, tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 	var leftData []byte
 	// one packet
 	buffer := make([]byte, 2048)
@@ -261,24 +260,24 @@ func (tc *TcpTlsClient) OnReceive() (err error) {
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
-				belogs.Debug("OnReceive(): tcptlsclient   io.EOF, client close: ", tc.tcpTlsConn.RemoteAddr().String(), err)
+				belogs.Debug("onReceive(): tcptlsclient   io.EOF, client close: ", tc.tcpTlsConn.RemoteAddr().String(), err)
 				return nil
 			}
-			belogs.Error("OnReceive(): tcptlsclient   Read fail, err ", tc.tcpTlsConn.RemoteAddr().String(), err)
+			belogs.Error("onReceive(): tcptlsclient   Read fail, err ", tc.tcpTlsConn.RemoteAddr().String(), err)
 			return err
 		}
 
-		belogs.Debug("OnReceive(): tcptlsclient, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
+		belogs.Debug("onReceive(): tcptlsclient, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
 			"  Read n", n, "  time(s):", time.Now().Sub(start))
 		nextRwPolicy, leftData, err := tc.tcpTlsClientProcess.OnReceiveProcess(tc.tcpTlsConn, append(leftData, buffer[:n]...))
-		belogs.Info("OnReceive(): tcptlsclient  tcpTlsClientProcess.OnReceiveProcess, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(), " receive n: ", n,
+		belogs.Info("onReceive(): tcptlsclient  tcpTlsClientProcess.OnReceiveProcess, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(), " receive n: ", n,
 			"  len(leftData):", len(leftData), "  nextRwPolicy:", nextRwPolicy, "  time(s):", time.Now().Sub(start))
 		if err != nil {
-			belogs.Error("OnReceive(): tcptlsclient  tcpTlsClientProcess.OnReceiveProcess  fail ,will close this tcpTlsConn : ", tc.tcpTlsConn.RemoteAddr().String(), err)
+			belogs.Error("onReceive(): tcptlsclient  tcpTlsClientProcess.OnReceiveProcess  fail ,will close this tcpTlsConn : ", tc.tcpTlsConn.RemoteAddr().String(), err)
 			return err
 		}
 		if nextRwPolicy == NEXT_RW_POLICY_END_READ {
-			belogs.Debug("OnReceive(): tcptlsclient  nextRwPolicy, will end this write/read loop: ", tc.tcpTlsConn.RemoteAddr().String())
+			belogs.Debug("onReceive(): tcptlsclient  nextRwPolicy, will end this write/read loop: ", tc.tcpTlsConn.RemoteAddr().String())
 			return nil
 		}
 
@@ -286,19 +285,17 @@ func (tc *TcpTlsClient) OnReceive() (err error) {
 
 }
 
-func (tc *TcpTlsClient) CloseGraceful() {
-	// send channel, and wait listener and conns end itself process and close loop
-	belogs.Info("CloseGraceful(): tcptlsclient will close graceful")
-	tcpTlsMsg := &TcpTlsMsg{
-		NextConnectClosePolicy: NEXT_CONNECT_POLICY_CLOSE_GRACEFUL,
-		SendData:               nil,
-	}
-	tc.SendMsg(tcpTlsMsg)
+func (tc *TcpTlsClient) SendMsg(tcpTlsMsg *TcpTlsMsg) {
 
+	belogs.Debug("SendMsg(): tcptlsclient, tcpTlsMsg:", jsonutil.MarshalJson(*tcpTlsMsg))
+	tc.TcpTlsMsg <- *tcpTlsMsg
 }
 
-func (tc *TcpTlsClient) CloseForceful() {
-	belogs.Info("CloseForceful(): tcptlsclient will close forceful")
-	go tc.CloseGraceful()
-	tc.OnClose()
+func (tc *TcpTlsClient) SendMsgForCloseConnect() {
+	// send channel, and wait listener and conns end itself process and close loop
+	belogs.Info("SendMsgForCloseConnect(): tcptlsclient will close graceful")
+	tcpTlsMsg := &TcpTlsMsg{
+		MsgType: MSG_TYPE_CLIENT_CLOSE_CONNECT,
+	}
+	tc.SendMsg(tcpTlsMsg)
 }

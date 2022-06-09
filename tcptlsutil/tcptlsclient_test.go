@@ -27,7 +27,7 @@ func TestCreateTcpClient(t *testing.T) {
 	time.Sleep(60 * time.Second)
 
 	fmt.Println("CreateTcpClient(): tcpclient will stop")
-	tc.CloseGraceful()
+	tc.SendMsgForCloseConnect()
 
 }
 
