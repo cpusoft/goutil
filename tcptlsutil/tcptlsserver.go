@@ -192,6 +192,8 @@ func (ts *TcpTlsServer) StartTlsServer(port string) (err error) {
 	}
 	belogs.Info("StartTlsServer(): tlsserver  create server ok, port:", port, "  will accept client")
 
+	go ts.waitTcpTlsMsg()
+
 	// wait new conn
 	ts.acceptNewConn()
 	return nil
@@ -200,6 +202,7 @@ func (ts *TcpTlsServer) StartTlsServer(port string) (err error) {
 func (ts *TcpTlsServer) acceptNewConn() {
 
 	defer ts.tcpTlsListener.Close()
+	belogs.Debug("acceptNewConn(): will accept client")
 	ts.state = SERVER_STATE_RUNNING
 	for {
 		tcpTlsConn, err := ts.tcpTlsListener.Accept()
@@ -230,6 +233,8 @@ func (ts *TcpTlsServer) receiveAndSend(tcpTlsConn *TcpTlsConn) {
 	var leftData []byte
 	// one packet
 	buffer := make([]byte, 2048)
+	belogs.Debug("receiveAndSend(): recive from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String())
+
 	// wait for new packet to read
 	//https://eli.thegreenplace.net/2020/graceful-shutdown-of-a-tcp-server-in-go/
 	//https://stackoverflow.com/questions/66755407/cancelling-a-net-listener-via-context-in-golang
@@ -394,7 +399,9 @@ func (ts *TcpTlsServer) SendMsgForActiveSend(connKey string, sendData []byte) {
 	}
 	ts.SendMsg(tcpTlsMsg)
 }
+
 func (ts *TcpTlsServer) waitTcpTlsMsg() {
+	belogs.Debug("waitTcpTlsMsg(): tcptlsserver will waitTcpTlsMsg")
 	for {
 		select {
 		case tcpTlsMsg := <-ts.TcpTlsMsg:
