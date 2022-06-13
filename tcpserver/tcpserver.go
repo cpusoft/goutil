@@ -66,7 +66,6 @@ type TcpServerProcessFunc interface {
 	OnConnect(conn *net.TCPConn)
 	OnReceiveAndSend(conn *net.TCPConn, receiveData []byte) (err error)
 	OnClose(conn *net.TCPConn)
-	ActiveSend(conn *net.TCPConn, sendData []byte) (err error)
 }
 
 func (ts *TcpServer) OnConnect(conn *net.TCPConn) {
@@ -149,23 +148,4 @@ func (ts *TcpServer) OnClose(conn *net.TCPConn) {
 	}
 	ts.tcpConns = newTcpConns
 	belogs.Info("OnClose():server,new len(tcpConns): ", len(ts.tcpConns), "  time(s):", time.Now().Sub(start).Seconds())
-}
-
-func (ts *TcpServer) ActiveSend(sendData []byte) (err error) {
-	ts.tcpConnsMutex.RLock()
-	defer ts.tcpConnsMutex.RUnlock()
-	start := time.Now()
-
-	belogs.Debug("ActiveSend():server,len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpConns))
-	for i := range ts.tcpConns {
-		belogs.Debug("ActiveSend(): client: ", i, "    ts.tcpConns[i]:", ts.tcpConns[i], "   call process func: ActiveSend ")
-		err = ts.tcpServerProcessFunc.ActiveSend(ts.tcpConns[i], sendData)
-		if err != nil {
-			// just logs, not return or break
-			belogs.Error("ActiveSend(): fail, client: ", i, "    ts.tcpConns[i]:", ts.tcpConns[i], err)
-		}
-	}
-	belogs.Info("ActiveSend(): send to all clients ok,  len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpConns),
-		"  time(s):", time.Now().Sub(start).Seconds())
-	return
 }

@@ -114,3 +114,32 @@ func TestJson(t *testing.T) {
 	UnmarshalJson(body1, &us)
 	fmt.Println("after Unmarshal: ", us)
 }
+
+type TcpTlsMsg struct {
+	// common
+	MsgType   uint64      `json:"msgType"`
+	MsgResult chan string `json:"-"`
+
+	// for close
+	ConnKey string `json:"connKey,omitempty"`
+
+	// for send data //
+	// NEXT_CONNECT_CLOSE_POLICY_NO  NEXT_CONNECT_CLOSE_POLICY_GRACEFUL  NEXT_CONNECT_CLOSE_POLICY_FORCIBLE
+	NextConnectClosePolicy int `json:"nextConnectClosePolicy,omitempty"`
+	//NEXT_RW_POLICY_ALL,NEXT_RW_POLICY_WAIT_READ,NEXT_RW_POLICY_WAIT_WRITE
+	NextRwPolicy int            `json:"nextRwPolicy,omitempty"`
+	SendData     PrintableBytes `json:"sendData,omitempty"`
+}
+
+func TestTcptlsMsg(t *testing.T) {
+	sendData := []byte{0x01, 0x02, 0x03}
+	tcpTlsMsg := &TcpTlsMsg{
+		MsgType:                1,
+		NextConnectClosePolicy: 2,
+		NextRwPolicy:           3,
+		SendData:               sendData,
+	}
+	fmt.Println("sendMessageModel(): tcptlsclient, will send tcpTlsMsg:",
+		MarshalJson(*tcpTlsMsg))
+
+}

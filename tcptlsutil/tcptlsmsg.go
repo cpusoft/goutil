@@ -18,7 +18,7 @@ const (
 type TcpTlsMsg struct {
 	// common
 	MsgType   uint64      `json:"msgType"`
-	MsgResult chan string `json:"msgResult"`
+	MsgResult chan string `json:"-"` // must ignore
 
 	// for close
 	ConnKey string `json:"connKey,omitempty"`
