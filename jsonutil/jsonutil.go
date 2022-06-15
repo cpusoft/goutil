@@ -2,6 +2,7 @@ package jsonutil
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 )
 
@@ -47,5 +48,23 @@ func (c PrintableBytes) MarshalText() ([]byte, error) {
 func (i *PrintableBytes) UnmarshalText(b []byte) error {
 	str := string(b)
 	*i = []byte(str)
+	return nil
+}
+
+// []byte: show in hex
+type HexBytes []byte
+
+func (c HexBytes) MarshalText() ([]byte, error) {
+	str := hex.EncodeToString(c)
+	return []byte(str), nil
+}
+
+func (i *HexBytes) UnmarshalText(b []byte) error {
+
+	b, err := hex.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+	*i = b
 	return nil
 }

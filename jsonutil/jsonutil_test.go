@@ -8,6 +8,25 @@ import (
 	"time"
 )
 
+type Tt struct {
+	Title string
+	C     HexBytes
+}
+
+func TestHexBytes(t *testing.T) {
+
+	tt := Tt{
+		Title: "sss",
+		C:     []byte{0x01, 0x02, 0x0f, 0xab},
+	}
+	str := MarshalJson(tt)
+	fmt.Println(str)
+
+	tt1 := Tt{}
+	UnmarshalJson(str, &tt1)
+	fmt.Println(tt1)
+}
+
 type Bs struct {
 	Pbs PrintableBytes
 	S   string
