@@ -27,6 +27,6 @@ type TcpTlsMsg struct {
 	// NEXT_CONNECT_CLOSE_POLICY_NO  NEXT_CONNECT_CLOSE_POLICY_GRACEFUL  NEXT_CONNECT_CLOSE_POLICY_FORCIBLE
 	NextConnectClosePolicy int `json:"nextConnectClosePolicy,omitempty"`
 	//NEXT_RW_POLICY_ALL,NEXT_RW_POLICY_WAIT_READ,NEXT_RW_POLICY_WAIT_WRITE
-	NextRwPolicy int                     `json:"nextRwPolicy,omitempty"`
-	SendData     jsonutil.PrintableBytes `json:"sendData,omitempty"`
+	NextRwPolicy int               `json:"nextRwPolicy,omitempty"`
+	SendData     jsonutil.HexBytes `json:"sendData,omitempty"`
 }
