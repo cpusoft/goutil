@@ -107,7 +107,7 @@ func DelResourceRecord(zoneFileModel *ZoneFileModel, delResourceRecord *Resource
 	zoneFileModel.resourceRecordMutex.Lock()
 	defer zoneFileModel.resourceRecordMutex.Unlock()
 	for i := range zoneFileModel.ResourceRecords {
-		if !equalResourceRecord(zoneFileModel.ResourceRecords[i], delResourceRecord) {
+		if !EqualResourceRecord(zoneFileModel.ResourceRecords[i], delResourceRecord) {
 			rr = append(rr, zoneFileModel.ResourceRecords[i])
 		}
 	}
@@ -148,7 +148,7 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 	zoneFileModel.resourceRecordMutex.Lock()
 	defer zoneFileModel.resourceRecordMutex.Unlock()
 	for i := range zoneFileModel.ResourceRecords {
-		if equalResourceRecord(zoneFileModel.ResourceRecords[i], oldResourceRecord) {
+		if EqualResourceRecord(zoneFileModel.ResourceRecords[i], oldResourceRecord) {
 			zoneFileModel.ResourceRecords[i] = newResourceRecord
 			belogs.Info("UpdateResourceRecord(): found and update ,new zoneFileModel.ResourceRecords:", jsonutil.MarshalJson(zoneFileModel.ResourceRecords))
 			return nil
@@ -183,7 +183,7 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 		rr := make([]*ResourceRecord, 0)
 		for i := range zoneFileModel.ResourceRecords {
 			rr = append(rr, zoneFileModel.ResourceRecords[i])
-			if equalResourceRecord(zoneFileModel.ResourceRecords[i], afterResourceRecord) {
+			if EqualResourceRecord(zoneFileModel.ResourceRecords[i], afterResourceRecord) {
 				if len(newResourceRecord.RrName) == 0 {
 					newResourceRecord.RrName = afterResourceRecord.RrName
 				}
@@ -276,7 +276,7 @@ func CheckAddOrUpdateResourceRecord(resourceRecord *ResourceRecord, needRrName b
 	return nil
 }
 
-func equalResourceRecord(leftResourceRecord, rightResourceRecord *ResourceRecord) bool {
+func EqualResourceRecord(leftResourceRecord, rightResourceRecord *ResourceRecord) bool {
 	if leftResourceRecord == nil || rightResourceRecord == nil {
 		return false
 	}
