@@ -101,7 +101,12 @@ func (tc *TcpTlsClient) StartTcpClient(server string) (err error) {
 	belogs.Debug("StartTcpClient(): NewFromTcpConn ok, server:", server, "   tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 	go tc.waitTcpTlsMsg()
 
+	// onConnect
 	tc.onConnect()
+
+	// onReceive
+	tc.onReceive()
+
 	belogs.Info("StartTcpClient(): onConnect, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 
 	return nil
@@ -168,7 +173,7 @@ func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
 	tc.onConnect()
 
 	// onReceive
-	go tc.onReceive()
+	tc.onReceive()
 
 	belogs.Info("StartTlsClient(): onConnect, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 
@@ -182,6 +187,8 @@ func (tc *TcpTlsClient) onReceive() (err error) {
 	buffer := make([]byte, 2048)
 	// wait for new packet to read
 
+	// when end onReceive, will onClose
+	defer tc.onClose()
 	for {
 		start := time.Now()
 		n, err := tc.tcpTlsConn.Read(buffer)
@@ -209,10 +216,9 @@ func (tc *TcpTlsClient) onReceive() (err error) {
 		}
 		if nextRwPolicy == NEXT_RW_POLICY_END_READ {
 			belogs.Info("onReceive(): tcptlsclient  nextRwPolicy, will close connect: ", tc.tcpTlsConn.RemoteAddr().String())
-			tc.onClose()
 			return nil
 		}
-		belogs.Debug("onReceive(): tcptlsclient, wait next Read from tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
+		belogs.Debug("onReceive(): tcptlsclient, will wait for Read from tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
 			"  time(s):", time.Now().Sub(start))
 
 	}
