@@ -217,6 +217,11 @@ func (tc *TcpTlsClient) onReceive() (err error) {
 			belogs.Info("onReceive(): tcptlsclient  nextRwPolicy, will close connect: ", tc.tcpTlsConn.RemoteAddr().String())
 			return nil
 		}
+
+		// reset buffer
+		buffer = make([]byte, 2048)
+		belogs.Debug("onReceive(): tcptlsclient, will reset buffer, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
+
 		belogs.Debug("onReceive(): tcptlsclient, will wait for Read from tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
 			"  time(s):", time.Now().Sub(start))
 

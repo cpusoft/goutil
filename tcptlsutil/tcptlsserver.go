@@ -278,9 +278,15 @@ ReadLoop:
 
 			if nextConnectPolicy == NEXT_CONNECT_POLICY_CLOSE_GRACEFUL ||
 				nextConnectPolicy == NEXT_CONNECT_POLICY_CLOSE_FORCIBLE {
-				belogs.Info("receiveAndSend(): tcptlsserver  nextConnectPolicy return : ", tcpTlsConn.RemoteAddr().String(), nextConnectPolicy)
+				belogs.Info("receiveAndSend(): tcptlsserver  nextConnectPolicy close,  return : ", tcpTlsConn.RemoteAddr().String(), nextConnectPolicy)
 				return
 			}
+			// reset buffer
+			buffer = make([]byte, 2048)
+			belogs.Debug("receiveAndSend(): tcptlsserver, will reset buffer, tcpTlsConn: ", tcpTlsConn.RemoteAddr().String())
+
+			belogs.Debug("onReceive(): tcptlsserver, will wait for Read from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
+				"  time(s):", time.Now().Sub(start))
 		}
 	}
 }

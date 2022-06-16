@@ -301,3 +301,22 @@ func deepcopyResourceRecord(resourceRecord *ResourceRecord) (newResourceRecord *
 	belogs.Debug("deepcopyResourceRecord(): newResourceRecord:", jsonutil.MarshalJson(newResourceRecord))
 	return newResourceRecord
 }
+
+// get rrkey:
+func GetResourceRecordKey(resourceRecord *ResourceRecord) string {
+	if resourceRecord == nil {
+		return ""
+	}
+	rrKey := resourceRecord.RrDomain + "#" + resourceRecord.RrType
+	belogs.Info("GetResourceRecordKey():rrKey:", rrKey)
+	return rrKey
+}
+
+func GetResourceRecordAnyKey(resourceRecord *ResourceRecord) string {
+	if resourceRecord == nil {
+		return ""
+	}
+	rrKey := resourceRecord.RrDomain + "#" + DnsIntTypes[DNS_TYPE_ANY]
+	belogs.Info("getResourceRecordAnyKey():rrKey:", rrKey)
+	return rrKey
+}
