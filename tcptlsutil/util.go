@@ -27,6 +27,7 @@ const (
 	SERVER_STATE_INIT    = 0
 	SERVER_STATE_RUNNING = 1
 	SERVER_STATE_CLOSING = 2
+	SERVER_STATE_CLOSED  = 3
 )
 
 // packets: if Len==0,means no complete package
