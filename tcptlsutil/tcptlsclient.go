@@ -105,9 +105,9 @@ func (tc *TcpTlsClient) StartTcpClient(server string) (err error) {
 	tc.onConnect()
 
 	// onReceive
-	tc.onReceive()
+	go tc.onReceive()
 
-	belogs.Info("StartTcpClient(): end Receive, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
+	belogs.Info("StartTcpClient(): onReceive, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 	return nil
 }
 
@@ -172,9 +172,9 @@ func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
 	tc.onConnect()
 
 	// onReceive
-	tc.onReceive()
+	go tc.onReceive()
 
-	belogs.Info("StartTlsClient(): end Receive,, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
+	belogs.Info("StartTlsClient(): onReceive, server is  ", server, "  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String())
 
 	return nil
 }
