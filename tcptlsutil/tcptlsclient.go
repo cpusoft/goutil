@@ -264,15 +264,16 @@ func (tc *TcpTlsClient) waitTcpTlsMsg() (err error) {
 		// wait next tcpTlsMsg: only error or NEXT_CONNECT_POLICY_CLOSE_** will end loop
 		select {
 		case tcpTlsMsg := <-tc.TcpTlsMsg:
-			belogs.Info("waitTcpTlsMsg(): tcpTlsMsg:", jsonutil.MarshalJson(tcpTlsMsg),
+			belogs.Info("waitTcpTlsMsg(): tcptlsclient, tcpTlsMsg:", jsonutil.MarshalJson(tcpTlsMsg),
 				"  tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
 
 			switch tcpTlsMsg.MsgType {
 			case MSG_TYPE_CLIENT_CLOSE_CONNECT:
 				belogs.Info("waitTcpTlsMsg(): tcptlsclient msgType is MSG_TYPE_CLIENT_CLOSE_CONNECT,",
-					" will close for tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
+					" will close for tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(), " will return, close waitTcpTlsMsg")
 				tc.onClose()
 				// end for/select
+				// will return, close waitTcpTlsMsg
 				return nil
 			case MSG_TYPE_ACTIVE_SEND_DATA:
 				belogs.Info("waitTcpTlsMsg(): tcptlsclient msgType is MSG_TYPE_ACTIVE_SEND_DATA,",
@@ -280,7 +281,7 @@ func (tc *TcpTlsClient) waitTcpTlsMsg() (err error) {
 				nextConnectClosePolicy := tcpTlsMsg.NextConnectClosePolicy
 				nextRwPolicy := tcpTlsMsg.NextRwPolicy
 				sendData := tcpTlsMsg.SendData
-				belogs.Debug("waitTcpTlsMsg(): tcptlsclient  send to server:", tc.tcpTlsConn.RemoteAddr().String(),
+				belogs.Debug("waitTcpTlsMsg(): tcptlsclient send to server:", tc.tcpTlsConn.RemoteAddr().String(),
 					"   nextConnectClosePolicy: ", nextConnectClosePolicy,
 					"   nextRwPolicy:", nextRwPolicy,
 					"   sendData:", convert.PrintBytesOneLine(sendData))
@@ -289,23 +290,13 @@ func (tc *TcpTlsClient) waitTcpTlsMsg() (err error) {
 				start := time.Now()
 				n, err := tc.tcpTlsConn.Write(sendData)
 				if err != nil {
-					belogs.Error("waitTcpTlsMsg(): tcptlsclient   Write fail:  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(), err)
+					belogs.Error("waitTcpTlsMsg(): tcptlsclient  Write fail:  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(), err)
 					return err
 				}
-				belogs.Debug("waitTcpTlsMsg(): tcptlsclient   Write to tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(),
+				belogs.Info("waitTcpTlsMsg(): tcptlsclient  Write to tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(),
 					"  len(sendData):", len(sendData), "  write n:", n, "   nextRwPolicy:", nextRwPolicy,
 					"  time(s):", time.Since(start))
 
-				// if wait receive, then wait next tcpTlsMsg
-				if nextRwPolicy == NEXT_RW_POLICY_WAIT_READ {
-					belogs.Info("waitTcpTlsMsg(): tcptlsclient NEXT_RW_POLICY_WAIT_READ, onReceive, tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(),
-						"  len(sendData):", len(sendData), "  write n:", n,
-						"  time(s):", time.Since(start))
-					continue
-				} else {
-					belogs.Info("waitTcpTlsMsg(): tcptlsclient no NEXT_RW_POLICY_WAIT_READ, onReceive, will return: ", tc.tcpTlsConn.RemoteAddr().String())
-					continue
-				}
 			}
 		}
 	}

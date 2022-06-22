@@ -413,7 +413,7 @@ func (ts *TcpTlsServer) waitTcpTlsMsg() {
 	for {
 		select {
 		case tcpTlsMsg := <-ts.TcpTlsMsg:
-			belogs.Info("waitTcpTlsMsg(): tcpTlsMsg:", jsonutil.MarshalJson(tcpTlsMsg))
+			belogs.Info("waitTcpTlsMsg(): tcptlsserver tcpTlsMsg:", jsonutil.MarshalJson(tcpTlsMsg))
 
 			switch tcpTlsMsg.MsgType {
 			case MSG_TYPE_SERVER_CLOSE_FORCIBLE:
@@ -426,9 +426,10 @@ func (ts *TcpTlsServer) waitTcpTlsMsg() {
 					ts.onClose(ts.tcpTlsConns[connKey])
 				}
 				close(ts.closeGraceful)
-				belogs.Info("waitTcpTlsMsg(): tcptlsserver will close server forcible:")
+				belogs.Info("waitTcpTlsMsg(): tcptlsserver will close server forcible, will return waitTcpTlsMsg:")
 				// end for/select
 				ts.state = SERVER_STATE_CLOSED
+				// will return, close waitTcpTlsMsg
 				return
 			case MSG_TYPE_SERVER_CLOSE_GRACEFUL:
 				// close and wait connect.Read and Accept
@@ -440,9 +441,10 @@ func (ts *TcpTlsServer) waitTcpTlsMsg() {
 				for connKey := range ts.tcpTlsConns {
 					ts.onClose(ts.tcpTlsConns[connKey])
 				}
-				belogs.Info("waitTcpTlsMsg(): tcptlsserver will close server graceful:")
+				belogs.Info("waitTcpTlsMsg(): tcptlsserver will close server graceful, will return waitTcpTlsMsg:")
 				// end for/select
 				ts.state = SERVER_STATE_CLOSED
+				// will return, close waitTcpTlsMsg
 				return
 			case MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL:
 				belogs.Info("waitTcpTlsMsg(): tcptlsserver msgType is MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL")
@@ -454,6 +456,8 @@ func (ts *TcpTlsServer) waitTcpTlsMsg() {
 					ts.onClose(ts.tcpTlsConns[tcpTlsMsg.ConnKey])
 				}
 				belogs.Info("waitTcpTlsMsg(): tcptlsserver close connect, connKey:", tcpTlsMsg.ConnKey)
+				// close one connect, no return
+				// return
 			case MSG_TYPE_ACTIVE_SEND_DATA:
 
 				connKey := tcpTlsMsg.ConnKey
@@ -464,11 +468,12 @@ func (ts *TcpTlsServer) waitTcpTlsMsg() {
 				if err != nil {
 					belogs.Error("waitTcpTlsMsg(): tcptlsserver activeSend fail, connKey:", connKey,
 						"  sendData:", convert.PrintBytesOneLine(sendData), err)
+					// err, no return
+					// return
 				} else {
 					belogs.Info("waitTcpTlsMsg(): tcptlsserver activeSend ok, connKey:", connKey,
 						"  sendData:", convert.PrintBytesOneLine(sendData))
 				}
-				return
 			}
 		}
 	}
