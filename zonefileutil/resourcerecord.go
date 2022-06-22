@@ -230,13 +230,14 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 			if rrTmp.RrTtl.IsZero() {
 				rrTmp.RrTtl = zoneFileModel.Ttl
 			}
-			belogs.Debug("QueryResourceRecords(): rrTmp:", jsonutil.MarshalJson(rrTmp))
 
 			if rrType == "ANY" {
 				resourceRecords = append(resourceRecords, rrTmp)
+				belogs.Debug("QueryResourceRecords():rrType is (ANY):", rrType, ", will add rrTmp:", jsonutil.MarshalJson(rrTmp))
 			} else {
 				if rrType == rrTmp.RrType {
 					resourceRecords = append(resourceRecords, rrTmp)
+					belogs.Debug("QueryResourceRecords():rrType is ", rrType, ", will add rrTmp:", jsonutil.MarshalJson(rrTmp))
 				}
 			}
 		}
