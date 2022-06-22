@@ -301,7 +301,8 @@ func (tc *TcpTlsClient) waitTcpTlsMsg() (err error) {
 				start := time.Now()
 				n, err := tc.tcpTlsConn.Write(sendData)
 				if err != nil {
-					belogs.Error("waitTcpTlsMsg(): tcptlsclient  Write fail:  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(), err)
+					belogs.Error("waitTcpTlsMsg(): tcptlsclient  Write fail, will close  tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(), err)
+					tc.onClose()
 					return err
 				}
 				belogs.Info("waitTcpTlsMsg(): tcptlsclient  Write to tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(),
