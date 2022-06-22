@@ -59,7 +59,7 @@ func FormatRrClassOrRrType(t string) string {
 
 // //  remove origin, only hostname, and will remove the end "." // lower
 func FormatRrName(t string) string {
-	return strings.TrimRight(strings.TrimSpace(strings.ToLower(t)), ".")
+	return strings.TrimSuffix(strings.TrimSpace(strings.ToLower(t)), ".")
 }
 
 // will have "." in the end  // lower

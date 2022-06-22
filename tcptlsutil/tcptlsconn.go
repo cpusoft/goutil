@@ -13,7 +13,7 @@ type TcpTlsConn struct {
 	isTcpConn         bool
 	tcpConn           *net.TCPConn
 	tlsConn           *tls.Conn
-	isClose           bool
+	isConnected       bool
 	nextConnectPolicy int
 }
 
@@ -21,7 +21,7 @@ func NewFromTcpConn(tcpConn *net.TCPConn) (c *TcpTlsConn) {
 	c = &TcpTlsConn{}
 	c.tcpConn = tcpConn
 	c.isTcpConn = true
-	c.isClose = false
+	c.isConnected = true
 	c.nextConnectPolicy = NEXT_CONNECT_POLICY_KEEP
 	return c
 }
@@ -30,7 +30,7 @@ func NewFromTlsConn(tlsConn *tls.Conn) (c *TcpTlsConn) {
 	c = &TcpTlsConn{}
 	c.tlsConn = tlsConn
 	c.isTcpConn = false
-	c.isClose = false
+	c.isConnected = true
 	c.nextConnectPolicy = NEXT_CONNECT_POLICY_KEEP
 	return c
 }
@@ -38,7 +38,8 @@ func NewFromTlsConn(tlsConn *tls.Conn) (c *TcpTlsConn) {
 func (c *TcpTlsConn) RemoteAddr() net.Addr {
 	if c.isTcpConn && c.tcpConn != nil {
 		return c.tcpConn.RemoteAddr()
-	} else if c.tlsConn != nil {
+	}
+	if !c.isTcpConn && c.tlsConn != nil {
 		return c.tlsConn.RemoteAddr()
 	}
 	return nil
@@ -47,36 +48,40 @@ func (c *TcpTlsConn) RemoteAddr() net.Addr {
 func (c *TcpTlsConn) LocalAddr() net.Addr {
 	if c.isTcpConn && c.tcpConn != nil {
 		return c.tcpConn.LocalAddr()
-	} else if c.tlsConn != nil {
+	}
+	if !c.isTcpConn && c.tlsConn != nil {
 		return c.tlsConn.LocalAddr()
 	}
 	return nil
 }
 
 func (c *TcpTlsConn) Write(b []byte) (n int, err error) {
-	if c.isTcpConn && c.tcpConn != nil && !c.isClose {
+	if c.isTcpConn && c.tcpConn != nil && c.isConnected {
 		return c.tcpConn.Write(b)
-	} else if c.tlsConn != nil && !c.isClose {
+	}
+	if !c.isTcpConn && c.tlsConn != nil && c.isConnected {
 		return c.tlsConn.Write(b)
 	}
 	return -1, errors.New("is not conn")
 }
 
 func (c *TcpTlsConn) Read(b []byte) (n int, err error) {
-	if c.isTcpConn && c.tcpConn != nil && !c.isClose {
+	if c.isTcpConn && c.tcpConn != nil && c.isConnected {
 		return c.tcpConn.Read(b)
-	} else if c.tlsConn != nil && !c.isClose {
+	}
+	if !c.isTcpConn && c.tlsConn != nil && c.isConnected {
 		return c.tlsConn.Read(b)
 	}
 	return -1, errors.New("is not conn")
 }
 
 func (c *TcpTlsConn) Close() (err error) {
-	if c.isTcpConn && c.tcpConn != nil && !c.isClose {
-		c.isClose = true
+	if c.isTcpConn && c.tcpConn != nil {
+		c.isConnected = false
 		return c.tcpConn.Close()
-	} else if c.tlsConn != nil && !c.isClose {
-		c.isClose = true
+	}
+	if !c.isTcpConn && c.tlsConn != nil {
+		c.isConnected = false
 		return c.tlsConn.Close()
 	}
 	return errors.New("is not conn")
@@ -85,12 +90,13 @@ func (c *TcpTlsConn) Close() (err error) {
 func (c *TcpTlsConn) SetDeadline(t time.Time) error {
 	if c.isTcpConn && c.tcpConn != nil {
 		return c.tcpConn.SetDeadline(t)
-	} else if c.tlsConn != nil {
+	}
+	if !c.isTcpConn && c.tlsConn != nil {
 		return c.tlsConn.SetDeadline(t)
 	}
 	return errors.New("is not conn")
 }
 
-func (c *TcpTlsConn) IsClose() bool {
-	return c.isClose
+func (c *TcpTlsConn) IsConnected() bool {
+	return c.isConnected
 }
