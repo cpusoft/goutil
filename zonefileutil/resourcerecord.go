@@ -259,19 +259,31 @@ func CheckResourceRecord(resourceRecord *ResourceRecord) error {
 	return nil
 }
 
+// check rrDomain/rrType/rrValues/
+// if needRrName, check rrName
 func CheckAddOrUpdateResourceRecord(resourceRecord *ResourceRecord, needRrName bool) error {
 	if resourceRecord == nil {
 		belogs.Error("CheckAddOrUpdateResourceRecord():resourceRecord is nil, fail:")
 		return errors.New("resourceRecord is nill")
 	}
+	if len(resourceRecord.RrDomain) == 0 {
+		belogs.Error("CheckAddOrUpdateResourceRecord():rrDomain is empty, fail:")
+		return errors.New("rrDomain is empty")
+	}
+
 	if needRrName && len(resourceRecord.RrName) == 0 {
 		belogs.Error("CheckAddOrUpdateResourceRecord():rrName is empty, fail:")
-		return errors.New("rrName,rrType and rrValues are all empty")
+		return errors.New("rrName is empty")
 	}
-	if len(resourceRecord.RrType) == 0 ||
-		len(resourceRecord.RrValues) == 0 {
-		belogs.Error("CheckAddOrUpdateResourceRecord():rrType or rrValues is empty, fail:")
-		return errors.New("rrName,rrType and rrValues are all empty")
+
+	if len(resourceRecord.RrType) == 0 {
+		belogs.Error("CheckAddOrUpdateResourceRecord():rrType is empty, fail:")
+		return errors.New("rrType is empty")
+	}
+
+	if len(resourceRecord.RrValues) == 0 {
+		belogs.Error("CheckAddOrUpdateResourceRecord(): rrValues is empty, fail:")
+		return errors.New("rrValues is empty")
 	}
 	return nil
 }
