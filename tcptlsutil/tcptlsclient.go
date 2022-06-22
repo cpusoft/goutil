@@ -214,7 +214,7 @@ func (tc *TcpTlsClient) onReceive() (err error) {
 			return err
 		}
 		if nextRwPolicy == NEXT_RW_POLICY_END_READ {
-			belogs.Info("onReceive(): tcptlsclient  nextRwPolicy, will close connect: ", tc.tcpTlsConn.RemoteAddr().String())
+			belogs.Info("onReceive(): tcptlsclient  nextRwPolicy is NEXT_RW_POLICY_END_READ, will close connect: ", tc.tcpTlsConn.RemoteAddr().String())
 			return nil
 		}
 
