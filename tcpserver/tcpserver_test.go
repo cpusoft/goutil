@@ -29,7 +29,9 @@ func (spf *ServerProcessFunc) OnReceiveAndSend(conn *net.TCPConn, receiveData []
 func (spf *ServerProcessFunc) OnClose(conn *net.TCPConn) {
 
 }
-
+func (spf *ServerProcessFunc) ActiveSend(conn *net.TCPConn, sendData []byte) (err error) {
+	return
+}
 func TestCreateTcpServer(t *testing.T) {
 	serverProcessFunc := new(ServerProcessFunc)
 	ts := NewTcpServer(serverProcessFunc)
