@@ -399,13 +399,14 @@ func GetByCurl(url string) (result string, err error) {
 	// --limit-rate:  100k  --no use
 	// -m: --max-time SECONDS  Maximum time allowed for the transfer
 	cmd := exec.Command("curl", "--connect-timeout", "600",
-		"-m", "600", "--retry", "3", "-o", tmpFile, url)
+		"-m", "600", "--retry", "3", "-4", "-v", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url), "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
+		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url), "   tmpFile:", tmpFile,
+			"   err: ", err, "   Output  is:", output)
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
-	belogs.Debug("GetByCurl(): curl ok, url:", url, "   tmpFile:", tmpFile, "  time(s):", time.Now().Sub(start).Seconds())
+	belogs.Debug("GetByCurl(): curl ok, url:", url, "   tmpFile:", tmpFile, " Output  is:", output, "  time(s):", time.Now().Sub(start).Seconds())
 
 	b, err := fileutil.ReadFileToBytes(tmpFile)
 	if err != nil {
