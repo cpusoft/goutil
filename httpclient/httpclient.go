@@ -399,10 +399,10 @@ func GetByCurl(url string) (result string, err error) {
 	// --limit-rate:  100k  --no use
 	// -m: --max-time SECONDS  Maximum time allowed for the transfer
 	/*
-		cmd := exec.Command("curl", "--connect-timeout", "600",
-			"-m", "600", "--retry", "3", "-4", "-v", "-o", tmpFile, url)
+		cmd := exec.Command("curl", "-4", "-v", "-o", tmpFile, url)
 	*/
-	cmd := exec.Command("curl", "-4", "-v", "-o", tmpFile, url)
+	cmd := exec.Command("curl", "--connect-timeout", "600",
+		"-m", "600", "--retry", "3", "-4", "-v", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url), "   tmpFile:", tmpFile,
