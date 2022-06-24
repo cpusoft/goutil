@@ -127,7 +127,7 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 		return err
 	}
 	if err := CheckAddOrUpdateResourceRecord(newResourceRecord, true); err != nil {
-		belogs.Error("UpdateResourceRecord(): CheckResourceRecord newResourceRecord fail:", newResourceRecord, err)
+		belogs.Error("UpdateResourceRecord(): CheckAddOrUpdateResourceRecord newResourceRecord fail:", newResourceRecord, err)
 		return err
 	}
 	// rrdomain
