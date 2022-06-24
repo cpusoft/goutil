@@ -384,8 +384,12 @@ func PostFileHttps(urlStr string, fileName string, formName string, verify bool)
 }
 
 func GetByCurl(url string) (result string, err error) {
+	if len(url) == 0 {
+		return "", errors.New("url is emtpy")
+	}
 	start := time.Now()
-	belogs.Debug("GetByCurl(): cmd:  curl ", url)
+	url = strings.TrimSpace(url)
+	belogs.Debug("GetByCurl(): cmd:  curl:'" + url + "'")
 	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
 	defer os.Remove(tmpFile)
 	belogs.Debug("GetByCurl():will curl url:", url, "   tmpFile:", tmpFile)
