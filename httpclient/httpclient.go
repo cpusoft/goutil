@@ -403,10 +403,10 @@ func GetByCurl(url string) (result string, err error) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url), "   tmpFile:", tmpFile,
-			"   err: ", err, "   Output  is:", output)
+			"   err: ", err, "   Output  is:", string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
-	belogs.Debug("GetByCurl(): curl ok, url:", url, "   tmpFile:", tmpFile, " Output  is:", output, "  time(s):", time.Now().Sub(start).Seconds())
+	belogs.Debug("GetByCurl(): curl ok, url:", url, "   tmpFile:", tmpFile, " Output  is:", string(output), "  time(s):", time.Now().Sub(start).Seconds())
 
 	b, err := fileutil.ReadFileToBytes(tmpFile)
 	if err != nil {
