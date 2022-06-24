@@ -141,8 +141,8 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 			"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 			"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	} else {
-		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   resp:",
-			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
+			"   resp:", resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 
 		// then try using curl
 		body, err = httpclient.GetByCurl(deltaUrl)

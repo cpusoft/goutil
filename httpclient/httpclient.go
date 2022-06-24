@@ -17,6 +17,7 @@ import (
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/httpserver"
 	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/netutil"
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/cpusoft/goutil/uuidutil"
 	"github.com/parnurzeal/gorequest"
@@ -401,7 +402,7 @@ func GetByCurl(url string) (result string, err error) {
 		"-m", "600", "--retry", "3", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
+		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url), "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
 	belogs.Debug("GetByCurl(): curl ok, url:", url, "   tmpFile:", tmpFile, "  time(s):", time.Now().Sub(start).Seconds())

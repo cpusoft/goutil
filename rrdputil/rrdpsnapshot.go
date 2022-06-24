@@ -45,8 +45,8 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
 	belogs.Debug("getRrdpSnapshotImpl(): snapshotUrl:", snapshotUrl)
 	resp, body, err := httpclient.GetHttpsVerify(snapshotUrl, true)
-	belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "    len(body):", len(body),
-		"  time(s):", time.Now().Sub(start).Seconds(), "   err:", err)
+	belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
+		"    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), "   err:", err)
 	if err == nil {
 		defer resp.Body.Close()
 		belogs.Debug("getRrdpSnapshotImpl():GetHttpsVerify snapshotUrl ok:", snapshotUrl,
