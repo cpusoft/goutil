@@ -85,6 +85,10 @@ func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error)
 				ttlStr := string(e.Values()[0])
 				belogs.Debug("LoadZoneFile(): ttlStr:", ttlStr)
 				ttl, _ := strconv.Atoi(ttlStr)
+				if ttl > DSO_ADD_RECOURCE_RECORD_MAX_TTL {
+					belogs.Error("LoadZoneFile(): $TTL is bigger than DSO_ADD_RECOURCE_RECORD_MAX_TTL:", ttl, DSO_ADD_RECOURCE_RECORD_MAX_TTL)
+					return nil, errors.New("$TTL is bigger than DSO_ADD_RECOURCE_RECORD_MAX_TTL")
+				}
 				zoneFileModel.Ttl = null.IntFrom(int64(ttl))
 			}
 		} else {
@@ -108,7 +112,12 @@ func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error)
 			// get ttl
 			rrTtl := null.NewInt(0, false)
 			if e.TTL() != nil {
-				rrTtl = null.IntFrom(int64(*e.TTL()))
+				ttl := int64(*e.TTL())
+				if ttl > DSO_ADD_RECOURCE_RECORD_MAX_TTL {
+					belogs.Error("LoadZoneFile(): ttl is bigger than DSO_ADD_RECOURCE_RECORD_MAX_TTL:", ttl, DSO_ADD_RECOURCE_RECORD_MAX_TTL)
+					return nil, errors.New("ttl is bigger than DSO_ADD_RECOURCE_RECORD_MAX_TTL")
+				}
+				rrTtl = null.IntFrom(ttl)
 			}
 			belogs.Debug("LoadZoneFile(): rrTtl:", rrTtl)
 

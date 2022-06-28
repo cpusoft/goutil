@@ -118,14 +118,14 @@ func DelResourceRecord(zoneFileModel *ZoneFileModel, delResourceRecord *Resource
 	zfRrs := make([]*ResourceRecord, 0)
 	newDelResourceRecord = delResourceRecord
 	if delResourceRecord.RrClass == "ANY" || (delResourceRecord.RrClass != "ANY" && delResourceRecord.RrType == "ANY") {
-		newDelResourceRecord.RrTtl = null.IntFrom(DSO_REMOVE_COLLECTIVE_RESOURCE_RECORD_TTL)
+		newDelResourceRecord.RrTtl = null.IntFrom(DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL)
 		for i := range zoneFileModel.ResourceRecords {
 			if zoneFileModel.ResourceRecords[i].RrName != delResourceRecord.RrName {
 				zfRrs = append(zfRrs, zoneFileModel.ResourceRecords[i])
 			}
 		}
 	} else if delResourceRecord.RrClass != "ANY" && delResourceRecord.RrType != "ANY" && len(delResourceRecord.RrValues) == 0 {
-		newDelResourceRecord.RrTtl = null.IntFrom(DSO_REMOVE_COLLECTIVE_RESOURCE_RECORD_TTL)
+		newDelResourceRecord.RrTtl = null.IntFrom(DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL)
 		for i := range zoneFileModel.ResourceRecords {
 			if !(zoneFileModel.ResourceRecords[i].RrName == delResourceRecord.RrName &&
 				zoneFileModel.ResourceRecords[i].RrClass == delResourceRecord.RrClass &&
@@ -134,7 +134,7 @@ func DelResourceRecord(zoneFileModel *ZoneFileModel, delResourceRecord *Resource
 			}
 		}
 	} else if delResourceRecord.RrClass != "ANY" && delResourceRecord.RrType != "ANY" && len(delResourceRecord.RrValues) != 0 {
-		newDelResourceRecord.RrTtl = null.IntFrom(DSO_REMOVE_SPECIFIED_RESOURCE_RECORD_TTL)
+		newDelResourceRecord.RrTtl = null.IntFrom(DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL)
 		for i := range zoneFileModel.ResourceRecords {
 			if !EqualResourceRecord(zoneFileModel.ResourceRecords[i], delResourceRecord) {
 				zfRrs = append(zfRrs, zoneFileModel.ResourceRecords[i])
@@ -397,4 +397,12 @@ func GetResourceRecordAnyKey(resourceRecord *ResourceRecord) string {
 	rrKey := resourceRecord.RrDomain + "#" + DnsIntTypes[DNS_TYPE_ANY]
 	belogs.Info("getResourceRecordAnyKey():rrKey:", rrKey)
 	return rrKey
+}
+
+func IsDelResourceRecord(rrTtl null.Int) bool {
+	if rrTtl.ValueOrZero() == DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL ||
+		rrTtl.ValueOrZero() == DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL {
+		return true
+	}
+	return false
 }
