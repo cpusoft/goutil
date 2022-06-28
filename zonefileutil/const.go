@@ -20,6 +20,9 @@ const (
 	//DNS_CLASS_ALL = 0 // not actually class, means all
 	DNS_CLASS_IN  = 1
 	DNS_CLASS_ANY = 255
+
+	DSO_REMOVE_SPECIFIED_RESOURCE_RECORD  = 0xFFFFFFFF
+	DSO_REMOVE_COLLECTIVE_RESOURCE_RECORD = 0xFFFFFFFE
 )
 
 var DnsIntTypes map[uint16]string = map[uint16]string{

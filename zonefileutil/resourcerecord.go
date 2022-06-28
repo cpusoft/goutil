@@ -90,46 +90,88 @@ func (c *ResourceRecord) String() string {
 	return b.String()
 }
 
-// resourceRecord should have RrName and RrType and RrValues
-// domain: ***, or @, or ""
-func DelResourceRecord(zoneFileModel *ZoneFileModel, delResourceRecord *ResourceRecord) (err error) {
+//  https://datatracker.ietf.org/doc/rfc8765/
+//  RrName: ***, or @, or ""
+//
+// if rrClass==ANY,                 remove all RRsets from a name in all classes: TTL = 0xFFFFFFFE, RDLEN = 0
+//
+// if rrClass!=ANY and rrType==ANY, remove all RRsets from a name in given class: TTL = 0xFFFFFFFE, RDLEN = 0
+//
+// if rrClass!=ANY and rrType!=ANY and rrData == emtpy, remove CLASS and TYPE specify the RRset: TTL = 0xFFFFFFFE, RDLEN = 0
+//
+// if rrClass!=ANY and rrType!=ANY and rrData != emtpy, Remove an individual RR from a name  TTL = 0xFFFFFFFF
+func DelResourceRecord(zoneFileModel *ZoneFileModel, delResourceRecord *ResourceRecord) (newDelResourceRecord *ResourceRecord, err error) {
 	if err := checkZoneFileModel(zoneFileModel); err != nil {
 		belogs.Error("DelResourceRecord(): checkZoneFileModel fail:", zoneFileModel, err)
-		return err
+		return nil, err
 	}
-	if err := CheckResourceRecord(delResourceRecord); err != nil {
-		belogs.Error("DelResourceRecord(): CheckResourceRecord oldResourceRecord fail:", delResourceRecord, err)
-		return err
-	}
-
-	belogs.Info("DelResourceRecord(): delResourceRecord :", jsonutil.MarshalJson(delResourceRecord))
-	rr := make([]*ResourceRecord, 0)
 	zoneFileModel.resourceRecordMutex.Lock()
 	defer zoneFileModel.resourceRecordMutex.Unlock()
-	for i := range zoneFileModel.ResourceRecords {
-		if !EqualResourceRecord(zoneFileModel.ResourceRecords[i], delResourceRecord) {
-			rr = append(rr, zoneFileModel.ResourceRecords[i])
+
+	if err := CheckNameAndTypeAndValues(delResourceRecord); err != nil {
+		belogs.Error("DelResourceRecord(): CheckNameAndTypeAndValues delResourceRecord fail:",
+			jsonutil.MarshalJson(delResourceRecord), err)
+		return nil, err
+	}
+
+	belogs.Info("DelResourceRecord():will delResourceRecord :", jsonutil.MarshalJson(delResourceRecord))
+	zfRrs := make([]*ResourceRecord, 0)
+	newDelResourceRecord = delResourceRecord
+	if delResourceRecord.RrClass == "ANY" || (delResourceRecord.RrClass != "ANY" && delResourceRecord.RrType == "ANY") {
+		newDelResourceRecord.RrTtl = null.IntFrom(DSO_REMOVE_COLLECTIVE_RESOURCE_RECORD)
+		for i := range zoneFileModel.ResourceRecords {
+			if zoneFileModel.ResourceRecords[i].RrName != delResourceRecord.RrName {
+				zfRrs = append(zfRrs, zoneFileModel.ResourceRecords[i])
+			}
+		}
+	} else if delResourceRecord.RrClass != "ANY" && delResourceRecord.RrType != "ANY" && len(delResourceRecord.RrValues) == 0 {
+		newDelResourceRecord.RrTtl = null.IntFrom(DSO_REMOVE_COLLECTIVE_RESOURCE_RECORD)
+		for i := range zoneFileModel.ResourceRecords {
+			if !(zoneFileModel.ResourceRecords[i].RrName == delResourceRecord.RrName &&
+				zoneFileModel.ResourceRecords[i].RrClass == delResourceRecord.RrClass &&
+				zoneFileModel.ResourceRecords[i].RrType == delResourceRecord.RrType) {
+				zfRrs = append(zfRrs, zoneFileModel.ResourceRecords[i])
+			}
+		}
+	} else if delResourceRecord.RrClass != "ANY" && delResourceRecord.RrType != "ANY" && len(delResourceRecord.RrValues) != 0 {
+		newDelResourceRecord.RrTtl = null.IntFrom(DSO_REMOVE_SPECIFIED_RESOURCE_RECORD)
+		for i := range zoneFileModel.ResourceRecords {
+			if !EqualResourceRecord(zoneFileModel.ResourceRecords[i], delResourceRecord) {
+				zfRrs = append(zfRrs, zoneFileModel.ResourceRecords[i])
+			}
 		}
 	}
-	zoneFileModel.ResourceRecords = rr
-	belogs.Info("DelResourceRecord(): found and delete, new zoneFileModel.ResourceRecords:", jsonutil.MarshalJson(rr))
-	return nil
+	zoneFileModel.ResourceRecords = zfRrs
+	belogs.Info("DelResourceRecord(): found and delete, new zoneFileModel.ResourceRecords:", jsonutil.MarshalJson(zfRrs),
+		"   newDelResourceRecord:", newDelResourceRecord)
+	return newDelResourceRecord, nil
 }
 
-// oldResourceRecord/newResourceRecord: should have Domain and Type and Values
+// newResourceRecord.RrName: ***, or @, or ""
+//
+// Class/Type cannot ANY,'update' must be individual RR
+//
+// oldResourceRecord/newResourceRecord: should have same Domain and Type(CANNOT "ANY"), just different Values to update
 func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newResourceRecord *ResourceRecord) (err error) {
 	if err := checkZoneFileModel(zoneFileModel); err != nil {
 		belogs.Error("UpdateResourceRecord(): checkZoneFileModel fail:", zoneFileModel, err)
 		return err
 	}
-	if err := CheckResourceRecord(oldResourceRecord); err != nil {
-		belogs.Error("UpdateResourceRecord(): CheckResourceRecord oldResourceRecord fail:", oldResourceRecord, err)
+	if err := CheckNameAndTypeAndValues(oldResourceRecord); err != nil {
+		belogs.Error("UpdateResourceRecord(): CheckNameAndTypeAndValues oldResourceRecord fail:", oldResourceRecord, err)
 		return err
 	}
-	if err := CheckAddOrUpdateResourceRecord(newResourceRecord, true); err != nil {
-		belogs.Error("UpdateResourceRecord(): CheckAddOrUpdateResourceRecord newResourceRecord fail:", newResourceRecord, err)
+	if err := CheckDomainOrNameAndTypeAndValues(newResourceRecord, true); err != nil {
+		belogs.Error("UpdateResourceRecord(): CheckDomainOrNameAndTypeAndValues newResourceRecord fail:", newResourceRecord, err)
 		return err
 	}
+	if oldResourceRecord.RrClass == "ANY" || oldResourceRecord.RrType == "ANY" ||
+		newResourceRecord.RrClass == "ANY" || newResourceRecord.RrType == "ANY" {
+		belogs.Error("UpdateResourceRecord(): RrClass or RrType cannot be ANY, oldResourceRecord:", oldResourceRecord,
+			"     newResourceRecord:", newResourceRecord)
+		return errors.New("Class or Type cannot be ANY")
+	}
+
 	// rrdomain
 	if len(newResourceRecord.RrDomain) == 0 {
 		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
@@ -158,7 +200,9 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 }
 
 // newResourceRecord: should have Domain and Type and Values
+//
 // afterResourceRecord: maybe nil, some rr must after the specified record, eg: ignored domain
+//
 // if afterResourceRecord Domain and Type and Values all are empty , newResourceRecord will add in the end
 func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newResourceRecord *ResourceRecord) (err error) {
 	if err := checkZoneFileModel(zoneFileModel); err != nil {
@@ -167,10 +211,15 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 	}
 	// if afterResourceRecord==nil, then need check RrName
 	needRrName := (afterResourceRecord == nil)
-	if err := CheckAddOrUpdateResourceRecord(newResourceRecord, needRrName); err != nil {
-		belogs.Error("AddResourceRecord(): CheckAddOrUpdateResourceRecord newResourceRecord fail:", newResourceRecord, "   needRrName:", needRrName, err)
+	if err := CheckDomainOrNameAndTypeAndValues(newResourceRecord, needRrName); err != nil {
+		belogs.Error("AddResourceRecord(): CheckDomainOrNameAndTypeAndValues newResourceRecord fail:", newResourceRecord, "   needRrName:", needRrName, err)
 		return err
 	}
+	if newResourceRecord.RrClass == "ANY" || newResourceRecord.RrType == "ANY" {
+		belogs.Error("AddResourceRecord(): RrClass or RrType cannot be ANY, newResourceRecord:", newResourceRecord)
+		return errors.New("Class or Type cannot be ANY")
+	}
+
 	// rrdomain
 	if len(newResourceRecord.RrDomain) == 0 {
 		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
@@ -179,7 +228,7 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 		"   newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 	zoneFileModel.resourceRecordMutex.Lock()
 	defer zoneFileModel.resourceRecordMutex.Unlock()
-	if afterResourceRecord != nil && CheckResourceRecord(afterResourceRecord) == nil { // afterResourceRecord Domain and Type and Values are not all empty
+	if afterResourceRecord != nil && CheckNameAndTypeAndValues(afterResourceRecord) == nil { // afterResourceRecord Domain and Type and Values are not all empty
 		rr := make([]*ResourceRecord, 0)
 		for i := range zoneFileModel.ResourceRecords {
 			rr = append(rr, zoneFileModel.ResourceRecords[i])
@@ -206,8 +255,8 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 		belogs.Error("QueryResourceRecords(): checkZoneFileModel fail:", zoneFileModel, err)
 		return nil, err
 	}
-	if err := CheckResourceRecord(queryResourceRecord); err != nil {
-		belogs.Error("QueryResourceRecords(): CheckResourceRecord queryResourceRecord fail:", queryResourceRecord, err)
+	if err := CheckNameAndTypeAndValues(queryResourceRecord); err != nil {
+		belogs.Error("QueryResourceRecords(): CheckNameAndTypeAndValues queryResourceRecord fail:", queryResourceRecord, err)
 		return nil, err
 	}
 
@@ -247,14 +296,14 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 	return resourceRecords, nil
 }
 
-func CheckResourceRecord(resourceRecord *ResourceRecord) error {
+func CheckNameAndTypeAndValues(resourceRecord *ResourceRecord) error {
 	if resourceRecord == nil {
-		belogs.Error("CheckResourceRecord():resourceRecord is nil, fail:")
+		belogs.Error("CheckNameAndTypeAndValues():resourceRecord is nil, fail:")
 		return errors.New("resourceRecord is nill")
 	}
 	if len(resourceRecord.RrName) == 0 && len(resourceRecord.RrType) == 0 &&
 		len(resourceRecord.RrValues) == 0 {
-		belogs.Error("CheckResourceRecord():rrName,rrType and rrValues are all empty, fail:")
+		belogs.Error("CheckNameAndTypeAndValues():rrName,rrType and rrValues are all empty, fail:")
 		return errors.New("rrName,rrType and rrValues are all empty")
 	}
 	return nil
@@ -262,28 +311,28 @@ func CheckResourceRecord(resourceRecord *ResourceRecord) error {
 
 // check rrDomain/rrType/rrValues/
 // if needRrName, check rrName
-func CheckAddOrUpdateResourceRecord(resourceRecord *ResourceRecord, needRrName bool) error {
+func CheckDomainOrNameAndTypeAndValues(resourceRecord *ResourceRecord, needRrName bool) error {
 	if resourceRecord == nil {
-		belogs.Error("CheckAddOrUpdateResourceRecord():resourceRecord is nil, fail:")
+		belogs.Error("CheckDomainOrNameAndTypeAndValues():resourceRecord is nil, fail:")
 		return errors.New("resourceRecord is nill")
 	}
 	if len(resourceRecord.RrDomain) == 0 {
-		belogs.Error("CheckAddOrUpdateResourceRecord():rrDomain is empty, fail:")
+		belogs.Error("CheckDomainOrNameAndTypeAndValues():rrDomain is empty, fail:")
 		return errors.New("rrDomain is empty")
 	}
 
 	if needRrName && len(resourceRecord.RrName) == 0 {
-		belogs.Error("CheckAddOrUpdateResourceRecord():rrName is empty, fail:")
+		belogs.Error("CheckDomainOrNameAndTypeAndValues():rrName is empty, fail:")
 		return errors.New("rrName is empty")
 	}
 
 	if len(resourceRecord.RrType) == 0 {
-		belogs.Error("CheckAddOrUpdateResourceRecord():rrType is empty, fail:")
+		belogs.Error("CheckDomainOrNameAndTypeAndValues():rrType is empty, fail:")
 		return errors.New("rrType is empty")
 	}
 
 	if len(resourceRecord.RrValues) == 0 {
-		belogs.Error("CheckAddOrUpdateResourceRecord(): rrValues is empty, fail:")
+		belogs.Error("CheckDomainOrNameAndTypeAndValues(): rrValues is empty, fail:")
 		return errors.New("rrValues is empty")
 	}
 	return nil
