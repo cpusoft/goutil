@@ -165,11 +165,13 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 		belogs.Error("UpdateResourceRecord(): CheckDomainOrNameAndTypeAndValues newResourceRecord fail:", newResourceRecord, err)
 		return err
 	}
-	if oldResourceRecord.RrClass == "ANY" || oldResourceRecord.RrType == "ANY" ||
-		newResourceRecord.RrClass == "ANY" || newResourceRecord.RrType == "ANY" {
-		belogs.Error("UpdateResourceRecord(): RrClass or RrType cannot be ANY, oldResourceRecord:", oldResourceRecord,
-			"     newResourceRecord:", newResourceRecord)
-		return errors.New("Class or Type cannot be ANY")
+	if err = CheckClassTypeShouldNoAny(oldResourceRecord); err != nil {
+		belogs.Error("AddResourceRecord(): oldResourceRecord RrClass or RrType cannot be ANY, oldResourceRecord:", oldResourceRecord, err)
+		return err
+	}
+	if err = CheckClassTypeShouldNoAny(newResourceRecord); err != nil {
+		belogs.Error("AddResourceRecord(): newResourceRecord RrClass or RrType cannot be ANY, newResourceRecord:", newResourceRecord, err)
+		return err
 	}
 
 	// rrdomain
@@ -215,9 +217,9 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 		belogs.Error("AddResourceRecord(): CheckDomainOrNameAndTypeAndValues newResourceRecord fail:", newResourceRecord, "   needRrName:", needRrName, err)
 		return err
 	}
-	if newResourceRecord.RrClass == "ANY" || newResourceRecord.RrType == "ANY" {
-		belogs.Error("AddResourceRecord(): RrClass or RrType cannot be ANY, newResourceRecord:", newResourceRecord)
-		return errors.New("Class or Type cannot be ANY")
+	if err = CheckClassTypeShouldNoAny(newResourceRecord); err != nil {
+		belogs.Error("AddResourceRecord(): RrClass or RrType cannot be ANY, newResourceRecord:", newResourceRecord, err)
+		return err
 	}
 
 	// rrdomain
@@ -305,6 +307,20 @@ func CheckNameAndTypeAndValues(resourceRecord *ResourceRecord) error {
 		len(resourceRecord.RrValues) == 0 {
 		belogs.Error("CheckNameAndTypeAndValues():rrName,rrType and rrValues are all empty, fail:")
 		return errors.New("rrName,rrType and rrValues are all empty")
+	}
+	return nil
+}
+
+// check rrDomain/rrType/rrValues/
+// if needRrName, check rrName
+func CheckClassTypeShouldNoAny(resourceRecord *ResourceRecord) error {
+	if resourceRecord == nil {
+		belogs.Error("CheckClassTypeNoAny():resourceRecord is nil, fail:")
+		return errors.New("resourceRecord is nill")
+	}
+	if resourceRecord.RrClass == "ANY" || resourceRecord.RrType == "ANY" {
+		belogs.Error("CheckClassTypeNoAny():Class or Type is ANY, fail:", jsonutil.MarshalJson(resourceRecord))
+		return errors.New("Class or Type is ANY")
 	}
 	return nil
 }
