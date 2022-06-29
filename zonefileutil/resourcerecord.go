@@ -173,12 +173,7 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 		belogs.Error("AddResourceRecord(): newResourceRecord RrClass or RrType cannot be ANY, newResourceRecord:", newResourceRecord, err)
 		return err
 	}
-
-	// rrdomain
-	if len(newResourceRecord.RrDomain) == 0 {
-		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
-	}
-
+	// same rrName, rrType
 	if oldResourceRecord.RrName != newResourceRecord.RrName ||
 		oldResourceRecord.RrType != newResourceRecord.RrType {
 		belogs.Error("UpdateResourceRecord(): oldRr's rrName or rrType is not equal to newRr's RrName or rrType, fail:",
@@ -186,6 +181,12 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 		return errors.New("OldRr's rrName and rrType all should  be equal to newRr")
 	}
 
+	// set rrdomain
+	if len(newResourceRecord.RrDomain) == 0 {
+		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
+	}
+	// set ttl as del specified ttl
+	newResourceRecord.RrTtl = null.IntFrom(DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL)
 	belogs.Info("UpdateResourceRecord():  oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord),
 		"  newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 
