@@ -185,8 +185,8 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 	if len(newResourceRecord.RrDomain) == 0 {
 		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
 	}
-	// set ttl as del specified ttl
-	newResourceRecord.RrTtl = null.IntFrom(DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL)
+	// set old rr's ttl as del specified ttl
+	oldResourceRecord.RrTtl = null.IntFrom(DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL)
 	belogs.Info("UpdateResourceRecord():  oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord),
 		"  newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 
