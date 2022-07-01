@@ -24,6 +24,10 @@ const (
 	DSO_ADD_RECOURCE_RECORD_MAX_TTL        = 0x7FFFFFFF
 	DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL  = 0xFFFFFFFF
 	DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL = 0xFFFFFFFE
+
+	// for del, when del rr, type is ANY, not the initially set value;
+	// so ,use rrDelKey to remember this key
+	DNS_RR_DEL_KEY = "DEL"
 )
 
 var DnsIntTypes map[uint16]string = map[uint16]string{

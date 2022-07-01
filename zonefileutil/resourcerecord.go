@@ -395,9 +395,18 @@ func GetResourceRecordAnyKey(resourceRecord *ResourceRecord) string {
 	if resourceRecord == nil {
 		return ""
 	}
-	rrKey := resourceRecord.RrDomain + "#" + DnsIntTypes[DNS_TYPE_ANY]
-	belogs.Info("getResourceRecordAnyKey():rrKey:", rrKey)
-	return rrKey
+	rrAnyKey := resourceRecord.RrDomain + "#" + DnsIntTypes[DNS_TYPE_ANY]
+	belogs.Info("GetResourceRecordAnyKey():rrAnyKey:", rrAnyKey)
+	return rrAnyKey
+}
+
+func GetResourceRecordDelKey(resourceRecord *ResourceRecord) string {
+	if resourceRecord == nil {
+		return ""
+	}
+	rrDelKey := resourceRecord.RrDomain + "#" + DNS_RR_DEL_KEY
+	belogs.Info("GetResourceRecordDelKey():rrKey:", rrDelKey)
+	return rrDelKey
 }
 
 func IsDelResourceRecord(rrTtl null.Int) bool {
