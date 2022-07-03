@@ -387,7 +387,7 @@ func GetResourceRecordKey(resourceRecord *ResourceRecord) string {
 		return ""
 	}
 	rrKey := resourceRecord.RrDomain + "#" + resourceRecord.RrType
-	belogs.Info("GetResourceRecordKey():rrKey:", rrKey)
+	belogs.Debug("GetResourceRecordKey():rrKey:", rrKey)
 	return rrKey
 }
 
@@ -396,7 +396,7 @@ func GetResourceRecordAnyKey(resourceRecord *ResourceRecord) string {
 		return ""
 	}
 	rrAnyKey := resourceRecord.RrDomain + "#" + DnsIntTypes[DNS_TYPE_ANY]
-	belogs.Info("GetResourceRecordAnyKey():rrAnyKey:", rrAnyKey)
+	belogs.Debug("GetResourceRecordAnyKey():rrAnyKey:", rrAnyKey)
 	return rrAnyKey
 }
 
@@ -405,11 +405,12 @@ func GetResourceRecordDelKey(resourceRecord *ResourceRecord) string {
 		return ""
 	}
 	rrDelKey := resourceRecord.RrDomain + "#" + DNS_RR_DEL_KEY
-	belogs.Info("GetResourceRecordDelKey():rrKey:", rrDelKey)
+	belogs.Debug("GetResourceRecordDelKey():rrDelKey:", rrDelKey)
 	return rrDelKey
 }
 
 func IsDelResourceRecord(rrTtl null.Int) bool {
+	belogs.Debug("IsDelResourceRecord():rrTtl:", rrTtl)
 	if rrTtl.ValueOrZero() == DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL ||
 		rrTtl.ValueOrZero() == DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL {
 		return true
