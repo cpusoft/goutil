@@ -178,37 +178,37 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 			// compare by subject and issuer by string
 			if strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()) == 0 {
 				belogs.Debug("VerifyCerByteByX509():Verify fail, subject and issuer by string is equal, but by raw bytes is not equal, will return ok:",
-					"\nfather subject:`"+faterCert.Subject.String()+"`",
-					"\nchild issuer:`"+childCert.Issuer.String()+"`",
-					"\nfather subject == child issuer:", strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()),
+					"   father subject:`"+faterCert.Subject.String()+"`",
+					"   child issuer:`"+childCert.Issuer.String()+"`",
+					"   father subject == child issuer:", strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()),
 
-					"\nfather rawsubject:"+convert.Bytes2String(faterCert.RawSubject),
-					"\nchild  rawissuer:"+convert.Bytes2String(childCert.RawIssuer),
-					"\nfather rawsubject == child rawissuer:", bytes.Compare(faterCert.RawSubject, childCert.RawIssuer),
+					"   father rawsubject:"+convert.Bytes2String(faterCert.RawSubject),
+					"   child  rawissuer:"+convert.Bytes2String(childCert.RawIssuer),
+					"   father rawsubject == child rawissuer:", bytes.Compare(faterCert.RawSubject, childCert.RawIssuer),
 
-					"\nVerify err:", err)
+					"   Verify err:", err)
 				return "ok", nil
 			} else {
 				belogs.Info("VerifyCerByteByX509():Verify fail, subject and issuer by string is not equal:",
-					"\nfather subject:`"+faterCert.Subject.String()+"`",
-					"\nchild issuer:`"+childCert.Issuer.String()+"`",
-					"\nfather subject == child issuer:", strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()),
-					"\nVerify err:", err)
+					"   father subject:`"+faterCert.Subject.String()+"`",
+					"   child issuer:`"+childCert.Issuer.String()+"`",
+					"   father subject == child issuer:", strings.Compare(faterCert.Subject.String(), childCert.Issuer.String()),
+					"   Verify err:", err)
 				err = errors.New(err.Error() + ".  Father subject is '" + faterCert.Subject.String() + "', and child issuer is '" + childCert.Issuer.String() + "'")
 				return "fail", err
 			}
 		} else if strings.Contains(err.Error(), "certificate has expired or is not yet valid") {
 			belogs.Info("VerifyCerByteByX509():Verify fail, certificate has expired or is not yet valid. ",
-				"\nNow:", convert.Time2StringZone(time.Now()),
-				"\nchild NotBefore:", convert.Time2StringZone(childCert.NotBefore),
-				"\nchild NotAfter:", convert.Time2StringZone(childCert.NotAfter), "\nVerify err:", err)
+				"   Now:", convert.Time2StringZone(time.Now()),
+				"   child NotBefore:", convert.Time2StringZone(childCert.NotBefore),
+				"   child NotAfter:", convert.Time2StringZone(childCert.NotAfter), "   Verify err:", err)
 			err = errors.New(err.Error() + ".   NotBefore is '" + convert.Time2StringZone(childCert.NotBefore) + "', and NotAfter is '" + convert.Time2StringZone(childCert.NotAfter) + "'")
 			return "fail", err
 		} else {
 			belogs.Info("VerifyCerByteByX509():Verify fail ",
-				"\nfather subject:`"+faterCert.Subject.String()+"`",
-				"\nchild issuer:`"+childCert.Issuer.String()+"`",
-				"\nVerify err:", err)
+				"   father subject:`"+faterCert.Subject.String()+"`",
+				"   child issuer:`"+childCert.Issuer.String()+"`",
+				"   Verify err:", err)
 			return "fail", err
 		}
 
