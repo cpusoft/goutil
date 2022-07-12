@@ -40,11 +40,12 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 }
 
 func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err error) {
-	start := time.Now()
+
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
 	belogs.Debug("getRrdpSnapshotImpl(): snapshotUrl:", snapshotUrl)
 	snapshotUrl = strings.TrimSpace(snapshotUrl)
+	start := time.Now()
 	resp, body, err := httpclient.GetHttpsVerify(snapshotUrl, true)
 	belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
 		"    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), "   err:", err)
@@ -54,10 +55,11 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 			"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
 			"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	} else {
-		belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
+		belogs.Error("getRrdpSnapshotImpl(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 
 		// then try using curl
+		start = time.Now()
 		body, err = httpclient.GetByCurl(snapshotUrl)
 		if err != nil {
 			belogs.Error("getRrdpSnapshotImpl(): GetByCurl snapshotUrl fail:", snapshotUrl,

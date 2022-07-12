@@ -130,11 +130,11 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 
 func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 
-	start := time.Now()
 	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
 	belogs.Debug("getRrdpDeltaImpl(): deltaUrl:", deltaUrl)
 	deltaUrl = strings.TrimSpace(deltaUrl)
+	start := time.Now()
 	resp, body, err := httpclient.GetHttpsVerify(deltaUrl, true)
 	if err == nil {
 		defer resp.Body.Close()
@@ -142,10 +142,11 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 			"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 			"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
 	} else {
-		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
+		belogs.Error("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 			"   resp:", resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 
 		// then try using curl
+		start = time.Now()
 		body, err = httpclient.GetByCurl(deltaUrl)
 		if err != nil {
 			belogs.Error("getRrdpDeltaImpl(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:", resp,

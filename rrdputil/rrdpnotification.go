@@ -45,8 +45,9 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 }
 
 func getRrdpNotificationImpl(notificationUrl string) (notificationModel NotificationModel, err error) {
-	start := time.Now()
+
 	belogs.Debug("getRrdpNotificationImpl(): notificationUrl:", notificationUrl)
+	start := time.Now()
 	notificationUrl = strings.TrimSpace(notificationUrl)
 	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
 	if err == nil {
@@ -63,10 +64,11 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 		}
 
 	} else {
-		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
+		belogs.Error("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
 
 		// then try using curl
+		start = time.Now()
 		body, err = httpclient.GetByCurl(notificationUrl)
 		if err != nil {
 			belogs.Error("getRrdpNotificationImpl(): GetByCurl notificationUrl fail:", notificationUrl,
