@@ -40,12 +40,12 @@ func InitMySqlParameter(user, password, server, database string, maxidleconns, m
 	//连接数据库
 	engine, err = xorm.NewEngine("mysql", openSql)
 	if err != nil {
-		belogs.Error("InitMySqlParameter(): NewEngine failed: ", err)
+		belogs.Error("InitMySqlParameter(): NewEngine failed, err:", err)
 		return engine, err
 	}
 	//连接测试
 	if err := engine.Ping(); err != nil {
-		belogs.Error("InitMySqlParameter(): Ping failed: ", err)
+		belogs.Error("InitMySqlParameter(): Ping failed, err:", err)
 		return engine, err
 	}
 
