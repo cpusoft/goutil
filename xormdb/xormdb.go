@@ -35,17 +35,17 @@ func InitMySqlParameter(user, password, server, database string, maxidleconns, m
 
 	openSql := user + ":" + password + "@tcp(" + server + ")/" + database + "?charset=utf8&parseTime=True&loc=Local"
 	logName := filepath.Base(os.Args[0])
-	belogs.Info("InitMySql(): server is: ", server, database, logName)
+	belogs.Info("InitMySqlParameter(): server is: ", server, database, logName)
 
 	//连接数据库
 	engine, err = xorm.NewEngine("mysql", openSql)
 	if err != nil {
-		belogs.Error("NewEngine failed: ", err)
+		belogs.Error("InitMySqlParameter(): NewEngine failed: ", err)
 		return engine, err
 	}
 	//连接测试
 	if err := engine.Ping(); err != nil {
-		belogs.Error("Ping failed: ", err)
+		belogs.Error("InitMySqlParameter(): Ping failed: ", err)
 		return engine, err
 	}
 
