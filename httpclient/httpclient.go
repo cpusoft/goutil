@@ -387,7 +387,7 @@ func GetByCurl(url string) (result string, err error) {
 	if len(url) == 0 {
 		return "", errors.New("url is emtpy")
 	}
-	start := time.Now()
+
 	url = strings.TrimSpace(url)
 	belogs.Debug("GetByCurl(): cmd:  curl:'" + url + "'")
 	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
@@ -405,15 +405,18 @@ func GetByCurl(url string) (result string, err error) {
 	/*
 		cmd := exec.Command("curl", "-4", "-v", "-o", tmpFile, url)
 	*/
+	start := time.Now()
 	cmd := exec.Command("curl", "--connect-timeout", "600",
 		"-m", "600", "--retry", "3", "-4", "-v", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url), "   tmpFile:", tmpFile,
-			"   err: ", err, "   Output  is:", string(output))
+			"  time(s):", time.Since(start), "   err: ", err,
+			"  Output  is:", string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
-	belogs.Debug("GetByCurl(): curl ok, url:", url, "   tmpFile:", tmpFile, " Output  is:", string(output), "  time(s):", time.Now().Sub(start).Seconds())
+	belogs.Debug("GetByCurl(): curl ok, url:", url, "   tmpFile:", tmpFile, "  time(s):", time.Since(start),
+		" Output  is:", string(output))
 
 	b, err := fileutil.ReadFileToBytes(tmpFile)
 	if err != nil {
