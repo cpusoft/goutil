@@ -410,8 +410,8 @@ func GetByCurl(url string) (result string, err error) {
 		"-m", "600", "--retry", "3", "-4", "-v", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url), "   tmpFile:", tmpFile,
-			"  time(s):", time.Since(start), "   err: ", err,
+		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
+			"   tmpFile:", tmpFile, "  time(s):", time.Since(start), "   err: ", err,
 			"  Output  is:", string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
