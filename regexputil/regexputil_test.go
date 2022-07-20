@@ -10,3 +10,9 @@ func TestIsHex(t *testing.T) {
 	b, err := IsHex(ssss)
 	fmt.Println(b, err)
 }
+
+func TestCheckRpkiFileName(t *testing.T) {
+	ssss := `_AZ01az-`
+	b := CheckRpkiFileName(ssss)
+	fmt.Println(b)
+}

@@ -8,6 +8,11 @@ func IsHex(s string) (bool, error) {
 	return regexp.MatchString(`^[0-9a-fA-F]+$`, s)
 }
 
+func CheckRpkiFileName(s string) bool {
+	reg := regexp.MustCompile(`^[0-9a-zA-Z-_]+$`)
+	return reg.MatchString(s)
+}
+
 func CheckPhone(phone string) bool {
 	// /^\d{11}$/
 	//pattern := "^((13[0-9])|(14[5,7])|(15[0-3,5-9])|(17[0,3,5-8])|(18[0-9])|166|198|199|(147))\\d{8}$"
