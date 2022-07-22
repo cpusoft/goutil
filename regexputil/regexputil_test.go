@@ -12,7 +12,7 @@ func TestIsHex(t *testing.T) {
 }
 
 func TestCheckRpkiFileName(t *testing.T) {
-	ssss := `_AZ01az-`
+	ssss := `ZoN_KCuLgQ_XLZREqsT884kSssE.aaa`
 	b := CheckRpkiFileName(ssss)
 	fmt.Println(b)
 }

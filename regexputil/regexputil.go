@@ -8,8 +8,9 @@ func IsHex(s string) (bool, error) {
 	return regexp.MatchString(`^[0-9a-fA-F]+$`, s)
 }
 
+// https://www.iana.org/assignments/rpki/rpki.xhtml
 func CheckRpkiFileName(s string) bool {
-	reg := regexp.MustCompile(`^[0-9a-zA-Z-_]+$`)
+	reg := regexp.MustCompile(`^[0-9a-zA-Z-_]+\.(cer|roa|crl|mft|gbr|asa|sig)$`)
 	return reg.MatchString(s)
 }
 
