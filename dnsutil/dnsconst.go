@@ -1,13 +1,15 @@
 package dnsutil
 
 const (
-	////////////////////
-	// DNS
-	DNS_OPCODE_DSO  = 6
+	// OPCODE
+	DNS_OPCODE_UPDATE = 5
+	DNS_OPCODE_DSO    = 6
+
+	// QR
 	DNS_QR_REQUEST  = 0
 	DNS_QR_RESPONSE = 1
 
-	//DNS_TYPE_ALL   = 0 // not actually type, means all
+	// TYPE
 	DNS_TYPE_A     = 1
 	DNS_TYPE_NS    = 2
 	DNS_TYPE_CNAME = 5
@@ -19,9 +21,23 @@ const (
 	DNS_TYPE_SRV   = 33
 	DNS_TYPE_ANY   = 255
 
-	//DNS_CLASS_ALL = 0 // not actually class, means all
-	DNS_CLASS_IN  = 1
-	DNS_CLASS_ANY = 255
+	// CLASS
+	DNS_CLASS_IN   = 1
+	DNS_CLASS_NONE = 254
+	DNS_CLASS_ANY  = 255
+
+	// RCODE
+	DNS_RCODE_NOERROR   = 0
+	DNS_RCODE_FORMERR   = 1
+	DNS_RCODE_SERVFAIL  = 2
+	DNS_RCODE_NOTIMP    = 4
+	DNS_RCODE_REFUSED   = 5
+	DNS_RCODE_YXDOMAIN  = 6
+	DNS_RCODE_YXRRSET   = 7
+	DNS_RCODE_NXRRSET   = 8
+	DNS_RCODE_NOTAUTH   = 9
+	DNS_RCODE_NOTZONE   = 10
+	DNS_RCODE_DSOTYPENI = 11
 
 	// for del, when del rr, type is ANY, not the initially set value;
 	// so ,use rrDelKey to remember this key
@@ -29,7 +45,6 @@ const (
 )
 
 var DnsIntTypes map[uint16]string = map[uint16]string{
-	//	DNS_TYPE_ALL:   "ALL",
 	DNS_TYPE_A:     "A",
 	DNS_TYPE_NS:    "NS",
 	DNS_TYPE_CNAME: "CNAME",
@@ -42,7 +57,6 @@ var DnsIntTypes map[uint16]string = map[uint16]string{
 	DNS_TYPE_ANY:   "ANY",
 }
 var DnsStrTypes map[string]uint16 = map[string]uint16{
-	//	DNS_TYPE_ALL:   "ALL",
 	"A":     DNS_TYPE_A,
 	"NS":    DNS_TYPE_NS,
 	"CNAME": DNS_TYPE_CNAME,
@@ -56,12 +70,12 @@ var DnsStrTypes map[string]uint16 = map[string]uint16{
 }
 
 var DnsIntClasses map[uint16]string = map[uint16]string{
-	//DNS_CLASS_ALL: "ALL",
-	DNS_CLASS_IN:  "IN",
-	DNS_CLASS_ANY: "ANY",
+	DNS_CLASS_IN:   "IN",
+	DNS_CLASS_NONE: "NONE",
+	DNS_CLASS_ANY:  "ANY",
 }
 var DnsStrClasses map[string]uint16 = map[string]uint16{
-	//DNS_CLASS_ALL: "ALL",
-	"IN":  DNS_CLASS_IN,
-	"ANY": DNS_CLASS_ANY,
+	"IN":   DNS_CLASS_IN,
+	"NONE": DNS_CLASS_NONE,
+	"ANY":  DNS_CLASS_ANY,
 }
