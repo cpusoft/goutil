@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/dnsutil"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/guregu/null"
@@ -118,14 +119,14 @@ func DelResourceRecord(zoneFileModel *ZoneFileModel, delResourceRecord *Resource
 	zfRrs := make([]*ResourceRecord, 0)
 	newDelResourceRecord = delResourceRecord
 	if delResourceRecord.RrClass == "ANY" || (delResourceRecord.RrClass != "ANY" && delResourceRecord.RrType == "ANY") {
-		newDelResourceRecord.RrTtl = null.IntFrom(DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL)
+		newDelResourceRecord.RrTtl = null.IntFrom(dnsutil.DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL)
 		for i := range zoneFileModel.ResourceRecords {
 			if zoneFileModel.ResourceRecords[i].RrName != delResourceRecord.RrName {
 				zfRrs = append(zfRrs, zoneFileModel.ResourceRecords[i])
 			}
 		}
 	} else if delResourceRecord.RrClass != "ANY" && delResourceRecord.RrType != "ANY" && len(delResourceRecord.RrValues) == 0 {
-		newDelResourceRecord.RrTtl = null.IntFrom(DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL)
+		newDelResourceRecord.RrTtl = null.IntFrom(dnsutil.DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL)
 		for i := range zoneFileModel.ResourceRecords {
 			if !(zoneFileModel.ResourceRecords[i].RrName == delResourceRecord.RrName &&
 				zoneFileModel.ResourceRecords[i].RrClass == delResourceRecord.RrClass &&
@@ -134,7 +135,7 @@ func DelResourceRecord(zoneFileModel *ZoneFileModel, delResourceRecord *Resource
 			}
 		}
 	} else if delResourceRecord.RrClass != "ANY" && delResourceRecord.RrType != "ANY" && len(delResourceRecord.RrValues) != 0 {
-		newDelResourceRecord.RrTtl = null.IntFrom(DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL)
+		newDelResourceRecord.RrTtl = null.IntFrom(dnsutil.DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL)
 		for i := range zoneFileModel.ResourceRecords {
 			if !EqualResourceRecord(zoneFileModel.ResourceRecords[i], delResourceRecord) {
 				zfRrs = append(zfRrs, zoneFileModel.ResourceRecords[i])
@@ -186,7 +187,7 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
 	}
 	// set old rr's ttl as del specified ttl
-	oldResourceRecord.RrTtl = null.IntFrom(DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL)
+	oldResourceRecord.RrTtl = null.IntFrom(dnsutil.DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL)
 	belogs.Info("UpdateResourceRecord():  oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord),
 		"  newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 
@@ -395,7 +396,7 @@ func GetResourceRecordAnyKey(resourceRecord *ResourceRecord) string {
 	if resourceRecord == nil {
 		return ""
 	}
-	rrAnyKey := resourceRecord.RrDomain + "#" + DnsIntTypes[DNS_TYPE_ANY]
+	rrAnyKey := resourceRecord.RrDomain + "#" + dnsutil.DnsIntTypes[dnsutil.DNS_TYPE_ANY]
 	belogs.Debug("GetResourceRecordAnyKey():rrAnyKey:", rrAnyKey)
 	return rrAnyKey
 }
@@ -404,15 +405,15 @@ func GetResourceRecordDelKey(resourceRecord *ResourceRecord) string {
 	if resourceRecord == nil {
 		return ""
 	}
-	rrDelKey := resourceRecord.RrDomain + "#" + DNS_RR_DEL_KEY
+	rrDelKey := resourceRecord.RrDomain + "#" + dnsutil.DNS_RR_DEL_KEY
 	belogs.Debug("GetResourceRecordDelKey():rrDelKey:", rrDelKey)
 	return rrDelKey
 }
 
 func IsDelResourceRecord(rrTtl null.Int) bool {
 	belogs.Debug("IsDelResourceRecord():rrTtl:", rrTtl)
-	if rrTtl.ValueOrZero() == DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL ||
-		rrTtl.ValueOrZero() == DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL {
+	if rrTtl.ValueOrZero() == dnsutil.DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL ||
+		rrTtl.ValueOrZero() == dnsutil.DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL {
 		return true
 	}
 	return false
