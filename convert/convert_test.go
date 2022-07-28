@@ -7,6 +7,14 @@ import (
 	"time"
 )
 
+func TestIntToBytes(t *testing.T) {
+	i := int8(113)
+	b, err := IntToBytes(i)
+	fmt.Println(b, err)
+	s := PrintBytes(b, 8)
+	fmt.Println(s)
+}
+
 func TestInterface2Map(t *testing.T) {
 	m := make(map[string]string, 0)
 	m["aa"] = "11"

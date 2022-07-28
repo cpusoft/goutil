@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/osutil"
 )
 
@@ -24,6 +25,7 @@ func Bytes2Uint64(bytes []byte) uint64 {
 }
 
 // Deprecated
+/*
 func IntToBytes(n int) ([]byte, error) {
 	data := int64(n)
 	bytebuf := bytes.NewBuffer([]byte{})
@@ -33,6 +35,7 @@ func IntToBytes(n int) ([]byte, error) {
 	}
 	return bytebuf.Bytes(), nil
 }
+*/
 
 // Deprecated
 func ByteToDigit(b byte) (digit int, ok bool) {
@@ -68,6 +71,77 @@ func ByteToBigInt(b byte) *big.Int {
 	bytes := make([]byte, 0)
 	bytes = append(bytes, b)
 	return BytesToBigInt(bytes)
+}
+
+// int8/int16/int32/int64 uint8/uint16/uint32/uint64
+// int/uint as int64/uint64
+// https://blog.csdn.net/whatday/article/details/97967180
+func IntToBytes(n interface{}) ([]byte, error) {
+	switch n.(type) {
+	case int8:
+		tmp := n.(int8)
+		belogs.Debug("IntToBytes():int8 tmp:", tmp)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
+		return bytesBuffer.Bytes(), nil
+	case uint8:
+		tmp := n.(uint8)
+		belogs.Debug("IntToBytes():uint8 tmp:", tmp)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
+		return bytesBuffer.Bytes(), nil
+	case int16:
+		tmp := n.(int16)
+		belogs.Debug("IntToBytes():int16 tmp:", tmp)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
+		return bytesBuffer.Bytes(), nil
+	case uint16:
+		tmp := n.(uint16)
+		belogs.Debug("IntToBytes():uint16 tmp:", tmp)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
+		return bytesBuffer.Bytes(), nil
+	case int32:
+		tmp := n.(int32)
+		belogs.Debug("IntToBytes():int32 tmp:", tmp)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
+		return bytesBuffer.Bytes(), nil
+	case uint32:
+		tmp := n.(uint32)
+		belogs.Debug("IntToBytes():uint32 tmp:", tmp)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
+		return bytesBuffer.Bytes(), nil
+	case int64:
+		tmp := n.(int64)
+		belogs.Debug("IntToBytes():int64 tmp:", tmp)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
+		return bytesBuffer.Bytes(), nil
+	case uint64:
+		tmp := n.(uint64)
+		belogs.Debug("IntToBytes():uint64 tmp:", tmp)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
+		return bytesBuffer.Bytes(), nil
+	case int:
+		tmp1 := n.(int)
+		tmp := int64(tmp1)
+		belogs.Debug("IntToBytes():int tmp:", tmp)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
+		return bytesBuffer.Bytes(), nil
+	case uint:
+		tmp1 := n.(uint)
+		tmp := uint64(tmp1)
+		belogs.Debug("IntToBytes():uint tmp:", tmp)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
+		return bytesBuffer.Bytes(), nil
+	}
+	return nil, errors.New("n is not digital")
 }
 
 //0102abc1
