@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"strconv"
+	"strings"
 
 	"github.com/bwesterb/go-zonefile"
 	"github.com/cpusoft/goutil/belogs"
@@ -71,6 +72,7 @@ func LoadFromZoneFile(zoneFileName string) (originModel *OriginModel, err error)
 			for j := range e.Values() {
 				rrData += (string(e.Values()[j]) + " ")
 			}
+			rrData = strings.TrimSpace(rrData)
 			belogs.Debug("LoadFromZoneFile(): rrData:", rrData)
 
 			rrModel := NewRrModel(originModel.Origin, rrName,
