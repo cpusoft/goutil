@@ -59,7 +59,7 @@ func newZoneFileModel(zonefile *zonefile.Zonefile, zoneFileName string) *ZoneFil
 // not support $include ;
 // all ttl must be digital ;
 // zoneFileName must be absolute path filename;
-func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error) {
+func LoadZoneFile(zoneFileName string) (originModel *dnsutil.OriginModel, err error) {
 	// Load zonefile
 	data, err := ioutil.ReadFile(zoneFileName)
 	if err != nil {
@@ -75,22 +75,18 @@ func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error)
 	}
 	belogs.Debug("LoadZoneFile():len(zf.Entries):", zoneFileName, len(zf.Entries()))
 	var lastRrName string
-	zoneFileModel = newZoneFileModel(zf, zoneFileName)
+	originModel = dnsutil.NewOriginModel()
 	for i, e := range zf.Entries() {
 		belogs.Debug("LoadZoneFile(): i :", i, "  e:", e)
 		if len(e.Command()) > 0 {
 			belogs.Debug("LoadZoneFile(): Command:", string(e.Command()), e.Values())
 			if string(e.Command()) == "$ORIGIN" && len(e.Values()) > 0 {
-				zoneFileModel.Origin = FormatRrDomain(string(e.Values()[0]))
+				originModel.Origin = dnsutil.FormatOrigin(string(e.Values()[0]))
 			} else if string(e.Command()) == "$TTL" && len(e.Values()) > 0 {
 				ttlStr := string(e.Values()[0])
 				belogs.Debug("LoadZoneFile(): ttlStr:", ttlStr)
 				ttl, _ := strconv.Atoi(ttlStr)
-				if ttl > dnsutil.DSO_ADD_RECOURCE_RECORD_MAX_TTL {
-					belogs.Error("LoadZoneFile(): $TTL is bigger than DSO_ADD_RECOURCE_RECORD_MAX_TTL:", ttl, dnsutil.DSO_ADD_RECOURCE_RECORD_MAX_TTL)
-					return nil, errors.New("$TTL is bigger than DSO_ADD_RECOURCE_RECORD_MAX_TTL")
-				}
-				zoneFileModel.Ttl = null.IntFrom(int64(ttl))
+				originModel.Ttl = null.IntFrom(int64(ttl))
 			}
 		} else {
 			// check Domain,if is empty, get last rrName
@@ -101,14 +97,6 @@ func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error)
 				lastRrName = rrName
 			}
 			belogs.Debug("LoadZoneFile(): rrName:", rrName)
-			// rrDomain
-			var rrDomain string
-			if len(rrName) == 0 || rrName == "@" {
-				rrDomain = zoneFileModel.Origin
-			} else {
-				rrDomain = rrName + "." + zoneFileModel.Origin
-			}
-			belogs.Debug("LoadZoneFile(): rrDomain:", rrDomain, "  origin:", zoneFileModel.Origin)
 
 			// get ttl
 			rrTtl := null.NewInt(0, false)
@@ -122,30 +110,27 @@ func LoadZoneFile(zoneFileName string) (zoneFileModel *ZoneFileModel, err error)
 			}
 			belogs.Debug("LoadZoneFile(): rrTtl:", rrTtl)
 
-			vs := make([]string, 0)
+			var rrData string
 			for j := range e.Values() {
-				vs = append(vs, string(e.Values()[j]))
+				rrData += (string(e.Values()[j]) + " ")
 			}
-			belogs.Debug("LoadZoneFile(): vs:", vs)
+			belogs.Debug("LoadZoneFile(): rrData:", rrData)
 
-			resourceRecord := NewResourceRecord(rrDomain, rrName,
-				string(e.Type()), string(e.Class()), rrTtl, vs)
-			belogs.Debug("LoadZoneFile(): resourceRecord.Ttl:", resourceRecord.RrTtl)
-
-			resourceRecord.RrValues = vs
-			belogs.Debug("LoadZoneFile(): resourceRecord:", jsonutil.MarshalJson(resourceRecord))
-			zoneFileModel.ResourceRecords = append(zoneFileModel.ResourceRecords, resourceRecord)
+			rrModel := dnsutil.NewRrModel(originModel.Origin, rrName,
+				string(e.Type()), string(e.Class()), rrTtl, rrData)
+			belogs.Debug("LoadZoneFile(): rrModel:", jsonutil.MarshalJson(rrModel))
+			originModel.RrModels = append(originModel.RrModels, rrModel)
 		}
 	}
 
 	// check
-	if len(zoneFileModel.Origin) == 0 {
+	if len(originModel.Origin) == 0 {
 		belogs.Error("LoadZoneFile():Origin must be exist, fail:", zoneFileName)
 		return nil, errors.New("Origin must be exist")
 	}
 
-	belogs.Info("LoadZoneFile(): zoneFileModel:", jsonutil.MarshalJson(zoneFileModel))
-	return zoneFileModel, nil
+	belogs.Info("LoadZoneFile(): originModel:", jsonutil.MarshalJson(originModel))
+	return originModel, nil
 }
 
 // if file is empty, then save to zoneFileName in LoadZoneFile()
