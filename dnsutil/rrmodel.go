@@ -106,3 +106,23 @@ func IsDelRr(rrModel *RrModel) bool {
 	}
 	return false
 }
+
+type RrDataAModel struct {
+}
+type RrDataNsModel struct {
+}
+type RrDataCNameModel struct {
+}
+type RrDataSoaModel struct {
+}
+type RrDataPtrModel struct {
+}
+type RrDataMxModel struct {
+}
+type RrDataTxtModel struct {
+}
+
+type RrDataAaaaModel struct {
+}
+type RrDataSrvModel struct {
+}

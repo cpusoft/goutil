@@ -50,6 +50,10 @@ func Html(c *gin.Context, html string, v interface{}) {
 	c.HTML(http.StatusOK, html, v)
 }
 
+func String(c *gin.Context, v string) {
+	c.String(http.StatusOK, "%s", v)
+}
+
 func ResponseOk(c *gin.Context, v interface{}) {
 	c.Header("Cache-Control", "no-cache")
 	ret := ResponseModel{Result: "ok", Msg: "", Data: v}
