@@ -135,6 +135,21 @@ func IpToRtrFormat(ip string) string {
 	return ""
 }
 
+func IpToDnsFormatByte(ip string) []byte {
+	addr := net.ParseIP(ip)
+	if addr == nil {
+		return nil
+	}
+	ipType := GetIpType(ip)
+	if ipType == Ipv4Type {
+		return addr.To4()
+	} else if ipType == Ipv6Type {
+		return addr.To16()
+	} else {
+		return nil
+	}
+}
+
 //Bad way, still need to find a good way
 //19.99.91.0 --> []byte;     2001:DB8::-->[]byte
 func IpToRtrFormatByte(ip string) []byte {

@@ -245,3 +245,17 @@ func TestIpStrToBinaryString(t *testing.T) {
 	binary, _ = IpAddressToBinaryString(ip)
 	fmt.Println(ip, binary)
 }
+
+func TestIpToDnsFormatByte(t *testing.T) {
+	ip := `1.1.1.1`
+	b := IpToDnsFormatByte(ip)
+	fmt.Println(convert.PrintBytesOneLine(b))
+
+	ip = `2001:67c:1562::1c`
+	b = IpToDnsFormatByte(ip)
+	fmt.Println(convert.PrintBytesOneLine(b))
+
+	ip = `200Z:67c:1562::1c`
+	b = IpToDnsFormatByte(ip)
+	fmt.Println(convert.PrintBytesOneLine(b))
+}
