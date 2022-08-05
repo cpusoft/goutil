@@ -1,18 +1,6 @@
 package zonefileutil
 
-import (
-	"errors"
-	"fmt"
-	"strconv"
-	"strings"
-
-	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/dnsutil"
-	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/cpusoft/goutil/osutil"
-	"github.com/guregu/null"
-)
-
+/*
 // type is golang keyword, so use Rr***
 type ResourceRecord struct {
 	// will have "." in the end  // lower
@@ -418,3 +406,4 @@ func IsDelResourceRecord(rrTtl null.Int) bool {
 	}
 	return false
 }
+*/

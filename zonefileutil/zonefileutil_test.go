@@ -1,12 +1,6 @@
 package zonefileutil
 
-import (
-	"fmt"
-	"testing"
-
-	"github.com/guregu/null"
-)
-
+/*
 func TestLoadZoneFile(t *testing.T) {
 	file := `mydomain.com.zone`
 	zf, err := LoadZoneFile(file)
@@ -30,3 +24,4 @@ func TestLoadZoneFile(t *testing.T) {
 	fmt.Println("update\n", zf.String(), err)
 
 }
+*/

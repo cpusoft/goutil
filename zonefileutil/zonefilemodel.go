@@ -1,22 +1,6 @@
 package zonefileutil
 
-import (
-	"errors"
-	"fmt"
-	"io/ioutil"
-	"strconv"
-	"strings"
-	"sync"
-
-	zonefile "github.com/bwesterb/go-zonefile"
-	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/dnsutil"
-	"github.com/cpusoft/goutil/fileutil"
-	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/cpusoft/goutil/osutil"
-	"github.com/guregu/null"
-)
-
+/*
 type ZoneFileModel struct {
 	zonefile *zonefile.Zonefile `json:"-"`
 
@@ -160,3 +144,4 @@ func checkZoneFileModel(zoneFileModel *ZoneFileModel) error {
 	}
 	return nil
 }
+*/
