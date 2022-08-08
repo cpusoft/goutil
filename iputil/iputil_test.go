@@ -250,12 +250,31 @@ func TestIpToDnsFormatByte(t *testing.T) {
 	ip := `1.1.1.1`
 	b := IpToDnsFormatByte(ip)
 	fmt.Println(convert.PrintBytesOneLine(b))
+	ip1 := DnsFormatToIp(b, true)
+	fmt.Println(ip1)
 
 	ip = `2001:67c:1562::1c`
 	b = IpToDnsFormatByte(ip)
 	fmt.Println(convert.PrintBytesOneLine(b))
+	ip1 = DnsFormatToIp(b, true)
+	fmt.Println(ip1)
 
 	ip = `200Z:67c:1562::1c`
 	b = IpToDnsFormatByte(ip)
 	fmt.Println(convert.PrintBytesOneLine(b))
+	ip1 = DnsFormatToIp(b, true)
+	fmt.Println(ip1)
+}
+
+func TestCompressFillIpv6(t *testing.T) {
+	ips := []string{"2001:0db8:0000:0000:0001:0000:0000:0000",
+		`2001:0000:0000:0000:0000:0000:0000:0001`,
+		`2001:0001:0000:0000:0000:0000:0000:0000`,
+		`0000:0000:0000:0000:0000:0000:2001:0001`,
+		`240e:0014:6000:0000:0000:0000:0000:0001`}
+	for i := range ips {
+		fmt.Println(i, ":")
+		newIp := CompressFillIpv6(ips[i])
+		fmt.Println(ips[i], newIp)
+	}
 }

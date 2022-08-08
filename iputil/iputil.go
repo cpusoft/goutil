@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/stringutil"
 )
 
@@ -148,6 +149,95 @@ func IpToDnsFormatByte(ip string) []byte {
 	} else {
 		return nil
 	}
+}
+
+// compressIpv6: will compress ipv6, and ignore for ipv4
+func DnsFormatToIp(addr []byte, compressIpv6 bool) string {
+
+	var ip string
+	if len(addr) == 4 {
+		ip = fmt.Sprintf("%d.%d.%d.%d", addr[0], addr[1], addr[2], addr[3])
+		belogs.Debug("DnsFormatToIp():ipv4, addr:", addr, "   ip:", ip)
+		return ip
+	} else if len(addr) == 16 {
+
+		ip = fmt.Sprintf("%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+			addr[0], addr[1],
+			addr[2], addr[3],
+			addr[4], addr[5],
+			addr[6], addr[7],
+			addr[8], addr[9],
+			addr[10], addr[11],
+			addr[12], addr[13],
+			addr[14], addr[15])
+		belogs.Debug("DnsFormatToIp():ipv6, compressIpv6:", compressIpv6,
+			"   addr:", convert.PrintBytesOneLine(addr), "   ip:", ip)
+		if compressIpv6 {
+			ip = CompressFillIpv6(ip)
+		}
+		return ip
+	}
+	//belogs.Error("RtrFormatToIp():is not ipv4 or ipv6:", rtrIp)
+	return ""
+}
+
+func CompressFillIpv6(oldIp string) (newIp string) {
+
+	// 8: 0000
+	// 0000:0000:0000:0000:0000:0000:0000:0000 --> ::
+	if oldIp == "0000:0000:0000:0000:0000:0000:0000:0000" {
+		return "::"
+	}
+	zeros := []string{"0000:0000:0000:0000:0000:0000:0000",
+		"0000:0000:0000:0000:0000:0000",
+		"0000:0000:0000:0000:0000",
+		"0000:0000:0000:0000",
+		"0000:0000:0000",
+		"0000:0000"}
+	zeros1 := []string{"000", "00", "0"}
+	zeros2 := []string{":000", ":00"}
+	for i := range zeros {
+		//belogs.Debug("CompressFillIpv6():oldIp:", oldIp, "   zeros[i]:", zeros[i])
+		if strings.Contains(oldIp, zeros[i]) {
+			// 2001:0000:0000:0000:0000:0000:0000:1 --> 2001::1
+			// 2001:1:0000:0000:0000:0000:0000:0000 --> 2001:1::
+			// 0000:0000:0000:0000:0000:0000:2001:1 --> ::2001:1
+			newIp = strings.Replace(oldIp, zeros[i], ":", -1) //
+			belogs.Debug("CompressFillIpv6():oldIp:", oldIp, "   zeros[i]:", zeros[i], "   newIp", newIp)
+			if strings.HasPrefix(newIp, ":") {
+				newIp = ":" + newIp
+			} else if strings.HasSuffix(newIp, ":") {
+				newIp = newIp + ":"
+			}
+			newIp = strings.Replace(newIp, ":::", "::", -1) //
+			belogs.Debug("CompressFillIpv6(): HasPrefix or HasSuffix,newIp:", newIp)
+			// 000*:****
+			for j := range zeros1 {
+				if strings.HasPrefix(newIp, zeros1[j]) {
+					newIp = strings.Replace(newIp, zeros1[j], "", 1) // just one
+					belogs.Debug("CompressFillIpv6(): newIp:", newIp, " zeros1[j]:", zeros1[j])
+				}
+			}
+			// **:000*:** --> **:*:**
+			// **:00**:** --> **:**:**
+			for k := range zeros2 {
+				newIp = strings.Replace(newIp, zeros2[k], ":", -1) //
+				belogs.Debug("CompressFillIpv6(): newIp:", newIp, " zeros2[j]:", zeros2[k])
+			}
+			// **:0*:** --> **:*:**
+			// but *:0:*, cannot replace ":0:"
+			// 2001:0db8:00:00:1:: --> 2001:db8:0:0:1::
+			for m := 0; m < 6; m++ {
+				newIp = strings.Replace(newIp, ":0:", ":00:", -1) // *:0:* --> *:00:*
+			}
+
+			belogs.Debug("CompressFillIpv6(): Replace :0: to :00:", newIp)
+			newIp = strings.Replace(newIp, ":0", ":", -1) // *:00:* --> *:0:* , *:0* --> *:*
+			belogs.Debug("CompressFillIpv6(): Replace :0 to :", newIp)
+			return newIp
+		}
+	}
+	return oldIp
 }
 
 //Bad way, still need to find a good way
