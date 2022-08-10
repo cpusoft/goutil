@@ -24,3 +24,13 @@ func TestQrOpCodeZRCode(t *testing.T) {
 	qr1, opCode1, z, rCode1 := ParseQrOpCodeZRCode(qrOpCodeZRCode)
 	fmt.Println(qr1, opCode1, z, rCode1)
 }
+
+func TestIsDomainCompressionPointer(t *testing.T) {
+	oneLen := uint16(0xa011)
+	fmt.Printf("%0x\r\n", oneLen)
+	one := oneLen & uint16(0xc000)
+	fmt.Printf("%0x\r\n", one)
+	is, offset := IsDomainCompressionPointer(oneLen)
+	fmt.Printf("%v, %0x\r\n", is, offset)
+
+}

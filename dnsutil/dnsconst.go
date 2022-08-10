@@ -2,6 +2,10 @@ package dnsutil
 
 const (
 	// OPCODE
+	DNS_OPCODE_QUERY  = 0
+	DNS_OPCODE_IQUERY = 1 // inverse query
+	DNS_OPCODE_STATUS = 2
+	DNS_OPCODE_NOTIFY = 4
 	DNS_OPCODE_UPDATE = 5
 	DNS_OPCODE_DSO    = 6
 
@@ -58,6 +62,9 @@ const (
 	// for del, when del rr, type is ANY, not the initially set value;
 	// so ,use rrDelKey to remember this key
 	DNS_RR_DEL_KEY = "DEL"
+
+	// rfc1035 4.1.4. Message compression
+	DNS_DOMAIN_COMPRESSION_POINTER = uint16(0xc000)
 )
 
 var DnsIntTypes map[uint16]string = map[uint16]string{
