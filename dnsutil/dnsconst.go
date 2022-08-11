@@ -2,12 +2,12 @@ package dnsutil
 
 const (
 	// OPCODE
-	DNS_OPCODE_QUERY  = 0
-	DNS_OPCODE_IQUERY = 1 // inverse query
-	DNS_OPCODE_STATUS = 2
-	DNS_OPCODE_NOTIFY = 4
-	DNS_OPCODE_UPDATE = 5
-	DNS_OPCODE_DSO    = 6
+	DNS_OPCODE_QUERY  = uint8(0)
+	DNS_OPCODE_IQUERY = uint8(1) // inverse query
+	DNS_OPCODE_STATUS = uint8(2)
+	DNS_OPCODE_NOTIFY = uint8(4)
+	DNS_OPCODE_UPDATE = uint8(5)
+	DNS_OPCODE_DSO    = uint8(6)
 
 	// QR
 	DNS_QR_REQUEST  = 0
@@ -47,17 +47,17 @@ const (
 	DNS_CLASS_STR_ANY  = "ANY"
 
 	// RCODE
-	DNS_RCODE_NOERROR   = 0
-	DNS_RCODE_FORMERR   = 1
-	DNS_RCODE_SERVFAIL  = 2
-	DNS_RCODE_NOTIMP    = 4
-	DNS_RCODE_REFUSED   = 5
-	DNS_RCODE_YXDOMAIN  = 6
-	DNS_RCODE_YXRRSET   = 7
-	DNS_RCODE_NXRRSET   = 8
-	DNS_RCODE_NOTAUTH   = 9
-	DNS_RCODE_NOTZONE   = 10
-	DNS_RCODE_DSOTYPENI = 11
+	DNS_RCODE_NOERROR   = uint8(0)
+	DNS_RCODE_FORMERR   = uint8(1)
+	DNS_RCODE_SERVFAIL  = uint8(2)
+	DNS_RCODE_NOTIMP    = uint8(4)
+	DNS_RCODE_REFUSED   = uint8(5)
+	DNS_RCODE_YXDOMAIN  = uint8(6)
+	DNS_RCODE_YXRRSET   = uint8(7)
+	DNS_RCODE_NXRRSET   = uint8(8)
+	DNS_RCODE_NOTAUTH   = uint8(9)
+	DNS_RCODE_NOTZONE   = uint8(10)
+	DNS_RCODE_DSOTYPENI = uint8(11)
 
 	// for del, when del rr, type is ANY, not the initially set value;
 	// so ,use rrDelKey to remember this key
@@ -66,6 +66,20 @@ const (
 	// rfc1035 4.1.4. Message compression
 	DNS_DOMAIN_COMPRESSION_POINTER = uint16(0xc000)
 )
+
+var DnsRCodes map[uint8]string = map[uint8]string{
+	DNS_RCODE_NOERROR:   "NoError",
+	DNS_RCODE_FORMERR:   "FormErr",
+	DNS_RCODE_SERVFAIL:  "ServFail",
+	DNS_RCODE_NOTIMP:    "NotImp",
+	DNS_RCODE_REFUSED:   "Refused",
+	DNS_RCODE_YXDOMAIN:  "YXDomain",
+	DNS_RCODE_YXRRSET:   "YXRRSet",
+	DNS_RCODE_NXRRSET:   "NXRRSet",
+	DNS_RCODE_NOTAUTH:   "NotAuth",
+	DNS_RCODE_NOTZONE:   "NotZone",
+	DNS_RCODE_DSOTYPENI: "DsoTypeNotImp",
+}
 
 var DnsIntTypes map[uint16]string = map[uint16]string{
 	DNS_TYPE_INT_A:     DNS_TYPE_STR_A,
