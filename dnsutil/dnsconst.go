@@ -65,6 +65,7 @@ const (
 
 	// rfc1035 4.1.4. Message compression
 	DNS_DOMAIN_COMPRESSION_POINTER = uint16(0xc000)
+	DNS_DOMAIN_ONE_LABEL_MAXLENGTH = uint16(63) // <=63
 )
 
 var DnsRCodes map[uint8]string = map[uint8]string{
