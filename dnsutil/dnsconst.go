@@ -63,6 +63,7 @@ const (
 	// so ,use rrDelKey to remember this key
 	DNS_RR_DEL_KEY = "DEL"
 
+	// rfc1035 4.1.4. Message compression
 	DNS_DOMAIN_COMPRESSION_POINTER = uint16(0xc000)
 	DNS_DOMAIN_ONE_LABEL_MAXLENGTH = uint8(63) // <=63
 )
