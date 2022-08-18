@@ -62,6 +62,9 @@ const (
 	// for del, when del rr, type is ANY, not the initially set value;
 	// so ,use rrDelKey to remember this key
 	DNS_RR_DEL_KEY = "DEL"
+
+	DNS_DOMAIN_COMPRESSION_POINTER = uint16(0xc000)
+	DNS_DOMAIN_ONE_LABEL_MAXLENGTH = uint8(63) // <=63
 )
 
 var DnsRCodes map[uint8]string = map[uint8]string{
