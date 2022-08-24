@@ -11,12 +11,12 @@ const (
 	DSO_TYPE_UNSUBSCRIBE        = 0x42
 	DSO_TYPE_RECONFIRM          = 0x43
 
-	DSO_TYPE_KEEPALIVE_LENGTH     = 8  // 2*32bit-->2*4byte
-	DSO_TYPE_RETRY_DELAY_LENGTH   = 4  // 32bit-->4byte
-	DSO_TYPE_SUBSCRIBE_MIN_LENGTH = 3  // byte(name)+2*uint16(type+class)
-	DSO_TYPE_PUSH_MIN_LENGTH      = 10 // type(2)+class(2)+ttl(4)+rdlen(2)
-	DSO_TYPE_RECONFIRM_MIN_LENGTH = 8  // type(2)+class(2)+ttl(4)
-	DSO_TYPE_UNSUBSCRIBE_LENGTH   = 2  // 16bit
+	DSO_TYPE_KEEPALIVE_LENGTH     = 8         // 2*32bit-->2*4byte
+	DSO_TYPE_RETRY_DELAY_LENGTH   = 4         // 32bit-->4byte
+	DSO_TYPE_SUBSCRIBE_MIN_LENGTH = 2 + 2 + 2 // byte(name)+2*uint16(type+class)
+	DSO_TYPE_PUSH_MIN_LENGTH      = 10        // type(2)+class(2)+ttl(4)+rdlen(2)
+	DSO_TYPE_RECONFIRM_MIN_LENGTH = 8         // type(2)+class(2)+ttl(4)
+	DSO_TYPE_UNSUBSCRIBE_LENGTH   = 2         // 16bit
 
 	DSO_ERROR_IGNORE        = -1
 	DSO_ERROR_CLOSE_CONNECT = -2
