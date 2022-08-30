@@ -7,7 +7,6 @@ require (
 	github.com/beego/goyaml2 v0.0.0-20130207012346-5545475820dd
 	github.com/beego/x2j v0.0.0-20131220205130-a0352aadc542
 	github.com/beevik/ntp v0.3.0
-	github.com/bwesterb/go-zonefile v1.0.0
 	github.com/cpusoft/go-json-rest v4.0.0+incompatible
 	github.com/elazarl/goproxy v0.0.0-20210110162100-a92cc753f88e // indirect
 	github.com/gin-contrib/sessions v0.0.5-0.20220203234948-94f4072df8b8
@@ -19,7 +18,6 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gorilla/sessions v1.2.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/guregu/null v4.0.0+incompatible
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/parnurzeal/gorequest v0.2.17-0.20200918112808-3a0cb377f571
