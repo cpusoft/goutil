@@ -50,6 +50,7 @@ const (
 	DNS_RCODE_NOERROR   = uint8(0)
 	DNS_RCODE_FORMERR   = uint8(1)
 	DNS_RCODE_SERVFAIL  = uint8(2)
+	DNS_RCODE_NXDOMAIN  = uint8(3)
 	DNS_RCODE_NOTIMP    = uint8(4)
 	DNS_RCODE_REFUSED   = uint8(5)
 	DNS_RCODE_YXDOMAIN  = uint8(6)
@@ -72,6 +73,7 @@ var DnsRCodes map[uint8]string = map[uint8]string{
 	DNS_RCODE_NOERROR:   "NoError",
 	DNS_RCODE_FORMERR:   "FormErr",
 	DNS_RCODE_SERVFAIL:  "ServFail",
+	DNS_RCODE_NXDOMAIN:  "NXDomain",
 	DNS_RCODE_NOTIMP:    "NotImp",
 	DNS_RCODE_REFUSED:   "Refused",
 	DNS_RCODE_YXDOMAIN:  "YXDomain",
