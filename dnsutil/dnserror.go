@@ -1,32 +1,55 @@
 package dnsutil
 
 import (
-	"fmt"
-
 	"github.com/cpusoft/goutil/jsonutil"
 )
 
 // can not DnsError, must NewDnsError(**,***)
 type dnsError struct {
-	rCode uint8  // response DSO_RCODE_***
-	msg   string // from error.Error()
+	Msg string `json:"msg"` // from error.Error()
+
+	Id                uint16 `json:"id"`                // from dns id/messageId
+	RCode             uint8  `json:"rCode"`             // response DSO_RCODE_***
+	NextConnectPolicy int    `json:"nextConnectPolicy"` //	tcptlsutil.NEXT_CONNECT_POLICY_***
+
 }
 
 func (c dnsError) Error() string {
 	return jsonutil.MarshalJson(c)
 }
 
-func NewDnsError(rCode uint8, msg string) *dnsError {
-	return &dnsError{rCode: rCode, msg: msg}
+func NewDnsError(msg string, id uint16, rCode uint8, nextConnectPolicy int) *dnsError {
+	return &dnsError{
+		Msg:               msg,
+		Id:                id,
+		RCode:             rCode,
+		NextConnectPolicy: nextConnectPolicy,
+	}
 }
+
+/*
 func (c dnsError) MarshalJSON() ([]byte, error) {
 	str := fmt.Sprintf(`{"rCode":%d,"msg":"%s"}`, c.rCode, c.msg)
 	return []byte(str), nil
 }
-func (c dnsError) GetRCode() (rCode uint8) {
-	return c.rCode
-}
 
-func (c dnsError) GetMsg() string {
-	return c.msg
+
+func GetRCode(err error) (rCode uint8) {
+	if e, ok := err.(dsoError); ok {
+		return e.rCode
+	}
+	return dnsutil.DNS_RCODE_NOERROR
 }
+func GetMsg(err error) string {
+	if e, ok := err.(dsoError); ok {
+		return e.msg
+	}
+	return ""
+}
+func GetNextConnectPolicy(err error) int {
+	if e, ok := err.(dsoError); ok {
+		return e.nextConnectPolicy
+	}
+	return tcptlsutil.NEXT_CONNECT_POLICY_KEEP
+}
+*/
