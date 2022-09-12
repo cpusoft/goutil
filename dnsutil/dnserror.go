@@ -8,20 +8,21 @@ import (
 type dnsError struct {
 	Msg string `json:"msg"` // from error.Error()
 
-	Id                uint16 `json:"id"`                // from dns id/messageId
+	Id                uint16 `json:"id"` // from dns id/messageId
+	OpCode            uint8  `json:"opCode"`
 	RCode             uint8  `json:"rCode"`             // response DSO_RCODE_***
 	NextConnectPolicy int    `json:"nextConnectPolicy"` //	tcptlsutil.NEXT_CONNECT_POLICY_***
-
 }
 
 func (c dnsError) Error() string {
 	return jsonutil.MarshalJson(c)
 }
 
-func NewDnsError(msg string, id uint16, rCode uint8, nextConnectPolicy int) *dnsError {
+func NewDnsError(msg string, id uint16, opCode uint8, rCode uint8, nextConnectPolicy int) *dnsError {
 	return &dnsError{
 		Msg:               msg,
 		Id:                id,
+		OpCode:            opCode,
 		RCode:             rCode,
 		NextConnectPolicy: nextConnectPolicy,
 	}
