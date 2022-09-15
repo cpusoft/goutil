@@ -263,10 +263,12 @@ func (tc *TcpTlsClient) IsConnected() bool {
 func (tc *TcpTlsClient) SendMsgForCloseConnect() {
 	// send channel, and wait listener and conns end itself process and close loop
 	belogs.Info("SendMsgForCloseConnect(): tcptlsclient will close graceful")
-	tcpTlsMsg := &TcpTlsMsg{
-		MsgType: MSG_TYPE_CLIENT_CLOSE_CONNECT,
+	if tc.IsConnected() {
+		tcpTlsMsg := &TcpTlsMsg{
+			MsgType: MSG_TYPE_CLIENT_CLOSE_CONNECT,
+		}
+		tc.SendMsg(tcpTlsMsg)
 	}
-	tc.SendMsg(tcpTlsMsg)
 }
 
 func (tc *TcpTlsClient) waitTcpTlsMsg() (err error) {

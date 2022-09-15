@@ -15,7 +15,7 @@ func TestTcptlsMsg(t *testing.T) {
 		NextRwPolicy:           3,
 		SendData:               sendData,
 	}
-	fmt.Println("sendMessageModel(): tcptlsclient, will send tcpTlsMsg:",
+	fmt.Println("sendMessageModel(): tcpTlsMsg, will send tcpTlsMsg:",
 		jsonutil.MarshalJson(*tcpTlsMsg))
 
 }
