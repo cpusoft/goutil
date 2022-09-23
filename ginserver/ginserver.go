@@ -1,6 +1,7 @@
 package ginserver
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
@@ -18,6 +19,38 @@ import (
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/gin-gonic/gin"
 )
+
+// port: ":443"
+//
+func RunTLSEx(engine *gin.Engine, port, certFile, keyFile string) (err error) {
+	// tls cipher suites
+	tlsconf := &tls.Config{
+		PreferServerCipherSuites: true,
+	}
+	// no include DES
+	tlsconf.CipherSuites = []uint16{
+		tls.TLS_AES_128_GCM_SHA256,
+		tls.TLS_CHACHA20_POLY1305_SHA256,
+		tls.TLS_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		//tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+		//tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	}
+
+	// 将router 赋值给 Hander，源码中也是这么干的
+	server := &http.Server{Addr: port, Handler: engine, TLSConfig: tlsconf}
+	err = server.ListenAndServeTLS(certFile, keyFile)
+	return
+}
 
 // decode json
 func DecodeJson(c *gin.Context, v interface{}) error {
