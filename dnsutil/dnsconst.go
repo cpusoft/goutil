@@ -10,8 +10,8 @@ const (
 	DNS_OPCODE_DSO    = uint8(6)
 
 	// QR
-	DNS_QR_REQUEST  = 0
-	DNS_QR_RESPONSE = 1
+	DNS_QR_REQUEST  = uint8(0)
+	DNS_QR_RESPONSE = uint8(1)
 
 	// TYPE
 	DNS_TYPE_INT_A     = 1
