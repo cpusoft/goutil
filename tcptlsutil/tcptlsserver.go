@@ -398,12 +398,12 @@ func (ts *TcpTlsServer) SendMsg(tcpTlsMsg *TcpTlsMsg) {
 
 // msgType:MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL, //
 // MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE
-func (ts *TcpTlsServer) SendMsgForCloseConnect(msgType uint64, connKey string) {
+func (ts *TcpTlsServer) SendMsgForCloseConnect(msgType uint64, serverConnKey string) {
 	// send channel, and wait listener and conns end itself process and close loop
-	belogs.Info("SendMsgForCloseConnect(): tcptlsserver will close, msgType:", msgType, "  connKey:", connKey)
+	belogs.Info("SendMsgForCloseConnect(): tcptlsserver will close, msgType:", msgType, "  serverConnKey:", serverConnKey)
 	tcpTlsMsg := &TcpTlsMsg{
-		MsgType: msgType,
-		ConnKey: connKey,
+		MsgType:       msgType,
+		ServerConnKey: serverConnKey,
 	}
 	ts.SendMsg(tcpTlsMsg)
 }
@@ -452,26 +452,26 @@ func (ts *TcpTlsServer) waitTcpTlsMsg() {
 			case MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE:
 				// close and wait connect.Read and Accept
 				belogs.Info("waitTcpTlsMsg(): tcptlsserver msgType is MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE")
-				if len(tcpTlsMsg.ConnKey) > 0 {
-					ts.onClose(ts.tcpTlsConns[tcpTlsMsg.ConnKey])
+				if len(tcpTlsMsg.ServerConnKey) > 0 {
+					ts.onClose(ts.tcpTlsConns[tcpTlsMsg.ServerConnKey])
 				}
-				belogs.Info("waitTcpTlsMsg(): tcptlsserver close connect, connKey:", tcpTlsMsg.ConnKey)
+				belogs.Info("waitTcpTlsMsg(): tcptlsserver close connect, serverConnKey:", tcpTlsMsg.ServerConnKey)
 				// close one connect, no return
 				// return
-			case MSG_TYPE_ACTIVE_SEND_DATA:
+			case MSG_TYPE_COMMON_SEND_DATA:
 
-				connKey := tcpTlsMsg.ConnKey
+				serverConnKey := tcpTlsMsg.ServerConnKey
 				sendData := tcpTlsMsg.SendData
-				belogs.Info("waitTcpTlsMsg(): tcptlsserver msgType is MSG_TYPE_ACTIVE_SEND_DATA, connKey:", connKey,
+				belogs.Info("waitTcpTlsMsg(): tcptlsserver msgType is MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
 					"  sendData:", convert.PrintBytesOneLine(sendData))
-				err := ts.activeSend(connKey, sendData)
+				err := ts.activeSend(serverConnKey, sendData)
 				if err != nil {
-					belogs.Error("waitTcpTlsMsg(): tcptlsserver activeSend fail, connKey:", connKey,
+					belogs.Error("waitTcpTlsMsg(): tcptlsserver activeSend fail, serverConnKey:", serverConnKey,
 						"  sendData:", convert.PrintBytesOneLine(sendData), err)
 					// err, no return
 					// return
 				} else {
-					belogs.Info("waitTcpTlsMsg(): tcptlsserver activeSend ok, connKey:", connKey,
+					belogs.Info("waitTcpTlsMsg(): tcptlsserver activeSend ok, serverConnKey:", serverConnKey,
 						"  sendData:", convert.PrintBytesOneLine(sendData))
 				}
 			}

@@ -288,8 +288,8 @@ func (tc *TcpTlsClient) waitTcpTlsMsg() (err error) {
 				// end for/select
 				// will return, close waitTcpTlsMsg
 				return nil
-			case MSG_TYPE_ACTIVE_SEND_DATA:
-				belogs.Info("waitTcpTlsMsg(): tcptlsclient msgType is MSG_TYPE_ACTIVE_SEND_DATA,",
+			case MSG_TYPE_COMMON_SEND_DATA:
+				belogs.Info("waitTcpTlsMsg(): tcptlsclient msgType is MSG_TYPE_COMMON_SEND_DATA,",
 					" will send to tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
 				nextConnectClosePolicy := tcpTlsMsg.NextConnectClosePolicy
 				nextRwPolicy := tcpTlsMsg.NextRwPolicy

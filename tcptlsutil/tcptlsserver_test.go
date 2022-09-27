@@ -119,7 +119,7 @@ func (ts *TcpTlsServer) SendMsgForActiveSend(connKey string, sendData []byte) {
 	// send channel, and wait listener and conns end itself process and close loop
 	belogs.Info("CloseGraceful(): tcptlsserver will close graceful")
 	tcpTlsMsg := &TcpTlsMsg{
-		MsgType:  MSG_TYPE_ACTIVE_SEND_DATA,
+		MsgType:  MSG_TYPE_COMMON_SEND_DATA,
 		ConnKey:  connKey,
 		SendData: sendData,
 	}
