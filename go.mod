@@ -31,10 +31,8 @@ require (
 	github.com/wenzhenxi/gorsa v0.0.0-20220418014903-15feec0f05a6
 	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be // indirect
 	golang.org/x/net v0.0.0-20220926192436-02166a98028e // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20220926163933-8cfa568d3c25 // indirect
 	golang.org/x/tools v0.1.13-0.20220926222112-eb45e986a7f1 // indirect
-	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/protobuf v1.28.2-0.20220920080600-7a48e2b66218 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	moul.io/http2curl v1.0.0 // indirect
