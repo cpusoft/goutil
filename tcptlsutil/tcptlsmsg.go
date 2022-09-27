@@ -22,9 +22,9 @@ type TcpTlsMsg struct {
 	MsgResult chan string `json:"-"` // must ignore
 
 	// NEXT_CONNECT_CLOSE_POLICY_NO  NEXT_CONNECT_CLOSE_POLICY_GRACEFUL  NEXT_CONNECT_CLOSE_POLICY_FORCIBLE
-	NextConnectClosePolicy int `json:"nextConnectClosePolicy,omitempty"`
+	//NextConnectClosePolicy int `json:"nextConnectClosePolicy,omitempty"`
 	//NEXT_RW_POLICY_ALL,NEXT_RW_POLICY_WAIT_READ,NEXT_RW_POLICY_WAIT_WRITE
-	NextRwPolicy int `json:"nextRwPolicy,omitempty"`
+	//NextRwPolicy int `json:"nextRwPolicy,omitempty"`
 
 	// for send data //
 	SendData jsonutil.HexBytes `json:"sendData,omitempty"`

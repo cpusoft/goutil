@@ -291,12 +291,8 @@ func (tc *TcpTlsClient) waitTcpTlsMsg() (err error) {
 			case MSG_TYPE_COMMON_SEND_DATA:
 				belogs.Info("waitTcpTlsMsg(): tcptlsclient msgType is MSG_TYPE_COMMON_SEND_DATA,",
 					" will send to tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
-				nextConnectClosePolicy := tcpTlsMsg.NextConnectClosePolicy
-				nextRwPolicy := tcpTlsMsg.NextRwPolicy
 				sendData := tcpTlsMsg.SendData
 				belogs.Debug("waitTcpTlsMsg(): tcptlsclient send to server:", tc.tcpTlsConn.RemoteAddr().String(),
-					"   nextConnectClosePolicy: ", nextConnectClosePolicy,
-					"   nextRwPolicy:", nextRwPolicy,
 					"   sendData:", convert.PrintBytesOneLine(sendData))
 
 				// send data
@@ -308,7 +304,7 @@ func (tc *TcpTlsClient) waitTcpTlsMsg() (err error) {
 					return err
 				}
 				belogs.Info("waitTcpTlsMsg(): tcptlsclient  Write to tcpTlsConn:", tc.tcpTlsConn.RemoteAddr().String(),
-					"  len(sendData):", len(sendData), "  write n:", n, "   nextRwPolicy:", nextRwPolicy,
+					"  len(sendData):", len(sendData), "  write n:", n,
 					"  time(s):", time.Since(start))
 
 			}
