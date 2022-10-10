@@ -25,11 +25,12 @@ func InitMySql() (err error) {
 	maxopenconns := conf.Int("mysql::maxopenconns")
 	XormEngine, err = InitMySqlParameter(user, password, server, database, maxidleconns, maxopenconns)
 	if err != nil {
-		belogs.Error("NewEngine failed: ", err)
+		belogs.Error("InitMySql(): fail: ", err)
 		return err
 	}
 	return nil
 }
+
 func InitMySqlParameter(user, password, server, database string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
 	//DB, err = sql.Open("mysql", "rpstir:Rpstir-123@tcp(202.173.9.21:13306)/rpstir")
 
@@ -78,6 +79,46 @@ func InitMySqlParameter(user, password, server, database string, maxidleconns, m
 		url	URL
 
 	*/
+	engine.SetTableMapper(names.SnakeMapper{})
+
+	return engine, nil
+
+}
+
+func InitSqlite() (err error) {
+	filepath := conf.String("sqlite::filepath")
+	maxidleconns := conf.Int("sqlite::maxidleconns")
+	maxopenconns := conf.Int("sqlite::maxopenconns")
+	XormEngine, err = InitSqliteParameter(filepath, maxidleconns, maxopenconns)
+	if err != nil {
+		belogs.Error("InitSqlite(): fail:", err)
+		return err
+	}
+	return nil
+}
+
+func InitSqliteParameter(filepath string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
+
+	belogs.Info("InitSqliteParameter(): filepath: ", filepath)
+
+	//连接数据库
+	engine, err = xorm.NewEngine("sqlite3", filepath)
+	if err != nil {
+		belogs.Error("InitSqliteParameter(): NewEngine failed, err:", err)
+		return engine, err
+	}
+	//连接测试
+	if err := engine.Ping(); err != nil {
+		belogs.Error("InitSqliteParameter(): Ping failed, err:", err)
+		return engine, err
+	}
+
+	//设置连接池的空闲数大小
+	engine.SetMaxIdleConns(maxidleconns)
+	//设置最大打开连接数
+	engine.SetMaxOpenConns(maxopenconns)
+	// show sql
+	//engine.ShowSQL(true)
 	engine.SetTableMapper(names.SnakeMapper{})
 
 	return engine, nil
