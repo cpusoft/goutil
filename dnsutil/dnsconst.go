@@ -131,10 +131,3 @@ var DnsStrClasses map[string]uint16 = map[string]uint16{
 	DNS_CLASS_STR_NONE: DNS_CLASS_INT_NONE,
 	DNS_CLASS_STR_ANY:  DNS_CLASS_INT_ANY,
 }
-
-// because, transact is different in server or in client or in proxy
-const (
-	DNS_TRANSACT_TYPE_SERVER = 1
-	DNS_TRANSACT_TYPE_CLIENT = 2
-	DNS_TRANSACT_TYPE_PROXY  = 3
-)
