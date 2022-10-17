@@ -55,7 +55,7 @@ func InitMySqlParameter(user, password, server, database string, maxidleconns, m
 	//设置最大打开连接数
 	engine.SetMaxOpenConns(maxopenconns)
 	// show sql
-	engine.ShowSQL(true)
+	//engine.ShowSQL(true)
 	/*
 		http://blog.xorm.io/2016/1/4/1-about-mapper.html
 		SnakeMapper
