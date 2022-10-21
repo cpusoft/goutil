@@ -94,6 +94,21 @@ func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	return ts, nil
 }
 
+//
+func NewUdpServer(transportServerProcess TransportServerProcess, transportMsg chan TransportMsg) (ts *TransportServer) {
+
+	belogs.Debug("NewUdpServer():transportServerProcess:", transportServerProcess)
+	ts = &TransportServer{}
+	ts.state = SERVER_STATE_INIT
+	ts.connType = "udp"
+	ts.transportConns = make(map[string]*TransportConn, 16)
+	ts.transportServerProcess = transportServerProcess
+	ts.closeGraceful = make(chan struct{})
+	ts.TransportMsg = transportMsg
+	belogs.Debug("NewUdpServer():ts:", ts)
+	return ts
+}
+
 // port: `8888` --> `0.0.0.0:8888`
 func (ts *TransportServer) StartTcpServer(port string) (err error) {
 	tcpServer, err := net.ResolveTCPAddr("tcp", "0.0.0.0:"+port)

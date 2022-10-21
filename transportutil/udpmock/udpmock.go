@@ -16,14 +16,14 @@ func (c *UdpMockListener) Close() error {
 }
 
 // get udpConn
-func (c *UdpMockListener) Accept() (*net.UDPConn, error) {
+func (c *UdpMockListener) Accept() (*net.UDPConn, *net.UDPAddr, error) {
 	//监听端口
 	udpConn, err := net.ListenUDP(c.network, c.udpAddr)
 	if err != nil {
 		belogs.Error("UdpMockListener.Accept(): ListenUDP fail, network:", c.network, "  udpAddr:", c.udpAddr, err)
-		return nil, err
+		return nil, nil, err
 	}
-	return udpConn, nil
+	return udpConn, c.udpAddr, nil
 }
 
 // just set value, not auctually listener

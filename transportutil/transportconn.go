@@ -16,6 +16,9 @@ type TransportConn struct {
 
 	isConnected       bool
 	nextConnectPolicy int
+
+	// udp
+	udpAddr *net.UDPAddr
 }
 
 func NewFromTcpConn(tcpConn *net.TCPConn) (c *TransportConn) {
@@ -36,12 +39,15 @@ func NewFromTlsConn(tlsConn *tls.Conn) (c *TransportConn) {
 	return c
 }
 
-func NewFromUdpConn(udpConn *net.UDPConn) (c *TransportConn) {
+// when server, should get udpAddr from client
+// when client, udpAddr is nil
+func NewFromUdpConn(udpConn *net.UDPConn, udpAddr *net.UDPAddr) (c *TransportConn) {
 	c = &TransportConn{}
 	c.udpConn = udpConn
 	c.connType = "udp"
 	c.isConnected = true
 	c.nextConnectPolicy = NEXT_CONNECT_POLICY_KEEP
+	c.udpAddr = udpAddr
 	return c
 }
 
@@ -79,7 +85,11 @@ func (c *TransportConn) Write(b []byte) (n int, err error) {
 		return c.tlsConn.Write(b)
 	}
 	if c.connType == "udp" && c.udpConn != nil && c.isConnected {
-		return c.udpConn.Write(b)
+		if c.udpAddr == nil {
+			return c.udpConn.Write(b)
+		} else {
+			return c.udpConn.WriteToUDP(b, c.udpAddr)
+		}
 	}
 	return -1, errors.New("is not conn")
 }

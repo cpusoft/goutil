@@ -78,6 +78,18 @@ func NewTlsClient(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	return tc, nil
 }
 
+// server: 0.0.0.0:port
+func NewUdpClient(transportClientProcess TransportClientProcess, transportMsg chan TransportMsg) (tc *TransportClient) {
+
+	belogs.Debug("NewUdpClient():transportClientProcess:", transportClientProcess)
+	tc = &TransportClient{}
+	tc.connType = "udp"
+	tc.transportClientProcess = transportClientProcess
+	tc.TransportMsg = transportMsg
+	belogs.Info("NewUdpClient():tc:", tc)
+	return tc
+}
+
 // server: **.**.**.**:port
 func (tc *TransportClient) StartTcpClient(server string) (err error) {
 	belogs.Debug("TransportClient.StartTcpClient(): create client, server is  ", server)
@@ -176,6 +188,34 @@ func (tc *TransportClient) StartTlsClient(server string) (err error) {
 
 	belogs.Info("TransportClient.StartTlsClient(): onReceive, server is  ", server, "  transportConn:", tc.transportConn.RemoteAddr().String())
 
+	return nil
+}
+
+// server: **.**.**.**:port
+func (tc *TransportClient) StartUdpClient(server string) (err error) {
+	belogs.Debug("TransportClient.StartUdpClient(): create client, server is  ", server)
+
+	udpAddr, _ := net.ResolveUDPAddr("udp", server)
+	if err != nil {
+		belogs.Error("TransportClient.StartUdpClient(): ResolveUDPAddr fail, server:", server, err)
+		return err
+	}
+
+	//连接udpAddr，返回 udpConn
+	udpConn, err := net.DialUDP("udp", nil, udpAddr)
+
+	tc.transportConn = NewFromUdpConn(udpConn, nil)
+	//active send to server, and receive from server, loop
+	belogs.Debug("TransportClient.StartUdpClient(): NewFromUdpConn ok, server:", server, "   transportConn:", tc.transportConn.RemoteAddr().String())
+	go tc.waitTransportMsg()
+
+	// onConnect
+	tc.onConnect()
+
+	// onReceive
+	go tc.onReceive()
+
+	belogs.Info("TransportClient.StartUdpClient(): onReceive, server is  ", server, "  transportConn:", tc.transportConn.RemoteAddr().String())
 	return nil
 }
 

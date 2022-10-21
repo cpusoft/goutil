@@ -83,13 +83,13 @@ func (c *TransportListener) Accept() (transportConn *TransportConn, err error) {
 		return transportConn, nil
 	}
 	if c.connType == "udp" && c.tlsListener != nil {
-		udpConn, err := c.udpListener.Accept()
+		udpConn, udpAddr, err := c.udpListener.Accept()
 		if err != nil {
 			belogs.Error("Accept(): TransportListener  Accept Udp remote fail: ", err)
 			return nil, err
 		}
 
-		transportConn = NewFromUdpConn(udpConn)
+		transportConn = NewFromUdpConn(udpConn, udpAddr)
 		belogs.Info("Accept(): TransportListener Accept Udp transportConn remote: ", transportConn.RemoteAddr().String())
 		return transportConn, nil
 	}
