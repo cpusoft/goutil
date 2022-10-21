@@ -14,6 +14,7 @@ import (
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/transportutil/udpmock"
 )
 
 // core struct: Start/onConnect/receiveAndSend....
@@ -186,6 +187,37 @@ func (ts *TransportServer) StartTlsServer(port string) (err error) {
 
 	// get transportListener
 	ts.transportListener, err = NewFromTlsListener(listener)
+	if err != nil {
+		belogs.Error("StartTlsServer(): tlsserver  NewFromTlsListener fail, port: ", port, err)
+		return err
+	}
+	belogs.Info("StartTlsServer(): tlsserver  create server ok, port:", port, "  will accept client")
+
+	go ts.waitTransportMsg()
+
+	// wait new conn
+	ts.acceptNewConn()
+	return nil
+}
+
+// port: `8888` --> `0.0.0.0:8888`
+func (ts *TransportServer) StartUdpServer(port string) (err error) {
+	udpServer, err := net.ResolveUDPAddr("udp", "0.0.0.0:"+port)
+	if err != nil {
+		belogs.Error("StartUdpServer(): ResolveUDPAddr fail, port:", port, err)
+		return err
+	}
+	belogs.Debug("StartUdpServer(): ResolveUDPAddr ok,  port:", port)
+
+	listener, err := udpmock.ListenUDP("udp", udpServer)
+	if err != nil {
+		belogs.Error("StartUdpServer(): ListenUDP fail, port:", port, err)
+		return err
+	}
+	belogs.Debug("StartUdpServer(): ListenUDP ok,  port:", port)
+
+	// get transportListener
+	ts.transportListener, err = NewFromUdpListener(listener)
 	if err != nil {
 		belogs.Error("StartTlsServer(): tlsserver  NewFromTlsListener fail, port: ", port, err)
 		return err

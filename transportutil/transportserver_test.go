@@ -113,16 +113,3 @@ const (
 	PDU_TYPE_LENGTH_START = 4
 	PDU_TYPE_LENGTH_END   = 8
 )
-
-/*
-func (ts *TransportServer) SendMsgForActiveSend(connKey string, sendData []byte) {
-	// send channel, and wait listener and conns end itself process and close loop
-	belogs.Info("CloseGraceful():  will close graceful")
-	transportMsg := &TransportMsg{
-		MsgType:  MSG_TYPE_COMMON_SEND_DATA,
-		ConnKey:  connKey,
-		SendData: sendData,
-	}
-	ts.SendMsg(transportMsg)
-}
-*/
