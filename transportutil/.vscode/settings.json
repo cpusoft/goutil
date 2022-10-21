@@ -1,0 +1,6 @@
+{
+    "go.inferGopath": false,
+    "git.enabled": false,
+    "git.decorations.enabled": false,
+    "git.autorefresh": false
+}
