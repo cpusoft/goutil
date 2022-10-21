@@ -273,11 +273,11 @@ func (ts *TcpTlsServer) receiveAndSend(tcpTlsConn *TcpTlsConn) {
 		}
 		// check state
 		if ts.state != SERVER_STATE_RUNNING {
-			belogs.Debug("onReceive(): state is not running, will close from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
+			belogs.Debug("receiveAndSend(): state is not running, will close from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
 				"  state:", ts.state, "  time(s):", time.Now().Sub(start))
 			return
 		}
-		belogs.Debug("onReceive(): tcptlsserver, will wait for Read from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
+		belogs.Debug("receiveAndSend(): tcptlsserver, will wait for Read from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
 			"  time(s):", time.Now().Sub(start))
 
 	}
