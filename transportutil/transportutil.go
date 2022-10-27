@@ -122,10 +122,17 @@ func TestTcpConnection(address string, port string) (err error) {
 	return nil
 }
 
-func GetConnKey(transportConn *TransportConn) string {
-	if transportConn == nil {
+func GetTcpConnKey(tcpConn *TcpConn) string {
+	if tcpConn == nil {
 		return ""
 	}
-	return transportConn.LocalAddr().String() + "-" +
-		transportConn.RemoteAddr().String()
+	return tcpConn.LocalAddr().String() + "-" +
+		tcpConn.RemoteAddr().String()
+}
+
+func GetUdpAddrKey(udpAddr *net.UDPAddr) string {
+	if udpAddr == nil {
+		return ""
+	}
+	return udpAddr.String()
 }

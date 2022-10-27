@@ -65,10 +65,10 @@ func GetData() (buffer []byte) {
 type ServerProcessFunc struct {
 }
 
-func (spf *ServerProcessFunc) OnConnectProcess(transportConn *TransportConn) {
+func (spf *ServerProcessFunc) OnConnectProcess(tcpConn *TcpConn) {
 
 }
-func (spf *ServerProcessFunc) OnReceiveAndSendProcess(transportConn *TransportConn, receiveData []byte) (nextConnectPolicy int, leftData []byte, err error) {
+func (spf *ServerProcessFunc) OnReceiveAndSendProcess(tcpConn *TcpConn, receiveData []byte) (nextConnectPolicy int, leftData []byte, err error) {
 	fmt.Println("OnReceiveAndSendProcess(): len(receiveData):", len(receiveData), "   receiveData:", convert.Bytes2String(receiveData))
 	// need recombine
 	packets, leftData, err := RecombineReceiveData(receiveData, PDU_TYPE_MIN_LEN, PDU_TYPE_LENGTH_START, PDU_TYPE_LENGTH_END)
@@ -96,15 +96,15 @@ func (spf *ServerProcessFunc) OnReceiveAndSendProcess(transportConn *TransportCo
 
 	}
 
-	_, err = transportConn.Write(GetData())
+	_, err = tcpConn.Write(GetData())
 	if err != nil {
-		fmt.Println("OnReceiveAndSendProcess(): tcp  Write fail:  transportConn:", transportConn.RemoteAddr().String(), err)
+		fmt.Println("OnReceiveAndSendProcess(): tcp  Write fail:  tcpConn:", tcpConn.RemoteAddr().String(), err)
 		return NEXT_CONNECT_POLICY_CLOSE_FORCIBLE, nil, err
 	}
 	// continue to receive next receiveData
 	return NEXT_CONNECT_POLICY_KEEP, leftData, nil
 }
-func (spf *ServerProcessFunc) OnCloseProcess(transportConn *TransportConn) {
+func (spf *ServerProcessFunc) OnCloseProcess(tcpConn *TcpConn) {
 
 }
 

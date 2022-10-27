@@ -68,20 +68,20 @@ func TestCreateTlsClient(t *testing.T) {
 type ClientProcessFunc struct {
 }
 
-func (cp *ClientProcessFunc) OnConnectProcess(transportConn *TransportConn) {
+func (cp *ClientProcessFunc) OnConnectProcess(tcpConn *TcpConn) {
 
-	fmt.Println("OnConnectProcess(): tcpclient transportConn:", transportConn.RemoteAddr().String())
+	fmt.Println("OnConnectProcess(): tcpclient tcpConn:", tcpConn.RemoteAddr().String())
 
 }
-func (cp *ClientProcessFunc) OnCloseProcess(transportConn *TransportConn) {
-	if transportConn != nil {
-		fmt.Println("OnCloseProcess(): tcpclient transportConn:", transportConn.RemoteAddr().String())
+func (cp *ClientProcessFunc) OnCloseProcess(tcpConn *TcpConn) {
+	if tcpConn != nil {
+		fmt.Println("OnCloseProcess(): tcpclient tcpConn:", tcpConn.RemoteAddr().String())
 	}
 }
 
-func (sq *ClientProcessFunc) OnReceiveProcess(transportConn *TransportConn, receiveData []byte) (nextRwPolicy int, leftData []byte, err error) {
+func (sq *ClientProcessFunc) OnReceiveProcess(tcpConn *TcpConn, receiveData []byte) (nextRwPolicy int, leftData []byte, err error) {
 
-	fmt.Println("OnReceiveProcess() tcpclient  :", transportConn, convert.Bytes2String(receiveData))
+	fmt.Println("OnReceiveProcess() tcpclient  :", tcpConn, convert.Bytes2String(receiveData))
 	return NEXT_RW_POLICY_END_READ, make([]byte, 0), nil
 }
 

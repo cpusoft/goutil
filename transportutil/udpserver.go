@@ -1,0 +1,162 @@
+package transportutil
+
+import (
+	"io"
+	"net"
+	"sync"
+
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/convert"
+	"github.com/cpusoft/goutil/jsonutil"
+)
+
+// core struct: Start/onConnect/receiveAndSend....
+type UdpServer struct {
+	// state
+	state uint64
+	// udp
+	connType string
+
+	// udp
+	udpConnsMutext sync.RWMutex
+	udpConn        *UdpConn
+
+	// process
+	udpServerProcess UdpServerProcess
+	// for channel
+	transportMsg chan TransportMsg
+}
+
+//
+func NewUdpServer(udpServerProcess UdpServerProcess, transportMsg chan TransportMsg) (us *UdpServer) {
+
+	belogs.Debug("NewUdpServer():udpServerProcess:", udpServerProcess)
+	us = &UdpServer{}
+	us.state = SERVER_STATE_INIT
+	us.connType = "udp"
+	us.udpServerProcess = udpServerProcess
+	us.transportMsg = transportMsg
+	belogs.Debug("NewUdpServer():us:", us)
+	return us
+}
+
+// port: `8888` --> `0.0.0.0:8888`
+func (us *UdpServer) StartUdpServer(port string) (err error) {
+	// resolve
+	serverUdpAddr, err := net.ResolveUDPAddr("udp", "0.0.0.0:"+port)
+	if err != nil {
+		belogs.Error("StartUdpServer(): ResolveUDPAddr fail, port:", port, err)
+		return err
+	}
+	belogs.Debug("StartUdpServer(): ResolveUDPAddr ok,  serverUdpAddr:", serverUdpAddr)
+
+	// get udpConn --> udpConn
+	conn, err := net.ListenUDP("udp", serverUdpAddr)
+	if err != nil {
+		belogs.Error("StartUdpServer(): ListenUDP fail, serverUdpAddr:", serverUdpAddr, err)
+		return err
+	}
+	us.udpConn = NewFromUdpConn(conn)
+	us.udpConn.SetServerUdpAddr(serverUdpAddr)
+	belogs.Debug("StartUdpServer(): ListenUDP ok,  udpConn:", us.udpConn)
+
+	go us.waitTransportMsg()
+
+	// wait new conn
+	go us.receiveAndSend()
+	return nil
+}
+
+func (us *UdpServer) receiveAndSend() {
+
+	belogs.Debug("UdpServer.acceptNewReadFromClient(): will read from client")
+	us.state = SERVER_STATE_RUNNING
+	for {
+		buffer := make([]byte, 1024)
+		len, clientUdpAddr, err := us.udpConn.ReadFromClient(buffer)
+		if err != nil {
+			if err == io.EOF {
+				// is not error, just client close
+				belogs.Info("UdpServer.acceptNewReadFromClient(): Read io.EOF, client close,  clientUdpAddr:", clientUdpAddr, err)
+				return
+			}
+			belogs.Error("UdpServer.acceptNewReadFromClient(): Read remote fail: ", err)
+			continue
+		}
+		belogs.Info("UdpServer.acceptNewReadFromClient():  Accept remote, clientAddrKey: ", clientUdpAddr, "  len:", len)
+		// no onConnect
+		go func() {
+			defer us.udpConn.DelClientUdpAddr(clientUdpAddr)
+			err := us.udpServerProcess.OnReceiveAndSendProcess(us.udpConn, clientUdpAddr, buffer[:len])
+			if err != nil {
+				belogs.Error("UdpServer.receiveAndSend(): OnReceiveAndSendProcess fail ,will remove this udpConn : ", clientUdpAddr, err)
+				return
+			}
+		}()
+	}
+}
+
+func (us *UdpServer) onClose() {
+	// close in the end
+	if us.udpConn == nil {
+		return
+	}
+	us.udpConn.Close()
+	us.udpConn = nil
+}
+
+func (us *UdpServer) SendMsg(transportMsg *TransportMsg) {
+
+	belogs.Debug("UdpServer.SendMsg():, transportMsg:", jsonutil.MarshalJson(*transportMsg))
+	us.transportMsg <- *transportMsg
+}
+
+func (us *UdpServer) waitTransportMsg() {
+	belogs.Debug("UdpServer.waitTransportMsg(): will waitTransportMsg")
+	for {
+		select {
+		case transportMsg := <-us.transportMsg:
+			belogs.Info("UdpServer.waitTransportMsg(): transportMsg:", jsonutil.MarshalJson(transportMsg))
+
+			switch transportMsg.MsgType {
+			case MSG_TYPE_SERVER_CLOSE_FORCIBLE:
+				// ignore conns's writing/reading, just close
+				belogs.Info("UdpServer.waitTransportMsg(): msgType is MSG_TYPE_SERVER_CLOSE_FORCIBLE")
+				fallthrough
+			case MSG_TYPE_SERVER_CLOSE_GRACEFUL:
+				// close and wait connect.Read and Accept
+				us.state = SERVER_STATE_CLOSING
+				us.onClose()
+				belogs.Info("UdpServer.waitTransportMsg(): will close server graceful, will return waitTransportMsg:")
+				// end for/select
+				us.state = SERVER_STATE_CLOSED
+				// will return, close waitTransportMsg
+				return
+
+			case MSG_TYPE_COMMON_SEND_DATA:
+
+				serverConnKey := transportMsg.ServerConnKey
+				sendData := transportMsg.SendData
+				belogs.Info("UdpServer.waitTransportMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
+					"  sendData:", convert.PrintBytesOneLine(sendData))
+				err := us.activeSend(serverConnKey, sendData)
+				if err != nil {
+					belogs.Error("UdpServer.waitTransportMsg(): activeSend fail, serverConnKey:", serverConnKey,
+						"  sendData:", convert.PrintBytesOneLine(sendData), err)
+					// err, no return
+					// return
+				} else {
+					belogs.Info("UdpServer.waitTransportMsg(): activeSend ok, serverConnKey:", serverConnKey,
+						"  sendData:", convert.PrintBytesOneLine(sendData))
+				}
+			}
+		}
+	}
+}
+
+// connKey is "": send to all clients
+// connKey is net.Conn.Address.String(): send this client
+func (us *UdpServer) activeSend(connKey string, sendData []byte) (err error) {
+	_, err = us.udpConn.WriteToClient(sendData, connKey)
+	return err
+}

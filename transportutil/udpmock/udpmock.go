@@ -23,6 +23,7 @@ func (c *UdpMockListener) Accept() (*net.UDPConn, *net.UDPAddr, error) {
 		belogs.Error("UdpMockListener.Accept(): ListenUDP fail, network:", c.network, "  udpAddr:", c.udpAddr, err)
 		return nil, nil, err
 	}
+	belogs.Debug("UdpMockListener.Accept(): ListenUDP, network:", c.network, "  udpAddr:", c.udpAddr, "   udpConn:", udpConn.RemoteAddr().String())
 	return udpConn, c.udpAddr, nil
 }
 
@@ -31,5 +32,6 @@ func ListenUDP(network string, laddr *net.UDPAddr) (*UdpMockListener, error) {
 	c := &UdpMockListener{}
 	c.network = network
 	c.udpAddr = laddr
+	belogs.Debug("UdpMockListener.ListenUDP(): UdpMockListener:", c)
 	return c, nil
 }
