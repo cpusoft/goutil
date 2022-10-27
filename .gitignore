@@ -12,3 +12,5 @@
 *.out
 /*.sum
 /passwordutil/passwordutil_test.go
+/transportutil/conf
+/transportutil/log

@@ -86,10 +86,10 @@ func (us *UdpServer) receiveAndSend() {
 		belogs.Info("UdpServer.acceptNewReadFromClient():  Accept remote, clientAddrKey: ", clientUdpAddr, "  len:", len)
 		// no onConnect
 		go func() {
-			defer us.udpConn.DelClientUdpAddr(clientUdpAddr)
 			err := us.udpServerProcess.OnReceiveAndSendProcess(us.udpConn, clientUdpAddr, buffer[:len])
 			if err != nil {
 				belogs.Error("UdpServer.receiveAndSend(): OnReceiveAndSendProcess fail ,will remove this udpConn : ", clientUdpAddr, err)
+				us.udpConn.DelClientUdpAddr(clientUdpAddr)
 				return
 			}
 		}()

@@ -1,13 +1,6 @@
 package transportutil
 
-import (
-	"fmt"
-	"testing"
-	"time"
-
-	"github.com/cpusoft/goutil/convert"
-)
-
+/*
 func TestCreateTcpClient(t *testing.T) {
 	clientProcessFunc := new(ClientProcessFunc)
 	fmt.Println("CreateTcpClient():", "192.168.83.139:9999")
@@ -92,3 +85,4 @@ func GetTcpClientData() (buffer []byte) {
 		0x00, 0x0b, 0x00, 0x01, 0x00, 0x00, 0x00, 0x10,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 }
+*/

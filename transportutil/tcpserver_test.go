@@ -1,16 +1,11 @@
 package transportutil
 
 import (
-	"bytes"
-	"fmt"
-	"testing"
-	"time"
-
 	_ "github.com/cpusoft/goutil/conf"
-	"github.com/cpusoft/goutil/convert"
 	_ "github.com/cpusoft/goutil/logs"
 )
 
+/*
 func TestCreateTcpServer(t *testing.T) {
 	serverProcessFunc := new(ServerProcessFunc)
 	transportMsg := make(chan TransportMsg, 16)
@@ -47,7 +42,7 @@ func TestCreateTlsServer(t *testing.T) {
 	time.Sleep(5 * time.Second)
 	ts.activeSend("", GetData())
 	time.Sleep(8 * time.Second)
-	ts.CloseGraceful()
+
 }
 func RtrProcess(receiveData []byte) (sendData []byte, err error) {
 	buf := bytes.NewReader(receiveData)
@@ -113,3 +108,4 @@ const (
 	PDU_TYPE_LENGTH_START = 4
 	PDU_TYPE_LENGTH_END   = 8
 )
+*/
