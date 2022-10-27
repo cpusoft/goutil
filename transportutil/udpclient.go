@@ -19,7 +19,7 @@ type UdpClient struct {
 	udpConn *UdpConn
 
 	// for channel
-	TransportMsg chan TransportMsg
+	transportMsg chan TransportMsg
 }
 
 // server: 0.0.0.0:port
@@ -29,7 +29,7 @@ func NewUdpClient(udpClientProcess UdpClientProcess, transportMsg chan Transport
 	tc = &UdpClient{}
 	tc.connType = "udp"
 	tc.udpClientProcess = udpClientProcess
-	tc.TransportMsg = transportMsg
+	tc.transportMsg = transportMsg
 	belogs.Info("NewUdpClient():tc:", tc)
 	return tc
 }
@@ -114,7 +114,7 @@ func (tc *UdpClient) onClose() {
 func (tc *UdpClient) SendMsg(transportMsg *TransportMsg) {
 
 	belogs.Debug("UdpClient.SendMsg(): transportMsg:", jsonutil.MarshalJson(*transportMsg))
-	tc.TransportMsg <- *transportMsg
+	tc.transportMsg <- *transportMsg
 }
 
 func (tc *UdpClient) waitTransportMsg() (err error) {
@@ -122,7 +122,7 @@ func (tc *UdpClient) waitTransportMsg() (err error) {
 	for {
 		// wait next transportMsg: only error or NEXT_CONNECT_POLICY_CLOSE_** will end loop
 		select {
-		case transportMsg := <-tc.TransportMsg:
+		case transportMsg := <-tc.transportMsg:
 			belogs.Info("UdpClient.waitTransportMsg(): transportMsg:", jsonutil.MarshalJson(transportMsg),
 				"  udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr)
 

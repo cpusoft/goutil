@@ -42,7 +42,7 @@ type TcpServer struct {
 	closeGraceful chan struct{}
 
 	// for channel
-	TransportMsg chan TransportMsg
+	transportMsg chan TransportMsg
 }
 
 //
@@ -55,7 +55,7 @@ func NewTcpServer(tcpServerProcess TcpServerProcess, transportMsg chan Transport
 	ts.tcpConns = make(map[string]*TcpConn, 16)
 	ts.tcpServerProcess = tcpServerProcess
 	ts.closeGraceful = make(chan struct{})
-	ts.TransportMsg = transportMsg
+	ts.transportMsg = transportMsg
 	belogs.Debug("NewTcpServer():ts:", ts)
 	return ts
 }
@@ -70,7 +70,7 @@ func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	ts.connType = "tls"
 	ts.tcpConns = make(map[string]*TcpConn, 16)
 	ts.closeGraceful = make(chan struct{})
-	ts.TransportMsg = transportMsg
+	ts.transportMsg = transportMsg
 	ts.tcpServerProcess = tcpServerProcess
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
@@ -330,7 +330,7 @@ func (ts *TcpServer) onClose(tcpConn *TcpConn) {
 func (ts *TcpServer) SendMsg(transportMsg *TransportMsg) {
 
 	belogs.Debug("TcpServer.SendMsg():, transportMsg:", jsonutil.MarshalJson(*transportMsg))
-	ts.TransportMsg <- *transportMsg
+	ts.transportMsg <- *transportMsg
 }
 
 // msgType:MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL, //
@@ -349,7 +349,7 @@ func (ts *TcpServer) waitTransportMsg() {
 	belogs.Debug("TcpServer.waitTransportMsg(): will waitTransportMsg")
 	for {
 		select {
-		case transportMsg := <-ts.TransportMsg:
+		case transportMsg := <-ts.transportMsg:
 			belogs.Info("TcpServer.waitTransportMsg(): transportMsg:", jsonutil.MarshalJson(transportMsg))
 
 			switch transportMsg.MsgType {

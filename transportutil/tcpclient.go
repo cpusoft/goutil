@@ -29,7 +29,7 @@ type TcpClient struct {
 	tcpConn *TcpConn
 
 	// for channel
-	TransportMsg chan TransportMsg
+	transportMsg chan TransportMsg
 }
 
 // server: 0.0.0.0:port
@@ -39,7 +39,7 @@ func NewTcpClient(tcpClientProcess TcpClientProcess, transportMsg chan Transport
 	tc = &TcpClient{}
 	tc.connType = "tcp"
 	tc.tcpClientProcess = tcpClientProcess
-	tc.TransportMsg = transportMsg
+	tc.transportMsg = transportMsg
 	belogs.Info("NewTcpClient():tc:", tc)
 	return tc
 }
@@ -52,7 +52,7 @@ func NewTlsClient(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	tc = &TcpClient{}
 	tc.connType = "tls"
 	tc.tcpClientProcess = tcpClientProcess
-	tc.TransportMsg = transportMsg
+	tc.transportMsg = transportMsg
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
 	if !rootExists {
@@ -244,7 +244,7 @@ func (tc *TcpClient) onClose() {
 func (tc *TcpClient) SendMsg(transportMsg *TransportMsg) {
 
 	belogs.Debug("TcpClient.SendMsg(): transportMsg:", jsonutil.MarshalJson(*transportMsg))
-	tc.TransportMsg <- *transportMsg
+	tc.transportMsg <- *transportMsg
 }
 
 func (tc *TcpClient) IsConnected() bool {
@@ -274,7 +274,7 @@ func (tc *TcpClient) waitTransportMsg() (err error) {
 	for {
 		// wait next transportMsg: only error or NEXT_CONNECT_POLICY_CLOSE_** will end loop
 		select {
-		case transportMsg := <-tc.TransportMsg:
+		case transportMsg := <-tc.transportMsg:
 			belogs.Info("TcpClient.waitTransportMsg(): transportMsg:", jsonutil.MarshalJson(transportMsg),
 				"  tcpConn: ", tc.tcpConn.RemoteAddr().String())
 
