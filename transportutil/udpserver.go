@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
@@ -139,7 +140,8 @@ func (us *UdpServer) waitTransportMsg() {
 				sendData := transportMsg.SendData
 				belogs.Info("UdpServer.waitTransportMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
 					"  sendData:", convert.PrintBytesOneLine(sendData))
-				err := us.activeSend(serverConnKey, sendData)
+				start := time.Now()
+				n, err := us.udpConn.WriteToClient(sendData, serverConnKey)
 				if err != nil {
 					belogs.Error("UdpServer.waitTransportMsg(): activeSend fail, serverConnKey:", serverConnKey,
 						"  sendData:", convert.PrintBytesOneLine(sendData), err)
@@ -147,16 +149,10 @@ func (us *UdpServer) waitTransportMsg() {
 					// return
 				} else {
 					belogs.Info("UdpServer.waitTransportMsg(): activeSend ok, serverConnKey:", serverConnKey,
-						"  sendData:", convert.PrintBytesOneLine(sendData))
+						"  sendData:", convert.PrintBytesOneLine(sendData), " write n:", n,
+						"  time(s):", time.Since(start))
 				}
 			}
 		}
 	}
-}
-
-// connKey is "": send to all clients
-// connKey is net.Conn.Address.String(): send this client
-func (us *UdpServer) activeSend(connKey string, sendData []byte) (err error) {
-	_, err = us.udpConn.WriteToClient(sendData, connKey)
-	return err
 }
