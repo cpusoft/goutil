@@ -42,11 +42,11 @@ type TcpServer struct {
 	closeGraceful chan struct{}
 
 	// for channel
-	transportMsg chan TransportMsg
+	businessToConnMsg chan BusinessToConnMsg
 }
 
 //
-func NewTcpServer(tcpServerProcess TcpServerProcess, transportMsg chan TransportMsg) (ts *TcpServer) {
+func NewTcpServer(tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg) (ts *TcpServer) {
 
 	belogs.Debug("NewTcpServer():tcpServerProcess:", tcpServerProcess)
 	ts = &TcpServer{}
@@ -55,12 +55,12 @@ func NewTcpServer(tcpServerProcess TcpServerProcess, transportMsg chan Transport
 	ts.tcpConns = make(map[string]*TcpConn, 16)
 	ts.tcpServerProcess = tcpServerProcess
 	ts.closeGraceful = make(chan struct{})
-	ts.transportMsg = transportMsg
+	ts.businessToConnMsg = businessToConnMsg
 	belogs.Debug("NewTcpServer():ts:", ts)
 	return ts
 }
 func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string, tlsVerifyClient bool,
-	tcpServerProcess TcpServerProcess, transportMsg chan TransportMsg) (ts *TcpServer, err error) {
+	tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg) (ts *TcpServer, err error) {
 
 	belogs.Debug("NewTcpServer():tlsRootCrtFileName:", tlsRootCrtFileName, "  tlsPublicCrtFileName:", tlsPublicCrtFileName,
 		"   tlsPrivateKeyFileName:", tlsPrivateKeyFileName, "   tlsVerifyClient:", tlsVerifyClient,
@@ -70,7 +70,7 @@ func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	ts.connType = "tls"
 	ts.tcpConns = make(map[string]*TcpConn, 16)
 	ts.closeGraceful = make(chan struct{})
-	ts.transportMsg = transportMsg
+	ts.businessToConnMsg = businessToConnMsg
 	ts.tcpServerProcess = tcpServerProcess
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
@@ -121,7 +121,7 @@ func (ts *TcpServer) StartTcpServer(port string) (err error) {
 	}
 	belogs.Info("StartTcpServer(): tcpserver  create server ok, port:", port, "  will accept client")
 
-	go ts.waitTransportMsg()
+	go ts.waitBusinessToConnMsg()
 
 	// wait new conn
 	ts.acceptNewConn()
@@ -196,7 +196,7 @@ func (ts *TcpServer) StartTlsServer(port string) (err error) {
 	}
 	belogs.Info("StartTlsServer(): tlsserver  create server ok, port:", port, "  will accept client")
 
-	go ts.waitTransportMsg()
+	go ts.waitBusinessToConnMsg()
 
 	// wait new conn
 	ts.acceptNewConn()
@@ -327,10 +327,10 @@ func (ts *TcpServer) onClose(tcpConn *TcpConn) {
 	belogs.Info("TcpServer.onClose(): new len(tcpConns): ", len(ts.tcpConns), "  time(s):", time.Now().Sub(start).Seconds())
 }
 
-func (ts *TcpServer) SendTransportMsg(transportMsg *TransportMsg) {
+func (ts *TcpServer) SendBusinessToConnMsg(businessToConnMsg *BusinessToConnMsg) {
 
-	belogs.Debug("TcpServer.SendTransportMsg():, transportMsg:", jsonutil.MarshalJson(*transportMsg))
-	ts.transportMsg <- *transportMsg
+	belogs.Debug("TcpServer.SendBusinessToConnMsg():, businessToConnMsg:", jsonutil.MarshalJson(*businessToConnMsg))
+	ts.businessToConnMsg <- *businessToConnMsg
 }
 
 // msgType:MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL, //
@@ -338,24 +338,24 @@ func (ts *TcpServer) SendTransportMsg(transportMsg *TransportMsg) {
 func (ts *TcpServer) SendMsgForCloseConnect(msgType uint64, serverConnKey string) {
 	// send channel, and wait listener and conns end itself process and close loop
 	belogs.Info("TcpServer.SendMsgForCloseConnect(): will close, msgType:", msgType, "  serverConnKey:", serverConnKey)
-	transportMsg := &TransportMsg{
+	businessToConnMsg := &BusinessToConnMsg{
 		MsgType:       msgType,
 		ServerConnKey: serverConnKey,
 	}
-	ts.SendTransportMsg(transportMsg)
+	ts.SendBusinessToConnMsg(businessToConnMsg)
 }
 
-func (ts *TcpServer) waitTransportMsg() {
-	belogs.Debug("TcpServer.waitTransportMsg(): will waitTransportMsg")
+func (ts *TcpServer) waitBusinessToConnMsg() {
+	belogs.Debug("TcpServer.waitBusinessToConnMsg(): will waitBusinessToConnMsg")
 	for {
 		select {
-		case transportMsg := <-ts.transportMsg:
-			belogs.Info("TcpServer.waitTransportMsg(): transportMsg:", jsonutil.MarshalJson(transportMsg))
+		case businessToConnMsg := <-ts.businessToConnMsg:
+			belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))
 
-			switch transportMsg.MsgType {
+			switch businessToConnMsg.MsgType {
 			case MSG_TYPE_SERVER_CLOSE_FORCIBLE:
 				// ignore conns's writing/reading, just close
-				belogs.Info("TcpServer.waitTransportMsg(): msgType is MSG_TYPE_SERVER_CLOSE_FORCIBLE")
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_SERVER_CLOSE_FORCIBLE")
 				// just close
 				ts.state = SERVER_STATE_CLOSING
 				ts.tcpListener.Close()
@@ -363,14 +363,14 @@ func (ts *TcpServer) waitTransportMsg() {
 					ts.onClose(ts.tcpConns[connKey])
 				}
 				close(ts.closeGraceful)
-				belogs.Info("TcpServer.waitTransportMsg(): will close server forcible, will return waitTransportMsg:")
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): will close server forcible, will return waitBusinessToConnMsg:")
 				// end for/select
 				ts.state = SERVER_STATE_CLOSED
-				// will return, close waitTransportMsg
+				// will return, close waitBusinessToConnMsg
 				return
 			case MSG_TYPE_SERVER_CLOSE_GRACEFUL:
 				// close and wait connect.Read and Accept
-				belogs.Info("TcpServer.waitTransportMsg(): msgType is MSG_TYPE_SERVER_CLOSE_GRACEFUL")
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_SERVER_CLOSE_GRACEFUL")
 				ts.state = SERVER_STATE_CLOSING
 				close(ts.closeGraceful)
 				time.Sleep(5 * time.Second)
@@ -378,37 +378,37 @@ func (ts *TcpServer) waitTransportMsg() {
 				for connKey := range ts.tcpConns {
 					ts.onClose(ts.tcpConns[connKey])
 				}
-				belogs.Info("TcpServer.waitTransportMsg(): will close server graceful, will return waitTransportMsg:")
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): will close server graceful, will return waitBusinessToConnMsg:")
 				// end for/select
 				ts.state = SERVER_STATE_CLOSED
-				// will return, close waitTransportMsg
+				// will return, close waitBusinessToConnMsg
 				return
 			case MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL:
-				belogs.Info("TcpServer.waitTransportMsg(): msgType is MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL")
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL")
 				fallthrough
 			case MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE:
 				// close and wait connect.Read and Accept
-				belogs.Info("TcpServer.waitTransportMsg(): msgType is MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE")
-				if len(transportMsg.ServerConnKey) > 0 {
-					ts.onClose(ts.tcpConns[transportMsg.ServerConnKey])
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE")
+				if len(businessToConnMsg.ServerConnKey) > 0 {
+					ts.onClose(ts.tcpConns[businessToConnMsg.ServerConnKey])
 				}
-				belogs.Info("TcpServer.waitTransportMsg(): close connect, serverConnKey:", transportMsg.ServerConnKey)
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): close connect, serverConnKey:", businessToConnMsg.ServerConnKey)
 				// close one connect, no return
 				// return
 			case MSG_TYPE_COMMON_SEND_DATA:
 
-				serverConnKey := transportMsg.ServerConnKey
-				sendData := transportMsg.SendData
-				belogs.Info("TcpServer.waitTransportMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
+				serverConnKey := businessToConnMsg.ServerConnKey
+				sendData := businessToConnMsg.SendData
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
 					"  sendData:", convert.PrintBytesOneLine(sendData))
 				err := ts.activeSend(serverConnKey, sendData)
 				if err != nil {
-					belogs.Error("TcpServer.waitTransportMsg(): activeSend fail, serverConnKey:", serverConnKey,
+					belogs.Error("TcpServer.waitBusinessToConnMsg(): activeSend fail, serverConnKey:", serverConnKey,
 						"  sendData:", convert.PrintBytesOneLine(sendData), err)
 					// err, no return
 					// return
 				} else {
-					belogs.Info("TcpServer.waitTransportMsg(): activeSend ok, serverConnKey:", serverConnKey,
+					belogs.Info("TcpServer.waitBusinessToConnMsg(): activeSend ok, serverConnKey:", serverConnKey,
 						"  sendData:", convert.PrintBytesOneLine(sendData))
 				}
 			}

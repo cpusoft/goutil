@@ -25,18 +25,18 @@ type UdpServer struct {
 	// process
 	udpServerProcess UdpServerProcess
 	// for channel
-	transportMsg chan TransportMsg
+	businessToConnMsg chan BusinessToConnMsg
 }
 
 //
-func NewUdpServer(udpServerProcess UdpServerProcess, transportMsg chan TransportMsg) (us *UdpServer) {
+func NewUdpServer(udpServerProcess UdpServerProcess, businessToConnMsg chan BusinessToConnMsg) (us *UdpServer) {
 
 	belogs.Debug("NewUdpServer():udpServerProcess:", udpServerProcess)
 	us = &UdpServer{}
 	us.state = SERVER_STATE_INIT
 	us.connType = "udp"
 	us.udpServerProcess = udpServerProcess
-	us.transportMsg = transportMsg
+	us.businessToConnMsg = businessToConnMsg
 	belogs.Debug("NewUdpServer():us:", us)
 	return us
 }
@@ -61,7 +61,7 @@ func (us *UdpServer) StartUdpServer(port string) (err error) {
 	us.udpConn.SetServerUdpAddr(serverUdpAddr)
 	belogs.Debug("StartUdpServer(): ListenUDP ok,  udpConn:", us.udpConn)
 
-	go us.waitTransportMsg()
+	go us.waitBusinessToConnMsg()
 
 	// wait new conn
 	go us.receiveAndSend()
@@ -106,49 +106,49 @@ func (us *UdpServer) onClose() {
 	us.udpConn = nil
 }
 
-func (us *UdpServer) SendTransportMsg(transportMsg *TransportMsg) {
+func (us *UdpServer) SendBusinessToConnMsg(businessToConnMsg *BusinessToConnMsg) {
 
-	belogs.Debug("UdpServer.SendTransportMsg():, transportMsg:", jsonutil.MarshalJson(*transportMsg))
-	us.transportMsg <- *transportMsg
+	belogs.Debug("UdpServer.SendBusinessToConnMsg():, businessToConnMsg:", jsonutil.MarshalJson(*businessToConnMsg))
+	us.businessToConnMsg <- *businessToConnMsg
 }
 
-func (us *UdpServer) waitTransportMsg() {
-	belogs.Debug("UdpServer.waitTransportMsg(): will waitTransportMsg")
+func (us *UdpServer) waitBusinessToConnMsg() {
+	belogs.Debug("UdpServer.waitBusinessToConnMsg(): will waitBusinessToConnMsg")
 	for {
 		select {
-		case transportMsg := <-us.transportMsg:
-			belogs.Info("UdpServer.waitTransportMsg(): transportMsg:", jsonutil.MarshalJson(transportMsg))
+		case businessToConnMsg := <-us.businessToConnMsg:
+			belogs.Info("UdpServer.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))
 
-			switch transportMsg.MsgType {
+			switch businessToConnMsg.MsgType {
 			case MSG_TYPE_SERVER_CLOSE_FORCIBLE:
 				// ignore conns's writing/reading, just close
-				belogs.Info("UdpServer.waitTransportMsg(): msgType is MSG_TYPE_SERVER_CLOSE_FORCIBLE")
+				belogs.Info("UdpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_SERVER_CLOSE_FORCIBLE")
 				fallthrough
 			case MSG_TYPE_SERVER_CLOSE_GRACEFUL:
 				// close and wait connect.Read and Accept
 				us.state = SERVER_STATE_CLOSING
 				us.onClose()
-				belogs.Info("UdpServer.waitTransportMsg(): will close server graceful, will return waitTransportMsg:")
+				belogs.Info("UdpServer.waitBusinessToConnMsg(): will close server graceful, will return waitBusinessToConnMsg:")
 				// end for/select
 				us.state = SERVER_STATE_CLOSED
-				// will return, close waitTransportMsg
+				// will return, close waitBusinessToConnMsg
 				return
 
 			case MSG_TYPE_COMMON_SEND_DATA:
 
-				serverConnKey := transportMsg.ServerConnKey
-				sendData := transportMsg.SendData
-				belogs.Info("UdpServer.waitTransportMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
+				serverConnKey := businessToConnMsg.ServerConnKey
+				sendData := businessToConnMsg.SendData
+				belogs.Info("UdpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
 					"  sendData:", convert.PrintBytesOneLine(sendData))
 				start := time.Now()
 				n, err := us.udpConn.WriteToClient(sendData, serverConnKey)
 				if err != nil {
-					belogs.Error("UdpServer.waitTransportMsg(): activeSend fail, serverConnKey:", serverConnKey,
+					belogs.Error("UdpServer.waitBusinessToConnMsg(): activeSend fail, serverConnKey:", serverConnKey,
 						"  sendData:", convert.PrintBytesOneLine(sendData), err)
 					// err, no return
 					// return
 				} else {
-					belogs.Info("UdpServer.waitTransportMsg(): activeSend ok, serverConnKey:", serverConnKey,
+					belogs.Info("UdpServer.waitBusinessToConnMsg(): activeSend ok, serverConnKey:", serverConnKey,
 						"  sendData:", convert.PrintBytesOneLine(sendData), " write n:", n,
 						"  time(s):", time.Since(start))
 				}

@@ -17,8 +17,8 @@ var dnsUdpClient *DnsUdpClient
 
 type DnsUdpClient struct {
 	// tcp/tls server and callback Func
-	udpClient    *UdpClient
-	transportMsg chan TransportMsg
+	udpClient         *UdpClient
+	businessToConnMsg chan BusinessToConnMsg
 }
 
 func StartDnsUdpClient(serverProtocol string, serverHost string, serverPort string) (err error) {
@@ -28,15 +28,15 @@ func StartDnsUdpClient(serverProtocol string, serverHost string, serverPort stri
 
 	// no :=
 	dnsUdpClient = &DnsUdpClient{}
-	dnsUdpClient.transportMsg = make(chan TransportMsg, 15)
-	belogs.Debug("StartDnsUdpClient(): transportMsg:", dnsUdpClient.transportMsg)
+	dnsUdpClient.businessToConnMsg = make(chan BusinessToConnMsg, 15)
+	belogs.Debug("StartDnsUdpClient(): businessToConnMsg:", dnsUdpClient.businessToConnMsg)
 
 	// process
-	dnsClientProcess := NewDnsClientProcess(dnsUdpClient.transportMsg)
+	dnsClientProcess := NewDnsClientProcess(dnsUdpClient.businessToConnMsg)
 	belogs.Debug("StartDnsUdpClient(): NewDnsClientProcess:", dnsClientProcess)
 
 	// tclTlsClient
-	dnsUdpClient.udpClient = NewUdpClient(dnsClientProcess, dnsUdpClient.transportMsg)
+	dnsUdpClient.udpClient = NewUdpClient(dnsClientProcess, dnsUdpClient.businessToConnMsg)
 	belogs.Debug("StartDnsUdpClient(): dnsUdpClient:", dnsUdpClient)
 
 	// set to global dnsClient
@@ -50,12 +50,12 @@ func StartDnsUdpClient(serverProtocol string, serverHost string, serverPort stri
 }
 
 type DnsClientProcess struct {
-	transportMsg chan TransportMsg
+	businessToConnMsg chan BusinessToConnMsg
 }
 
-func NewDnsClientProcess(transportMsg chan TransportMsg) *DnsClientProcess {
+func NewDnsClientProcess(businessToConnMsg chan BusinessToConnMsg) *DnsClientProcess {
 	c := &DnsClientProcess{}
-	c.transportMsg = transportMsg
+	c.businessToConnMsg = businessToConnMsg
 
 	return c
 }
@@ -77,11 +77,11 @@ func TestDnsUdpClient(t *testing.T) {
 		belogs.Error("TestDnsUdpClient(): StartDnsUdpClient fail:", err)
 	}
 	sendBytes := []byte("test udp")
-	transportMsg := &TransportMsg{
+	businessToConnMsg := &BusinessToConnMsg{
 		MsgType:  tcptlsutil.MSG_TYPE_COMMON_SEND_DATA,
 		SendData: sendBytes,
 	}
-	dnsUdpClient.udpClient.SendTransportMsg(transportMsg)
+	dnsUdpClient.udpClient.SendBusinessToConnMsg(businessToConnMsg)
 
 	time.Sleep(5 * time.Second)
 

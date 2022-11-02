@@ -7,13 +7,13 @@ import (
 	"github.com/cpusoft/goutil/jsonutil"
 )
 
-func TestTransportMsg(t *testing.T) {
+func TestBusinessToConnMsg(t *testing.T) {
 	sendData := []byte{0x01, 0x02, 0x03}
-	transportMsg := &TransportMsg{
+	businessToConnMsg := &BusinessToConnMsg{
 		MsgType:  1,
 		SendData: sendData,
 	}
-	fmt.Println("sendMessageModel(): transportMsg, will send transportMsg:",
-		jsonutil.MarshalJson(*transportMsg))
+	fmt.Println("TestBusinessToConnMsg(): businessToConnMsg, will send businessToConnMsg:",
+		jsonutil.MarshalJson(*businessToConnMsg))
 
 }

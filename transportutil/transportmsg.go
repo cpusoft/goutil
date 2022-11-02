@@ -16,15 +16,11 @@ const (
 	MSG_TYPE_CLIENT_CLOSE_CONNECT = 20
 )
 
-type TransportMsg struct {
+// from upper business send to lower conn, such as 'send data to conn'
+// used in client and server
+type BusinessToConnMsg struct {
 	// common
-	MsgType   uint64      `json:"msgType"`
-	MsgResult chan string `json:"-"` // must ignore
-
-	// NEXT_CONNECT_CLOSE_POLICY_NO  NEXT_CONNECT_CLOSE_POLICY_GRACEFUL  NEXT_CONNECT_CLOSE_POLICY_FORCIBLE
-	//NextConnectClosePolicy int `json:"nextConnectClosePolicy,omitempty"`
-	//NEXT_RW_POLICY_ALL,NEXT_RW_POLICY_WAIT_READ,NEXT_RW_POLICY_WAIT_WRITE
-	//NextRwPolicy int `json:"nextRwPolicy,omitempty"`
+	MsgType uint64 `json:"msgType"`
 
 	// for send data //
 	SendData jsonutil.HexBytes `json:"sendData,omitempty"`
@@ -32,4 +28,12 @@ type TransportMsg struct {
 	// for server to choose which conn
 	// if is "", will send all conns
 	ServerConnKey string `json:"serverConnKey,omitempty"`
+}
+
+// from lower conn send to upper business, such as 'receive data from conn, will send to business'
+// used in client
+type ConnToBusinessMsg struct {
+	// common
+	MsgType     uint64      `json:"msgType"`
+	ReceiveData interface{} `json:"receiveData"`
 }

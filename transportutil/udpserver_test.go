@@ -15,8 +15,8 @@ var dnsUdpServer *DnsUdpServer
 
 type DnsUdpServer struct {
 	// tcp/tls server and callback Func
-	udpServer    *UdpServer
-	transportMsg chan TransportMsg
+	udpServer         *UdpServer
+	businessToConnMsg chan BusinessToConnMsg
 }
 
 func StartDnsUdpServer(serverProtocol string, serverPort string) (err error) {
@@ -25,15 +25,15 @@ func StartDnsUdpServer(serverProtocol string, serverPort string) (err error) {
 	// no :=
 	dnsUdpServer = &DnsUdpServer{}
 	// msg
-	dnsUdpServer.transportMsg = make(chan TransportMsg, 15)
-	belogs.Debug("StartDnsUdpServer(): transportMsg:", dnsUdpServer.transportMsg)
+	dnsUdpServer.businessToConnMsg = make(chan BusinessToConnMsg, 15)
+	belogs.Debug("StartDnsUdpServer(): businessToConnMsg:", dnsUdpServer.businessToConnMsg)
 
 	// process
-	dnsServerProcess := NewServerProcess(dnsUdpServer.transportMsg)
+	dnsServerProcess := NewServerProcess(dnsUdpServer.businessToConnMsg)
 	belogs.Debug("StartDnsUdpServer(): dnsServerProcess:", dnsServerProcess)
 
 	// tclTlsServer
-	dnsUdpServer.udpServer = NewUdpServer(dnsServerProcess, dnsUdpServer.transportMsg)
+	dnsUdpServer.udpServer = NewUdpServer(dnsServerProcess, dnsUdpServer.businessToConnMsg)
 	belogs.Debug("StartDnsUdpServer(): dnsUdpServer:", dnsUdpServer)
 	if serverProtocol == "udp" {
 		err = dnsUdpServer.udpServer.StartUdpServer(serverPort)
@@ -48,12 +48,12 @@ func StartDnsUdpServer(serverProtocol string, serverPort string) (err error) {
 }
 
 type ServerProcess struct {
-	transportMsg chan TransportMsg
+	businessToConnMsg chan BusinessToConnMsg
 }
 
-func NewServerProcess(transportMsg chan TransportMsg) *ServerProcess {
+func NewServerProcess(businessToConnMsg chan BusinessToConnMsg) *ServerProcess {
 	c := &ServerProcess{}
-	c.transportMsg = transportMsg
+	c.businessToConnMsg = businessToConnMsg
 	return c
 }
 
@@ -65,12 +65,12 @@ func (c *ServerProcess) OnReceiveAndSendProcess(udpConn *UdpConn, clientUdpAddr 
 	//len, err := udpConn.WriteToClient([]byte(sendStr))
 	serverConnKey := GetUdpAddrKey(clientUdpAddr)
 	sendBytes := []byte(sendStr)
-	transportMsg := &TransportMsg{
+	businessToConnMsg := &BusinessToConnMsg{
 		MsgType:       MSG_TYPE_COMMON_SEND_DATA,
 		SendData:      sendBytes,
 		ServerConnKey: serverConnKey,
 	}
-	dnsUdpServer.udpServer.SendTransportMsg(transportMsg)
+	dnsUdpServer.udpServer.SendBusinessToConnMsg(businessToConnMsg)
 
 	return
 }

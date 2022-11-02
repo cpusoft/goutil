@@ -19,17 +19,17 @@ type UdpClient struct {
 	udpConn *UdpConn
 
 	// for channel
-	transportMsg chan TransportMsg
+	businessToConnMsg chan BusinessToConnMsg
 }
 
 // server: 0.0.0.0:port
-func NewUdpClient(udpClientProcess UdpClientProcess, transportMsg chan TransportMsg) (tc *UdpClient) {
+func NewUdpClient(udpClientProcess UdpClientProcess, businessToConnMsg chan BusinessToConnMsg) (tc *UdpClient) {
 
 	belogs.Debug("NewUdpClient():udpClientProcess:", udpClientProcess)
 	tc = &UdpClient{}
 	tc.connType = "udp"
 	tc.udpClientProcess = udpClientProcess
-	tc.transportMsg = transportMsg
+	tc.businessToConnMsg = businessToConnMsg
 	belogs.Info("NewUdpClient():tc:", tc)
 	return tc
 }
@@ -50,7 +50,7 @@ func (tc *UdpClient) StartUdpClient(server string) (err error) {
 	tc.udpConn.SetServerUdpAddr(serverUdpAddr)
 	//active send to server, and receive from server, loop
 	belogs.Debug("UdpClient.StartUdpClient(): NewFromUdpConn ok, server:", server, "   udpConn:", tc.udpConn.serverUdpAddr)
-	go tc.waitTransportMsg()
+	go tc.waitBusinessToConnMsg()
 
 	// onReceive
 	go tc.onReceive()
@@ -111,45 +111,45 @@ func (tc *UdpClient) onClose() {
 
 }
 
-func (tc *UdpClient) SendTransportMsg(transportMsg *TransportMsg) {
+func (tc *UdpClient) SendBusinessToConnMsg(businessToConnMsg *BusinessToConnMsg) {
 
-	belogs.Debug("UdpClient.SendTransportMsg(): transportMsg:", jsonutil.MarshalJson(*transportMsg))
-	tc.transportMsg <- *transportMsg
+	belogs.Debug("UdpClient.SendBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(*businessToConnMsg))
+	tc.businessToConnMsg <- *businessToConnMsg
 }
 
-func (tc *UdpClient) waitTransportMsg() (err error) {
-	belogs.Debug("UdpClient.waitTransportMsg(): udpConn.serverUdpAddr:", tc.udpConn.serverUdpAddr)
+func (tc *UdpClient) waitBusinessToConnMsg() (err error) {
+	belogs.Debug("UdpClient.waitBusinessToConnMsg(): udpConn.serverUdpAddr:", tc.udpConn.serverUdpAddr)
 	for {
-		// wait next transportMsg: only error or NEXT_CONNECT_POLICY_CLOSE_** will end loop
+		// wait next businessToConnMsg: only error or NEXT_CONNECT_POLICY_CLOSE_** will end loop
 		select {
-		case transportMsg := <-tc.transportMsg:
-			belogs.Info("UdpClient.waitTransportMsg(): transportMsg:", jsonutil.MarshalJson(transportMsg),
+		case businessToConnMsg := <-tc.businessToConnMsg:
+			belogs.Info("UdpClient.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg),
 				"  udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr)
 
-			switch transportMsg.MsgType {
+			switch businessToConnMsg.MsgType {
 			case MSG_TYPE_CLIENT_CLOSE_CONNECT:
-				belogs.Info("UdpClient.waitTransportMsg(): msgType is MSG_TYPE_CLIENT_CLOSE_CONNECT,",
-					" will close for udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, " will return, close waitTransportMsg")
+				belogs.Info("UdpClient.waitBusinessToConnMsg(): msgType is MSG_TYPE_CLIENT_CLOSE_CONNECT,",
+					" will close for udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, " will return, close waitBusinessToConnMsg")
 				tc.onClose()
 				// end for/select
-				// will return, close waitTransportMsg
+				// will return, close waitBusinessToConnMsg
 				return nil
 			case MSG_TYPE_COMMON_SEND_DATA:
-				belogs.Info("UdpClient.waitTransportMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA,",
+				belogs.Info("UdpClient.waitBusinessToConnMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA,",
 					" will send to udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr)
-				sendData := transportMsg.SendData
-				belogs.Debug("UdpClient.waitTransportMsg(): send to server:", tc.udpConn.serverUdpAddr,
+				sendData := businessToConnMsg.SendData
+				belogs.Debug("UdpClient.waitBusinessToConnMsg(): send to server:", tc.udpConn.serverUdpAddr,
 					"   sendData:", convert.PrintBytesOneLine(sendData))
 
 				// send data
 				start := time.Now()
 				n, err := tc.udpConn.WriteToServer(sendData)
 				if err != nil {
-					belogs.Error("UdpClient.waitTransportMsg(): Write fail, will close  udpConn.serverUdpAddr:", tc.udpConn.serverUdpAddr, err)
+					belogs.Error("UdpClient.waitBusinessToConnMsg(): Write fail, will close  udpConn.serverUdpAddr:", tc.udpConn.serverUdpAddr, err)
 					tc.onClose()
 					return err
 				}
-				belogs.Info("UdpClient.waitTransportMsg(): Write to udpConn.serverUdpAddr:", tc.udpConn.serverUdpAddr,
+				belogs.Info("UdpClient.waitBusinessToConnMsg(): Write to udpConn.serverUdpAddr:", tc.udpConn.serverUdpAddr,
 					"  len(sendData):", len(sendData), "  write n:", n,
 					"  time(s):", time.Since(start))
 

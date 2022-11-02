@@ -8,8 +8,8 @@ import (
 /*
 func TestCreateTcpServer(t *testing.T) {
 	serverProcessFunc := new(ServerProcessFunc)
-	transportMsg := make(chan TransportMsg, 16)
-	ts := NewTcpServer(serverProcessFunc, transportMsg)
+	businessToConnMsg := make(chan BusinessToConnMsg, 16)
+	ts := NewTcpServer(serverProcessFunc, businessToConnMsg)
 	fmt.Println("CreateTcpServer():", 9999)
 	err := ts.StartTcpServer("9999")
 	if err != nil {
@@ -30,9 +30,9 @@ func TestCreateTlsServer(t *testing.T) {
 	fmt.Println("CreateTlsServer(): tlsRootCrtFileName:", tlsRootCrtFileName,
 		"tlsPublicCrtFileName:", tlsPublicCrtFileName,
 		"tlsPrivateKeyFileName:", tlsPrivateKeyFileName)
-	transportMsg := make(chan TransportMsg, 16)
+	businessToConnMsg := make(chan BusinessToConnMsg, 16)
 	ts, err := NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName,
-		tlsPrivateKeyFileName, true, serverProcessFunc, transportMsg)
+		tlsPrivateKeyFileName, true, serverProcessFunc, businessToConnMsg)
 	if err != nil {
 		fmt.Println("CreateTlsServer(): NewTlsServer ts fail: ", &ts, err)
 		return

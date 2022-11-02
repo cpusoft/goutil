@@ -29,30 +29,30 @@ type TcpClient struct {
 	tcpConn *TcpConn
 
 	// for channel
-	transportMsg chan TransportMsg
+	businessToConnMsg chan BusinessToConnMsg
 }
 
 // server: 0.0.0.0:port
-func NewTcpClient(tcpClientProcess TcpClientProcess, transportMsg chan TransportMsg) (tc *TcpClient) {
+func NewTcpClient(tcpClientProcess TcpClientProcess, businessToConnMsg chan BusinessToConnMsg) (tc *TcpClient) {
 
 	belogs.Debug("NewTcpClient():tcpClientProcess:", tcpClientProcess)
 	tc = &TcpClient{}
 	tc.connType = "tcp"
 	tc.tcpClientProcess = tcpClientProcess
-	tc.transportMsg = transportMsg
+	tc.businessToConnMsg = businessToConnMsg
 	belogs.Info("NewTcpClient():tc:", tc)
 	return tc
 }
 
 // server: 0.0.0.0:port
 func NewTlsClient(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string,
-	tcpClientProcess TcpClientProcess, transportMsg chan TransportMsg) (tc *TcpClient, err error) {
+	tcpClientProcess TcpClientProcess, businessToConnMsg chan BusinessToConnMsg) (tc *TcpClient, err error) {
 
 	belogs.Debug("NewTlsClient():tcpClientProcess:", &tcpClientProcess)
 	tc = &TcpClient{}
 	tc.connType = "tls"
 	tc.tcpClientProcess = tcpClientProcess
-	tc.transportMsg = transportMsg
+	tc.businessToConnMsg = businessToConnMsg
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
 	if !rootExists {
@@ -99,7 +99,7 @@ func (tc *TcpClient) StartTcpClient(server string) (err error) {
 	tc.tcpConn = NewFromTcpConn(tcpConn)
 	//active send to server, and receive from server, loop
 	belogs.Debug("TcpClient.StartTcpClient(): NewFromTcpConn ok, server:", server, "   tcpConn:", tc.tcpConn.RemoteAddr().String())
-	go tc.waitTransportMsg()
+	go tc.waitBusinessToConnMsg()
 
 	// onConnect
 	tc.onConnect()
@@ -166,7 +166,7 @@ func (tc *TcpClient) StartTlsClient(server string) (err error) {
 	tc.tcpConn = NewFromTlsConn(tlsConn)
 	belogs.Debug("TcpClient.StartTlsClient(): NewFromTlsConn ok, server:", server, "   tcpConn:", tc.tcpConn.RemoteAddr().String())
 	//active send to server, and receive from server, loop
-	go tc.waitTransportMsg()
+	go tc.waitBusinessToConnMsg()
 
 	// onConnect
 	tc.onConnect()
@@ -241,10 +241,10 @@ func (tc *TcpClient) onClose() {
 
 }
 
-func (tc *TcpClient) SendTransportMsg(transportMsg *TransportMsg) {
+func (tc *TcpClient) SendBusinessToConnMsg(businessToConnMsg *BusinessToConnMsg) {
 
-	belogs.Debug("TcpClient.SendTransportMsg(): transportMsg:", jsonutil.MarshalJson(*transportMsg))
-	tc.transportMsg <- *transportMsg
+	belogs.Debug("TcpClient.SendBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(*businessToConnMsg))
+	tc.businessToConnMsg <- *businessToConnMsg
 }
 
 func (tc *TcpClient) IsConnected() bool {
@@ -262,46 +262,46 @@ func (tc *TcpClient) SendMsgForCloseConnect() {
 	// send channel, and wait listener and conns end itself process and close loop
 	belogs.Info("TcpClient.SendMsgForCloseConnect(): will close graceful")
 	if tc.IsConnected() {
-		transportMsg := &TransportMsg{
+		businessToConnMsg := &BusinessToConnMsg{
 			MsgType: MSG_TYPE_CLIENT_CLOSE_CONNECT,
 		}
-		tc.SendTransportMsg(transportMsg)
+		tc.SendBusinessToConnMsg(businessToConnMsg)
 	}
 }
 
-func (tc *TcpClient) waitTransportMsg() (err error) {
-	belogs.Debug("TcpClient.waitTransportMsg(): tcpConn:", tc.tcpConn.RemoteAddr().String())
+func (tc *TcpClient) waitBusinessToConnMsg() (err error) {
+	belogs.Debug("TcpClient.waitBusinessToConnMsg(): tcpConn:", tc.tcpConn.RemoteAddr().String())
 	for {
-		// wait next transportMsg: only error or NEXT_CONNECT_POLICY_CLOSE_** will end loop
+		// wait next businessToConnMsg: only error or NEXT_CONNECT_POLICY_CLOSE_** will end loop
 		select {
-		case transportMsg := <-tc.transportMsg:
-			belogs.Info("TcpClient.waitTransportMsg(): transportMsg:", jsonutil.MarshalJson(transportMsg),
+		case businessToConnMsg := <-tc.businessToConnMsg:
+			belogs.Info("TcpClient.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg),
 				"  tcpConn: ", tc.tcpConn.RemoteAddr().String())
 
-			switch transportMsg.MsgType {
+			switch businessToConnMsg.MsgType {
 			case MSG_TYPE_CLIENT_CLOSE_CONNECT:
-				belogs.Info("TcpClient.waitTransportMsg(): msgType is MSG_TYPE_CLIENT_CLOSE_CONNECT,",
-					" will close for tcpConn: ", tc.tcpConn.RemoteAddr().String(), " will return, close waitTransportMsg")
+				belogs.Info("TcpClient.waitBusinessToConnMsg(): msgType is MSG_TYPE_CLIENT_CLOSE_CONNECT,",
+					" will close for tcpConn: ", tc.tcpConn.RemoteAddr().String(), " will return, close waitBusinessToConnMsg")
 				tc.onClose()
 				// end for/select
-				// will return, close waitTransportMsg
+				// will return, close waitBusinessToConnMsg
 				return nil
 			case MSG_TYPE_COMMON_SEND_DATA:
-				belogs.Info("TcpClient.waitTransportMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA,",
+				belogs.Info("TcpClient.waitBusinessToConnMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA,",
 					" will send to tcpConn: ", tc.tcpConn.RemoteAddr().String())
-				sendData := transportMsg.SendData
-				belogs.Debug("TcpClient.waitTransportMsg(): send to server:", tc.tcpConn.RemoteAddr().String(),
+				sendData := businessToConnMsg.SendData
+				belogs.Debug("TcpClient.waitBusinessToConnMsg(): send to server:", tc.tcpConn.RemoteAddr().String(),
 					"   sendData:", convert.PrintBytesOneLine(sendData))
 
 				// send data
 				start := time.Now()
 				n, err := tc.tcpConn.Write(sendData)
 				if err != nil {
-					belogs.Error("TcpClient.waitTransportMsg(): Write fail, will close  tcpConn:", tc.tcpConn.RemoteAddr().String(), err)
+					belogs.Error("TcpClient.waitBusinessToConnMsg(): Write fail, will close  tcpConn:", tc.tcpConn.RemoteAddr().String(), err)
 					tc.onClose()
 					return err
 				}
-				belogs.Info("TcpClient.waitTransportMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
+				belogs.Info("TcpClient.waitBusinessToConnMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
 					"  len(sendData):", len(sendData), "  write n:", n,
 					"  time(s):", time.Since(start))
 
