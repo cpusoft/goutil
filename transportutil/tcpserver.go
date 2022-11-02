@@ -327,9 +327,9 @@ func (ts *TcpServer) onClose(tcpConn *TcpConn) {
 	belogs.Info("TcpServer.onClose(): new len(tcpConns): ", len(ts.tcpConns), "  time(s):", time.Now().Sub(start).Seconds())
 }
 
-func (ts *TcpServer) SendMsg(transportMsg *TransportMsg) {
+func (ts *TcpServer) SendTransportMsg(transportMsg *TransportMsg) {
 
-	belogs.Debug("TcpServer.SendMsg():, transportMsg:", jsonutil.MarshalJson(*transportMsg))
+	belogs.Debug("TcpServer.SendTransportMsg():, transportMsg:", jsonutil.MarshalJson(*transportMsg))
 	ts.transportMsg <- *transportMsg
 }
 
@@ -342,7 +342,7 @@ func (ts *TcpServer) SendMsgForCloseConnect(msgType uint64, serverConnKey string
 		MsgType:       msgType,
 		ServerConnKey: serverConnKey,
 	}
-	ts.SendMsg(transportMsg)
+	ts.SendTransportMsg(transportMsg)
 }
 
 func (ts *TcpServer) waitTransportMsg() {

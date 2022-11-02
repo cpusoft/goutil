@@ -105,9 +105,9 @@ func (us *UdpServer) onClose() {
 	us.udpConn = nil
 }
 
-func (us *UdpServer) SendMsg(transportMsg *TransportMsg) {
+func (us *UdpServer) SendTransportMsg(transportMsg *TransportMsg) {
 
-	belogs.Debug("UdpServer.SendMsg():, transportMsg:", jsonutil.MarshalJson(*transportMsg))
+	belogs.Debug("UdpServer.SendTransportMsg():, transportMsg:", jsonutil.MarshalJson(*transportMsg))
 	us.transportMsg <- *transportMsg
 }
 

@@ -111,9 +111,9 @@ func (tc *UdpClient) onClose() {
 
 }
 
-func (tc *UdpClient) SendMsg(transportMsg *TransportMsg) {
+func (tc *UdpClient) SendTransportMsg(transportMsg *TransportMsg) {
 
-	belogs.Debug("UdpClient.SendMsg(): transportMsg:", jsonutil.MarshalJson(*transportMsg))
+	belogs.Debug("UdpClient.SendTransportMsg(): transportMsg:", jsonutil.MarshalJson(*transportMsg))
 	tc.transportMsg <- *transportMsg
 }
 

@@ -16,7 +16,7 @@ func TestCreateTcpClient(t *testing.T) {
 		NextRwPolicy: NEXT_RW_POLICY_WAIT_READ,
 		SendData:     GetTcpClientData(),
 	}
-	tc.SendMsg(transportMsg)
+	tc.SendTransportMsg(transportMsg)
 	time.Sleep(60 * time.Second)
 
 	fmt.Println("CreateTcpClient(): tcpclient will stop")
@@ -48,13 +48,13 @@ func TestCreateTlsClient(t *testing.T) {
 		NextRwPolicy: NEXT_RW_POLICY_WAIT_READ,
 		SendData:     GetTcpClientData(),
 	}
-	tc.SendMsg(transportMsg)
+	tc.SendTransportMsg(transportMsg)
 	time.Sleep(60 * time.Second)
 
 	fmt.Println("CreateTcpClient(): tcpclient will stop")
 	tcpClientSendMsg.NextConnectClosePolicy = NEXT_CONNECT_POLICY_CLOSE_GRACEFUL
 	tcpClientSendMsg.SendData = nil
-	tc.SendMsg(tcpClientSendMsg)
+	tc.SendTransportMsg(tcpClientSendMsg)
 
 }
 

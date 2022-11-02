@@ -81,7 +81,7 @@ func TestDnsUdpClient(t *testing.T) {
 		MsgType:  tcptlsutil.MSG_TYPE_COMMON_SEND_DATA,
 		SendData: sendBytes,
 	}
-	dnsUdpClient.udpClient.SendMsg(transportMsg)
+	dnsUdpClient.udpClient.SendTransportMsg(transportMsg)
 
 	time.Sleep(5 * time.Second)
 

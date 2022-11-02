@@ -241,9 +241,9 @@ func (tc *TcpClient) onClose() {
 
 }
 
-func (tc *TcpClient) SendMsg(transportMsg *TransportMsg) {
+func (tc *TcpClient) SendTransportMsg(transportMsg *TransportMsg) {
 
-	belogs.Debug("TcpClient.SendMsg(): transportMsg:", jsonutil.MarshalJson(*transportMsg))
+	belogs.Debug("TcpClient.SendTransportMsg(): transportMsg:", jsonutil.MarshalJson(*transportMsg))
 	tc.transportMsg <- *transportMsg
 }
 
@@ -265,7 +265,7 @@ func (tc *TcpClient) SendMsgForCloseConnect() {
 		transportMsg := &TransportMsg{
 			MsgType: MSG_TYPE_CLIENT_CLOSE_CONNECT,
 		}
-		tc.SendMsg(transportMsg)
+		tc.SendTransportMsg(transportMsg)
 	}
 }
 

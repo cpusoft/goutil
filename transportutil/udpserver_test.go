@@ -70,7 +70,7 @@ func (c *ServerProcess) OnReceiveAndSendProcess(udpConn *UdpConn, clientUdpAddr 
 		SendData:      sendBytes,
 		ServerConnKey: serverConnKey,
 	}
-	dnsUdpServer.udpServer.SendMsg(transportMsg)
+	dnsUdpServer.udpServer.SendTransportMsg(transportMsg)
 
 	return
 }
