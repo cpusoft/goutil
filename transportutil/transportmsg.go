@@ -32,12 +32,3 @@ type BusinessToConnMsg struct {
 	// if is "", will send all conns
 	ServerConnKey string `json:"serverConnKey,omitempty"`
 }
-
-// from lower conn send to upper business, such as 'receive data from conn, will send to business'
-// used in client
-type ConnToBusinessMsg struct {
-	// common
-	BusinessToConnMsgType uint64      `json:"businessToConnMsgType"`
-	ReceiveType           string      `json:"receiveType"`
-	ReceiveData           interface{} `json:"receiveData"`
-}
