@@ -78,8 +78,8 @@ func TestDnsUdpClient(t *testing.T) {
 	}
 	sendBytes := []byte("test udp")
 	businessToConnMsg := &BusinessToConnMsg{
-		MsgType:  tcptlsutil.MSG_TYPE_COMMON_SEND_DATA,
-		SendData: sendBytes,
+		BusinessToConnMsgType: tcptlsutil.BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,
+		SendData:              sendBytes,
 	}
 	dnsUdpClient.udpClient.SendBusinessToConnMsg(businessToConnMsg)
 

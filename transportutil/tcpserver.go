@@ -333,14 +333,14 @@ func (ts *TcpServer) SendBusinessToConnMsg(businessToConnMsg *BusinessToConnMsg)
 	ts.businessToConnMsg <- *businessToConnMsg
 }
 
-// msgType:MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL, //
-// MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE
-func (ts *TcpServer) SendMsgForCloseConnect(msgType uint64, serverConnKey string) {
+// businessToConnMsgType:BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL, //
+// BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE
+func (ts *TcpServer) SendMsgForCloseConnect(businessToConnMsgType uint64, serverConnKey string) {
 	// send channel, and wait listener and conns end itself process and close loop
-	belogs.Info("TcpServer.SendMsgForCloseConnect(): will close, msgType:", msgType, "  serverConnKey:", serverConnKey)
+	belogs.Info("TcpServer.SendMsgForCloseConnect(): will close, businessToConnMsgType:", businessToConnMsgType, "  serverConnKey:", serverConnKey)
 	businessToConnMsg := &BusinessToConnMsg{
-		MsgType:       msgType,
-		ServerConnKey: serverConnKey,
+		BusinessToConnMsgType: businessToConnMsgType,
+		ServerConnKey:         serverConnKey,
 	}
 	ts.SendBusinessToConnMsg(businessToConnMsg)
 }
@@ -352,10 +352,10 @@ func (ts *TcpServer) waitBusinessToConnMsg() {
 		case businessToConnMsg := <-ts.businessToConnMsg:
 			belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))
 
-			switch businessToConnMsg.MsgType {
-			case MSG_TYPE_SERVER_CLOSE_FORCIBLE:
+			switch businessToConnMsg.BusinessToConnMsgType {
+			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE:
 				// ignore conns's writing/reading, just close
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_SERVER_CLOSE_FORCIBLE")
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE")
 				// just close
 				ts.state = SERVER_STATE_CLOSING
 				ts.tcpListener.Close()
@@ -368,9 +368,9 @@ func (ts *TcpServer) waitBusinessToConnMsg() {
 				ts.state = SERVER_STATE_CLOSED
 				// will return, close waitBusinessToConnMsg
 				return
-			case MSG_TYPE_SERVER_CLOSE_GRACEFUL:
+			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_GRACEFUL:
 				// close and wait connect.Read and Accept
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_SERVER_CLOSE_GRACEFUL")
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_GRACEFUL")
 				ts.state = SERVER_STATE_CLOSING
 				close(ts.closeGraceful)
 				time.Sleep(5 * time.Second)
@@ -383,23 +383,23 @@ func (ts *TcpServer) waitBusinessToConnMsg() {
 				ts.state = SERVER_STATE_CLOSED
 				// will return, close waitBusinessToConnMsg
 				return
-			case MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL:
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL")
+			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL:
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL")
 				fallthrough
-			case MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE:
+			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE:
 				// close and wait connect.Read and Accept
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE")
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE")
 				if len(businessToConnMsg.ServerConnKey) > 0 {
 					ts.onClose(ts.tcpConns[businessToConnMsg.ServerConnKey])
 				}
 				belogs.Info("TcpServer.waitBusinessToConnMsg(): close connect, serverConnKey:", businessToConnMsg.ServerConnKey)
 				// close one connect, no return
 				// return
-			case MSG_TYPE_COMMON_SEND_DATA:
+			case BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA:
 
 				serverConnKey := businessToConnMsg.ServerConnKey
 				sendData := businessToConnMsg.SendData
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
+				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
 					"  sendData:", convert.PrintBytesOneLine(sendData))
 				err := ts.activeSend(serverConnKey, sendData)
 				if err != nil {

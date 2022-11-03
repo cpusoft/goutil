@@ -126,16 +126,16 @@ func (tc *UdpClient) waitBusinessToConnMsg() (err error) {
 			belogs.Info("UdpClient.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg),
 				"  udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr)
 
-			switch businessToConnMsg.MsgType {
-			case MSG_TYPE_CLIENT_CLOSE_CONNECT:
-				belogs.Info("UdpClient.waitBusinessToConnMsg(): msgType is MSG_TYPE_CLIENT_CLOSE_CONNECT,",
+			switch businessToConnMsg.BusinessToConnMsgType {
+			case BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT:
+				belogs.Info("UdpClient.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT,",
 					" will close for udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, " will return, close waitBusinessToConnMsg")
 				tc.onClose()
 				// end for/select
 				// will return, close waitBusinessToConnMsg
 				return nil
-			case MSG_TYPE_COMMON_SEND_DATA:
-				belogs.Info("UdpClient.waitBusinessToConnMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA,",
+			case BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA:
+				belogs.Info("UdpClient.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,",
 					" will send to udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr)
 				sendData := businessToConnMsg.SendData
 				belogs.Debug("UdpClient.waitBusinessToConnMsg(): send to server:", tc.udpConn.serverUdpAddr,

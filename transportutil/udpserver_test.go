@@ -66,9 +66,9 @@ func (c *ServerProcess) OnReceiveAndSendProcess(udpConn *UdpConn, clientUdpAddr 
 	serverConnKey := GetUdpAddrKey(clientUdpAddr)
 	sendBytes := []byte(sendStr)
 	businessToConnMsg := &BusinessToConnMsg{
-		MsgType:       MSG_TYPE_COMMON_SEND_DATA,
-		SendData:      sendBytes,
-		ServerConnKey: serverConnKey,
+		BusinessToConnMsgType: BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,
+		SendData:              sendBytes,
+		ServerConnKey:         serverConnKey,
 	}
 	dnsUdpServer.udpServer.SendBusinessToConnMsg(businessToConnMsg)
 

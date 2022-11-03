@@ -119,12 +119,12 @@ func (us *UdpServer) waitBusinessToConnMsg() {
 		case businessToConnMsg := <-us.businessToConnMsg:
 			belogs.Info("UdpServer.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))
 
-			switch businessToConnMsg.MsgType {
-			case MSG_TYPE_SERVER_CLOSE_FORCIBLE:
+			switch businessToConnMsg.BusinessToConnMsgType {
+			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE:
 				// ignore conns's writing/reading, just close
-				belogs.Info("UdpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_SERVER_CLOSE_FORCIBLE")
+				belogs.Info("UdpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE")
 				fallthrough
-			case MSG_TYPE_SERVER_CLOSE_GRACEFUL:
+			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_GRACEFUL:
 				// close and wait connect.Read and Accept
 				us.state = SERVER_STATE_CLOSING
 				us.onClose()
@@ -134,11 +134,11 @@ func (us *UdpServer) waitBusinessToConnMsg() {
 				// will return, close waitBusinessToConnMsg
 				return
 
-			case MSG_TYPE_COMMON_SEND_DATA:
+			case BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA:
 
 				serverConnKey := businessToConnMsg.ServerConnKey
 				sendData := businessToConnMsg.SendData
-				belogs.Info("UdpServer.waitBusinessToConnMsg(): msgType is MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
+				belogs.Info("UdpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
 					"  sendData:", convert.PrintBytesOneLine(sendData))
 				start := time.Now()
 				n, err := us.udpConn.WriteToClient(sendData, serverConnKey)
