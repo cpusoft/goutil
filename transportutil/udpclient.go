@@ -54,52 +54,6 @@ func (tc *UdpClient) StartUdpClient(server string) (err error) {
 	return nil
 }
 
-/*
-func (tc *UdpClient) SendAndReceiveMsg() (err error) {
-	belogs.Debug("UdpClient.SendAndReceiveMsg(): wait for SendAndReceiveMsg, udpConn:", tc.udpConn.serverUdpAddr)
-
-	// one packet
-	buffer := make([]byte, 2048)
-	// wait for new packet to read
-
-	// when end SendAndReceiveMsg, will onClose
-	defer tc.onClose()
-	for {
-		start := time.Now()
-		n, err := tc.udpConn.ReadFromServer(buffer)
-		//	if n == 0 {
-		//		continue
-		//	}
-		if err != nil {
-			if err == io.EOF {
-				// is not error, just client close
-				belogs.Debug("UdpClient.SendAndReceiveMsg(): io.EOF, client close, udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, err)
-				return nil
-			}
-			belogs.Error("UdpClient.SendAndReceiveMsg(): Read fail or connect is closing, udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, err)
-			return err
-		}
-
-		belogs.Debug("UdpClient.SendAndReceiveMsg(): Read n :", n, " from udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr,
-			"  time(s):", time.Now().Sub(start))
-		err = tc.udpClientProcess.OnReceiveProcess(tc.udpConn, append(buffer[:n]))
-
-		if err != nil {
-			belogs.Error("UdpClient.SendAndReceiveMsg(): udpClientProcess.OnReceiveProcess  fail ,will close this udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, err)
-			return err
-		}
-		belogs.Info("UdpClient.SendAndReceiveMsg(): udpClientProcess.OnReceiveProcess, udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, " receive n: ", n,
-			"  time(s):", time.Now().Sub(start))
-
-		// reset buffer
-		buffer = make([]byte, 2048)
-		belogs.Debug("UdpClient.SendAndReceiveMsg(): will reset buffer and wait for Read from udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr,
-			"  time(s):", time.Now().Sub(start))
-
-	}
-
-}
-*/
 func (tc *UdpClient) onClose() {
 	// close in the end
 	belogs.Info("UdpClient.onClose(): udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr)
