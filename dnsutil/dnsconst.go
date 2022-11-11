@@ -75,6 +75,14 @@ const (
 	DNS_DOMAIN_ONE_LABEL_MAXLENGTH = uint8(63) // <=63
 )
 
+var DnsOpCodes map[uint8]string = map[uint8]string{
+	DNS_OPCODE_QUERY:  "query",
+	DNS_OPCODE_IQUERY: "iquery", // inverse query
+	DNS_OPCODE_STATUS: "status",
+	DNS_OPCODE_NOTIFY: "notify",
+	DNS_OPCODE_UPDATE: "update",
+	DNS_OPCODE_DSO:    "dso",
+}
 var DnsRCodes map[uint8]string = map[uint8]string{
 	DNS_RCODE_NOERROR:   "NoError",
 	DNS_RCODE_FORMERR:   "FormErr",
