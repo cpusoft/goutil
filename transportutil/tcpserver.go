@@ -335,7 +335,7 @@ func (ts *TcpServer) SendBusinessToConnMsg(businessToConnMsg *BusinessToConnMsg)
 
 // businessToConnMsgType:BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL, //
 // BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE
-func (ts *TcpServer) SendMsgForCloseConnect(businessToConnMsgType uint64, serverConnKey string) {
+func (ts *TcpServer) SendMsgForCloseConnect(businessToConnMsgType string, serverConnKey string) {
 	// send channel, and wait listener and conns end itself process and close loop
 	belogs.Info("TcpServer.SendMsgForCloseConnect(): will close, businessToConnMsgType:", businessToConnMsgType, "  serverConnKey:", serverConnKey)
 	businessToConnMsg := &BusinessToConnMsg{

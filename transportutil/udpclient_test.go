@@ -7,7 +7,6 @@ import (
 	"github.com/cpusoft/goutil/belogs"
 	_ "github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
-	"github.com/cpusoft/goutil/tcptlsutil"
 )
 
 var dnsUdpClient *DnsUdpClient
@@ -60,14 +59,18 @@ func NewDnsClientProcess(businessToConnMsg chan BusinessToConnMsg) *DnsClientPro
 	return c
 }
 
-func (c *DnsClientProcess) OnReceiveProcess(udpConn *UdpConn, receiveData []byte) (err error) {
+func (c *DnsClientProcess) OnReceiveProcess(udpConn *UdpConn, receiveData []byte) (connToBusinessMsg *ConnToBusinessMsg, err error) {
 	belogs.Debug("OnReceiveProcess(): client len(receiveData):", len(receiveData), "   receiveData:", convert.PrintBytesOneLine(receiveData))
 
 	receiveStr := string(receiveData)
 	belogs.Debug("OnReceiveProcess():receiveStr:", receiveStr)
 
 	// continue to receive next receiveData
-	return nil
+	bu := &ConnToBusinessMsg{
+		ConnToBusinessMsgType: "dns",
+		ReceiveData:           "recive from server:" + receiveStr,
+	}
+	return bu, nil
 }
 
 func TestDnsUdpClient(t *testing.T) {
@@ -78,10 +81,11 @@ func TestDnsUdpClient(t *testing.T) {
 	}
 	sendBytes := []byte("test udp")
 	businessToConnMsg := &BusinessToConnMsg{
-		BusinessToConnMsgType: tcptlsutil.BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,
+		BusinessToConnMsgType: BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_AND_RECEIVE_DATA,
 		SendData:              sendBytes,
 	}
-	dnsUdpClient.udpClient.SendBusinessToConnMsg(businessToConnMsg)
+	connToBusinessMsg, err := dnsUdpClient.udpClient.SendAndReceiveMsg(businessToConnMsg)
+	belogs.Debug("connToBusinessMsg:", connToBusinessMsg, err)
 
 	time.Sleep(5 * time.Second)
 

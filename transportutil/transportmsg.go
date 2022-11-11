@@ -4,26 +4,23 @@ import "github.com/cpusoft/goutil/jsonutil"
 
 const (
 	// common
-	BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA = 1
-
+	BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA             = "sendData"
+	BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_AND_RECEIVE_DATA = "sendAndReceiveData"
 	// server
-	BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE             = 100
-	BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_GRACEFUL             = 101
-	BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE = 102
-	BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL = 103
+	BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE             = "serverCloseForcible"
+	BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_GRACEFUL             = "serverCloseGraceful"
+	BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE = "serverCloseOneConnectForcible"
+	BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL = "serverCloseOneConnectGraceful"
 
 	// client
-	BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT = 200
-
-	// client conn to business
-	CONN_TO_BUSINESS_MSG_TYPE_DNS = 300
+	BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT = "clientCloseConnect"
 )
 
 // from upper business send to lower conn, such as 'send data to conn'
 // used in client and server
 type BusinessToConnMsg struct {
 	// common
-	BusinessToConnMsgType uint64 `json:"businessToConnMsgType"`
+	BusinessToConnMsgType string `json:"businessToConnMsgType"`
 
 	// for send data //
 	SendData jsonutil.HexBytes `json:"sendData,omitempty"`
@@ -31,4 +28,10 @@ type BusinessToConnMsg struct {
 	// for server to choose which conn
 	// if is "", will send all conns
 	ServerConnKey string `json:"serverConnKey,omitempty"`
+}
+
+type ConnToBusinessMsg struct {
+	// common
+	ConnToBusinessMsgType string      `json:"connToBusinessMsgType"`
+	ReceiveData           interface{} `json:"receiveData"`
 }
