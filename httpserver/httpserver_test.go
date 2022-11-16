@@ -2,8 +2,9 @@ package httpserver
 
 import (
 	"fmt"
-	"github.com/cpusoft/go-json-rest/rest"
 	"testing"
+
+	rest "github.com/cpusoft/goutil/go-json-rest"
 
 	httpserver "github.com/cpusoft/goutil/httpserver"
 )

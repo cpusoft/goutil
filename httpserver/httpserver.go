@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cpusoft/go-json-rest/rest"
 	"github.com/cpusoft/goutil/belogs"
+	rest "github.com/cpusoft/goutil/go-json-rest"
 	"github.com/cpusoft/goutil/osutil"
 )
 
