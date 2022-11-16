@@ -278,3 +278,15 @@ func TestCompressFillIpv6(t *testing.T) {
 		fmt.Println(ips[i], newIp)
 	}
 }
+
+func TestIsAddressPrefixRangeContains(t *testing.T) {
+	p := `192.168/16`
+	c := `192.169.5/24`
+	is, err := IsAddressPrefixRangeContains(p, c)
+	fmt.Println(is, err)
+
+	p = `2803:d380/28`
+	c = `2803:d380/29`
+	is, err = IsAddressPrefixRangeContains(p, c)
+	fmt.Println(is, err)
+}
