@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -9,7 +10,7 @@ import (
 	"github.com/cpusoft/goutil/osutil"
 )
 
-var Configure config.Configer
+var configure config.Configer
 
 // load configure file
 func init() {
@@ -45,7 +46,7 @@ func init() {
 		conf = path + string(os.PathSeparator) + "project.conf"
 	}
 	//fmt.Println("conf file is ", conf)
-	Configure, err = config.NewConfig("ini", conf)
+	configure, err = config.NewConfig("ini", conf)
 	if err != nil {
 		fmt.Println("load " + conf + " failed, " + err.Error())
 		return
@@ -54,27 +55,42 @@ func init() {
 }
 
 func String(key string) string {
-	s, _ := Configure.String(key)
-	return s
+	if configure != nil {
+		s, _ := configure.String(key)
+		return s
+	}
+	return ""
 }
 
 func Int(key string) int {
-	i, _ := Configure.Int(key)
-	return i
+	if configure != nil {
+		i, _ := configure.Int(key)
+		return i
+	}
+	return 0
 }
 
 func Strings(key string) []string {
-	s, _ := Configure.Strings(key)
-	return s
+	if configure != nil {
+		s, _ := configure.Strings(key)
+		return s
+	}
+	return nil
 }
 
 func Bool(key string) bool {
-	b, _ := Configure.Bool(key)
-	return b
+	if configure != nil {
+		b, _ := configure.Bool(key)
+		return b
+	}
+	return false
 }
 
 func DefaultBool(key string, defaultVal bool) bool {
-	return Configure.DefaultBool(key, defaultVal)
+	if configure != nil {
+		return configure.DefaultBool(key, defaultVal)
+	}
+	return false
 }
 
 //destpath=${rpstir2::datadir}/rsyncrepo   --> replace ${rpstir2::datadir}
@@ -110,5 +126,8 @@ func VariableString(key string) string {
 // key:  "aaa::bbb"
 // value: "ccc"
 func SetString(key, value string) error {
-	return Configure.Set(key, value)
+	if configure != nil {
+		return configure.Set(key, value)
+	}
+	return errors.New("configure is nil")
 }
