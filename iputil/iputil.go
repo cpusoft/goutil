@@ -449,8 +449,8 @@ func IsAddressPrefixRangeContains(parentAddressPrefix string, childAddressPrefix
 	parentIpType := GetIpType(parentAddressPrefix)
 	childIpType := GetIpType(childAddressPrefix)
 	if parentIpType != childIpType {
-		belogs.Debug("IsAddressPrefixRangeContains(): parentIpType is different with childIpType, fail,  parentAddressPrefix:", parentAddressPrefix, " parentIpType :", parentIpType,
-			"   childAddressPrefix:", childAddressPrefix, "   childIpType:", childIpType)
+		//belogs.Debug("IsAddressPrefixRangeContains(): parentIpType is different with childIpType, fail,  parentAddressPrefix:", parentAddressPrefix, " parentIpType :", parentIpType,
+		//	"   childAddressPrefix:", childAddressPrefix, "   childIpType:", childIpType)
 		return false, errors.New("parentIpType is different with childIpType")
 	}
 	parentMin, parentMax, err := AddressPrefixToHexRange(parentAddressPrefix, parentIpType)
