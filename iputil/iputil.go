@@ -449,7 +449,7 @@ func IsAddressPrefixRangeContains(parentAddressPrefix string, childAddressPrefix
 	parentIpType := GetIpType(parentAddressPrefix)
 	childIpType := GetIpType(childAddressPrefix)
 	if parentIpType != childIpType {
-		belogs.Error("IsAddressPrefixRangeContains(): parentIpType is different with childIpType, fail,  parentAddressPrefix:", parentAddressPrefix, " parentIpType :", parentIpType,
+		belogs.Debug("IsAddressPrefixRangeContains(): parentIpType is different with childIpType, fail,  parentAddressPrefix:", parentAddressPrefix, " parentIpType :", parentIpType,
 			"   childAddressPrefix:", childAddressPrefix, "   childIpType:", childIpType)
 		return false, errors.New("parentIpType is different with childIpType")
 	}
@@ -464,7 +464,7 @@ func IsAddressPrefixRangeContains(parentAddressPrefix string, childAddressPrefix
 		belogs.Error("IsAddressPrefixRangeContains(): AddressPrefixToHexRange childAddressPrefix fail,  childAddressPrefix:", childAddressPrefix, err)
 		return false, err
 	}
-	belogs.Debug("IsAddressPrefixRangeContains(): parentMin:", parentMin, "   parentMax:", parentMax, "   childMin:", childMin, " childMax:", childMax)
+	//belogs.Debug("IsAddressPrefixRangeContains(): parentMin:", parentMin, "   parentMax:", parentMax, "   childMin:", childMin, " childMax:", childMax)
 	return (parentMin <= childMin && parentMax >= childMax), nil
 
 }
@@ -475,7 +475,7 @@ func AddressPrefixToHexRange(addressPrefix string, ipType int) (minHex string, m
 
 	network, err := FillAddressPrefixWithZero(addressPrefix, ipType)
 	if err != nil {
-		belogs.Error("AddressPrefixToHexRange(): IpAndCIDRFillWithZero fail,  addressPrefix:", addressPrefix, " ipTye :", ipType, err)
+		belogs.Error("AddressPrefixToHexRange(): FillAddressPrefixWithZero fail,  addressPrefix:", addressPrefix, " ipTye :", ipType, err)
 		return "", "", err
 	}
 
@@ -557,7 +557,7 @@ func IsAddressPrefix(ip string) bool {
 
 	network, err := FillAddressPrefixWithZero(ip, ipType)
 	if err != nil {
-		belogs.Error("IsAddressPrefix(): IpAndCIDRFillWithZero err:", ip, err)
+		belogs.Error("IsAddressPrefix(): FillAddressPrefixWithZero err:", ip, err)
 		return false
 	}
 	//belogs.Debug("IsAddressPrefix(): network:", network)
