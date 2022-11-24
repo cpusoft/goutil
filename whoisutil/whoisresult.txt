@@ -1,0 +1,252 @@
+ whois  8.8.8.8/24
+
+#
+# ARIN WHOIS data and services are subject to the Terms of Use
+# available at: https://www.arin.net/resources/registry/whois/tou/
+#
+# If you see inaccuracies in the results, please report at
+# https://www.arin.net/resources/registry/whois/inaccuracy_reporting/
+#
+# Copyright 1997-2022, American Registry for Internet Numbers, Ltd.
+#
+
+
+No match found for n + 8.8.8.8/24.
+
+
+#
+# ARIN WHOIS data and services are subject to the Terms of Use
+# available at: https://www.arin.net/resources/registry/whois/tou/
+#
+# If you see inaccuracies in the results, please report at
+# https://www.arin.net/resources/registry/whois/inaccuracy_reporting/
+#
+# Copyright 1997-2022, American Registry for Internet Numbers, Ltd.
+#
+
+[root@lab-104:~]# whois  8.8.8.8
+
+#
+# ARIN WHOIS data and services are subject to the Terms of Use
+# available at: https://www.arin.net/resources/registry/whois/tou/
+#
+# If you see inaccuracies in the results, please report at
+# https://www.arin.net/resources/registry/whois/inaccuracy_reporting/
+#
+# Copyright 1997-2022, American Registry for Internet Numbers, Ltd.
+#
+
+
+
+# start
+
+NetRange:       8.0.0.0 - 8.127.255.255
+CIDR:           8.0.0.0/9
+NetName:        LVLT-ORG-8-8
+NetHandle:      NET-8-0-0-0-1
+Parent:         NET8 (NET-8-0-0-0-0)
+NetType:        Direct Allocation
+OriginAS:       
+Organization:   Level 3 Parent, LLC (LPL-141)
+RegDate:        1992-12-01
+Updated:        2018-04-23
+Ref:            https://rdap.arin.net/registry/ip/8.0.0.0
+
+
+OrgName:        Level 3 Parent, LLC
+OrgId:          LPL-141
+Address:        100 CenturyLink Drive
+City:           Monroe
+StateProv:      LA
+PostalCode:     71203
+Country:        US
+RegDate:        2018-02-06
+Updated:        2021-09-23
+Comment:        ADDRESSES WITHIN THIS BLOCK ARE NON-PORTABLE ANY ISP ANNOUNCING OR TRANSITING PORTIONS WITHIN OUR RANGES SHOULD NOT RELY ON PRESENTED LOA'S UNLESS THOSE RANGES ARE ALSO ANNOUNCED TO A LUMEN ASN. 
+Comment:        
+Comment:        Our looking glass is located at: https://lookingglass.centurylink.com/
+Comment:        
+Comment:        For subpoena or court order please fax 844.254.5800 or refer to our Trust & Safety page:
+Comment:        https://www.lumen.com/en-us/about/legal/trust-center/trust-and-safety.html
+Comment:        
+Comment:        For abuse issues, please email abuse@aup.lumen.com
+Comment:        All abuse reports MUST include: 
+Comment:        * src IP 
+Comment:        * dest IP (your IP) 
+Comment:        * dest port 
+Comment:        * Accurate date/timestamp and timezone of activity 
+Comment:        * Intensity/frequency (short log extracts) 
+Comment:        * Your contact details (phone and email) 
+Comment:        Without these we will be unable to identify the correct owner of the IP address at that point in time.
+Ref:            https://rdap.arin.net/registry/entity/LPL-141
+
+
+OrgTechHandle: IPADD5-ARIN
+OrgTechName:   ipaddressing
+OrgTechPhone:  +1-877-453-8353 
+OrgTechEmail:  ipaddressing@level3.com
+OrgTechRef:    https://rdap.arin.net/registry/entity/IPADD5-ARIN
+
+OrgAbuseHandle: LAC56-ARIN
+OrgAbuseName:   L3 Abuse Contact
+OrgAbusePhone:  +1-877-453-8353 
+OrgAbuseEmail:  abuse@level3.com
+OrgAbuseRef:    https://rdap.arin.net/registry/entity/LAC56-ARIN
+
+# end
+
+
+# start
+
+NetRange:       8.8.8.0 - 8.8.8.255
+CIDR:           8.8.8.0/24
+NetName:        LVLT-GOGL-8-8-8
+NetHandle:      NET-8-8-8-0-1
+Parent:         LVLT-ORG-8-8 (NET-8-0-0-0-1)
+NetType:        Reallocated
+OriginAS:       
+Organization:   Google LLC (GOGL)
+RegDate:        2014-03-14
+Updated:        2014-03-14
+Ref:            https://rdap.arin.net/registry/ip/8.8.8.0
+
+
+
+OrgName:        Google LLC
+OrgId:          GOGL
+Address:        1600 Amphitheatre Parkway
+City:           Mountain View
+StateProv:      CA
+PostalCode:     94043
+Country:        US
+RegDate:        2000-03-30
+Updated:        2019-10-31
+Comment:        Please note that the recommended way to file abuse complaints are located in the following links. 
+Comment:        
+Comment:        To report abuse and illegal activity: https://www.google.com/contact/
+Comment:        
+Comment:        For legal requests: http://support.google.com/legal 
+Comment:        
+Comment:        Regards, 
+Comment:        The Google Team
+Ref:            https://rdap.arin.net/registry/entity/GOGL
+
+
+OrgTechHandle: ZG39-ARIN
+OrgTechName:   Google LLC
+OrgTechPhone:  +1-650-253-0000 
+OrgTechEmail:  arin-contact@google.com
+OrgTechRef:    https://rdap.arin.net/registry/entity/ZG39-ARIN
+
+OrgAbuseHandle: ABUSE5250-ARIN
+OrgAbuseName:   Abuse
+OrgAbusePhone:  +1-650-253-0000 
+OrgAbuseEmail:  network-abuse@google.com
+OrgAbuseRef:    https://rdap.arin.net/registry/entity/ABUSE5250-ARIN
+
+# end
+
+
+
+#
+# ARIN WHOIS data and services are subject to the Terms of Use
+# available at: https://www.arin.net/resources/registry/whois/tou/
+#
+# If you see inaccuracies in the results, please report at
+# https://www.arin.net/resources/registry/whois/inaccuracy_reporting/
+#
+# Copyright 1997-2022, American Registry for Internet Numbers, Ltd.
+#
+=================================================================
+
+whois zdns.cn
+Domain Name: zdns.cn
+ROID: 20070421s10001s95771554-cn
+Domain Status: serverDeleteProhibited
+Domain Status: serverUpdateProhibited
+Domain Status: serverTransferProhibited
+Registrant: 互联网域名系统北京市工程研究中心有限公司
+Registrant Contact Email: wangmingli@zdns.cn
+Sponsoring Registrar: 互联网域名系统北京市工程研究中心有限公司
+Name Server: cns1.zdnscloud.net
+Name Server: dns1.zdnscloud.info
+Name Server: ins1.zdnscloud.com
+Name Server: vns1.zdnscloud.biz
+Registration Time: 2007-04-21 11:48:17
+Expiration Time: 2025-04-21 11:48:17
+DNSSEC: unsigned
+
+=========================================================================
+ whois 202.173.14.104
+% [whois.apnic.net]
+% Whois data copyright terms    http://www.apnic.net/db/dbcopyright.html
+
+% Information related to '202.173.14.0 - 202.173.15.255'
+
+% Abuse contact for '202.173.14.0 - 202.173.15.255' is 'ipas@cnnic.cn'
+
+inetnum:        202.173.14.0 - 202.173.15.255
+netname:        ZDNS
+descr:          Internet Domain Name System Beijing Engineering Resrarch Center Ltd.
+descr:          4,South 4th street, Zhongguancun,Haidian District,Beijing
+country:        CN
+admin-c:        XZ4638-AP
+tech-c:         XZ4638-AP
+abuse-c:        AC1601-AP
+status:         ALLOCATED PORTABLE
+mnt-by:         MAINT-CNNIC-AP
+mnt-routes:     MAINT-CNNIC-AP
+mnt-irt:        IRT-CNNIC-CN
+last-modified:  2021-06-16T01:33:14Z
+source:         APNIC
+
+irt:            IRT-CNNIC-CN
+address:        Beijing, China
+e-mail:         ipas@cnnic.cn
+abuse-mailbox:  ipas@cnnic.cn
+admin-c:        IP50-AP
+tech-c:         IP50-AP
+auth:           # Filtered
+remarks:        Please note that CNNIC is not an ISP and is not
+remarks:        empowered to investigate complaints of network abuse.
+remarks:        Please contact the tech-c or admin-c of the network.
+mnt-by:         MAINT-CNNIC-AP
+last-modified:  2021-06-16T01:39:57Z
+source:         APNIC
+
+role:           ABUSE CNNICCN
+address:        Beijing, China
+country:        ZZ
+phone:          +000000000
+e-mail:         ipas@cnnic.cn
+admin-c:        IP50-AP
+tech-c:         IP50-AP
+nic-hdl:        AC1601-AP
+remarks:        Generated from irt object IRT-CNNIC-CN
+abuse-mailbox:  ipas@cnnic.cn
+mnt-by:         APNIC-ABUSE
+last-modified:  2020-05-14T11:19:01Z
+source:         APNIC
+
+person:         Xing Zhijie
+address:        4,South 4th street, Zhongguancun, Haidian District,Beijing
+country:        CN
+phone:          +86-010-58813342
+e-mail:         xingzhijie@knet.cn
+nic-hdl:        XZ4638-AP
+mnt-by:         MAINT-CNNIC-AP
+last-modified:  2016-09-20T06:04:01Z
+source:         APNIC
+
+% Information related to '202.173.14.0/24AS38345'
+
+route:          202.173.14.0/24
+descr:          Internet Domain Name System Beijing Engineering Resrarch Center Ltd.
+country:        CN
+origin:         AS38345
+notify:         lwz@zdns.cn
+mnt-by:         MAINT-CNNIC-AP
+last-modified:  2019-10-14T02:26:30Z
+source:         APNIC
+
+% This query was served by the APNIC Whois Service version 1.88.16 (WHOIS-AU1)
