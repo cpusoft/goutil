@@ -25,10 +25,10 @@ func GetWhoisResult(q string) (results map[string]string, err error) {
 			continue
 		}
 		split := strings.Split(tmp, ":")
-		key := split[0]
+		key := strings.TrimSpace(split[0])
 		var value string
 		if len(split) > 1 {
-			value = split[1]
+			value = strings.TrimSpace(split[1])
 		}
 		if v, ok := results[key]; ok {
 			v = v + " " + value
