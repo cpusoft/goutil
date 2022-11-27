@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -23,7 +24,6 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
-//
 var httpClientConfig = NewHttpClientConfig()
 
 var RetryHttpStatus = []int{http.StatusBadRequest, http.StatusInternalServerError,
@@ -96,7 +96,7 @@ func GetHttpsVerify(urlStr string, verify bool) (resp gorequest.Response, body s
 
 }
 
-//  http or https
+// http or https
 func Post(urlStr string, postJson string, verifyHttps bool) (gorequest.Response, string, error) {
 	if strings.HasPrefix(urlStr, "http://") {
 		return PostHttp(urlStr, postJson)
@@ -158,14 +158,13 @@ func PostAndUnmarshalStruct(urlStr, postJson string, verifyHttps bool, response 
 	return nil
 }
 
-//
 type ResponseModel struct {
 	Result string      `json:"result"`
 	Msg    string      `json:"msg"`
 	Data   interface{} `json:"data,omitempty"`
 }
 
-//v is ResponseModel.Data
+// v is ResponseModel.Data
 func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v interface{}) (err error) {
 	belogs.Debug("PostAndUnmarshalResponseModel(): urlStr:", urlStr, "   postJson:", postJson,
 		"   verifyHttps:", verifyHttps)
@@ -277,7 +276,7 @@ func PostFile(urlStr string, fileName string, formName string, verifyHttps bool)
 }
 
 // fileName: file name ; FormName:id in form
-//v is ResponseModel.Data
+// v is ResponseModel.Data
 func PostFileAndUnmarshalResponseModel(urlStr string, fileName string,
 	formName string, verifyHttps bool, v interface{}) (err error) {
 	resp, body, err := PostFile(urlStr, fileName, formName, verifyHttps)
@@ -455,4 +454,34 @@ func SetTimeout(minute uint64) {
 }
 func ResetTimeout() {
 	httpClientConfig.Timeout = time.Duration(DefaultTimeout)
+}
+
+func DownloadUrlFile(urlFile string, localFile string) (int64, error) {
+	belogs.Debug("DownloadUrlFile(): urlFile:", urlFile, "  localFile:", localFile)
+	file, err := os.OpenFile(localFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		belogs.Error("DownloadUrlFile(): OpenFile fail, localFile:", localFile, err)
+		return 0, err
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	rsp, err := http.Get(urlFile)
+	defer func() {
+		if rsp != nil {
+			_ = rsp.Body.Close()
+		}
+	}()
+	if err != nil {
+		belogs.Error("DownloadUrlFile(): Get fail, urlFile:", urlFile, err)
+		return 0, err
+	}
+	n, err := io.Copy(file, rsp.Body)
+	if err != nil {
+		belogs.Error("DownloadUrlFile(): Copy fail, urlFile:", urlFile, "  localFile:", localFile, err)
+		return 0, err
+	}
+	return n, err
+
 }

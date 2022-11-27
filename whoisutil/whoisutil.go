@@ -8,35 +8,39 @@ import (
 	"github.com/cpusoft/goutil/osutil"
 )
 
-func GetWhoisResult(q string) (results map[string]string, err error) {
+func GetWhoisResult(q string) (results []string, err error) {
 	belogs.Debug("GetWhoisResult(): cmd:  whois ", q)
+
 	cmd := exec.Command("whois", q)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetWhoisResult(): exec.Command: q:", q, "   err: ", err, "   output: "+string(output))
 		return nil, err
 	}
-	result := string(output)
-	tmps := strings.Split(result, osutil.GetNewLineSep())
-	results = make(map[string]string, len(tmps))
+	outputStr := string(output)
+	tmps := strings.Split(outputStr, osutil.GetNewLineSep())
+	results = make([]string, 0, len(tmps))
 	for i := range tmps {
 		tmp := strings.TrimSpace(tmps[i])
-		if strings.HasPrefix(tmp, "#") || strings.HasPrefix(tmp, "%") {
+		// >>> Last update of whois database: 2022-11-24T12:49:15Z <<<
+		// For more information on Whois status codes, please visit https://icann.org/epp
+		if strings.HasPrefix(tmp, ">>>") {
+			break
+		}
+		if len(tmp) == 0 || strings.HasPrefix(tmp, "#") ||
+			strings.HasPrefix(tmp, "%") || strings.HasPrefix(tmp, "No match found for") {
 			continue
 		}
-		split := strings.Split(tmp, ":")
+
+		split := strings.SplitN(tmp, ":", 2)
 		key := strings.TrimSpace(split[0])
 		var value string
 		if len(split) > 1 {
 			value = strings.TrimSpace(split[1])
 		}
-		if v, ok := results[key]; ok {
-			v = v + " " + value
-			results[key] = v
-		} else {
-			results[key] = value
-		}
-		belogs.Debug("GetWhoisResult(): key:", key, "  results[key]:", results[key])
+		line := key + ":" + value
+		results = append(results, line)
+		belogs.Debug("GetWhoisResult(): line:", line)
 	}
 	belogs.Debug("GetWhoisResult(): len(results):", len(results))
 	return results, nil

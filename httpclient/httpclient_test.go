@@ -94,3 +94,12 @@ type HttpResponse struct {
 	Msg    string      `json:"msg"`
 	Data   interface{} `json:"data"`
 }
+
+// go test -v -test.run TestDownloadUrlFile -timeout 50m
+func TestDownloadUrlFile(t *testing.T) {
+	urlFile := `https://data.ris.ripe.net/rrc00/2020.01/bview.20200105.0000.gz`
+	localFile := `./1.gz`
+	n, err := DownloadUrlFile(urlFile, localFile)
+	fmt.Println(n, err)
+
+}

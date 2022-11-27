@@ -23,6 +23,72 @@ No match found for n + 8.8.8.8/24.
 #
 # Copyright 1997-2022, American Registry for Internet Numbers, Ltd.
 #
+=========================================================================
+
+whois 186.14.0.0/16
+
+% Joint Whois - whois.lacnic.net
+%  This server accepts single ASN, IPv4 or IPv6 queries
+
+% LACNIC resource: whois.lacnic.net
+
+
+% Copyright LACNIC lacnic.net
+%  The data below is provided for information purposes
+%  and to assist persons in obtaining information about or
+%  related to AS and IP numbers registrations
+%  By submitting a whois query, you agree to use this data
+%  only for lawful purposes.
+%  2022-11-24 11:47:34 (-03 -03:00)
+
+inetnum:     186.14.0.0/16
+status:      allocated
+aut-num:     AS21826
+owner:       Corporación Telemic C.A.
+ownerid:     VE-ICPC1-LACNIC
+responsible: Jeyri Bautista
+address:     Av. Los Leones con Av. Caroni,, 25133, Centro Empresarial Caracas, Piso 1
+address:     3001 - Barquisimeto - LA
+country:     VE
+phone:       +58  2513355227 [5231]
+owner-c:     GEN6
+tech-c:      PAM9
+abuse-c:     PAM9
+inetrev:     186.14.0.0/16
+nserver:     NS1.INTERLINK.NET.VE
+nsstat:      20221122 AA
+nslastaa:    20221122
+nserver:     NS2.INTERLINK.NET.VE [lame - not published]
+nsstat:      20221122 ERR
+nslastaa:    20190714
+created:     20080910
+changed:     20210609
+
+nic-hdl:     GEN6
+person:      Geraldo Nakabe
+e-mail:      geraldo.nakabe@inter.com.ve
+address:     Calle Caroní, 000, Centro Empresarial Caracas
+address:     3001 - Barquisimeto - Lara
+country:     VE
+phone:       +58  2513355222 [5222]
+created:     20180302
+changed:     20181024
+
+nic-hdl:     PAM9
+person:      Corporacion Telemic C.A.
+e-mail:      redes.ip@inter.com.ve
+address:     Av. Los Leones con Caroní. C.E Caracas. piso 1/, CP 3002 Barquisimeto, Venezuela, 1, -
+address:     3001 - Barquisimeto - Lara
+country:     VE
+phone:       +058  02513355396 [5396]
+created:     20050516
+changed:     20211222
+
+% whois.lacnic.net accepts only direct match queries.
+% Types of queries are: POCs, ownerid, CIDR blocks, IP
+% and AS numbers.
+
+============================================================================
 
 [root@lab-104:~]# whois  8.8.8.8
 
