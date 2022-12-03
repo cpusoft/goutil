@@ -21,22 +21,26 @@ type UdpClient struct {
 
 	// for channel
 	businessToConnMsg chan BusinessToConnMsg
+
+	// for onReceive to SendAndReceiveMsg
+	connToBusinessMsg chan ConnToBusinessMsg
 }
 
 // server: 0.0.0.0:port
-func NewUdpClient(udpClientProcess UdpClientProcess, businessToConnMsg chan BusinessToConnMsg) (tc *UdpClient) {
+func NewUdpClient(udpClientProcess UdpClientProcess, businessToConnMsg chan BusinessToConnMsg) (uc *UdpClient) {
 
 	belogs.Debug("NewUdpClient():udpClientProcess:", udpClientProcess)
-	tc = &UdpClient{}
-	tc.connType = "udp"
-	tc.udpClientProcess = udpClientProcess
-	tc.businessToConnMsg = businessToConnMsg
-	belogs.Info("NewUdpClient():tc:", tc)
-	return tc
+	uc = &UdpClient{}
+	uc.connType = "udp"
+	uc.udpClientProcess = udpClientProcess
+	uc.businessToConnMsg = businessToConnMsg
+	uc.connToBusinessMsg = make(chan ConnToBusinessMsg, 15)
+	belogs.Info("NewUdpClient():tc:", uc)
+	return uc
 }
 
 // server: **.**.**.**:port
-func (tc *UdpClient) StartUdpClient(server string) (err error) {
+func (uc *UdpClient) StartUdpClient(server string) (err error) {
 	belogs.Debug("UdpClient.StartUdpClient(): create client, server is  ", server)
 
 	serverUdpAddr, _ := net.ResolveUDPAddr("udp", server)
@@ -47,76 +51,92 @@ func (tc *UdpClient) StartUdpClient(server string) (err error) {
 
 	//连接udpAddr，返回 udpConn
 	udpConn, err := net.DialUDP("udp", nil, serverUdpAddr)
-	tc.udpConn = NewFromUdpConn(udpConn)
-	tc.udpConn.SetServerUdpAddr(serverUdpAddr)
+	uc.udpConn = NewFromUdpConn(udpConn)
+	uc.udpConn.SetServerUdpAddr(serverUdpAddr)
 	//active send to server, and receive from server, loop
-	belogs.Info("UdpClient.StartUdpClient(): NewFromUdpConn ok, server:", server, "   udpConn:", tc.udpConn.serverUdpAddr)
+	belogs.Info("UdpClient.StartUdpClient(): NewFromUdpConn ok, server:", server, "   udpConn:", uc.udpConn.serverUdpAddr)
+	// onReceive
+	go uc.onReceive()
+
 	return nil
 }
 
-func (tc *UdpClient) onClose() {
+func (uc *UdpClient) onClose() {
 	// close in the end
-	belogs.Info("UdpClient.onClose(): udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr)
-	tc.udpConn.Close()
-
+	belogs.Info("UdpClient.onClose(): udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr)
+	uc.udpConn.Close()
 }
 
-func (tc *UdpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (connToBusinessMsg *ConnToBusinessMsg, err error) {
+func (uc *UdpClient) onReceive() (err error) {
+	for {
+		start := time.Now()
+		buffer := make([]byte, 2048)
+		n, err := uc.udpConn.ReadFromServer(buffer)
+		if err != nil {
+			if err == io.EOF {
+				// is not error, just close
+				belogs.Debug("UdpClient.onReceive(): io.EOF, client close, udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, err)
+				return nil
+			}
+			belogs.Error("UdpClient.onReceive(): Read fail or connect is closing, udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, err)
+			return err
+		}
+
+		belogs.Debug("UdpClient.onReceive(): Read n :", n, " from udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr,
+			"  time(s):", time.Now().Sub(start))
+		connToBusinessMsg, err := uc.udpClientProcess.OnReceiveProcess(uc.udpConn, append(buffer[:n]))
+		if err != nil {
+			belogs.Error("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess  fail ,will close this udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, err)
+			return err
+		}
+		belogs.Info("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess, udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, " receive n: ", n,
+			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg), "  time(s):", time.Now().Sub(start))
+		if !connToBusinessMsg.IsActiveSendFromServer {
+			belogs.Debug("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess, will send to uc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
+			uc.connToBusinessMsg <- *connToBusinessMsg
+		}
+	}
+}
+
+func (uc *UdpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (connToBusinessMsg *ConnToBusinessMsg, err error) {
 
 	belogs.Debug("UdpClient.SendAndReceiveMsg(): businessToConnMsg:", jsonutil.MarshalJson(*businessToConnMsg))
-	//tc.businessToConnMsg <- *businessToConnMsg
+	//uc.businessToConnMsg <- *businessToConnMsg
 
 	switch businessToConnMsg.BusinessToConnMsgType {
 	case BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT:
 		belogs.Info("UdpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT,",
-			" will close for udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, " will return, close SendAndReceiveMsg")
+			" will close for udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, " will return, close SendAndReceiveMsg")
 		// end for/select
 		// will return, close SendAndReceiveMsg
-		tc.onClose()
+		uc.onClose()
 		return nil, nil
 	case BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_AND_RECEIVE_DATA:
 		belogs.Info("UdpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,",
-			" will send to udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr)
+			" will send to udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr)
 		sendData := businessToConnMsg.SendData
-		belogs.Debug("UdpClient.SendAndReceiveMsg(): send to server:", tc.udpConn.serverUdpAddr,
+		belogs.Debug("UdpClient.SendAndReceiveMsg(): send to server:", uc.udpConn.serverUdpAddr,
 			"   sendData:", convert.PrintBytesOneLine(sendData))
 
 		// send data
 		start := time.Now()
-		n, err := tc.udpConn.WriteToServer(sendData)
+		n, err := uc.udpConn.WriteToServer(sendData)
 		if err != nil {
-			belogs.Error("UdpClient.SendAndReceiveMsg(): Write fail, will close  udpConn.serverUdpAddr:", tc.udpConn.serverUdpAddr, err)
-			return nil, err
-		}
-		belogs.Info("UdpClient.SendAndReceiveMsg(): Write to udpConn.serverUdpAddr:", tc.udpConn.serverUdpAddr,
-			"  len(sendData):", len(sendData), "  write n:", n,
-			"  time(s):", time.Since(start))
-		// one packet
-		buffer := make([]byte, 2048)
-		n, err = tc.udpConn.ReadFromServer(buffer)
-		//	if n == 0 {
-		//		continue
-		//	}
-		if err != nil {
-			if err == io.EOF {
-				// is not error, just client close
-				belogs.Debug("UdpClient.SendAndReceiveMsg(): io.EOF, client close, udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, err)
-				return nil, nil
-			}
-			belogs.Error("UdpClient.SendAndReceiveMsg(): Read fail or connect is closing, udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, err)
+			belogs.Error("UdpClient.SendAndReceiveMsg(): Write fail, will close  udpConn.serverUdpAddr:", uc.udpConn.serverUdpAddr, err)
 			return nil, err
 		}
 
-		belogs.Debug("UdpClient.SendAndReceiveMsg(): Read n :", n, " from udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr,
-			"  time(s):", time.Now().Sub(start))
-		connToBusinessMsg, err = tc.udpClientProcess.OnReceiveProcess(tc.udpConn, append(buffer[:n]))
-		if err != nil {
-			belogs.Error("UdpClient.SendAndReceiveMsg(): udpClientProcess.OnReceiveProcess  fail ,will close this udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, err)
-			return nil, err
-		}
-		belogs.Info("UdpClient.SendAndReceiveMsg(): udpClientProcess.OnReceiveProcess, udpConn.serverUdpAddr: ", tc.udpConn.serverUdpAddr, " receive n: ", n,
-			"  time(s):", time.Now().Sub(start))
-		return connToBusinessMsg, nil
+		// wait receive msg from "onReceive"
+		belogs.Debug("UdpClient.SendAndReceiveMsg(): udpClientProcess.OnReceiveProcess, will receive from uc.connToBusinessMsg: ")
+		connToBusinessMsg := <-uc.connToBusinessMsg
+		belogs.Info("UdpClient.SendAndReceiveMsg(): Write to udpConn.serverUdpAddr:", uc.udpConn.serverUdpAddr,
+			"  len(sendData):", len(sendData), "  write n:", n,
+			" connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
+			"  time(s):", time.Since(start))
+		return &connToBusinessMsg, nil
 	}
 	return nil, errors.New("BusinessToConnMsgType is not supported")
+}
+func (uc *UdpClient) GetUdpServerAddrKey() string {
+	return GetUdpAddrKey(uc.udpConn.serverUdpAddr)
 }

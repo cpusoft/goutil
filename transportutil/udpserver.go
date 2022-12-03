@@ -11,7 +11,7 @@ import (
 	"github.com/cpusoft/goutil/jsonutil"
 )
 
-// core struct: Start/onConnect/receiveAndSend....
+// core struct:
 type UdpServer struct {
 	// state
 	state uint64
@@ -28,7 +28,6 @@ type UdpServer struct {
 	businessToConnMsg chan BusinessToConnMsg
 }
 
-//
 func NewUdpServer(udpServerProcess UdpServerProcess, businessToConnMsg chan BusinessToConnMsg) (us *UdpServer) {
 
 	belogs.Debug("NewUdpServer():udpServerProcess:", udpServerProcess)
@@ -70,7 +69,7 @@ func (us *UdpServer) StartUdpServer(port string) (err error) {
 
 func (us *UdpServer) receiveAndSend() {
 
-	belogs.Debug("UdpServer.acceptNewReadFromClient(): will read from client")
+	belogs.Debug("UdpServer.receiveAndSend(): will read from client")
 	us.state = SERVER_STATE_RUNNING
 	for {
 		buffer := make([]byte, 1024)
@@ -78,13 +77,13 @@ func (us *UdpServer) receiveAndSend() {
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
-				belogs.Info("UdpServer.acceptNewReadFromClient(): Read io.EOF, client close,  clientUdpAddr:", clientUdpAddr, err)
+				belogs.Info("UdpServer.receiveAndSend(): Read io.EOF, client close,  clientUdpAddr:", clientUdpAddr, err)
 				return
 			}
-			belogs.Error("UdpServer.acceptNewReadFromClient(): Read remote fail: ", err)
+			belogs.Error("UdpServer.receiveAndSend(): Read remote fail: ", err)
 			continue
 		}
-		belogs.Info("UdpServer.acceptNewReadFromClient():  Accept remote, clientAddrKey: ", clientUdpAddr, "  len:", len)
+		belogs.Info("UdpServer.receiveAndSend():  Accept remote, clientAddrKey: ", clientUdpAddr, "  len:", len)
 		// no onConnect
 		go func() {
 			err := us.udpServerProcess.OnReceiveAndSendProcess(us.udpConn, clientUdpAddr, buffer[:len])

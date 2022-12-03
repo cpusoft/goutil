@@ -16,7 +16,7 @@ import (
 	"github.com/cpusoft/goutil/osutil"
 )
 
-// core struct: Start/onConnect/receiveAndSend....
+// core struct:
 type TcpServer struct {
 	// state
 	state uint64
@@ -45,7 +45,6 @@ type TcpServer struct {
 	businessToConnMsg chan BusinessToConnMsg
 }
 
-//
 func NewTcpServer(tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg) (ts *TcpServer) {
 
 	belogs.Debug("NewTcpServer():tcpServerProcess:", tcpServerProcess)

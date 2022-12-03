@@ -31,6 +31,8 @@ type BusinessToConnMsg struct {
 }
 
 type ConnToBusinessMsg struct {
+	// true: active from server;  false: is response from server
+	IsActiveSendFromServer bool `json:"isActiveSendFromServer"`
 	// common
 	ConnToBusinessMsgType string      `json:"connToBusinessMsgType"`
 	ReceiveData           interface{} `json:"receiveData"`
