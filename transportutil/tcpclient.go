@@ -223,10 +223,12 @@ func (tc *TcpClient) onReceive() (err error) {
 		buffer = make([]byte, 2048)
 		belogs.Debug("TcpClient.onReceive(): will reset buffer and wait for Read from tcpConn: ", tc.tcpConn.RemoteAddr().String(),
 			"  time(s):", time.Now().Sub(start))
-		if !connToBusinessMsg.IsActiveSendFromServer {
-			belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, will send to tc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
-			tc.connToBusinessMsg <- *connToBusinessMsg
-		}
+		go func() {
+			if !connToBusinessMsg.IsActiveSendFromServer {
+				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, will send to tc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
+				tc.connToBusinessMsg <- *connToBusinessMsg
+			}
+		}()
 	}
 
 }
@@ -276,11 +278,23 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 			"  len(sendData):", len(sendData), "  write n:", n, "  and wait for receive connToBusinessMsg",
 			"  time(s):", time.Since(start))
 		// wait receive msg from "onReceive"
-		connToBusinessMsg := <-tc.connToBusinessMsg
-		belogs.Info("TcpClient.SendAndReceiveMsg(): receive connToBusinessMsg,",
-			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
-			"  time(s):", time.Since(start))
-		return &connToBusinessMsg, nil
+
+		for {
+			select {
+			case connToBusinessMsg := <-tc.connToBusinessMsg:
+				return &connToBusinessMsg, nil
+			case <-time.After(5 * time.Second):
+				return nil, errors.New("wait for server timeout")
+			}
+		}
+
+		/*
+			connToBusinessMsg := <-tc.connToBusinessMsg
+			belogs.Info("TcpClient.SendAndReceiveMsg(): receive connToBusinessMsg,",
+				"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
+				"  time(s):", time.Since(start))
+			return &connToBusinessMsg, nil
+		*/
 	}
 
 	return nil, errors.New("BusinessToConnMsgType is not supported")
