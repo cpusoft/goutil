@@ -45,7 +45,7 @@ func NewTcpClient(tcpClientProcess TcpClientProcess,
 	tc.tcpClientProcess = tcpClientProcess
 	tc.businessToConnMsg = businessToConnMsg
 	tc.connToBusinessMsg = make(chan ConnToBusinessMsg)
-	belogs.Info("NewTcpClient():tc:", tc)
+	belogs.Info("NewTcpClient():tc:", tc, "  tc.connToBusinessMsg:", tc.connToBusinessMsg)
 	return tc
 }
 
@@ -226,7 +226,8 @@ func (tc *TcpClient) onReceive() (err error) {
 			"  time(s):", time.Now().Sub(start))
 		go func() {
 			if !connToBusinessMsg.IsActiveSendFromServer {
-				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, will send to tc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
+				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, will send to tc.connToBusinessMsg:", tc.connToBusinessMsg,
+					"   connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
 				tc.connToBusinessMsg <- *connToBusinessMsg
 				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, have send to tc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
 			}
@@ -273,6 +274,7 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 		connToBusinessMsgTmpCh := make(chan ConnToBusinessMsg)
 		go func() {
 			for {
+				belogs.Debug("TcpClient.SendAndReceiveMsg(): for select,  tc.connToBusinessMsg:", tc.connToBusinessMsg)
 				select {
 				case connToBusinessMsg := <-tc.connToBusinessMsg:
 					belogs.Debug("TcpClient.SendAndReceiveMsg(): receive from tc.connToBusinessMsg, connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
