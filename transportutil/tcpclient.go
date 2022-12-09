@@ -36,7 +36,8 @@ type TcpClient struct {
 }
 
 // server: 0.0.0.0:port
-func NewTcpClient(tcpClientProcess TcpClientProcess, businessToConnMsg chan BusinessToConnMsg) (tc *TcpClient) {
+func NewTcpClient(tcpClientProcess TcpClientProcess,
+	businessToConnMsg chan BusinessToConnMsg) (tc *TcpClient) {
 
 	belogs.Debug("NewTcpClient():tcpClientProcess:", tcpClientProcess)
 	tc = &TcpClient{}
@@ -227,6 +228,7 @@ func (tc *TcpClient) onReceive() (err error) {
 			if !connToBusinessMsg.IsActiveSendFromServer {
 				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, will send to tc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
 				tc.connToBusinessMsg <- *connToBusinessMsg
+				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, have send to tc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
 			}
 		}()
 	}
@@ -268,6 +270,20 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 
 		// send data
 		start := time.Now()
+		connToBusinessMsgTmpCh := make(chan ConnToBusinessMsg)
+		go func() {
+			for {
+				select {
+				case connToBusinessMsg := <-tc.connToBusinessMsg:
+					belogs.Debug("TcpClient.SendAndReceiveMsg(): receive from tc.connToBusinessMsg, connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
+					connToBusinessMsgTmpCh <- connToBusinessMsg
+					return
+				case <-time.After(5 * time.Second):
+					belogs.Debug("TcpClient.SendAndReceiveMsg(): receive fail, timeout")
+					return
+				}
+			}
+		}()
 		n, err := tc.tcpConn.Write(sendData)
 		if err != nil {
 			belogs.Error("TcpClient.SendAndReceiveMsg(): Write fail, will close  tcpConn:", tc.tcpConn.RemoteAddr().String(), err)
@@ -277,17 +293,13 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 		belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
 			"  len(sendData):", len(sendData), "  write n:", n, "  and wait for receive connToBusinessMsg",
 			"  time(s):", time.Since(start))
-		// wait receive msg from "onReceive"
 
-		for {
-			select {
-			case connToBusinessMsg := <-tc.connToBusinessMsg:
-				return &connToBusinessMsg, nil
-			case <-time.After(5 * time.Second):
-				return nil, errors.New("wait for server timeout")
-			}
-		}
-
+		connToBusinessMsg := <-connToBusinessMsgTmpCh
+		belogs.Info("TcpClient.SendAndReceiveMsg(): receive from connToBusinessMsgTmpCh,",
+			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
+			"  time(s):", time.Since(start))
+		close(connToBusinessMsgTmpCh)
+		return &connToBusinessMsg, nil
 		/*
 			connToBusinessMsg := <-tc.connToBusinessMsg
 			belogs.Info("TcpClient.SendAndReceiveMsg(): receive connToBusinessMsg,",
