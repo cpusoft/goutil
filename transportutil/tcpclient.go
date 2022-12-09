@@ -246,50 +246,45 @@ func (tc *TcpClient) onClose() {
 }
 
 func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (connToBusinessMsg *ConnToBusinessMsg, err error) {
-	belogs.Debug("TcpClient.SendAndReceiveMsg(): tcpConn:", tc.tcpConn.RemoteAddr().String())
+	belogs.Info("TcpClient.SendAndReceiveMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg),
+		"  tcpConn: ", tc.tcpConn.RemoteAddr().String())
 
-	// wait next businessToConnMsg: only error or NEXT_CONNECT_POLICY_CLOSE_** will end loop
-	select {
-	case businessToConnMsg := <-tc.businessToConnMsg:
-		belogs.Info("TcpClient.SendAndReceiveMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg),
-			"  tcpConn: ", tc.tcpConn.RemoteAddr().String())
+	switch businessToConnMsg.BusinessToConnMsgType {
+	case BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT:
+		belogs.Info("TcpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT,",
+			" will close for tcpConn: ", tc.tcpConn.RemoteAddr().String(), " will return, close SendAndReceiveMsg")
+		tc.onClose()
+		// end for/select
+		// will return, close SendAndReceiveMsg
+		return nil, nil
+	case BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA:
+		belogs.Info("TcpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,",
+			" will send to tcpConn: ", tc.tcpConn.RemoteAddr().String())
+		sendData := businessToConnMsg.SendData
+		belogs.Debug("TcpClient.SendAndReceiveMsg(): send to server:", tc.tcpConn.RemoteAddr().String(),
+			"   sendData:", convert.PrintBytesOneLine(sendData))
 
-		switch businessToConnMsg.BusinessToConnMsgType {
-		case BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT:
-			belogs.Info("TcpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT,",
-				" will close for tcpConn: ", tc.tcpConn.RemoteAddr().String(), " will return, close SendAndReceiveMsg")
+		// send data
+		start := time.Now()
+		n, err := tc.tcpConn.Write(sendData)
+		if err != nil {
+			belogs.Error("TcpClient.SendAndReceiveMsg(): Write fail, will close  tcpConn:", tc.tcpConn.RemoteAddr().String(), err)
 			tc.onClose()
-			// end for/select
-			// will return, close SendAndReceiveMsg
-			return nil, nil
-		case BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA:
-			belogs.Info("TcpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,",
-				" will send to tcpConn: ", tc.tcpConn.RemoteAddr().String())
-			sendData := businessToConnMsg.SendData
-			belogs.Debug("TcpClient.SendAndReceiveMsg(): send to server:", tc.tcpConn.RemoteAddr().String(),
-				"   sendData:", convert.PrintBytesOneLine(sendData))
-
-			// send data
-			start := time.Now()
-			n, err := tc.tcpConn.Write(sendData)
-			if err != nil {
-				belogs.Error("TcpClient.SendAndReceiveMsg(): Write fail, will close  tcpConn:", tc.tcpConn.RemoteAddr().String(), err)
-				tc.onClose()
-				return nil, err
-			}
-			belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
-				"  len(sendData):", len(sendData), "  write n:", n,
-				"  time(s):", time.Since(start))
-			// wait receive msg from "onReceive"
-			belogs.Debug("TcpClient.SendAndReceiveMsg(): udpClientProcess.OnReceiveProcess, will receive from uc.connToBusinessMsg: ")
-			connToBusinessMsg := <-tc.connToBusinessMsg
-			belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
-				"  len(sendData):", len(sendData), "  write n:", n,
-				"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
-				"  time(s):", time.Since(start))
-			return &connToBusinessMsg, nil
+			return nil, err
 		}
+		belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
+			"  len(sendData):", len(sendData), "  write n:", n,
+			"  time(s):", time.Since(start))
+		// wait receive msg from "onReceive"
+		belogs.Debug("TcpClient.SendAndReceiveMsg(): udpClientProcess.OnReceiveProcess, will receive from uc.connToBusinessMsg: ")
+		connToBusinessMsg := <-tc.connToBusinessMsg
+		belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
+			"  len(sendData):", len(sendData), "  write n:", n,
+			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
+			"  time(s):", time.Since(start))
+		return &connToBusinessMsg, nil
 	}
+
 	return nil, errors.New("BusinessToConnMsgType is not supported")
 }
 func (tc *TcpClient) GetTcpConnKey() string {
