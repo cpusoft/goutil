@@ -43,7 +43,7 @@ func NewTcpClient(tcpClientProcess TcpClientProcess, businessToConnMsg chan Busi
 	tc.connType = "tcp"
 	tc.tcpClientProcess = tcpClientProcess
 	tc.businessToConnMsg = businessToConnMsg
-	tc.connToBusinessMsg = make(chan ConnToBusinessMsg, 15)
+	tc.connToBusinessMsg = make(chan ConnToBusinessMsg)
 	belogs.Info("NewTcpClient():tc:", tc)
 	return tc
 }
@@ -273,13 +273,11 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 			return nil, err
 		}
 		belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
-			"  len(sendData):", len(sendData), "  write n:", n,
+			"  len(sendData):", len(sendData), "  write n:", n, "  and wait for receive connToBusinessMsg",
 			"  time(s):", time.Since(start))
 		// wait receive msg from "onReceive"
-		belogs.Debug("TcpClient.SendAndReceiveMsg(): udpClientProcess.OnReceiveProcess, will receive from uc.connToBusinessMsg: ")
 		connToBusinessMsg := <-tc.connToBusinessMsg
-		belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
-			"  len(sendData):", len(sendData), "  write n:", n,
+		belogs.Info("TcpClient.SendAndReceiveMsg(): receive connToBusinessMsg,",
 			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
 			"  time(s):", time.Since(start))
 		return &connToBusinessMsg, nil

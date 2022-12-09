@@ -34,7 +34,7 @@ func NewUdpClient(udpClientProcess UdpClientProcess, businessToConnMsg chan Busi
 	uc.connType = "udp"
 	uc.udpClientProcess = udpClientProcess
 	uc.businessToConnMsg = businessToConnMsg
-	uc.connToBusinessMsg = make(chan ConnToBusinessMsg, 15)
+	uc.connToBusinessMsg = make(chan ConnToBusinessMsg)
 	belogs.Info("NewUdpClient():tc:", uc)
 	return uc
 }
