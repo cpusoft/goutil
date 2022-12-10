@@ -61,11 +61,6 @@ func (uc *UdpClient) StartUdpClient(server string) (err error) {
 	return nil
 }
 
-func (uc *UdpClient) onClose() {
-	// close in the end
-	belogs.Info("UdpClient.onClose(): udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr)
-	uc.udpConn.Close()
-}
 
 func (uc *UdpClient) onReceive() (err error) {
 	for {
@@ -98,6 +93,11 @@ func (uc *UdpClient) onReceive() (err error) {
 	}
 }
 
+func (uc *UdpClient) onClose() {
+	// close in the end
+	belogs.Info("UdpClient.onClose(): udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr)
+	uc.udpConn.Close()
+}
 func (uc *UdpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (connToBusinessMsg *ConnToBusinessMsg, err error) {
 
 	belogs.Debug("UdpClient.SendAndReceiveMsg(): businessToConnMsg:", jsonutil.MarshalJson(*businessToConnMsg))

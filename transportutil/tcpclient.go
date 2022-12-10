@@ -15,6 +15,12 @@ import (
 	"github.com/cpusoft/goutil/osutil"
 )
 
+var globalConnToBusinessMsgCh chan ConnToBusinessMsg
+
+func init() {
+	globalConnToBusinessMsgCh = make(chan ConnToBusinessMsg)
+}
+
 type TcpClient struct {
 	// both tcp and tls
 	connType         string
@@ -29,35 +35,35 @@ type TcpClient struct {
 	tcpConn *TcpConn
 
 	// for channel
-	businessToConnMsg chan BusinessToConnMsg
+	businessToConnMsgCh chan BusinessToConnMsg
 
 	// for onReceive to SendAndReceiveMsg
-	connToBusinessMsg chan ConnToBusinessMsg
+	connToBusinessMsgCh chan ConnToBusinessMsg
 }
 
 // server: 0.0.0.0:port
 func NewTcpClient(tcpClientProcess TcpClientProcess,
-	businessToConnMsg chan BusinessToConnMsg) (tc *TcpClient) {
+	businessToConnMsgCh chan BusinessToConnMsg) (tc *TcpClient) {
 
 	belogs.Debug("NewTcpClient():tcpClientProcess:", tcpClientProcess)
 	tc = &TcpClient{}
 	tc.connType = "tcp"
 	tc.tcpClientProcess = tcpClientProcess
-	tc.businessToConnMsg = businessToConnMsg
-	tc.connToBusinessMsg = make(chan ConnToBusinessMsg)
-	belogs.Info("NewTcpClient():tc:", tc, "  tc.connToBusinessMsg:", tc.connToBusinessMsg)
+	tc.businessToConnMsgCh = businessToConnMsgCh
+	tc.connToBusinessMsgCh = make(chan ConnToBusinessMsg)
+	belogs.Info("NewTcpClient():tc:", tc, "  tc.connToBusinessMsgCh:", tc.connToBusinessMsgCh)
 	return tc
 }
 
 // server: 0.0.0.0:port
 func NewTlsClient(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string,
-	tcpClientProcess TcpClientProcess, businessToConnMsg chan BusinessToConnMsg) (tc *TcpClient, err error) {
+	tcpClientProcess TcpClientProcess, businessToConnMsgCh chan BusinessToConnMsg) (tc *TcpClient, err error) {
 
 	belogs.Debug("NewTlsClient():tcpClientProcess:", &tcpClientProcess)
 	tc = &TcpClient{}
 	tc.connType = "tls"
 	tc.tcpClientProcess = tcpClientProcess
-	tc.businessToConnMsg = businessToConnMsg
+	tc.businessToConnMsgCh = businessToConnMsgCh
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
 	if !rootExists {
@@ -111,7 +117,7 @@ func (tc *TcpClient) StartTcpClient(server string) (err error) {
 	// onReceive
 	go tc.onReceive()
 
-	belogs.Info("TcpClient.StartTcpClient(): onReceive, server is  ", server, "  tcpConn:", tc.tcpConn.RemoteAddr().String())
+	belogs.Info("TcpClient.StartTcpClient(): ok, server is  ", server, "  tcpConn:", tc.tcpConn.RemoteAddr().String())
 	return nil
 }
 
@@ -184,18 +190,13 @@ func (tc *TcpClient) StartTlsClient(server string) (err error) {
 func (tc *TcpClient) onReceive() (err error) {
 	belogs.Debug("TcpClient.onReceive(): wait for onReceive, tcpConn:", tc.tcpConn.RemoteAddr().String())
 	var leftData []byte
-	// one packet
-	buffer := make([]byte, 2048)
-	// wait for new packet to read
-
 	// when end onReceive, will onClose
 	defer tc.onClose()
 	for {
 		start := time.Now()
+		buffer := make([]byte, 2048)
+
 		n, err := tc.tcpConn.Read(buffer)
-		//	if n == 0 {
-		//		continue
-		//	}
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
@@ -226,10 +227,11 @@ func (tc *TcpClient) onReceive() (err error) {
 			"  time(s):", time.Now().Sub(start))
 		go func() {
 			if !connToBusinessMsg.IsActiveSendFromServer {
-				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, will send to tc.connToBusinessMsg:", tc.connToBusinessMsg,
+				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, will send to tc.businessToConnMsgCh:", tc.businessToConnMsgCh,
 					"   connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
-				tc.connToBusinessMsg <- *connToBusinessMsg
-				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, have send to tc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
+				//tc.connToBusinessMsgCh <- *connToBusinessMsg
+				globalConnToBusinessMsgCh <- *connToBusinessMsg
+				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, have send to connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
 			}
 		}()
 	}
@@ -265,18 +267,18 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 	case BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA:
 		belogs.Info("TcpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,",
 			" will send to tcpConn: ", tc.tcpConn.RemoteAddr().String())
+		start := time.Now()
 		sendData := businessToConnMsg.SendData
 		belogs.Debug("TcpClient.SendAndReceiveMsg(): send to server:", tc.tcpConn.RemoteAddr().String(),
 			"   sendData:", convert.PrintBytesOneLine(sendData))
 
-		// send data
-		start := time.Now()
+		/* send data
 		connToBusinessMsgTmpCh := make(chan ConnToBusinessMsg)
 		go func() {
 			for {
-				belogs.Debug("TcpClient.SendAndReceiveMsg(): for select,  tc.connToBusinessMsg:", tc.connToBusinessMsg)
+				belogs.Debug("TcpClient.SendAndReceiveMsg(): for select,  tc.connToBusinessMsgCh:", tc.connToBusinessMsgCh)
 				select {
-				case connToBusinessMsg := <-tc.connToBusinessMsg:
+				case connToBusinessMsg := <-tc.connToBusinessMsgCh:
 					belogs.Debug("TcpClient.SendAndReceiveMsg(): receive from tc.connToBusinessMsg, connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
 					connToBusinessMsgTmpCh <- connToBusinessMsg
 					return
@@ -286,6 +288,7 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 				}
 			}
 		}()
+		*/
 		n, err := tc.tcpConn.Write(sendData)
 		if err != nil {
 			belogs.Error("TcpClient.SendAndReceiveMsg(): Write fail, will close  tcpConn:", tc.tcpConn.RemoteAddr().String(), err)
@@ -295,12 +298,11 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 		belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
 			"  len(sendData):", len(sendData), "  write n:", n, "  and wait for receive connToBusinessMsg",
 			"  time(s):", time.Since(start))
-
-		connToBusinessMsg := <-connToBusinessMsgTmpCh
+		connToBusinessMsg := <-globalConnToBusinessMsgCh
+		//connToBusinessMsg := <-connToBusinessMsgTmpCh
 		belogs.Info("TcpClient.SendAndReceiveMsg(): receive from connToBusinessMsgTmpCh,",
 			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
 			"  time(s):", time.Since(start))
-		close(connToBusinessMsgTmpCh)
 		return &connToBusinessMsg, nil
 		/*
 			connToBusinessMsg := <-tc.connToBusinessMsg
