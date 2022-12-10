@@ -15,12 +15,6 @@ import (
 	"github.com/cpusoft/goutil/osutil"
 )
 
-var globalConnToBusinessMsgCh chan ConnToBusinessMsg
-
-func init() {
-	globalConnToBusinessMsgCh = make(chan ConnToBusinessMsg)
-}
-
 type TcpClient struct {
 	// both tcp and tls
 	connType         string
@@ -64,6 +58,7 @@ func NewTlsClient(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	tc.connType = "tls"
 	tc.tcpClientProcess = tcpClientProcess
 	tc.businessToConnMsgCh = businessToConnMsgCh
+	tc.connToBusinessMsgCh = make(chan ConnToBusinessMsg)
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
 	if !rootExists {
@@ -84,7 +79,6 @@ func NewTlsClient(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	tc.tlsRootCrtFileName = tlsRootCrtFileName
 	tc.tlsPublicCrtFileName = tlsPublicCrtFileName
 	tc.tlsPrivateKeyFileName = tlsPrivateKeyFileName
-
 	belogs.Info("NewTlsClient():tc:", &tc)
 	return tc, nil
 }
@@ -166,13 +160,6 @@ func (tc *TcpClient) StartTlsClient(server string) (err error) {
 	}
 	belogs.Debug("TcpClient.StartTlsClient(): DialWithDialer ok, server is  ", server)
 
-	/*
-		tlsConn, err := tls.Dial("tcp", server, config)
-		if err != nil {
-			belogs.Error("TcpClient.StartTlsClient(): Dial fail, server:", server, err)
-			return err
-		}
-	*/
 	tc.tcpConn = NewFromTlsConn(tlsConn)
 	belogs.Debug("TcpClient.StartTlsClient(): NewFromTlsConn ok, server:", server, "   tcpConn:", tc.tcpConn.RemoteAddr().String())
 
@@ -229,8 +216,7 @@ func (tc *TcpClient) onReceive() (err error) {
 			if !connToBusinessMsg.IsActiveSendFromServer {
 				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, will send to tc.businessToConnMsgCh:", tc.businessToConnMsgCh,
 					"   connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
-				//tc.connToBusinessMsgCh <- *connToBusinessMsg
-				globalConnToBusinessMsgCh <- *connToBusinessMsg
+				tc.connToBusinessMsgCh <- *connToBusinessMsg
 				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, have send to connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
 			}
 		}()
@@ -272,23 +258,6 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 		belogs.Debug("TcpClient.SendAndReceiveMsg(): send to server:", tc.tcpConn.RemoteAddr().String(),
 			"   sendData:", convert.PrintBytesOneLine(sendData))
 
-		/* send data
-		connToBusinessMsgTmpCh := make(chan ConnToBusinessMsg)
-		go func() {
-			for {
-				belogs.Debug("TcpClient.SendAndReceiveMsg(): for select,  tc.connToBusinessMsgCh:", tc.connToBusinessMsgCh)
-				select {
-				case connToBusinessMsg := <-tc.connToBusinessMsgCh:
-					belogs.Debug("TcpClient.SendAndReceiveMsg(): receive from tc.connToBusinessMsg, connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
-					connToBusinessMsgTmpCh <- connToBusinessMsg
-					return
-				case <-time.After(5 * time.Second):
-					belogs.Debug("TcpClient.SendAndReceiveMsg(): receive fail, timeout")
-					return
-				}
-			}
-		}()
-		*/
 		n, err := tc.tcpConn.Write(sendData)
 		if err != nil {
 			belogs.Error("TcpClient.SendAndReceiveMsg(): Write fail, will close  tcpConn:", tc.tcpConn.RemoteAddr().String(), err)
@@ -298,21 +267,21 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 		belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
 			"  len(sendData):", len(sendData), "  write n:", n, "  and wait for receive connToBusinessMsg",
 			"  time(s):", time.Since(start))
-		connToBusinessMsg := <-globalConnToBusinessMsgCh
-		//connToBusinessMsg := <-connToBusinessMsgTmpCh
-		belogs.Info("TcpClient.SendAndReceiveMsg(): receive from connToBusinessMsgTmpCh,",
-			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
-			"  time(s):", time.Since(start))
-		return &connToBusinessMsg, nil
-		/*
-			connToBusinessMsg := <-tc.connToBusinessMsg
-			belogs.Info("TcpClient.SendAndReceiveMsg(): receive connToBusinessMsg,",
-				"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
-				"  time(s):", time.Since(start))
-			return &connToBusinessMsg, nil
-		*/
-	}
+		//connToBusinessMsg := <-tc.connToBusinessMsgCh
+		for {
+			belogs.Debug("TcpClient.SendAndReceiveMsg(): for select,  tc.connToBusinessMsgCh:", tc.connToBusinessMsgCh)
+			select {
+			case connToBusinessMsg := <-tc.connToBusinessMsgCh:
+				belogs.Debug("TcpClient.SendAndReceiveMsg(): receive from tc.connToBusinessMsg, connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
+					"  time(s):", time.Since(start))
+				return &connToBusinessMsg, nil
 
+			case <-time.After(5 * time.Second):
+				belogs.Debug("TcpClient.SendAndReceiveMsg(): receive fail, timeout")
+				return nil, errors.New("server response is timeout")
+			}
+		}
+	}
 	return nil, errors.New("BusinessToConnMsgType is not supported")
 }
 func (tc *TcpClient) GetTcpConnKey() string {

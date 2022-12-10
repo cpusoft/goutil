@@ -20,21 +20,21 @@ type UdpClient struct {
 	udpConn *UdpConn
 
 	// for channel
-	businessToConnMsg chan BusinessToConnMsg
+	businessToConnMsgCh chan BusinessToConnMsg
 
 	// for onReceive to SendAndReceiveMsg
-	connToBusinessMsg chan ConnToBusinessMsg
+	connToBusinessMsgCh chan ConnToBusinessMsg
 }
 
 // server: 0.0.0.0:port
-func NewUdpClient(udpClientProcess UdpClientProcess, businessToConnMsg chan BusinessToConnMsg) (uc *UdpClient) {
+func NewUdpClient(udpClientProcess UdpClientProcess, businessToConnMsgCh chan BusinessToConnMsg) (uc *UdpClient) {
 
 	belogs.Debug("NewUdpClient():udpClientProcess:", udpClientProcess)
 	uc = &UdpClient{}
 	uc.connType = "udp"
 	uc.udpClientProcess = udpClientProcess
-	uc.businessToConnMsg = businessToConnMsg
-	uc.connToBusinessMsg = make(chan ConnToBusinessMsg)
+	uc.businessToConnMsgCh = businessToConnMsgCh
+	uc.connToBusinessMsgCh = make(chan ConnToBusinessMsg)
 	belogs.Info("NewUdpClient():tc:", uc)
 	return uc
 }
@@ -61,7 +61,6 @@ func (uc *UdpClient) StartUdpClient(server string) (err error) {
 	return nil
 }
 
-
 func (uc *UdpClient) onReceive() (err error) {
 	for {
 		start := time.Now()
@@ -86,10 +85,14 @@ func (uc *UdpClient) onReceive() (err error) {
 		}
 		belogs.Info("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess, udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, " receive n: ", n,
 			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg), "  time(s):", time.Now().Sub(start))
-		if !connToBusinessMsg.IsActiveSendFromServer {
-			belogs.Debug("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess, will send to uc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
-			uc.connToBusinessMsg <- *connToBusinessMsg
-		}
+		go func() {
+			if !connToBusinessMsg.IsActiveSendFromServer {
+				belogs.Debug("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess, will send to uc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
+				uc.connToBusinessMsgCh <- *connToBusinessMsg
+				belogs.Debug("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess, have send to uc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))
+
+			}
+		}()
 	}
 }
 
@@ -125,15 +128,26 @@ func (uc *UdpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 			belogs.Error("UdpClient.SendAndReceiveMsg(): Write fail, will close  udpConn.serverUdpAddr:", uc.udpConn.serverUdpAddr, err)
 			return nil, err
 		}
+		belogs.Info("UdpClient.SendAndReceiveMsg(): Write to udpConn.serverUdpAddr:", uc.udpConn.serverUdpAddr,
+			"  len(sendData):", len(sendData), "  write n:", n,
+			"  time(s):", time.Since(start))
 
 		// wait receive msg from "onReceive"
 		belogs.Debug("UdpClient.SendAndReceiveMsg(): udpClientProcess.OnReceiveProcess, will receive from uc.connToBusinessMsg: ")
-		connToBusinessMsg := <-uc.connToBusinessMsg
-		belogs.Info("UdpClient.SendAndReceiveMsg(): Write to udpConn.serverUdpAddr:", uc.udpConn.serverUdpAddr,
-			"  len(sendData):", len(sendData), "  write n:", n,
-			" connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
-			"  time(s):", time.Since(start))
-		return &connToBusinessMsg, nil
+		//connToBusinessMsg := <-uc.connToBusinessMsg
+		for {
+			belogs.Debug("UdpClient.SendAndReceiveMsg(): for select,  uc.connToBusinessMsgCh:", uc.connToBusinessMsgCh)
+			select {
+			case connToBusinessMsg := <-uc.connToBusinessMsgCh:
+				belogs.Debug("UdpClient.SendAndReceiveMsg(): receive from uc.connToBusinessMsg, connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg),
+					"  time(s):", time.Since(start))
+				return &connToBusinessMsg, nil
+
+			case <-time.After(5 * time.Second):
+				belogs.Debug("UdpClient.SendAndReceiveMsg(): receive fail, timeout")
+				return nil, errors.New("server response is timeout")
+			}
+		}
 	}
 	return nil, errors.New("BusinessToConnMsgType is not supported")
 }
