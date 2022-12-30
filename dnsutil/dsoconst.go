@@ -46,3 +46,13 @@ const (
 	DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL  = 0xFFFFFFFF
 	DSO_DEL_COLLECTIVE_RESOURCE_RECORD_TTL = 0xFFFFFFFE
 )
+
+var DsoIntTypes map[uint8]string = map[uint8]string{
+	DSO_TYPE_KEEPALIVE:          "keepalive",
+	DSO_TYPE_RETRY_DELAY:        "retrydelay",
+	DSO_TYPE_ENCRYPTION_PADDING: "encryptionpadding",
+	DSO_TYPE_SUBSCRIBE:          "subscribe",
+	DSO_TYPE_PUSH:               "push",
+	DSO_TYPE_UNSUBSCRIBE:        "unsubscribe",
+	DSO_TYPE_RECONFIRM:          "reconfirm",
+}
