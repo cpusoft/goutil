@@ -28,6 +28,9 @@ type BusinessToConnMsg struct {
 	// for server to choose which conn
 	// if is "", will send all conns
 	ServerConnKey string `json:"serverConnKey,omitempty"`
+
+	// for client,need wait for server's response
+	NeedClientWaitForServerResponse bool `json:"needClientWaitForServerResponse,omitempty"`
 }
 
 type ConnToBusinessMsg struct {

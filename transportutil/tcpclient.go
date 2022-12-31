@@ -267,6 +267,13 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 		belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
 			"  len(sendData):", len(sendData), "  write n:", n, "  and wait for receive connToBusinessMsg",
 			"  time(s):", time.Since(start))
+		if !businessToConnMsg.NeedClientWaitForServerResponse {
+			belogs.Debug("TcpClient.SendAndReceiveMsg(): isnot NeedClientWaitForServerResponse, just return, businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))
+			return nil, nil
+		}
+		// wait receive msg from "onReceive"
+		belogs.Debug("TcpClient.SendAndReceiveMsg(): will receive from uc.connToBusinessMsg: ")
+
 		//connToBusinessMsg := <-tc.connToBusinessMsgCh
 		for {
 			belogs.Debug("TcpClient.SendAndReceiveMsg(): for select,  tc.connToBusinessMsgCh:", tc.connToBusinessMsgCh)

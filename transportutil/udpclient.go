@@ -131,9 +131,12 @@ func (uc *UdpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 		belogs.Info("UdpClient.SendAndReceiveMsg(): Write to udpConn.serverUdpAddr:", uc.udpConn.serverUdpAddr,
 			"  len(sendData):", len(sendData), "  write n:", n,
 			"  time(s):", time.Since(start))
-
+		if !businessToConnMsg.NeedClientWaitForServerResponse {
+			belogs.Debug("UdpClient.SendAndReceiveMsg(): isnot NeedClientWaitForServerResponse, just return, businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))
+			return nil, nil
+		}
 		// wait receive msg from "onReceive"
-		belogs.Debug("UdpClient.SendAndReceiveMsg(): udpClientProcess.OnReceiveProcess, will receive from uc.connToBusinessMsg: ")
+		belogs.Debug("UdpClient.SendAndReceiveMsg(): will receive from uc.connToBusinessMsg: ")
 		//connToBusinessMsg := <-uc.connToBusinessMsg
 		for {
 			belogs.Debug("UdpClient.SendAndReceiveMsg(): for select,  uc.connToBusinessMsgCh:", uc.connToBusinessMsgCh)
