@@ -21,8 +21,8 @@ const (
 	DSO_ERROR_IGNORE        = -1
 	DSO_ERROR_CLOSE_CONNECT = -2
 
-	// dso header: 12bytes: MessageId(2) + Qr/OpCode/Z/RCode(2) + QdCount(2) + AnCount(2) + NsCount(2) + ArCount(2)
-	DSO_LENGTH_MIN     = 12
+	// dso header: 4bytes:DSO-TYPE(2)+DSO-LENGTH(2)
+	DSO_LENGTH_MIN     = 4
 	DSO_TLV_LENGTH_MIN = 2
 
 	DSO_SESSION_STATE_DISCONNECTED          = "session_disconnected"
