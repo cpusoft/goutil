@@ -14,3 +14,4 @@
 /passwordutil/passwordutil_test.go
 /transportutil/conf
 /transportutil/log
+/grpcutil/cert
