@@ -18,8 +18,9 @@ func TestRunTLSEx(t *testing.T) {
 		c.String(http.StatusOK, message)
 	})
 
-	certFile := `F:\share\我的坚果云\Go\rpstir2\rpstir2-rp\conf\cert\server.crt`
-	keyFile := `F:\share\我的坚果云\Go\rpstir2\rpstir2-rp\conf\cert\server.key`
+	// change to actual path
+	certFile := `..\conf\cert\server.crt`
+	keyFile := `..\conf\cert\server.key`
 	fmt.Println(certFile, keyFile)
 	err := RunTLSEx(engine, ":7771", certFile, keyFile)
 	fmt.Println(err)
