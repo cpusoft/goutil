@@ -66,7 +66,7 @@ func (c *TcpConn) Write(b []byte) (n int, err error) {
 		return c.tlsConn.Write(b)
 	}
 
-	return -1, errors.New("is not conn")
+	return -1, errors.New("the connection has not been established")
 }
 
 func (c *TcpConn) Read(b []byte) (n int, err error) {
@@ -77,7 +77,7 @@ func (c *TcpConn) Read(b []byte) (n int, err error) {
 		return c.tlsConn.Read(b)
 	}
 
-	return -1, errors.New("is not conn")
+	return -1, errors.New("the connection has not been established")
 }
 
 func (c *TcpConn) Close() (err error) {
@@ -90,7 +90,7 @@ func (c *TcpConn) Close() (err error) {
 		return c.tlsConn.Close()
 	}
 
-	return errors.New("is not conn")
+	return errors.New("the connection has not been established")
 }
 
 func (c *TcpConn) SetDeadline(t time.Time) error {
@@ -101,7 +101,7 @@ func (c *TcpConn) SetDeadline(t time.Time) error {
 		return c.tlsConn.SetDeadline(t)
 	}
 
-	return errors.New("is not conn")
+	return errors.New("the connection has not been established")
 }
 
 func (c *TcpConn) IsConnected() bool {
