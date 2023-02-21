@@ -3,8 +3,6 @@ module github.com/cpusoft/goutil
 go 1.18
 
 require (
-	github.com/beego/goyaml2 v0.0.0-20130207012346-5545475820dd
-	github.com/beego/x2j v0.0.0-20131220205130-a0352aadc542
 	github.com/beevik/ntp v0.3.0
 	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.8.2
@@ -23,13 +21,12 @@ require (
 	github.com/wenzhenxi/gorsa v0.0.0-20220418014903-15feec0f05a6
 	google.golang.org/grpc v1.52.3
 	google.golang.org/protobuf v1.28.2-0.20220920080600-7a48e2b66218
-	gopkg.in/yaml.v2 v2.4.0
 	xorm.io/xorm v1.3.2
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/elazarl/goproxy v0.0.0-20210110162100-a92cc753f88e // indirect
+	github.com/elazarl/goproxy v0.0.0-20221015165544-a0805db90819 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -53,15 +50,15 @@ require (
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
-	github.com/ugorji/go/codec v1.2.9 // indirect
-	github.com/wendal/errors v0.0.0-20130201093226-f66c77a7882b // indirect
+	github.com/ugorji/go/codec v1.2.10 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-	golang.org/x/crypto v0.5.0 // indirect
-	golang.org/x/net v0.5.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
-	golang.org/x/tools v0.1.13-0.20220926222112-eb45e986a7f1 // indirect
+	golang.org/x/crypto v0.6.0 // indirect
+	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 	google.golang.org/genproto v0.0.0-20230125152338-dcaf20b6aeaa // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	moul.io/http2curl v1.0.0 // indirect
 	xorm.io/builder v0.3.12 // indirect
