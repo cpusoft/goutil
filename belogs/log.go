@@ -1,6 +1,7 @@
 package belogs
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -8,8 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // RFC5424 log message levels.

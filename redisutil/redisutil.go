@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/cpusoft/goutil/conf"
-	"github.com/go-redis/redis"
+	redis "github.com/redis/go-redis/v9"
 )
 
 //func redisOptions() *redis.Options {

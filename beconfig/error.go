@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 )
 
 // now not all implementation return those error codes

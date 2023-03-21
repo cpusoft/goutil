@@ -2,11 +2,11 @@ package belogs
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/shiena/ansicolor"
 )
 
