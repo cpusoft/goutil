@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
@@ -18,19 +19,8 @@ import (
 )
 
 // rsync type
-const (
-	RSYNC_TYPE_ADD       = "add"
-	RSYNC_TYPE_DEL       = "del"
-	RSYNC_TYPE_UPDATE    = "update"
-	RSYNC_TYPE_MKDIR     = "mkdir"
-	RSYNC_TYPE_IGNORE    = "ignore"
-	RSYNC_TYPE_JUST_SYNC = "justsync" //The file itself is not updated, just used to trigger sync sub-dir , so no need save to db
 
-	RSYNC_LOG_PREFIX    = 12
-	RSYNC_LOG_FILE_NAME = "rsync.log"
-
-	RSYNC_TIMEOUT_SEC = "10"
-)
+var rsyncClientConfig = NewRsyncClientConfig()
 
 type RsyncRecord struct {
 	Id           uint64        `json:"id"`
@@ -121,8 +111,11 @@ func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output 
 	//-4  --ipv4                  prefer IPv4
 	//--timeout=SECONDS       set I/O timeout in seconds
 	//--no-motd               suppress daemon-mode MOTD (see manpage caveat)
-	belogs.Debug("RsyncQuiet(): Command: rsync", "-Lirzts", "--del", "--timeout="+RSYNC_TIMEOUT_SEC, "--no-motd", "-4", rsyncUrl, rsyncDestPath)
-	cmd := exec.Command("rsync", "-Lrzts", "--del", "--timeout="+RSYNC_TIMEOUT_SEC, "--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	//--contimeout=SECONDS    set daemon connection timeout in seconds
+	belogs.Debug("RsyncQuiet(): Command: rsync", "-Lirzts", "--del", "--timeout="+rsyncClientConfig.Timeout, "--contimeout="+rsyncClientConfig.ConTimeout,
+		"--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	cmd := exec.Command("rsync", "-Lrzts", "--del", "--timeout="+rsyncClientConfig.Timeout, "--contimeout="+rsyncClientConfig.ConTimeout,
+		"--no-motd", "-4", rsyncUrl, rsyncDestPath)
 	// if success, the len(output) will be zero
 	output, err = cmd.CombinedOutput()
 	if err != nil {
@@ -515,4 +508,27 @@ func DiffFiles(filesFromDb, filesFromDisk map[string]RsyncFileHash) (addFiles,
 
 	return addFiles, delFiles, updateFiles, noChangeFiles, nil
 
+}
+
+func NewRsyncClientConfig() *RsyncClientConfig {
+	rsyncClientConfig := new(RsyncClientConfig)
+	rsyncClientConfig.Timeout = RSYNC_TIMEOUT_SEC
+	rsyncClientConfig.ConTimeout = RSYNC_CONTIMEOUT_SEC
+	return rsyncClientConfig
+}
+
+// seconds
+func SetTimeout(timeoutSec uint64) {
+	if timeoutSec > 0 {
+		rsyncClientConfig.Timeout = convert.ToString(timeoutSec)
+	}
+}
+func SetConTimeout(conTimeoutSec uint64) {
+	if conTimeoutSec > 0 {
+		rsyncClientConfig.ConTimeout = convert.ToString(conTimeoutSec)
+	}
+}
+func ResetAllTimeout() {
+	rsyncClientConfig.Timeout = RSYNC_TIMEOUT_SEC
+	rsyncClientConfig.ConTimeout = RSYNC_CONTIMEOUT_SEC
 }

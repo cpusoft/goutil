@@ -10,6 +10,6 @@ const (
 )
 
 type HttpClientConfig struct {
-	Timeout    time.Duration `json:"timeount"`
+	Timeout    time.Duration `json:"timeout"`
 	RetryCount int           `json:"retryCount"`
 }
