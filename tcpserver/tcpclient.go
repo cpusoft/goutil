@@ -36,7 +36,7 @@ func NewTcpClient(tcpClientProcessFunc TcpClientProcessFunc) (tc *TcpClient) {
 
 // server: **.**.**.**:port
 func (tc *TcpClient) Start(server string) (err error) {
-	belogs.Debug("Start():create client, server is  ", server)
+	belogs.Debug("Start():create client, server is:", server)
 
 	tcpServer, err := net.ResolveTCPAddr("tcp", server)
 	if err != nil {
@@ -111,14 +111,14 @@ func (tc *TcpClient) waitReceive(conn *net.TCPConn) {
 	for {
 		n, err := conn.Read(buffer)
 		start := time.Now()
-		belogs.Debug("waitReceive():server read: Read n: ", conn, n)
+		belogs.Debug("waitReceive(): tcpClient Read n Bytes:", conn, "   n:", n)
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
-				belogs.Debug("waitReceive(): io.EOF, client close: ", conn, err)
+				belogs.Debug("waitReceive(): tcpClient Read io.EOF, close: ", conn, err)
 				return
 			}
-			belogs.Error("waitReceive(): Read fail, err ", conn, err)
+			belogs.Error("waitReceive(): tcpClient Read fail, fail:", conn, err)
 			return
 		}
 		if n == 0 {
@@ -128,12 +128,12 @@ func (tc *TcpClient) waitReceive(conn *net.TCPConn) {
 		// copy to new []byte
 		receiveData := make([]byte, n)
 		copy(receiveData, buffer[0:n])
-		belogs.Info("waitReceive():conn: ", conn, "  len(receiveData): ", len(receiveData),
+		belogs.Info("waitReceive():tcpClient conn: ", conn, "  len(receiveData): ", len(receiveData),
 			" , will call client tcpClientProcessFunc,  time(s):", time.Since(start))
 		err = tc.tcpClientProcessFunc.OnReceive(conn, receiveData)
-		belogs.Debug("waitReceive():conn: ", conn, "  len(receiveData): ", len(receiveData), "  time(s):", time.Since(start))
+		belogs.Debug("waitReceive():tcpClient OnReceive, conn: ", conn, "  len(receiveData): ", len(receiveData), "  time(s):", time.Since(start))
 		if err != nil {
-			belogs.Error("waitReceive(): fail ,will remove this conn : ", conn, err)
+			belogs.Error("waitReceive(): tcpClient OnReceive fail ,will remove this conn : ", conn, err)
 			break
 		}
 	}
