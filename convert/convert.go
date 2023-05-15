@@ -194,6 +194,9 @@ func ToString(a interface{}) string {
 	if v, p := a.(int); p {
 		return strconv.Itoa(v)
 	}
+	if v, p := a.(int8); p {
+		return strconv.Itoa(int(v))
+	}
 	if v, p := a.(int16); p {
 		return strconv.Itoa(int(v))
 	}
@@ -205,6 +208,9 @@ func ToString(a interface{}) string {
 	}
 
 	if v, p := a.(uint); p {
+		return strconv.Itoa(int(v))
+	}
+	if v, p := a.(uint8); p {
 		return strconv.Itoa(int(v))
 	}
 	if v, p := a.(uint16); p {

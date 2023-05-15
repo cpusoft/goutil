@@ -197,7 +197,7 @@ func (tc *TcpTlsClient) onReceive() (err error) {
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
-				belogs.Debug("onReceive(): tcptlsclient   io.EOF, client close: ", tc.tcpTlsConn.RemoteAddr().String(), err)
+				belogs.Debug("onReceive(): tcptlsclient io.EOF, client close: ", tc.tcpTlsConn.RemoteAddr().String(), err)
 				return nil
 			}
 			belogs.Error("onReceive(): tcptlsclient Read fail or connect is closing, err ", tc.tcpTlsConn.RemoteAddr().String(), err)
