@@ -3,8 +3,6 @@ package tcptlsutil
 import (
 	"container/list"
 	"errors"
-	"net"
-	"time"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
@@ -109,17 +107,6 @@ func RecombineReceiveData(receiveData []byte, minPacketLen, lengthFieldStart,
 
 	}
 
-}
-func TestTcpConnection(address string, port string) (err error) {
-	server := net.JoinHostPort(address, port)
-	// 3 秒超时
-	conn, err := net.DialTimeout("tcp", server, 3*time.Second)
-	if err != nil {
-		belogs.Error("TestTcpConnection(): Dial fail: ", server, err)
-		return err
-	}
-	conn.Close()
-	return nil
 }
 
 func GetConnKey(tcpTlsConn *TcpTlsConn) string {

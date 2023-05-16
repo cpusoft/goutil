@@ -14,7 +14,7 @@ import (
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
-	"github.com/cpusoft/goutil/tcptlsutil"
+	"github.com/cpusoft/goutil/transportutil"
 	"github.com/cpusoft/goutil/urlutil"
 )
 
@@ -142,7 +142,7 @@ func RsyncTestConnect(rsyncUrl string) (err error) {
 
 	belogs.Debug("RsyncTestConnect():rsyncUrl:", rsyncUrl,
 		"   host:", host, "   port:", port)
-	err = tcptlsutil.TestTcpConnection(host, port)
+	err = transportutil.TestTcpConnection(host, port)
 	if err != nil {
 		belogs.Error("RsyncTestConnect(): TestTcpConnection fail:", rsyncUrl, err)
 		return err
