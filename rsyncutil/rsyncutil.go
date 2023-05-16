@@ -130,11 +130,12 @@ func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output 
 
 // use telnet test connect
 func RsyncTestConnect(rsyncUrl string) (err error) {
+	start := time.Now()
 	belogs.Debug("RsyncTestConnect():rsyncUrl:", rsyncUrl)
 	host, port, err := urlutil.HostAndPort(rsyncUrl)
 	if err != nil {
-		belogs.Error("RsyncTestConnect(): HostAndPort fail:", rsyncUrl, err)
-		return err
+		belogs.Error("RsyncTestConnect(): HostAndPort fail, rsyncUrl:", rsyncUrl, err, "  time(s):", time.Since(start))
+		return errors.New("rsync error of " + rsyncUrl + " is " + err.Error())
 	}
 	if len(port) == 0 {
 		port = "873"
@@ -144,10 +145,10 @@ func RsyncTestConnect(rsyncUrl string) (err error) {
 		"   host:", host, "   port:", port)
 	err = transportutil.TestTcpConnection(host, port)
 	if err != nil {
-		belogs.Error("RsyncTestConnect(): TestTcpConnection fail:", rsyncUrl, err)
-		return err
+		belogs.Error("RsyncTestConnect(): TestTcpConnection fail:", rsyncUrl, err, "  time(s):", time.Since(start))
+		return errors.New("rsync error of " + rsyncUrl + " is " + err.Error())
 	}
-	belogs.Debug("RsyncTestConnect(): ok, rsyncUrl:", rsyncUrl, err)
+	belogs.Debug("RsyncTestConnect(): ok, rsyncUrl:", rsyncUrl, "  time(s):", time.Since(start))
 	return nil
 }
 

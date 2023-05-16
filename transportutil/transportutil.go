@@ -114,11 +114,16 @@ func TestTcpConnection(address string, port string) (err error) {
 	server := net.JoinHostPort(address, port)
 	// 3 秒超时
 	conn, err := net.DialTimeout("tcp", server, 3*time.Second)
+	defer func() {
+		if conn != nil {
+			conn.Close()
+		}
+	}()
 	if err != nil {
-		belogs.Error("TestTcpConnection(): Dial fail: ", server, err)
+		belogs.Error("TestTcpConnection(): DialTimeout fail, server:", server, err)
 		return err
 	}
-	conn.Close()
+
 	return nil
 }
 
