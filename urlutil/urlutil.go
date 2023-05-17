@@ -38,6 +38,46 @@ func HostAndPath(urlStr string) (string, error) {
 	return (host + string(u.Path[:pos+1])), nil
 }
 
+// http://server:port/aa/bb/cc.html --> http://server/aa/bb/
+func SchemeAndHostAndPath(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+	scheme := u.Scheme + "://"
+	pos := strings.LastIndex(u.Path, "/")
+	host := u.Host
+	// if have port
+	if strings.Contains(host, ":") {
+		host = strings.Split(host, ":")[0]
+	}
+	return (scheme + host + string(u.Path[:pos+1])), nil
+}
+
+// rsync://aa.com:xxx/repo/defautl/xxxx --> rsync://aa.com/repo/
+func SchemeAndHostAndFirstPath(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+	scheme := u.Scheme + "://"
+	host := u.Host
+	// if have port
+	if strings.Contains(host, ":") {
+		host = strings.Split(host, ":")[0]
+	}
+
+	path := u.Path
+	split := strings.Split(path, `/`)
+	//belogs.Debug("SchemeAndHostAndFirstPath(): urlStr:", urlStr, " path:", path, "  split:", jsonutil.MarshalJson(split))
+	firstPath := split[0] + `/`
+	if len(split) > 1 {
+		firstPath = firstPath + split[1] + `/`
+	}
+
+	return (scheme + host + firstPath), nil
+}
+
 // http://server:port/aa/bb/cc.html --> server
 func Host(urlStr string) (string, error) {
 
