@@ -1,6 +1,6 @@
 module github.com/cpusoft/goutil
 
-go 1.18
+go 1.19
 
 require (
 	github.com/beego/goyaml2 v0.0.0-20130207012346-5545475820dd
