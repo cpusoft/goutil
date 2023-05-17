@@ -422,7 +422,7 @@ func GetByCurl(url string) (result string, err error) {
 		belogs.Error("GetByCurl(): ReadFileToBytes fail, url", url, "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
-	belogs.Debug("GetByCurl(): ReadFileToBytes ok, url:", url, "   tmpFile:", tmpFile, "  len(b):", len(b), "  time(s):", time.Now().Sub(start).Seconds())
+	belogs.Debug("GetByCurl(): ReadFileToBytes ok, url:", url, "   tmpFile:", tmpFile, "  len(b):", len(b), "  time(s):", time.Since(start))
 	return string(b), nil
 }
 

@@ -84,7 +84,7 @@ func (ts *TcpServer) OnConnect(conn *net.TCPConn) {
 	// call process func OnConnect
 	belogs.Debug("OnConnect():conn: ", conn, "   call process func: OnConnect ")
 	ts.tcpServerProcessFunc.OnConnect(conn)
-	belogs.Info("OnConnect():add conn: ", conn.RemoteAddr(), "   len(tcpConns): ", len(ts.tcpConns), "   time(s):", time.Now().Sub(start).Seconds())
+	belogs.Info("OnConnect():add conn: ", conn.RemoteAddr(), "   len(tcpConns): ", len(ts.tcpConns), "   time(s):", time.Since(start).Seconds())
 }
 
 func (ts *TcpServer) ReceiveAndSend(conn *net.TCPConn) {
@@ -117,9 +117,9 @@ func (ts *TcpServer) ReceiveAndSend(conn *net.TCPConn) {
 		receiveData := make([]byte, n)
 		copy(receiveData, buffer[0:n])
 		belogs.Debug("ReceiveAndSend():server conn: ", conn, "  len(receiveData):", len(receiveData),
-			" , will call process func: OnReceiveAndSend,  time(s):", time.Now().Sub(start).Seconds())
+			" , will call process func: OnReceiveAndSend,  time(s):", time.Since(start).Seconds())
 		err = ts.tcpServerProcessFunc.OnReceiveAndSend(conn, receiveData)
-		belogs.Debug("ReceiveAndSend():server conn: ", conn, "  len(receiveData): ", len(receiveData), "  time(s):", time.Now().Sub(start).Seconds())
+		belogs.Debug("ReceiveAndSend():server conn: ", conn, "  len(receiveData): ", len(receiveData), "  time(s):", time.Since(start).Seconds())
 		if err != nil {
 			belogs.Error("OnReceiveAndSend():server fail ,will remove this conn : ", conn, err)
 			break
@@ -148,7 +148,7 @@ func (ts *TcpServer) OnClose(conn *net.TCPConn) {
 		}
 	}
 	ts.tcpConns = newTcpConns
-	belogs.Info("OnClose():server,new len(tcpConns): ", len(ts.tcpConns), "  time(s):", time.Now().Sub(start).Seconds())
+	belogs.Info("OnClose():server,new len(tcpConns): ", len(ts.tcpConns), "  time(s):", time.Since(start).Seconds())
 }
 
 func (ts *TcpServer) ActiveSend(sendData []byte) (err error) {
@@ -166,6 +166,6 @@ func (ts *TcpServer) ActiveSend(sendData []byte) (err error) {
 		}
 	}
 	belogs.Info("ActiveSend(): send to all clients ok,  len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpConns),
-		"  time(s):", time.Now().Sub(start).Seconds())
+		"  time(s):", time.Since(start).Seconds())
 	return
 }

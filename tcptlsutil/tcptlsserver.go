@@ -274,11 +274,11 @@ func (ts *TcpTlsServer) receiveAndSend(tcpTlsConn *TcpTlsConn) {
 		// check state
 		if ts.state != SERVER_STATE_RUNNING {
 			belogs.Debug("receiveAndSend(): state is not running, will close from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
-				"  state:", ts.state, "  time(s):", time.Now().Sub(start))
+				"  state:", ts.state, "  time(s):", time.Since(start))
 			return
 		}
 		belogs.Debug("receiveAndSend(): tcptlsserver, will wait for Read from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
-			"  time(s):", time.Now().Sub(start))
+			"  time(s):", time.Since(start))
 
 	}
 }
@@ -345,7 +345,7 @@ ReadLoop:
 			belogs.Debug("receiveAndSend(): tcptlsserver, will reset buffer, tcpTlsConn: ", tcpTlsConn.RemoteAddr().String())
 
 			belogs.Debug("onReceive(): tcptlsserver, will wait for Read from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
-				"  time(s):", time.Now().Sub(start))
+				"  time(s):", time.Since(start))
 		}
 	}
 }
@@ -362,7 +362,7 @@ func (ts *TcpTlsServer) onConnect(tcpTlsConn *TcpTlsConn) {
 	ts.tcpTlsConns[connKey] = tcpTlsConn
 	belogs.Debug("onConnect(): tcptlsserver tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), ", connKey:", connKey, "  ts.tcpTlsConns: ", ts.tcpTlsConns)
 	ts.tcpTlsServerProcess.OnConnectProcess(tcpTlsConn)
-	belogs.Info("onConnect(): tcptlsserver add tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), "   len(tcpTlsConns): ", len(ts.tcpTlsConns), "   time(s):", time.Now().Sub(start).Seconds())
+	belogs.Info("onConnect(): tcptlsserver add tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), "   len(tcpTlsConns): ", len(ts.tcpTlsConns), "   time(s):", time.Since(start).Seconds())
 
 }
 
@@ -387,7 +387,7 @@ func (ts *TcpTlsServer) onClose(tcpTlsConn *TcpTlsConn) {
 	belogs.Debug("onClose(): tcptlsserver will close old tcpTlsConns, tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), "   old len(tcpTlsConns): ", len(ts.tcpTlsConns))
 	delete(ts.tcpTlsConns, GetConnKey(tcpTlsConn))
 	ts.tcpTlsServerProcess.OnCloseProcess(tcpTlsConn)
-	belogs.Info("onClose(): tcptlsserver new len(tcpTlsConns): ", len(ts.tcpTlsConns), "  time(s):", time.Now().Sub(start).Seconds())
+	belogs.Info("onClose(): tcptlsserver new len(tcpTlsConns): ", len(ts.tcpTlsConns), "  time(s):", time.Since(start).Seconds())
 }
 
 func (ts *TcpTlsServer) SendMsg(tcpTlsMsg *TcpTlsMsg) {
@@ -504,7 +504,7 @@ func (ts *TcpTlsServer) activeSend(connKey string, sendData []byte) (err error) 
 			}
 		}
 		belogs.Info("activeSend(): tcptlsserver  send to all clients ok,  len(sendData):", len(sendData), "   len(tcpTlsConns): ", len(ts.tcpTlsConns),
-			"  time(s):", time.Now().Sub(start).Seconds())
+			"  time(s):", time.Since(start).Seconds())
 		return
 	} else {
 		belogs.Debug("activeSend(): tcptlsserver  to connKey:", connKey, "   ts.tcpTlsConns:", ts.tcpTlsConns)
@@ -524,7 +524,7 @@ func (ts *TcpTlsServer) activeSend(connKey string, sendData []byte) (err error) 
 				"   sendData:", convert.PrintBytesOneLine(sendData))
 		}
 		belogs.Info("activeSend(): tcptlsserver  send to connKey ok,  len(sendData):", len(sendData), "   connKey: ", connKey,
-			"  time(s):", time.Now().Sub(start).Seconds())
+			"  time(s):", time.Since(start).Seconds())
 		return
 	}
 

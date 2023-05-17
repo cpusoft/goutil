@@ -450,7 +450,7 @@ func GetFilesHashFromDisk(destPath string) (files map[string]RsyncFileHash, err 
 		files[osutil.JoinPathFile(fileStats[i].FilePath, fileStats[i].FileName)] = fileHash
 	}
 
-	belogs.Info("GetFilesHashFromDisk(): len(files):", len(files), "  time(s):", time.Now().Sub(start).Seconds())
+	belogs.Info("GetFilesHashFromDisk(): len(files):", len(files), "  time(s):", time.Since(start))
 	return files, nil
 
 }
@@ -503,9 +503,9 @@ func DiffFiles(filesFromDb, filesFromDisk map[string]RsyncFileHash) (addFiles,
 	belogs.Debug("DiffFiles(): len(delFiles):", len(delFiles), jsonutil.MarshalJson(delFiles))
 	belogs.Debug("DiffFiles(): len(updateFiles):", len(updateFiles), jsonutil.MarshalJson(updateFiles))
 	belogs.Debug("DiffFiles(): len(noChangeFiles):", len(noChangeFiles), jsonutil.MarshalJson(noChangeFiles))
-	belogs.Debug("DiffFiles(): time(s):", time.Now().Sub(start).Seconds())
+	belogs.Debug("DiffFiles(): time(s):", time.Since(start))
 	belogs.Info("DiffFiles(): len(addFiles):", len(addFiles), "  len(delFiles):", len(delFiles),
-		"  len(updateFiles):", len(updateFiles), "  len(noChangeFiles):", len(noChangeFiles), "  time(s):", time.Now().Sub(start).Seconds())
+		"  len(updateFiles):", len(updateFiles), "  len(noChangeFiles):", len(noChangeFiles), "  time(s):", time.Since(start))
 
 	return addFiles, delFiles, updateFiles, noChangeFiles, nil
 

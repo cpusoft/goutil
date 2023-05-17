@@ -97,7 +97,7 @@ func (tc *TcpClient) waitActiveSend(conn *net.TCPConn) {
 				belogs.Error("waitActiveSend(): tcpClientProcessFunc.ActiveSendAndReceive fail:  conn:", conn, err)
 				return
 			}
-			belogs.Info("waitActiveSend(): tcpClientProcessChan:", tcpClientProcessChan, "  time(s):", time.Now().Sub(start).Seconds())
+			belogs.Info("waitActiveSend(): tcpClientProcessChan:", tcpClientProcessChan, "  time(s):", time.Since(start))
 		}
 	}
 }

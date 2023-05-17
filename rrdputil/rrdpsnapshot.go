@@ -35,7 +35,7 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 		belogs.Error("GetRrdpSnapshot():getRrdpSnapshotImpl fail:", snapshotUrl, err)
 		return snapshotModel, nil
 	}
-	belogs.Info("GetRrdpSnapshot(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Now().Sub(start).Seconds())
+	belogs.Info("GetRrdpSnapshot(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Since(start))
 	return snapshotModel, nil
 }
 
@@ -48,15 +48,15 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 	start := time.Now()
 	resp, body, err := httpclient.GetHttpsVerify(snapshotUrl, true)
 	belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
-		"    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), "   err:", err)
+		"    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
 	if err == nil {
 		defer resp.Body.Close()
 		belogs.Debug("getRrdpSnapshotImpl():GetHttpsVerify snapshotUrl ok:", snapshotUrl,
 			"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
-			"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+			"   len(body):", len(body), "  time(s):", time.Since(start))
 	} else {
 		belogs.Error("getRrdpSnapshotImpl(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
-			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+			resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl
 		start = time.Now()
@@ -64,15 +64,15 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 		if err != nil {
 			belogs.Error("getRrdpSnapshotImpl(): GetByCurl snapshotUrl fail:", snapshotUrl,
 				"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl), "   resp:", resp,
-				"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+				"   len(body):", len(body), "  time(s):", time.Since(start), err)
 			return snapshotModel, err
 		}
-		belogs.Debug("getRrdpSnapshotImpl(): GetByCurl snapshotUrl ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+		belogs.Debug("getRrdpSnapshotImpl(): GetByCurl snapshotUrl ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
 	}
 	// check if body is xml file
 	if !strings.Contains(body, `<snapshot`) {
 		belogs.Error("GetRrdpSnapshot(): body is not xml file:", snapshotUrl, "   resp:",
-			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
+			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
 		return snapshotModel, errors.New("body of " + snapshotUrl + " is not xml")
 	}
 

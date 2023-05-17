@@ -195,10 +195,10 @@ func (tc *TcpClient) onReceive() (err error) {
 		}
 
 		belogs.Debug("TcpClient.onReceive(): Read n :", n, " from tcpConn: ", tc.tcpConn.RemoteAddr().String(),
-			"  time(s):", time.Now().Sub(start))
+			"  time(s):", time.Since(start))
 		nextRwPolicy, leftData, connToBusinessMsg, err := tc.tcpClientProcess.OnReceiveProcess(tc.tcpConn, append(leftData, buffer[:n]...))
 		belogs.Info("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, tcpConn: ", tc.tcpConn.RemoteAddr().String(), " receive n: ", n,
-			"  len(leftData):", len(leftData), "  nextRwPolicy:", nextRwPolicy, "  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg), "  time(s):", time.Now().Sub(start))
+			"  len(leftData):", len(leftData), "  nextRwPolicy:", nextRwPolicy, "  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg), "  time(s):", time.Since(start))
 		if err != nil {
 			belogs.Error("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess  fail ,will close this tcpConn : ", tc.tcpConn.RemoteAddr().String(), err)
 			return err
@@ -211,7 +211,7 @@ func (tc *TcpClient) onReceive() (err error) {
 		// reset buffer
 		buffer = make([]byte, 2048)
 		belogs.Debug("TcpClient.onReceive(): will reset buffer and wait for Read from tcpConn: ", tc.tcpConn.RemoteAddr().String(),
-			"  time(s):", time.Now().Sub(start))
+			"  time(s):", time.Since(start))
 		go func() {
 			if !connToBusinessMsg.IsActiveSendFromServer {
 				belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, will send to tc.businessToConnMsgCh:", tc.businessToConnMsgCh,

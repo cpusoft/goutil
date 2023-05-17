@@ -205,10 +205,10 @@ func (tc *TcpTlsClient) onReceive() (err error) {
 		}
 
 		belogs.Debug("onReceive(): tcptlsclient, Read n :", n, " from tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
-			"  time(s):", time.Now().Sub(start))
+			"  time(s):", time.Since(start))
 		nextRwPolicy, leftData, err := tc.tcpTlsClientProcess.OnReceiveProcess(tc.tcpTlsConn, append(leftData, buffer[:n]...))
 		belogs.Info("onReceive(): tcptlsclient  tcpTlsClientProcess.OnReceiveProcess, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(), " receive n: ", n,
-			"  len(leftData):", len(leftData), "  nextRwPolicy:", nextRwPolicy, "  time(s):", time.Now().Sub(start))
+			"  len(leftData):", len(leftData), "  nextRwPolicy:", nextRwPolicy, "  time(s):", time.Since(start))
 		if err != nil {
 			belogs.Error("onReceive(): tcptlsclient  tcpTlsClientProcess.OnReceiveProcess  fail ,will close this tcpTlsConn : ", tc.tcpTlsConn.RemoteAddr().String(), err)
 			return err
@@ -223,7 +223,7 @@ func (tc *TcpTlsClient) onReceive() (err error) {
 		belogs.Debug("onReceive(): tcptlsclient, will reset buffer, tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String())
 
 		belogs.Debug("onReceive(): tcptlsclient, will wait for Read from tcpTlsConn: ", tc.tcpTlsConn.RemoteAddr().String(),
-			"  time(s):", time.Now().Sub(start))
+			"  time(s):", time.Since(start))
 
 	}
 

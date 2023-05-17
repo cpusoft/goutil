@@ -77,14 +77,14 @@ func (uc *UdpClient) onReceive() (err error) {
 		}
 
 		belogs.Debug("UdpClient.onReceive(): Read n :", n, " from udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr,
-			"  time(s):", time.Now().Sub(start))
+			"  time(s):", time.Since(start))
 		connToBusinessMsg, err := uc.udpClientProcess.OnReceiveProcess(uc.udpConn, append(buffer[:n]))
 		if err != nil {
 			belogs.Error("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess  fail ,will close this udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, err)
 			return err
 		}
 		belogs.Info("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess, udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, " receive n: ", n,
-			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg), "  time(s):", time.Now().Sub(start))
+			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg), "  time(s):", time.Since(start))
 		go func() {
 			if !connToBusinessMsg.IsActiveSendFromServer {
 				belogs.Debug("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess, will send to uc.connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg))

@@ -40,7 +40,7 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 			notificationModel.MinSerial = serial
 		}
 	}
-	belogs.Info("GetRrdpNotification(): notificationUrl ok:", notificationUrl, "  time(s):", time.Now().Sub(start).Seconds())
+	belogs.Info("GetRrdpNotification(): notificationUrl ok:", notificationUrl, "  time(s):", time.Since(start))
 	return notificationModel, nil
 }
 
@@ -55,7 +55,7 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl:", notificationUrl,
 			"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp.Status:", resp.Status,
 			"   len(body):", len(body),
-			"   time(s):", time.Now().Sub(start).Seconds())
+			"   time(s):", time.Since(start))
 
 		if resp.StatusCode != http.StatusOK {
 			belogs.Error("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl, is not StatusOK:", notificationUrl,
@@ -65,7 +65,7 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 
 	} else {
 		belogs.Error("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
-			resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+			resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl
 		start = time.Now()
@@ -73,16 +73,16 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 		if err != nil {
 			belogs.Error("getRrdpNotificationImpl(): GetByCurl notificationUrl fail:", notificationUrl,
 				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp:", resp,
-				"   len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
+				"   len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
 			return notificationModel, errors.New("http error of " + notificationUrl + " is " + err.Error())
 		}
 		belogs.Debug("getRrdpNotificationImpl(): GetByCurl deltaUrl ok", notificationUrl, "    len(body):", len(body),
-			"  time(s):", time.Now().Sub(start).Seconds())
+			"  time(s):", time.Since(start))
 	}
 	// check if body is xml file
 	if !strings.Contains(body, `<notification`) {
 		belogs.Error("getRrdpNotificationImpl(): body is not xml file:", notificationUrl, "   resp:",
-			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
+			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
 		return notificationModel, errors.New("body of " + notificationUrl + " is not xml")
 	}
 
@@ -108,20 +108,22 @@ func RrdpNotificationTestConnect(notificationUrl string) (err error) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		belogs.Error("RrdpNotificationTestConnect(): GetHttpsVerify notificationUrl, is not StatusOK:", notificationUrl,
-			"   resp.Status:", resp.Status, "    body:", body)
+			"   resp.Status:", resp.Status, "    body:", body, "   time(s):", time.Since(start))
 		return errors.New("http status code of " + notificationUrl + " is " + resp.Status)
 	}
-	belogs.Debug("RrdpNotificationTestConnect(): GetHttpsVerify ok, notificationUrl:", notificationUrl, "  time(s):", time.Since(start))
+	belogs.Debug("RrdpNotificationTestConnect(): GetHttpsVerify ok, notificationUrl:", notificationUrl,
+		"  time(s):", time.Since(start))
 
 	// test is legal
 	var notificationModel NotificationModel
 	err = xmlutil.UnmarshalXml(body, &notificationModel)
 	if err != nil {
-		belogs.Error("RrdpNotificationTestConnect(): UnmarshalXml to get notificationModel fail, notificationUrl:", notificationUrl, "     body:", body, err)
+		belogs.Error("RrdpNotificationTestConnect(): UnmarshalXml to get notificationModel fail, notificationUrl:", notificationUrl,
+			"     body:", body, err, "   time(s):", time.Since(start))
 		return errors.New("response of " + notificationUrl + " is not a legal rrdp file")
 	}
 	belogs.Info("RrdpNotificationTestConnect(): get notificationModel ok, notificationUrl:", notificationUrl,
-		"   time(s):", time.Now().Sub(start).Seconds())
+		"   time(s):", time.Since(start))
 	return nil
 }
 

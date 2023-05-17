@@ -53,7 +53,7 @@ func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (del
 	belogs.Debug("GetRrdpDeltas():will get errorMsgCh, and deltaModelCh", len(errorMsgCh), len(deltaModelCh))
 	// if has error, then return error
 	for errorMsg := range errorMsgCh {
-		belogs.Error("GetRrdpDeltas(): getRrdpDeltasImpl fail:", errorMsg, "   time(s):", time.Now().Sub(start).Seconds())
+		belogs.Error("GetRrdpDeltas(): getRrdpDeltasImpl fail:", errorMsg, "   time(s):", time.Since(start))
 		return nil, errors.New(errorMsg)
 	}
 	// get deltaModels, and sort
@@ -66,7 +66,7 @@ func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (del
 
 	belogs.Info("GetRrdpDeltas():len(deltaModels):", len(deltaModels),
 		"   len(notificationModel.Deltas) :", len(notificationModel.Deltas),
-		"   lastSerial:", lastSerial, "   time(s):", time.Now().Sub(start).Seconds())
+		"   lastSerial:", lastSerial, "   time(s):", time.Since(start))
 
 	return deltaModels, nil
 }
@@ -83,24 +83,24 @@ func getRrdpDeltasImpl(notificationModel *NotificationModel, i int, deltaModelCh
 	deltaModel, err := GetRrdpDelta(notificationModel.Deltas[i].Uri)
 	if err != nil {
 		belogs.Error("getRrdpDeltasImpl(): GetRrdpDelta fail, delta.Uri :", i,
-			notificationModel.Deltas[i].Uri, err, "   time(s):", time.Now().Sub(start).Seconds())
+			notificationModel.Deltas[i].Uri, err, "   time(s):", time.Since(start))
 		errorMsgCh <- "get delta " + notificationModel.Deltas[i].Uri + " fail, error is " + err.Error()
 		return
 	}
 	belogs.Debug("getRrdpDeltasImpl():ok notificationModel.Deltas[i].Uri:", i, notificationModel.Deltas[i].Uri,
-		"   time(s):", time.Now().Sub(start).Seconds())
+		"   time(s):", time.Since(start))
 
 	err = CheckRrdpDelta(&deltaModel, notificationModel)
 	if err != nil {
 		belogs.Error("getRrdpDeltasImpl(): CheckRrdpDelta fail, delta.Uri :", i,
-			notificationModel.Deltas[i].Uri, err, "   time(s):", time.Now().Sub(start).Seconds())
+			notificationModel.Deltas[i].Uri, err, "   time(s):", time.Since(start))
 		errorMsgCh <- "check delta " + notificationModel.Deltas[i].Uri + " fail, error is " + err.Error()
 		return
 	}
 	belogs.Info("getRrdpDeltasImpl(): delta.Uri:", notificationModel.Deltas[i].Uri,
 		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
 		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
-		"   time(s):", time.Now().Sub(start).Seconds())
+		"   time(s):", time.Since(start))
 	deltaModelCh <- deltaModel
 	return
 }
@@ -124,7 +124,7 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 		return deltaModel, err
 	}
 
-	belogs.Info("GetRrdpDelta(): deltaUrl ok:", deltaUrl, "  time(s):", time.Now().Sub(start).Seconds())
+	belogs.Info("GetRrdpDelta(): deltaUrl ok:", deltaUrl, "  time(s):", time.Since(start))
 	return deltaModel, nil
 }
 
@@ -140,10 +140,10 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 		defer resp.Body.Close()
 		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl ok:", deltaUrl, "   resp.Status:", resp.Status,
 			"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
-			"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+			"   len(body):", len(body), "  time(s):", time.Since(start))
 	} else {
 		belogs.Error("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
-			"   resp:", resp, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+			"   resp:", resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl
 		start = time.Now()
@@ -151,16 +151,16 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 		if err != nil {
 			belogs.Error("getRrdpDeltaImpl(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:", resp,
 				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
-				"   len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds(), err)
+				"   len(body):", len(body), "  time(s):", time.Since(start), err)
 			return deltaModel, err
 		}
-		belogs.Debug("getRrdpDeltaImpl(): GetByCurl deltaUrl ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Now().Sub(start).Seconds())
+		belogs.Debug("getRrdpDeltaImpl(): GetByCurl deltaUrl ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
 	}
 
 	// check if body is xml file
 	if !strings.Contains(body, `<delta`) {
 		belogs.Error("GetRrdpSnapshot(): body is not xml file:", deltaUrl, "   resp:",
-			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Now().Sub(start).Seconds(), err)
+			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
 		return deltaModel, errors.New("body of " + deltaUrl + " is not xml")
 	}
 

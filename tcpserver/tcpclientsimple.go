@@ -47,7 +47,7 @@ func ClientSendAndReceive(server string, sendData []byte) (receiveData []byte, e
 		return nil, err
 	}
 	belogs.Info("ClientSendAndReceive():send to server ", server, "  sendData:", len(sendData), " len(receiveData):", n,
-		"   time(s):", time.Now().Sub(start).Seconds())
+		"   time(s):", time.Since(start).Seconds())
 	return receiveData[:n], nil
 
 }
