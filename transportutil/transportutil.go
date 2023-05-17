@@ -113,6 +113,7 @@ func RecombineReceiveData(receiveData []byte, minPacketLen, lengthFieldStart,
 func TestTcpConnection(address string, port string) (err error) {
 	server := net.JoinHostPort(address, port)
 	// 3 秒超时
+	start := time.Now()
 	conn, err := net.DialTimeout("tcp", server, 3*time.Second)
 	defer func() {
 		if conn != nil {
@@ -120,7 +121,7 @@ func TestTcpConnection(address string, port string) (err error) {
 		}
 	}()
 	if err != nil {
-		belogs.Error("TestTcpConnection(): DialTimeout fail, server:", server, err)
+		belogs.Error("TestTcpConnection(): DialTimeout fail, server:", server, err, "  time(s):", time.Since(start))
 		return err
 	}
 

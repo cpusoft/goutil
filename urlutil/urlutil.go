@@ -1,6 +1,7 @@
 package urlutil
 
 import (
+	"errors"
 	"net"
 	"net/url"
 	"strings"
@@ -15,6 +16,9 @@ func HostAndPort(urlStr string) (host, port string, err error) {
 	if err != nil {
 		return "", "", err
 	}
+	if len(u.Host) == 0 {
+		return "", "", errors.New("it is not in a legal URL format")
+	}
 	if strings.Contains(u.Host, ":") {
 		return net.SplitHostPort(u.Host)
 	}
@@ -28,7 +32,9 @@ func HostAndPath(urlStr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	if len(u.Host) == 0 {
+		return "", errors.New("it is not in a legal URL format")
+	}
 	pos := strings.LastIndex(u.Path, "/")
 	host := u.Host
 	// if have port
@@ -43,6 +49,9 @@ func SchemeAndHostAndPath(urlStr string) (string, error) {
 	u, err := url.Parse(urlStr)
 	if err != nil {
 		return "", err
+	}
+	if len(u.Host) == 0 {
+		return "", errors.New("it is not in a legal URL format")
 	}
 	scheme := u.Scheme + "://"
 	pos := strings.LastIndex(u.Path, "/")
@@ -59,6 +68,9 @@ func SchemeAndHostAndFirstPath(urlStr string) (string, error) {
 	u, err := url.Parse(urlStr)
 	if err != nil {
 		return "", err
+	}
+	if len(u.Host) == 0 {
+		return "", errors.New("it is not in a legal URL format")
 	}
 	scheme := u.Scheme + "://"
 	host := u.Host
@@ -85,7 +97,9 @@ func Host(urlStr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	if len(u.Host) == 0 {
+		return "", errors.New("it is not in a legal URL format")
+	}
 	host := u.Host
 	// if have port
 	if strings.Contains(host, ":") {
@@ -100,6 +114,9 @@ func Path(urlStr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if len(u.Host) == 0 {
+		return "", errors.New("it is not in a legal URL format")
+	}
 	path := u.Path
 	return path, nil
 }
@@ -109,6 +126,9 @@ func HostAndPathFile(urlStr string) (string, error) {
 	u, err := url.Parse(urlStr)
 	if err != nil {
 		return "", err
+	}
+	if len(u.Host) == 0 {
+		return "", errors.New("it is not in a legal URL format")
 	}
 	host := u.Host
 	// if have port
@@ -123,6 +143,9 @@ func HostAndPathAndFile(urlStr string) (host, path, file string, err error) {
 	u, err := url.Parse(urlStr)
 	if err != nil {
 		return
+	}
+	if len(u.Host) == 0 {
+		return "", "", "", errors.New("it is not in a legal URL format")
 	}
 	host = u.Host
 	// if have port
