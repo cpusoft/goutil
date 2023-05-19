@@ -92,6 +92,7 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 		belogs.Error("getRrdpNotificationImpl(): UnmarshalXml fail: ", notificationUrl, "        body:", body, err)
 		return notificationModel, errors.New("response of " + notificationUrl + " is not a legal rrdp file")
 	}
+	notificationModel.NotificationUrl = notificationUrl
 	return notificationModel, nil
 }
 

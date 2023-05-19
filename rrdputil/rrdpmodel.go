@@ -14,6 +14,7 @@ type NotificationModel struct {
 	Deltas    []NotificationDelta  `xml:"delta"`
 
 	//map[serial]serial: just save exist serial ,for check
+	NotificationUrl string            `xml:"-"`
 	MapSerialDeltas map[uint64]uint64 `xml:"-"`
 	MaxSerial       uint64            `xml:"-"`
 	MinSerial       uint64            `xml:"-"`
