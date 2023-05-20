@@ -2,6 +2,7 @@ package rrdputil
 
 import (
 	"errors"
+	"math"
 	"net/http"
 	"sort"
 	"strings"
@@ -30,17 +31,22 @@ func GetRrdpNotification(notificationUrl string) (notificationModel Notification
 
 	// get maxserial and minserial, and set map[serial]serial
 	notificationModel.MapSerialDeltas = make(map[uint64]uint64, len(notificationModel.Deltas)+10)
+	min := uint64(math.MaxUint64)
+	max := uint64(0)
 	for i := range notificationModel.Deltas {
 		notificationModel.MapSerialDeltas[notificationModel.Deltas[i].Serial] = notificationModel.Deltas[i].Serial
 		serial := notificationModel.Deltas[i].Serial
-		if serial > notificationModel.MaxSerial {
-			notificationModel.MaxSerial = serial
+		if serial > max {
+			max = serial
 		}
-		if serial < notificationModel.MinSerial {
-			notificationModel.MinSerial = serial
+		if serial < min {
+			min = serial
 		}
 	}
-	belogs.Info("GetRrdpNotification(): notificationUrl ok:", notificationUrl, "  time(s):", time.Since(start))
+	notificationModel.MaxSerial = max
+	notificationModel.MinSerial = min
+	belogs.Info("GetRrdpNotification(): notificationUrl ok:", notificationUrl, " notificationModel.MaxSerial:", notificationModel.MaxSerial,
+		"   notificationModel.MinSerial:", notificationModel.MinSerial, "  time(s):", time.Since(start))
 	return notificationModel, nil
 }
 
