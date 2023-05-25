@@ -46,6 +46,8 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 	belogs.Debug("getRrdpSnapshotImpl(): snapshotUrl:", snapshotUrl)
 	snapshotUrl = strings.TrimSpace(snapshotUrl)
 	start := time.Now()
+	httpclient.SetTimeout(30) // 30mins
+	defer httpclient.ResetTimeout()
 	resp, body, err := httpclient.GetHttpsVerify(snapshotUrl, true)
 	belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
 		"    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
@@ -59,6 +61,7 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 			resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl
+
 		start = time.Now()
 		body, err = httpclient.GetByCurl(snapshotUrl)
 		if err != nil {
