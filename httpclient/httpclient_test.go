@@ -37,7 +37,8 @@ func TestGetHttps(t *testing.T) {
 func TestGetHttpsRrdp(t *testing.T) {
 
 	//往rp发送请求
-	url := `https://rrdp.afrinic.net/notification.xml` //https://rpki.august.tw/rrdp/notification.xml`
+	//`https://rrdp.afrinic.net/notification.xml` //https://rpki.august.tw/rrdp/notification.xml`
+	url := `https://rrdp.afrinic.net/11218e02-4ae9-4c95-a8fa-49df27f15272/73865/snapshot.xml`
 	resutl, err := GetByCurl(url)
 
 	if err != nil {

@@ -406,7 +406,7 @@ func GetByCurl(url string) (result string, err error) {
 	*/
 	start := time.Now()
 	cmd := exec.Command("curl", "--connect-timeout", "600",
-		"-m", "600", "--retry", "3", "-4", "-v", "-o", tmpFile, url)
+		"-m", "600", "--retry", "3", "-4", "--compressed", "-v", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
