@@ -392,7 +392,6 @@ func GetByCurl(url string) (result string, err error) {
 	belogs.Debug("GetByCurl(): cmd:  curl:'" + url + "'")
 	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
 	defer os.Remove(tmpFile)
-	belogs.Debug("GetByCurl():will curl url:", url, "   tmpFile:", tmpFile)
 
 	// -s: slient mode  --no use
 	// -4: ipv4  --no use
@@ -406,7 +405,8 @@ func GetByCurl(url string) (result string, err error) {
 		cmd := exec.Command("curl", "-4", "-v", "-o", tmpFile, url)
 	*/
 	// minute-->second
-	timeout := convert.ToString((httpClientConfig.Timeout * time.Minute) * 60)
+	timeout := convert.ToString(int64(httpClientConfig.Timeout) * 60)
+	belogs.Debug("GetByCurl():will curl url:", url, "  timeout:", timeout, "   tmpFile:", tmpFile)
 	start := time.Now()
 	cmd := exec.Command("curl", "--connect-timeout", timeout,
 		"-m", timeout, "--retry", "3", "-4", "--compressed", "-v", "-o", tmpFile, url)
