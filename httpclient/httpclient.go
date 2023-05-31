@@ -25,7 +25,7 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
-var httpClientConfig = NewHttpClientConfig()
+var globalHttpClientConfig = NewHttpClientConfig()
 
 var RetryHttpStatus = []int{http.StatusBadRequest, http.StatusInternalServerError,
 	http.StatusRequestTimeout, http.StatusBadGateway, http.StatusGatewayTimeout}
@@ -62,7 +62,7 @@ func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
 		return nil, "", err
 	}
 	return errorsToerror(gorequest.New().Get(urlStr).
-		Timeout(httpClientConfig.Timeout*time.Minute).
+		Timeout(time.Duration(globalHttpClientConfig.TimeoutMins)*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -88,7 +88,7 @@ func GetHttpsVerify(urlStr string, verify bool) (resp gorequest.Response, body s
 
 	return errorsToerror(gorequest.New().Get(urlStr).
 		TLSClientConfig(config).
-		Timeout(httpClientConfig.Timeout*time.Minute).
+		Timeout(time.Duration(globalHttpClientConfig.TimeoutMins)*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -227,7 +227,7 @@ func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body str
 		return nil, "", err
 	}
 	return errorsToerror(gorequest.New().Post(urlStr).
-		Timeout(httpClientConfig.Timeout*time.Minute).
+		Timeout(time.Duration(globalHttpClientConfig.TimeoutMins)*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -255,7 +255,7 @@ func PostHttps(urlStr string, postJson string, verify bool) (resp gorequest.Resp
 	config := &tls.Config{InsecureSkipVerify: !verify}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
-		Timeout(httpClientConfig.Timeout*time.Minute).
+		Timeout(time.Duration(globalHttpClientConfig.TimeoutMins)*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -343,7 +343,7 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 	fileNameStr := osutil.Base(fileName)
 	belogs.Debug("PostFileHttps():fileNameStr:", fileNameStr)
 	return errorsToerror(gorequest.New().Post(urlStr).
-		Timeout(httpClientConfig.Timeout*time.Minute).
+		Timeout(time.Duration(globalHttpClientConfig.TimeoutMins)*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -372,7 +372,7 @@ func PostFileHttps(urlStr string, fileName string, formName string, verify bool)
 	config := &tls.Config{InsecureSkipVerify: !verify}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
-		Timeout(httpClientConfig.Timeout*time.Minute).
+		Timeout(time.Duration(globalHttpClientConfig.TimeoutMins)*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -384,13 +384,24 @@ func PostFileHttps(urlStr string, fileName string, formName string, verify bool)
 }
 
 func GetByCurl(url string) (result string, err error) {
+	return GetByCurlWithConfig(url, globalHttpClientConfig)
+}
+
+func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result string, err error) {
+	url = strings.TrimSpace(url)
 	if len(url) == 0 {
 		return "", errors.New("url is emtpy")
 	}
-
-	url = strings.TrimSpace(url)
-	belogs.Debug("GetByCurl(): cmd:  curl:'" + url + "'")
+	if httpClientConfig == nil {
+		httpClientConfig = globalHttpClientConfig
+	}
+	// mins --> seconds
+	timeout := convert.ToString(httpClientConfig.TimeoutMins * 60)
+	retryCount := convert.ToString(httpClientConfig.RetryCount)
 	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
+	belogs.Info("GetByCurlWithConfig():will curl, url:", url, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig),
+		"  httpClientConfig.TimeoutMins(m):", int64(httpClientConfig.TimeoutMins), "  timeout as seconds:", timeout,
+		"  retryCount:", retryCount, "   tmpFile:", tmpFile)
 	defer os.Remove(tmpFile)
 
 	// -s: slient mode  --no use
@@ -405,27 +416,26 @@ func GetByCurl(url string) (result string, err error) {
 		cmd := exec.Command("curl", "-4", "-v", "-o", tmpFile, url)
 	*/
 	// minute-->second
-	timeout := convert.ToString(int64(httpClientConfig.Timeout) * 60)
-	belogs.Debug("GetByCurl():will curl url:", url, "  timeout:", timeout, "   tmpFile:", tmpFile)
+
 	start := time.Now()
 	cmd := exec.Command("curl", "--connect-timeout", timeout,
-		"-m", timeout, "--retry", "3", "-4", "--compressed", "-v", "-o", tmpFile, url)
+		"-m", timeout, "--retry", retryCount, "--compressed", "-v", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Error("GetByCurl(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
+		belogs.Error("GetByCurlWithConfig(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
 			"  tmpFile:", tmpFile, "  timeout:", timeout, "  time(s):", time.Since(start), "   err: ", err,
 			"  Output  is:", string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
-	belogs.Debug("GetByCurl(): curl ok, url:", url, "   tmpFile:", tmpFile, "  timeout:", timeout, "  time(s):", time.Since(start),
+	belogs.Debug("GetByCurlWithConfig(): curl ok, url:", url, "   tmpFile:", tmpFile, "  timeout:", timeout, "  time(s):", time.Since(start),
 		" Output  is:", string(output))
 
 	b, err := fileutil.ReadFileToBytes(tmpFile)
 	if err != nil {
-		belogs.Error("GetByCurl(): ReadFileToBytes fail, url", url, "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
+		belogs.Error("GetByCurlWithConfig(): ReadFileToBytes fail, url", url, "   tmpFile:", tmpFile, "   err: ", err, "   output: "+string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}
-	belogs.Debug("GetByCurl(): ReadFileToBytes ok, url:", url, "   tmpFile:", tmpFile, "  len(b):", len(b), "  time(s):", time.Since(start))
+	belogs.Debug("GetByCurlWithConfig(): ReadFileToBytes ok, url:", url, "   tmpFile:", tmpFile, "  len(b):", len(b), "  time(s):", time.Since(start))
 	return string(b), nil
 }
 
@@ -440,23 +450,6 @@ func errorsToerror(resps gorequest.Response, bodys string, errs []error) (resp g
 		return resps, bodys, errors.New(buffer.String())
 	}
 	return resps, bodys, nil
-}
-
-func NewHttpClientConfig() *HttpClientConfig {
-	httpClientConfig := new(HttpClientConfig)
-	httpClientConfig.Timeout = time.Duration(DefaultTimeout)
-	httpClientConfig.RetryCount = RetryCount
-	return httpClientConfig
-}
-
-// Minutes
-func SetTimeout(minute uint64) {
-	if minute > 0 {
-		httpClientConfig.Timeout = time.Duration(minute)
-	}
-}
-func ResetTimeout() {
-	httpClientConfig.Timeout = time.Duration(DefaultTimeout)
 }
 
 func DownloadUrlFile(urlFile string, localFile string) (int64, error) {

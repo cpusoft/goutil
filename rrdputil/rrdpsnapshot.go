@@ -63,14 +63,14 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 		// then try using curl
 
 		start = time.Now()
-		body, err = httpclient.GetByCurl(snapshotUrl)
+		body, err = httpclient.GetByCurlWithConfig(snapshotUrl, httpclient.NewHttpClientConfigWithParam(30, 3))
 		if err != nil {
-			belogs.Error("getRrdpSnapshotImpl(): GetByCurl snapshotUrl fail:", snapshotUrl,
+			belogs.Error("getRrdpSnapshotImpl(): GetByCurlWithConfig snapshotUrl fail:", snapshotUrl,
 				"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl), "   resp:", resp,
 				"   len(body):", len(body), "  time(s):", time.Since(start), err)
 			return snapshotModel, err
 		}
-		belogs.Debug("getRrdpSnapshotImpl(): GetByCurl snapshotUrl ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
+		belogs.Debug("getRrdpSnapshotImpl(): GetByCurlWithConfig snapshotUrl ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
 	}
 	// check if body is xml file
 	if !strings.Contains(body, `<snapshot`) {
