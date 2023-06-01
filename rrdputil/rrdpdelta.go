@@ -3,6 +3,7 @@ package rrdputil
 import (
 	"errors"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"runtime"
 	"sort"
@@ -138,23 +139,40 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 	resp, body, err := httpclient.GetHttpsVerify(deltaUrl, true)
 	if err == nil {
 		defer resp.Body.Close()
-		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl ok:", deltaUrl, "   resp.Status:", resp.Status,
-			"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
-			"   len(body):", len(body), "  time(s):", time.Since(start))
+		if resp.StatusCode != http.StatusOK {
+			belogs.Error("getRrdpSnapshotImpl(): GetHttpsVerify deltaUrl, is not StatusOK:", deltaUrl,
+				"   resp.Status:", resp.Status, "    body:", body)
+			return deltaModel, errors.New("http status code of " + deltaUrl + " is " + resp.Status)
+		} else {
+			belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl ok:", deltaUrl, "   resp.Status:", resp.Status,
+				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
+				"   len(body):", len(body), "  time(s):", time.Since(start))
+		}
 	} else {
-		belogs.Error("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
+		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 			"   resp:", resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl
 		start = time.Now()
-		body, err = httpclient.GetByCurl(deltaUrl)
+		body, err = httpclient.GetByCurlWithConfig(deltaUrl, httpclient.NewHttpClientConfigWithParam(30, 3, "ipv4"))
 		if err != nil {
-			belogs.Error("getRrdpDeltaImpl(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:", resp,
+			belogs.Debug("getRrdpDeltaImpl(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:", resp,
 				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 				"   len(body):", len(body), "  time(s):", time.Since(start), err)
-			return deltaModel, err
+			// then try again using curl, using all
+			start = time.Now()
+			body, err = httpclient.GetByCurlWithConfig(deltaUrl, httpclient.NewHttpClientConfigWithParam(30, 3, "all"))
+			if err != nil {
+				belogs.Error("getRrdpDeltaImpl(): GetByCurlWithConfig deltaUrl, iptype is all, fail:", deltaUrl,
+					"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl), "   resp:", resp,
+					"   len(body):", len(body), "  time(s):", time.Since(start), err)
+				return deltaModel, errors.New("http error of " + deltaUrl + " is " + err.Error())
+			}
+			belogs.Debug("getRrdpDeltaImpl(): GetByCurlWithConfig deltaUrl, iptype is all, ok", deltaUrl, "    len(body):", len(body),
+				"  time(s):", time.Since(start))
+		} else {
+			belogs.Debug("getRrdpDeltaImpl(): GetByCurlWithConfig deltaUrl, iptype is ipv4, ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
 		}
-		belogs.Debug("getRrdpDeltaImpl(): GetByCurl deltaUrl ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
 	}
 
 	// check if body is xml file
@@ -175,6 +193,7 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 		deltaModel.DeltaPublishs[i].Base64 = stringutil.TrimSpaceAneNewLine(deltaModel.DeltaPublishs[i].Base64)
 	}
 	deltaModel.DeltaUrl = deltaUrl
+	belogs.Info("getRrdpDeltaImpl(): get from deltaUrl ok", deltaUrl, "  time(s):", time.Since(start))
 	return deltaModel, nil
 }
 

@@ -399,9 +399,15 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 	timeout := convert.ToString(httpClientConfig.TimeoutMins * 60)
 	retryCount := convert.ToString(httpClientConfig.RetryCount)
 	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
+	ipType := ""
+	if httpClientConfig.IpType == "ipv4" {
+		ipType = "-4"
+	} else if httpClientConfig.IpType == "ipv6" {
+		ipType = "-6"
+	}
 	belogs.Info("GetByCurlWithConfig():will curl, url:", url, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig),
 		"  httpClientConfig.TimeoutMins(m):", int64(httpClientConfig.TimeoutMins), "  timeout as seconds:", timeout,
-		"  retryCount:", retryCount, "   tmpFile:", tmpFile)
+		"  retryCount:", retryCount, "  ipType:", ipType, "   tmpFile:", tmpFile)
 	defer os.Remove(tmpFile)
 
 	// -s: slient mode  --no use
@@ -419,11 +425,11 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 
 	start := time.Now()
 	cmd := exec.Command("curl", "--connect-timeout", timeout,
-		"-m", timeout, "--retry", retryCount, "--compressed", "-v", "-o", tmpFile, url)
+		"-m", timeout, ipType, "--retry", retryCount, "--compressed", "-v", "-o", tmpFile, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetByCurlWithConfig(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
-			"  tmpFile:", tmpFile, "  timeout:", timeout, "  time(s):", time.Since(start), "   err: ", err,
+			"  tmpFile:", tmpFile, "  timeout:", timeout, "  retryCount:", retryCount, "  ipType:", ipType, "  time(s):", time.Since(start), "   err: ", err,
 			"  Output  is:", string(output))
 		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
 	}

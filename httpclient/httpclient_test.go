@@ -39,9 +39,10 @@ func TestGetHttpsRrdp(t *testing.T) {
 	//往rp发送请求
 	//`https://rrdp.afrinic.net/notification.xml` //https://rpki.august.tw/rrdp/notification.xml`
 	url := `https://rrdp-as0.apnic.net/e197f36e-b1c0-46f8-a2f6-ffc00cf83c38/44292/snapshot.xml`
+	url = `https://rrdp.ripe.net/notification.xml`
 	//SetTimeout(30)
 	//defer ResetTimeout()
-	resutl, err := GetByCurlWithConfig(url, NewHttpClientConfigWithParam(5, 3))
+	resutl, err := GetByCurlWithConfig(url, NewHttpClientConfigWithParam(5, 3, "ipv4"))
 
 	if err != nil {
 		fmt.Println(err)

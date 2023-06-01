@@ -58,32 +58,44 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 	resp, body, err := httpclient.GetHttpsVerify(notificationUrl, true)
 	if err == nil {
 		defer resp.Body.Close()
-		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl:", notificationUrl,
-			"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp.Status:", resp.Status,
-			"   len(body):", len(body),
-			"   time(s):", time.Since(start))
-
 		if resp.StatusCode != http.StatusOK {
 			belogs.Error("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl, is not StatusOK:", notificationUrl,
 				"   resp.Status:", resp.Status, "    body:", body)
 			return notificationModel, errors.New("http status code of " + notificationUrl + " is " + resp.Status)
+		} else {
+			belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl:", notificationUrl,
+				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp.Status:", resp.Status,
+				"   len(body):", len(body),
+				"   time(s):", time.Since(start))
 		}
 
 	} else {
-		belogs.Error("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
+		belogs.Debug("getRrdpNotificationImpl(): GetHttpsVerify notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl
 		start = time.Now()
-		body, err = httpclient.GetByCurl(notificationUrl)
+		body, err = httpclient.GetByCurlWithConfig(notificationUrl, httpclient.NewHttpClientConfigWithParam(30, 3, "ipv4"))
 		if err != nil {
-			belogs.Error("getRrdpNotificationImpl(): GetByCurl notificationUrl fail:", notificationUrl,
+			belogs.Debug("getRrdpNotificationImpl(): GetByCurlWithConfig notificationUrl, iptype is ipv4, fail:", notificationUrl,
 				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp:", resp,
 				"   len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
-			return notificationModel, errors.New("http error of " + notificationUrl + " is " + err.Error())
+
+			// then try again using curl, using all
+			start = time.Now()
+			body, err = httpclient.GetByCurlWithConfig(notificationUrl, httpclient.NewHttpClientConfigWithParam(30, 3, "all"))
+			if err != nil {
+				belogs.Error("getRrdpNotificationImpl(): GetByCurlWithConfig notificationUrl, iptype is all, fail:", notificationUrl,
+					"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp:", resp,
+					"   len(body):", len(body), "  time(s):", time.Since(start), err)
+				return notificationModel, errors.New("http error of " + notificationUrl + " is " + err.Error())
+			}
+			belogs.Debug("getRrdpNotificationImpl(): GetByCurlWithConfig notificationUrl, iptype is all, ok", notificationUrl, "    len(body):", len(body),
+				"  time(s):", time.Since(start))
+		} else {
+			belogs.Debug("getRrdpNotificationImpl(): GetByCurlWithConfig notificationUrl, iptype is ipv4, ok", notificationUrl, "    len(body):", len(body),
+				"  time(s):", time.Since(start))
 		}
-		belogs.Debug("getRrdpNotificationImpl(): GetByCurl deltaUrl ok", notificationUrl, "    len(body):", len(body),
-			"  time(s):", time.Since(start))
 	}
 	// check if body is xml file
 	if !strings.Contains(body, `<notification`) {
@@ -99,6 +111,7 @@ func getRrdpNotificationImpl(notificationUrl string) (notificationModel Notifica
 		return notificationModel, errors.New("response of " + notificationUrl + " is not a legal rrdp file")
 	}
 	notificationModel.NotificationUrl = notificationUrl
+	belogs.Info("getRrdpNotificationImpl(): get from notificationUrl ok", notificationUrl, "  time(s):", time.Since(start))
 	return notificationModel, nil
 }
 
