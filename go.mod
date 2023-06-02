@@ -6,7 +6,7 @@ require (
 	github.com/beego/goyaml2 v0.0.0-20130207012346-5545475820dd
 	github.com/beego/x2j v0.0.0-20131220205130-a0352aadc542
 	github.com/beevik/ntp v0.3.3
-	github.com/gin-contrib/sessions v0.0.6-0.20230209004628-189b96f7cac2
+	github.com/cpusoft/gin-contrib-sessions v0.0.0-20230602020338-f48f3b418fc6
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang-jwt/jwt/v4 v4.5.0

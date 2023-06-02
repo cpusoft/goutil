@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
+	sessions "github.com/cpusoft/gin-contrib-sessions"
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/ginserver"
 	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 

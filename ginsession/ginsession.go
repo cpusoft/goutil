@@ -3,8 +3,8 @@ package ginsession
 import (
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	sessions "github.com/cpusoft/gin-contrib-sessions"
+	"github.com/cpusoft/gin-contrib-sessions/cookie"
 	"github.com/gin-gonic/gin"
 )
 
