@@ -98,7 +98,7 @@ func getRrdpDeltasImpl(notificationModel *NotificationModel, i int, deltaModelCh
 		errorMsgCh <- "check delta " + notificationModel.Deltas[i].Uri + " fail, error is " + err.Error()
 		return
 	}
-	belogs.Info("getRrdpDeltasImpl(): delta.Uri:", notificationModel.Deltas[i].Uri,
+	belogs.Debug("getRrdpDeltasImpl(): delta.Uri:", notificationModel.Deltas[i].Uri,
 		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
 		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
 		"   time(s):", time.Since(start))
