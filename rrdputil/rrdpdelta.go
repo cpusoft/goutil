@@ -448,10 +448,10 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 		belogs.Debug("saveRrdpDeltaToRrdpFiles():Publish update rrdpFile ", jsonutil.MarshalJson(rrdpFile), "  ok")
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}
-	belogs.Info("SaveRrdpSnapshotToRrdpFiles(): after all, len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
+	belogs.Info("saveRrdpDeltaToRrdpFiles(): after all, len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
 		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
 		"   len(rrdpFiles): ", len(rrdpFiles), "   len(rrdpUris):", len(rrdpUris))
-	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save rrdpFiles: ", jsonutil.MarshalJson(rrdpFiles))
+	belogs.Debug("saveRrdpDeltaToRrdpFiles(): save rrdpFiles: ", jsonutil.MarshalJson(rrdpFiles))
 	return rrdpFiles, nil
 
 }
