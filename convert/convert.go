@@ -232,7 +232,9 @@ func ToString(a interface{}) string {
 	if v, p := a.(bool); p {
 		return strconv.FormatBool(v)
 	}
-
+	if v, p := a.(time.Time); p {
+		return v.Local().Format("2006-01-02 15:04:05")
+	}
 	return ""
 }
 
