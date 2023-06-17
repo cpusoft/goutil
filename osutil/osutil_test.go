@@ -83,3 +83,8 @@ func TestGetAllFileStatsBySuffixs(t *testing.T) {
 
 	fmt.Println(jsonutil.MarshalJson(f), err)
 }
+func TestExtNoDot(t *testing.T) {
+	f := "sync://aaa.com/bbb/ccc.cer"
+	ex := ExtNoDot(f)
+	fmt.Println(ex)
+}
