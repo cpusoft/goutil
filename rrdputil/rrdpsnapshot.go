@@ -109,14 +109,12 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 }
 
 func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *NotificationModel) (err error) {
-	if snapshotModel.Version != "1" {
-		belogs.Error("CheckRrdpSnapshot():  snapshotModel.Version != 1")
-		return errors.New("snapshot version is error, version is not 1, it is " + snapshotModel.Version)
+	err = CheckRrdpSnapshotValue(snapshotModel)
+	if err != nil {
+		belogs.Error("CheckRrdpSnapshot():  CheckRrdpSnapshotValue fail:", err)
+		return err
 	}
-	if len(snapshotModel.SessionId) == 0 {
-		belogs.Error("CheckRrdpSnapshot(): len(snapshotModel.SessionId) == 0")
-		return errors.New("snapshot session_id is error, session_id is empty  ")
-	}
+
 	if notificationModel.SessionId != snapshotModel.SessionId {
 		belogs.Error("CheckRrdpSnapshot(): snapshotModel.SessionId:", snapshotModel.SessionId,
 			"    notificationModel.SessionId:", notificationModel.SessionId)
@@ -135,6 +133,17 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 	}
 	return nil
 
+}
+func CheckRrdpSnapshotValue(snapshotModel *SnapshotModel) error {
+	if snapshotModel.Version != "1" {
+		belogs.Error("CheckRrdpSnapshotValue():  snapshotModel.Version != 1")
+		return errors.New("snapshot version is error, version is not 1, it is " + snapshotModel.Version)
+	}
+	if len(snapshotModel.SessionId) == 0 {
+		belogs.Error("CheckRrdpSnapshotValue(): len(snapshotModel.SessionId) == 0")
+		return errors.New("snapshot session_id is error, session_id is empty  ")
+	}
+	return nil
 }
 
 // repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
