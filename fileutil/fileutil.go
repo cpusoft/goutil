@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cpusoft/goutil/base64util"
 	"github.com/cpusoft/goutil/belogs"
 )
 
@@ -76,4 +77,20 @@ func CheckPathNameMaxLength(pathName string) bool {
 		return true
 	}
 	return false
+}
+
+func WriteBase64ToFile(pathFileName, base64 string) (err error) {
+	bytes, err := base64util.DecodeBase64(strings.TrimSpace(base64))
+	if err != nil {
+		belogs.Error("WriteBase64ToFile(): DecodeBase64 fail, base64:", base64, err)
+		return err
+	}
+
+	err = WriteBytesToFile(pathFileName, bytes)
+	if err != nil {
+		belogs.Error("WriteBase64ToFile(): WriteBytesToFile fail:", pathFileName, "  len(bytes):", len(bytes), err)
+		return err
+	}
+	belogs.Debug("WriteBase64ToFile(): save pathFileName ", pathFileName, "  ok")
+	return nil
 }
