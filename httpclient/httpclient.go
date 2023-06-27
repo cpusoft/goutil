@@ -194,9 +194,9 @@ func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v 
 	}
 
 	if v != nil {
-		belogs.Debug("PostAndUnmarshalResponseModel(): v:", reflect.TypeOf(v).Name(), "  len(body):", len(body))
 		// UnmarshalJson to get actual ***Response
 		data := jsonutil.MarshalJson(responseModel.Data)
+		belogs.Debug("PostAndUnmarshalResponseModel(): v:", reflect.TypeOf(v).Name(), "  len(body):", len(body), "  data:", data)
 		err = jsonutil.UnmarshalJson(data, v)
 		if err != nil {
 			belogs.Error("PostAndUnmarshalResponseModel():UnmarshalJson data failed, urlStr:", urlStr, "  data:", data, err)
