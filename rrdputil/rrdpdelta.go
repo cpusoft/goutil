@@ -199,8 +199,8 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 
 func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel) (err error) {
 	if deltaModel.Version != "1" {
-		belogs.Error("CheckRrdpDelta():  deltaModel.Version != 1")
-		return errors.New("delta version is error, version is not 1, it is " + deltaModel.Version)
+		belogs.Error("CheckRrdpDelta():  deltaModel.Version != 1, current delta version is outdated, url is " + deltaModel.DeltaUrl)
+		return errors.New("current delta version is outdated, url is " + deltaModel.DeltaUrl)
 	}
 	if len(deltaModel.SessionId) == 0 {
 		belogs.Error("CheckRrdpDelta(): len(deltaModel.SessionId) == 0")

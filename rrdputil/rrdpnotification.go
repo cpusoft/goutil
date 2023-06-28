@@ -149,8 +149,8 @@ func RrdpNotificationTestConnect(notificationUrl string) (err error) {
 
 func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
 	if notificationModel.Version != "1" {
-		belogs.Error("CheckRrdpNotification():  notificationModel.Version != 1")
-		return errors.New("notification version is error, version is not 1, it is " + notificationModel.Version)
+		belogs.Error("CheckRrdpNotification():  notificationModel.Version != 1, get notification.xml fail, NotificationUrl is ", notificationModel.NotificationUrl)
+		return errors.New("get notification.xml fail, NotificationUrl is " + notificationModel.NotificationUrl)
 	}
 	if len(notificationModel.SessionId) == 0 {
 		belogs.Error("CheckRrdpNotification(): len(notificationModel.SessionId) == 0")
