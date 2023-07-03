@@ -190,7 +190,13 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 
 	deltaModel.Hash = hashutil.Sha256([]byte(body))
 	for i := range deltaModel.DeltaPublishs {
+		uri := strings.Replace(deltaModel.DeltaPublishs[i].Uri, "../", "/", -1) //fix Path traversal
+		deltaModel.DeltaPublishs[i].Uri = uri
 		deltaModel.DeltaPublishs[i].Base64 = stringutil.TrimSpaceAneNewLine(deltaModel.DeltaPublishs[i].Base64)
+	}
+	for i := range deltaModel.DeltaWithdraws {
+		uri := strings.Replace(deltaModel.DeltaWithdraws[i].Uri, "../", "/", -1) //fix Path traversal
+		deltaModel.DeltaWithdraws[i].Uri = uri
 	}
 	deltaModel.DeltaUrl = deltaUrl
 	belogs.Info("getRrdpDeltaImpl(): get from deltaUrl ok", deltaUrl, "  time(s):", time.Since(start))
@@ -286,8 +292,6 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 	for i := range deltaModel.DeltaWithdraws {
 		uri := deltaModel.DeltaWithdraws[i].Uri
 		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws, uri:", uri)
-		uri = strings.Replace(uri, "../", "/", -1) //fix Path traversal
-		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws Replace, uri:", uri)
 		if v, ok := rrdpUris[uri]; ok {
 			belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws in rrdpUris , uri:", uri,
 				"    this:", jsonutil.MarshalJson(deltaModel.DeltaWithdraws[i]),
@@ -367,8 +371,6 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 	for i := range deltaModel.DeltaPublishs {
 		uri := deltaModel.DeltaPublishs[i].Uri
 		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaPublishs, uri:", uri)
-		uri = strings.Replace(uri, "../", "/", -1) //fix Path traversal
-		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaPublishs Replace, uri:", uri)
 		if v, ok := rrdpUris[uri]; ok {
 			belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaPublishs in rrdpUris, uri:", uri,
 				"    this:", jsonutil.MarshalJson(deltaModel.DeltaPublishs[i]),

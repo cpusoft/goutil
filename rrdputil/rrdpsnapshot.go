@@ -102,6 +102,10 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 		belogs.Error("GetRrdpSnapshot(): UnmarshalXml fail:", snapshotUrl, "   body:", body, err)
 		return snapshotModel, err
 	}
+	for i := range snapshotModel.SnapshotPublishs {
+		uri := strings.Replace(snapshotModel.SnapshotPublishs[i].Uri, "../", "/", -1) //fix Path traversal
+		snapshotModel.SnapshotPublishs[i].Uri = uri
+	}
 	snapshotModel.Hash = hashutil.Sha256([]byte(body))
 	snapshotModel.SnapshotUrl = snapshotUrl
 	belogs.Info("getRrdpSnapshotImpl(): get from snapshotUrl ok", snapshotUrl, "  time(s):", time.Since(start))
