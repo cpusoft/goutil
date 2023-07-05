@@ -235,6 +235,9 @@ func ToString(a interface{}) string {
 	if v, p := a.(time.Time); p {
 		return v.Local().Format("2006-01-02 15:04:05")
 	}
+	if v, p := a.(time.Duration); p {
+		return fmt.Sprintf("%v", v)
+	}
 	return ""
 }
 
