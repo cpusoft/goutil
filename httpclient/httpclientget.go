@@ -72,6 +72,10 @@ func GetHttpsVerifyWithConfig(urlStr string, verify bool, httpClientConfig *Http
 	if err != nil {
 		return nil, "", err
 	}
+	if httpClientConfig == nil {
+		httpClientConfig = globalHttpClientConfig
+	}
+
 	config := &tls.Config{InsecureSkipVerify: !verify}
 	return errorsToerror(gorequest.New().Get(urlStr).
 		TLSClientConfig(config).
