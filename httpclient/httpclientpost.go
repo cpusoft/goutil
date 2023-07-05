@@ -1,0 +1,191 @@
+package httpclient
+
+import (
+	"crypto/tls"
+	"errors"
+	"net/url"
+	"reflect"
+	"strings"
+	"time"
+
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/parnurzeal/gorequest"
+)
+
+// http or https
+func Post(urlStr string, postJson string, verifyHttps bool) (gorequest.Response, string, error) {
+	return PostWithConfig(urlStr, postJson, verifyHttps, nil)
+}
+func PostWithConfig(urlStr string, postJson string, verifyHttps bool, httpClientConfig *HttpClientConfig) (gorequest.Response, string, error) {
+	if strings.HasPrefix(urlStr, "http://") {
+		return PostHttpWithConfig(urlStr, postJson, httpClientConfig)
+	} else if strings.HasPrefix(urlStr, "https://") {
+		return PostHttpsWithConfig(urlStr, postJson, verifyHttps, httpClientConfig)
+	} else {
+		return nil, "", errors.New("unknown protocol")
+	}
+}
+
+// Http Post Method, complete url
+func PostHttp(urlStr string, postJson string) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("PostHttp():url:", urlStr, "    len(postJson):", len(postJson))
+	return PostHttpWithConfig(urlStr, postJson, nil)
+}
+func PostHttpWithConfig(urlStr string, postJson string, httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("PostHttpWithConfig():url:", urlStr, "    len(postJson):", len(postJson),
+		"  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	url, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, "", err
+	}
+	if httpClientConfig == nil {
+		httpClientConfig = globalHttpClientConfig
+	}
+	return errorsToerror(gorequest.New().Post(urlStr).
+		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
+		Set("User-Agent", DefaultUserAgent).
+		Set("Referrer", url.Host).
+		Set("Connection", "keep-alive").
+		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
+		Send(postJson).
+		End())
+
+}
+
+// Https Post Method, complete url
+// verify: check https or not
+func PostHttps(urlStr string, postJson string, verify bool) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("PostHttps():url:", urlStr, "    len(postJson):", len(postJson), "    verify:", verify)
+	return PostHttpsWithConfig(urlStr, postJson, verify, nil)
+}
+func PostHttpsWithConfig(urlStr string, postJson string, verify bool,
+	httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("PostHttpsWithConfig():url:", urlStr, "    len(postJson):", len(postJson),
+		"    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	url, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, "", err
+	}
+	if httpClientConfig == nil {
+		httpClientConfig = globalHttpClientConfig
+	}
+
+	config := &tls.Config{InsecureSkipVerify: !verify}
+	return errorsToerror(gorequest.New().Post(urlStr).
+		TLSClientConfig(config).
+		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
+		Set("User-Agent", DefaultUserAgent).
+		Set("Referrer", url.Host).
+		Set("Connection", "keep-alive").
+		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
+		Send(postJson).
+		End())
+}
+
+// v is ResponseModel.Data
+type ResponseModel struct {
+	Result string      `json:"result"`
+	Msg    string      `json:"msg"`
+	Data   interface{} `json:"data,omitempty"`
+}
+
+func PostAndUnmarshalResponseModel(urlStr, postJson string, verifyHttps bool, v interface{}) (err error) {
+	belogs.Debug("PostAndUnmarshalResponseModel(): urlStr:", urlStr, "   postJson:", postJson,
+		"   verifyHttps:", verifyHttps)
+	return PostAndUnmarshalResponseModelWithConfig(urlStr, postJson, verifyHttps, v, nil)
+}
+func PostAndUnmarshalResponseModelWithConfig(urlStr, postJson string, verifyHttps bool, v interface{}, httpClientConfig *HttpClientConfig) (err error) {
+	belogs.Debug("PostAndUnmarshalResponseModel(): urlStr:", urlStr, "   postJson:", postJson,
+		"   verifyHttps:", verifyHttps, "   httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+
+	resp, body, err := PostWithConfig(urlStr, postJson, verifyHttps, httpClientConfig)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponseModelWithConfig():PostWithConfig failed, urlStr:", urlStr, "   postJson:", postJson, err)
+		return err
+	}
+	if resp != nil {
+		resp.Body.Close()
+	}
+	belogs.Debug("PostAndUnmarshalResponseModelWithConfig(): len(body):", len(body))
+	belogs.Debug("PostAndUnmarshalResponseModelWithConfig(): body:", body)
+
+	var responseModel ResponseModel
+	err = jsonutil.UnmarshalJson(body, &responseModel)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponseModelWithConfig():UnmarshalJson responseModel failed, urlStr:", urlStr, "  body:", body, err)
+		return err
+	}
+	belogs.Debug("PostAndUnmarshalResponseModelWithConfig():get response, urlStr:", urlStr, "   postJson:", postJson,
+		" responseModel:", jsonutil.MarshalJson(responseModel))
+	if responseModel.Result == "fail" {
+		belogs.Error("PostAndUnmarshalResponseModelWithConfig():responseModel.Result is fail, err:", jsonutil.MarshalJson(responseModel), body)
+		return errors.New(responseModel.Msg)
+	}
+
+	if v != nil {
+		// UnmarshalJson to get actual ***Response
+		data := jsonutil.MarshalJson(responseModel.Data)
+		belogs.Debug("PostAndUnmarshalResponseModelWithConfig(): v:", reflect.TypeOf(v).Name(), "  len(body):", len(body), "  data:", data)
+		err = jsonutil.UnmarshalJson(data, v)
+		if err != nil {
+			belogs.Error("PostAndUnmarshalResponseModelWithConfig():UnmarshalJson data failed, urlStr:", urlStr, "  data:", data, err)
+			return err
+		}
+	}
+	return nil
+}
+
+// response is any struct
+func PostAndUnmarshalStruct(urlStr, postJson string, verifyHttps bool, response interface{}) (err error) {
+	belogs.Debug("PostAndUnmarshalStruct(): urlStr:", urlStr, "   postJson:", postJson,
+		"   verifyHttps:", verifyHttps, "    response:", reflect.TypeOf(response).Name())
+	resp, body, err := Post(urlStr, postJson, verifyHttps)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalStruct():Post failed, urlStr:", urlStr, "   postJson:", postJson, err)
+		return err
+	}
+	resp.Body.Close()
+
+	// UnmarshalJson to get actual ***Response
+	err = jsonutil.UnmarshalJson(body, response)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalStruct():UnmarshalJson failed, urlStr:", urlStr, "  body:", body, err)
+		return err
+	}
+	return nil
+}
+
+/*
+/////////////////////////////////////////////////////
+//Deprecated
+func PostAndUnmarshalResponse(urlStr, postJson string, verifyHttps bool, response interface{}) (err error) {
+	belogs.Debug("PostAndUnmarshalResponse(): urlStr:", urlStr, "   postJson:", postJson,
+		"   verifyHttps:", verifyHttps, "    response:", reflect.TypeOf(response).Name())
+	resp, body, err := Post(urlStr, postJson, verifyHttps)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponse():Post failed, urlStr:", urlStr, "   postJson:", postJson, err)
+		return err
+	}
+	resp.Body.Close()
+
+	// try UnmarshalJson using HttpResponse to get Result
+	var httpResponse httpserver.HttpResponse
+	err = jsonutil.UnmarshalJson(body, &httpResponse)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponse():UnmarshalJson failed, urlStr:", urlStr, "  body:", body, err)
+		return err
+	}
+	if httpResponse.Result == "fail" {
+		belogs.Error("PostAndUnmarshalResponse():httpResponse.Result is fail, err:", jsonutil.MarshalJson(httpResponse), body)
+		return errors.New(httpResponse.Msg)
+	}
+	// UnmarshalJson to get actual ***Response
+	err = jsonutil.UnmarshalJson(body, response)
+	if err != nil {
+		belogs.Error("PostAndUnmarshalResponse():UnmarshalJson failed, urlStr:", urlStr, "  body:", body, err)
+		return err
+	}
+	return nil
+}
+*/
