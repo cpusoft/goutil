@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -161,4 +162,20 @@ func TestTcptlsMsg(t *testing.T) {
 	fmt.Println("sendMessageModel(): tcptlsclient, will send tcpTlsMsg:",
 		MarshalJson(*tcpTlsMsg))
 
+}
+
+func TestJsonSyncMap(t *testing.T) {
+	failUrls := JsonSyncMap{}
+	snapshotFailUrls := make(map[string]string)
+	snapshotFailUrls["1_https://rpki.telecentras.lt/"] = "1"
+	snapshotFailUrls["2_https://rrdp.ripe.net/"] = "2"
+	snapshotFailUrls["3_https://ca.rg.net"] = "3"
+	snapshotFailUrls["4_https://google.com"] = "4"
+	for k, v := range snapshotFailUrls {
+		split := strings.Split(k, "_")
+		url := split[1]
+		failUrls.Store(url, v)
+	}
+	fmt.Println(failUrls)
+	fmt.Println(MarshalJson(failUrls))
 }
