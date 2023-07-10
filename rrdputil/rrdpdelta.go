@@ -177,7 +177,7 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 
 	// check if body is xml file
 	if !strings.Contains(body, `<delta`) {
-		belogs.Error("GetRrdpSnapshot(): body is not xml file:", deltaUrl, "   resp:",
+		belogs.Error("getRrdpDeltaImpl(): body is not xml file:", deltaUrl, "   resp:",
 			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
 		return deltaModel, errors.New("body of " + deltaUrl + " is not xml")
 	}

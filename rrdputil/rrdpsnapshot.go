@@ -24,14 +24,7 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
 	belogs.Info("GetRrdpSnapshot():will get snapshotUrl:", snapshotUrl)
-	for i := 0; i < 3; i++ {
-		snapshotModel, err = getRrdpSnapshotImpl(snapshotUrl)
-		if err != nil {
-			belogs.Error("GetRrdpSnapshot():getRrdpSnapshotImpl fail, will try again, snapshotUrl:", snapshotUrl, "  i:", i, err)
-		} else {
-			break
-		}
-	}
+	snapshotModel, err = getRrdpSnapshotImpl(snapshotUrl)
 	if err != nil {
 		belogs.Error("GetRrdpSnapshot():getRrdpSnapshotImpl fail:", snapshotUrl, err)
 		return snapshotModel, nil
@@ -105,9 +98,12 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 	for i := range snapshotModel.SnapshotPublishs {
 		uri := strings.Replace(snapshotModel.SnapshotPublishs[i].Uri, "../", "/", -1) //fix Path traversal
 		snapshotModel.SnapshotPublishs[i].Uri = uri
+		base64 := base64util.TrimeBase64(snapshotModel.SnapshotPublishs[i].Base64)
+		snapshotModel.SnapshotPublishs[i].Base64 = base64
 	}
 	snapshotModel.Hash = hashutil.Sha256([]byte(body))
 	snapshotModel.SnapshotUrl = snapshotUrl
+
 	belogs.Info("getRrdpSnapshotImpl(): get from snapshotUrl ok", snapshotUrl, "  time(s):", time.Since(start))
 	return snapshotModel, nil
 }
