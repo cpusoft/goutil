@@ -98,7 +98,7 @@ func getRrdpSnapshotImpl(snapshotUrl string) (snapshotModel SnapshotModel, err e
 	for i := range snapshotModel.SnapshotPublishs {
 		uri := strings.Replace(snapshotModel.SnapshotPublishs[i].Uri, "../", "/", -1) //fix Path traversal
 		snapshotModel.SnapshotPublishs[i].Uri = uri
-		base64 := base64util.TrimeBase64(snapshotModel.SnapshotPublishs[i].Base64)
+		base64 := base64util.TrimBase64(snapshotModel.SnapshotPublishs[i].Base64)
 		snapshotModel.SnapshotPublishs[i].Base64 = base64
 	}
 	snapshotModel.Hash = hashutil.Sha256([]byte(body))
