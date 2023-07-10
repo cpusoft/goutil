@@ -98,6 +98,7 @@ func WriteBase64ToFile(pathFileName, base64 string) (err error) {
 }
 
 func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) (pathFileName string, err error) {
+	belogs.Debug("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): destPath:", destPath, "  url:", url)
 
 	pathFileName, err = urlutil.JoinPrefixPathAndUrlFileName(destPath, url)
 	if err != nil {
@@ -106,7 +107,7 @@ func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) 
 		return "", err
 	}
 	filePath, fileName := osutil.Split(pathFileName)
-	belogs.Debug("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): destPath:", destPath, "  url:", url, "   pathFileName:", pathFileName,
+	belogs.Debug("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): JoinPrefixPathAndUrlFileName destPath:", destPath, "  url:", url, "   pathFileName:", pathFileName,
 		"  filePath:", filePath, "  fileName:", fileName)
 	err = os.MkdirAll(filePath, os.ModePerm)
 	if err != nil {
