@@ -9,6 +9,8 @@ import (
 
 	"github.com/cpusoft/goutil/base64util"
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/urlutil"
 )
 
 const (
@@ -93,4 +95,28 @@ func WriteBase64ToFile(pathFileName, base64 string) (err error) {
 	}
 	belogs.Debug("WriteBase64ToFile(): save pathFileName ", pathFileName, "  ok")
 	return nil
+}
+
+func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) (pathFileName string, err error) {
+
+	pathFileName, err = urlutil.JoinPrefixPathAndUrlFileName(destPath, url)
+	if err != nil {
+		belogs.Error("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): JoinPrefixPathAndUrlFileName fail, destPath:", destPath,
+			"  url:", url, err)
+		return "", err
+	}
+	filePath, fileName := osutil.Split(pathFileName)
+	belogs.Debug("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): destPath:", destPath, "  url:", url, "   pathFileName:", pathFileName,
+		"  filePath:", filePath, "  fileName:", fileName)
+	err = os.MkdirAll(filePath, os.ModePerm)
+	if err != nil {
+		belogs.Error("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): MkdirAll fail, filePath:", filePath, err)
+		return "", err
+	}
+	err = WriteBase64ToFile(pathFileName, base64)
+	if err != nil {
+		belogs.Error("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): WriteBase64ToFile fail, pathFileName:", pathFileName, err)
+		return "", err
+	}
+	return pathFileName, nil
 }
