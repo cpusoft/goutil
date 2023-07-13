@@ -112,14 +112,7 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
 	belogs.Debug("GetRrdpDelta(): deltaUrl:", deltaUrl)
-	for i := 0; i < 3; i++ {
-		deltaModel, err = getRrdpDeltaImpl(deltaUrl)
-		if err != nil {
-			belogs.Error("GetRrdpDelta():getRrdpDeltaImpl fail, will try again, deltaUrl:", deltaUrl, "  i:", i, err)
-		} else {
-			break
-		}
-	}
+	deltaModel, err = getRrdpDeltaImpl(deltaUrl)
 	if err != nil {
 		belogs.Error("GetRrdpDelta():getRrdpDeltaImpl fail:", deltaUrl, err)
 		return deltaModel, err
@@ -203,15 +196,25 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 	return deltaModel, nil
 }
 
-func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel) (err error) {
+func CheckRrdpDeltaValue(deltaModel *DeltaModel) (err error) {
 	if deltaModel.Version != "1" {
-		belogs.Error("CheckRrdpDelta():  deltaModel.Version != 1, current delta version is outdated, url is " + deltaModel.DeltaUrl)
+		belogs.Error("CheckRrdpDeltaValue(): deltaModel.Version != 1, current delta version is outdated, url is " + deltaModel.DeltaUrl)
 		return errors.New("current delta version is outdated, url is " + deltaModel.DeltaUrl)
 	}
 	if len(deltaModel.SessionId) == 0 {
-		belogs.Error("CheckRrdpDelta(): len(deltaModel.SessionId) == 0")
+		belogs.Error("CheckRrdpDeltaValue(): len(deltaModel.SessionId) == 0")
 		return errors.New("delta session_id is error, session_id is empty  ")
 	}
+	return nil
+}
+
+func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel) (err error) {
+	err = CheckRrdpDeltaValue(deltaModel)
+	if err != nil {
+		belogs.Error("CheckRrdpDelta(): CheckRrdpDeltaValue fail:", err)
+		return err
+	}
+
 	if notificationModel.SessionId != deltaModel.SessionId {
 		belogs.Error("CheckRrdpDelta(): deltaModel.SessionId:", deltaModel.SessionId,
 			"    notificationModel.SessionId:", notificationModel.SessionId)
