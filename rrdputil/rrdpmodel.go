@@ -78,8 +78,8 @@ type DeltaModel struct {
 	DeltaWithdraws []DeltaWithdraw `xml:"withdraw" json:"withdraw"`
 
 	// to check
-	Hash     string `xml:"-"`
-	DeltaUrl string `xml:"-"`
+	Hash     string `xml:"-"  json:"hash"`
+	DeltaUrl string `xml:"-"  json:"deltaUrl"`
 }
 
 // support sort: from  bigger to smaller
