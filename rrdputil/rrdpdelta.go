@@ -304,7 +304,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 			rrdpUris[uri] = deltaModel.Serial
 		}
 
-		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
+		filePathName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
 		if err != nil {
 			belogs.Error("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws JoinPrefixPathAndUrlFileName fail,uri:", uri, err)
 			return nil, err
@@ -312,7 +312,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 
 		// if in this dir, no more files, then del dir
 		// will ignore error
-		dir, file := osutil.Split(pathFileName)
+		dir, file := osutil.Split(filePathName)
 		if !fileutil.CheckPathNameMaxLength(dir) {
 			belogs.Error("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws CheckPathNameMaxLength fail,dir:", dir)
 			return nil, errors.New("DeltaWithdraw path name is too long")
@@ -322,21 +322,21 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 			return nil, errors.New("DeltaWithdraw file name is too long")
 		}
 		files, err := ioutil.ReadDir(dir)
-		belogs.Info("saveRrdpDeltaToRrdpFiles():DeltaWithdraws will remove pathFileName, uri:", uri,
-			"  	pathFileName:", pathFileName, "   dir:", dir,
+		belogs.Info("saveRrdpDeltaToRrdpFiles():DeltaWithdraws will remove filePathName, uri:", uri,
+			"  	filePathName:", filePathName, "   dir:", dir,
 			"   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
 			"   err:", err)
-		exist, err := osutil.IsExists(pathFileName)
+		exist, err := osutil.IsExists(filePathName)
 		if err != nil {
-			belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws IsExists pathFileName fail:", pathFileName,
+			belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws IsExists filePathName fail:", filePathName,
 				"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
 				"   err:", err)
 			// ignore return
 		}
 		if exist {
-			err = os.Remove(pathFileName)
+			err = os.Remove(filePathName)
 			if err != nil {
-				belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws remove pathFileName fail:", pathFileName,
+				belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws remove filePathName fail:", filePathName,
 					"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
 					"   err:", err)
 				// ignore return
@@ -345,7 +345,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 		if len(files) == 0 {
 			err = os.RemoveAll(dir)
 			if err != nil {
-				belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws RemoveAll dir fail:", pathFileName,
+				belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws RemoveAll dir fail:", filePathName,
 					"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
 					"   err:", err)
 				// ignore return
@@ -358,10 +358,10 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 			SyncType:  "del",
 			SourceUrl: deltaModel.DeltaUrl,
 		}
-		belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws, del pathFileName:", pathFileName,
+		belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws, del filePathName:", filePathName,
 			"    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
 			"    rrdpFile:", jsonutil.MarshalJson(rrdpFile), "  ok")
-		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws,  pathFileName:", pathFileName,
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws,  filePathName:", filePathName,
 			"   dir:", dir, "   rrdpFile:", jsonutil.MarshalJson(rrdpFile),
 			"   deltaModel.DeltaUrl:", deltaModel.DeltaUrl, "  ok")
 
@@ -384,7 +384,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 		}
 
 		// get absolute dir /dest/***/***/**.**
-		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
+		filePathName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
 		if err != nil {
 			belogs.Error("saveRrdpDeltaToRrdpFiles(): JoinPrefixPathAndUrlFileName fail, uri:",
 				uri, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)
@@ -392,7 +392,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 		}
 
 		// if dir is notexist ,then mkdir
-		dir, file := osutil.Split(pathFileName)
+		dir, file := osutil.Split(filePathName)
 		if !fileutil.CheckPathNameMaxLength(dir) {
 			belogs.Error("saveRrdpDeltaToRrdpFiles(): Publish CheckPathNameMaxLength fail,dir:", dir)
 			return nil, errors.New("Publish path name is too long")
@@ -427,12 +427,12 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 			return nil, err
 		}
 
-		err = fileutil.WriteBytesToFile(pathFileName, bytes)
+		err = fileutil.WriteBytesToFile(filePathName, bytes)
 		if err != nil {
 			belogs.Error("saveRrdpDeltaToRrdpFiles():Publish WriteBytesToFile fail:",
 				"  deltaModel.Serial:", deltaModel.Serial,
 				"  deltaModel.DeltaPublishs[i].Uri:", uri,
-				"  pathFileName:", pathFileName,
+				"  filePathName:", filePathName,
 				"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
 				"  len(bytes):", len(bytes),
 				err)
@@ -447,7 +447,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 			SyncType:  "update",
 			SourceUrl: deltaModel.DeltaUrl,
 		}
-		belogs.Info("saveRrdpDeltaToRrdpFiles(): Publish, update pathFileName:", pathFileName,
+		belogs.Info("saveRrdpDeltaToRrdpFiles(): Publish, update filePathName:", filePathName,
 			"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
 			"  rrdpFile:", jsonutil.MarshalJson(rrdpFile), "  ok")
 		belogs.Debug("saveRrdpDeltaToRrdpFiles():Publish update rrdpFile ", jsonutil.MarshalJson(rrdpFile), "  ok")

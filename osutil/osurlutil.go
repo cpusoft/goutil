@@ -36,7 +36,7 @@ func host(urlStr string) (string, error) {
 }
 
 // Deprecated: using urlutil
-func GetPathFileNameFromUrl(prefixPath, url string) (pathFileName string, err error) {
+func GetPathFileNameFromUrl(prefixPath, url string) (filePathName string, err error) {
 	hostPathFile, err := hostAndPathFile(url)
 	if err != nil {
 		return "", err

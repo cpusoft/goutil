@@ -163,7 +163,7 @@ func IsUrl(urlStr string) bool {
 
 // url is http://www.server.com:8080/aa/bb/cc.html , and  preifxPath is /root/path ;
 // combine to  /root/path/www.server.com/aa/bb/cc.html
-func JoinPrefixPathAndUrlFileName(prefixPath, url string) (pathFileName string, err error) {
+func JoinPrefixPathAndUrlFileName(prefixPath, url string) (filePathName string, err error) {
 	hostPathFile, err := HostAndPathFile(url)
 	if err != nil {
 		return "", err

@@ -81,43 +81,46 @@ func CheckPathNameMaxLength(pathName string) bool {
 	return false
 }
 
-func WriteBase64ToFile(pathFileName, base64 string) (err error) {
+func WriteBase64ToFile(filePathName, base64 string) (err error) {
 	bytes, err := base64util.DecodeBase64(strings.TrimSpace(base64))
 	if err != nil {
 		belogs.Error("WriteBase64ToFile(): DecodeBase64 fail, base64:", base64, err)
 		return err
 	}
 
-	err = WriteBytesToFile(pathFileName, bytes)
+	err = WriteBytesToFile(filePathName, bytes)
 	if err != nil {
-		belogs.Error("WriteBase64ToFile(): WriteBytesToFile fail:", pathFileName, "  len(bytes):", len(bytes), err)
+		belogs.Error("WriteBase64ToFile(): WriteBytesToFile fail:", filePathName, "  len(bytes):", len(bytes), err)
 		return err
 	}
-	belogs.Debug("WriteBase64ToFile(): save pathFileName ", pathFileName, "  ok")
+	belogs.Debug("WriteBase64ToFile(): save filePathName ", filePathName, "  ok")
 	return nil
 }
 
-func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) (pathFileName string, err error) {
+func CreateAndWriteBase64ToFile(filePathName, base64 string) (err error) {
+	filePath, _ := osutil.Split(filePathName)
+	belogs.Debug("CreateAndWriteBase64ToFile(): Split filePathName:", filePathName)
+	err = os.MkdirAll(filePath, os.ModePerm)
+	if err != nil {
+		belogs.Error("CreateAndWriteBase64ToFile(): MkdirAll fail, filePathName:", filePathName, err)
+		return err
+	}
+	return WriteBase64ToFile(filePathName, base64)
+}
+
+func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) (filePathName string, err error) {
 	belogs.Debug("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): destPath:", destPath, "  url:", url)
 
-	pathFileName, err = urlutil.JoinPrefixPathAndUrlFileName(destPath, url)
+	filePathName, err = urlutil.JoinPrefixPathAndUrlFileName(destPath, url)
 	if err != nil {
 		belogs.Error("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): JoinPrefixPathAndUrlFileName fail, destPath:", destPath,
 			"  url:", url, err)
 		return "", err
 	}
-	filePath, fileName := osutil.Split(pathFileName)
-	belogs.Debug("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): JoinPrefixPathAndUrlFileName destPath:", destPath, "  url:", url, "   pathFileName:", pathFileName,
-		"  filePath:", filePath, "  fileName:", fileName)
-	err = os.MkdirAll(filePath, os.ModePerm)
+	err = CreateAndWriteBase64ToFile(filePathName, base64)
 	if err != nil {
-		belogs.Error("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): MkdirAll fail, filePath:", filePath, err)
+		belogs.Error("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): CreateAndWriteBase64ToFile fail, filePathName:", filePathName, err)
 		return "", err
 	}
-	err = WriteBase64ToFile(pathFileName, base64)
-	if err != nil {
-		belogs.Error("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): WriteBase64ToFile fail, pathFileName:", pathFileName, err)
-		return "", err
-	}
-	return pathFileName, nil
+	return filePathName, nil
 }

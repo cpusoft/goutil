@@ -156,7 +156,7 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 		uri := strings.Replace(snapshotModel.SnapshotPublishs[i].Uri, "../", "/", -1) //fix Path traversal
 		belogs.Debug("SaveRrdpSnapshotToRrdpFiles():snapshotModel.SnapshotPublishs[i].Uri:", snapshotModel.SnapshotPublishs[i].Uri,
 			" uri:", uri)
-		pathFileName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
+		filePathName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
 		if err != nil {
 			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): JoinPrefixPathAndUrlFileName fail:", snapshotModel.SnapshotPublishs[i].Uri,
 				"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
@@ -164,7 +164,7 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 		}
 
 		// if dir is notexist ,then mkdir
-		dir, file := osutil.Split(pathFileName)
+		dir, file := osutil.Split(filePathName)
 		if !fileutil.CheckPathNameMaxLength(dir) {
 			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): CheckPathNameMaxLength fail,dir:", dir)
 			return nil, errors.New("snapshot path name is too long")
@@ -196,15 +196,15 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 			return nil, err
 		}
 
-		err = fileutil.WriteBytesToFile(pathFileName, bytes)
+		err = fileutil.WriteBytesToFile(filePathName, bytes)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): WriteBytesToFile fail:", pathFileName,
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): WriteBytesToFile fail:", filePathName,
 				len(bytes), "    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
 			return nil, err
 		}
-		belogs.Info("SaveRrdpSnapshotToRrdpFiles(): update pathFileName:", pathFileName,
+		belogs.Info("SaveRrdpSnapshotToRrdpFiles(): update filePathName:", filePathName,
 			"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, "  ok")
-		belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save pathFileName ", pathFileName, "  ok")
+		belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save filePathName ", filePathName, "  ok")
 
 		rrdpFile := RrdpFile{
 			FilePath:  dir,
