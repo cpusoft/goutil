@@ -2,6 +2,7 @@ package rrdputil
 
 import (
 	xml "encoding/xml"
+	"github.com/cpusoft/goutil/jsonutil"
 )
 
 type NotificationModel struct {
@@ -62,6 +63,15 @@ type SnapshotModel struct {
 	SnapshotUrl string `xml:"-"`
 }
 
+func (c SnapshotModel) String() string {
+	m := make(map[string]interface{})
+	m["snapshotUrl"] = c.SnapshotUrl
+	m["sessionId"] = c.SessionId
+	m["serial"] = c.Serial
+	m["len(snapshotPublishs)"] = len(c.SnapshotPublishs)
+	return jsonutil.MarshalJson(m)
+}
+
 type SnapshotPublish struct {
 	XMLName xml.Name `xml:"publish" json:"publish"`
 	Uri     string   `xml:"uri,attr" json:"uri"`
@@ -80,6 +90,16 @@ type DeltaModel struct {
 	// to check
 	Hash     string `xml:"-"  json:"hash"`
 	DeltaUrl string `xml:"-"  json:"deltaUrl"`
+}
+
+func (c DeltaModel) String() string {
+	m := make(map[string]interface{})
+	m["deltaUrl"] = c.DeltaUrl
+	m["sessionId"] = c.SessionId
+	m["serial"] = c.Serial
+	m["len(deltaPublishs)"] = len(c.DeltaPublishs)
+	m["len(deltaWithdraws)"] = len(c.DeltaWithdraws)
+	return jsonutil.MarshalJson(m)
 }
 
 // support sort: from  bigger to smaller

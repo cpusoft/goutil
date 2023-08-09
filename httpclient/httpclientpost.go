@@ -101,7 +101,8 @@ func PostAndUnmarshalResponseModelWithConfig(urlStr, postJson string, verifyHttp
 
 	resp, body, err := PostWithConfig(urlStr, postJson, verifyHttps, httpClientConfig)
 	if err != nil {
-		belogs.Error("PostAndUnmarshalResponseModelWithConfig():PostWithConfig failed, urlStr:", urlStr, "   postJson:", postJson, err)
+		belogs.Error("PostAndUnmarshalResponseModelWithConfig():PostWithConfig failed, urlStr:", urlStr,
+			"   postJson:", postJson, err)
 		return err
 	}
 	if resp != nil {
