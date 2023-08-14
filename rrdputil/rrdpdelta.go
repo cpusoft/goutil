@@ -25,9 +25,16 @@ import (
 )
 
 func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (deltaModels []DeltaModel, err error) {
+	belogs.Info("GetRrdpDeltas(): len(notificationModel.Deltas):", len(notificationModel.Deltas), "  lastSerial:", lastSerial)
+	return GetRrdpDeltasWithConfig(notificationModel, lastSerial, nil)
+}
+func GetRrdpDeltasWithConfig(notificationModel *NotificationModel, lastSerial uint64, httpClientConfig *httpclient.HttpClientConfig) (deltaModels []DeltaModel, err error) {
 	start := time.Now()
-	belogs.Info("GetRrdpDeltas(): len(notificationModel.Deltas),lastSerial :",
-		len(notificationModel.Deltas), lastSerial)
+	if httpClientConfig == nil {
+		httpClientConfig = httpclient.CloneGLobalHttpClient()
+	}
+	belogs.Info("GetRrdpDeltasWithConfig(): len(notificationModel.Deltas):", len(notificationModel.Deltas),
+		"  lastSerial:", lastSerial, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 
 	var wg sync.WaitGroup
 	errorMsgCh := make(chan string, len(notificationModel.Deltas))
@@ -35,15 +42,15 @@ func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (del
 	countCh := make(chan int, runtime.NumCPU()*2)
 	// serial need from newest to oldest
 	for i := 0; i < len(notificationModel.Deltas); i++ {
-		belogs.Debug("GetRrdpDeltas(): i:", i, "   notificationModel.Deltas[i].Serial:", notificationModel.Deltas[i].Serial)
+		belogs.Debug("GetRrdpDeltasWithConfig(): i:", i, "   notificationModel.Deltas[i].Serial:", notificationModel.Deltas[i].Serial)
 		if notificationModel.Deltas[i].Serial <= lastSerial {
-			belogs.Debug("GetRrdpDeltas():continue, notificationModel.Deltas[i].Serial <= lastSerial:", notificationModel.Deltas[i].Serial, lastSerial)
+			belogs.Debug("GetRrdpDeltasWithConfig():continue, notificationModel.Deltas[i].Serial <= lastSerial:", notificationModel.Deltas[i].Serial, lastSerial)
 			continue
 		}
 
 		countCh <- 1
 		wg.Add(1)
-		go getRrdpDeltasImpl(notificationModel, i, deltaModelCh, errorMsgCh, countCh, &wg)
+		go getRrdpDeltasImplWithConfig(notificationModel, i, httpClientConfig, deltaModelCh, errorMsgCh, countCh, &wg)
 		//
 	}
 	wg.Wait()
@@ -51,10 +58,10 @@ func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (del
 	close(errorMsgCh)
 	close(deltaModelCh)
 
-	belogs.Debug("GetRrdpDeltas():will get errorMsgCh, and deltaModelCh", len(errorMsgCh), len(deltaModelCh))
+	belogs.Debug("GetRrdpDeltasWithConfig():will get errorMsgCh, and deltaModelCh", len(errorMsgCh), len(deltaModelCh))
 	// if has error, then return error
 	for errorMsg := range errorMsgCh {
-		belogs.Error("GetRrdpDeltas(): getRrdpDeltasImpl fail:", errorMsg, "   time(s):", time.Since(start))
+		belogs.Error("GetRrdpDeltasWithConfig(): getRrdpDeltasImpl fail:", errorMsg, "   time(s):", time.Since(start))
 		return nil, errors.New(errorMsg)
 	}
 	// get deltaModels, and sort
@@ -65,123 +72,134 @@ func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (del
 	// sort, from newest to oldest
 	sort.Sort(DeltaModelsSort(deltaModels))
 
-	belogs.Info("GetRrdpDeltas():len(deltaModels):", len(deltaModels),
+	belogs.Info("GetRrdpDeltasWithConfig():len(deltaModels):", len(deltaModels),
 		"   len(notificationModel.Deltas) :", len(notificationModel.Deltas),
 		"   lastSerial:", lastSerial, "   time(s):", time.Since(start))
 
 	return deltaModels, nil
 }
 
-func getRrdpDeltasImpl(notificationModel *NotificationModel, i int, deltaModelCh chan DeltaModel,
-	errorMsgCh chan string, countCh chan int, wg *sync.WaitGroup) {
+func getRrdpDeltasImplWithConfig(notificationModel *NotificationModel, i int, httpClientConfig *httpclient.HttpClientConfig,
+	deltaModelCh chan DeltaModel, errorMsgCh chan string,
+	countCh chan int, wg *sync.WaitGroup) {
 	defer func() {
 		<-countCh
 		wg.Done()
 	}()
 
 	start := time.Now()
-	belogs.Debug("getRrdpDeltasImpl():will notificationModel.Deltas[i].Uri:", i, notificationModel.Deltas[i].Uri)
-	deltaModel, err := GetRrdpDelta(notificationModel.Deltas[i].Uri)
+	belogs.Debug("getRrdpDeltasImplWithConfig():will notificationModel.Deltas[i].Uri:", i, notificationModel.Deltas[i].Uri)
+	deltaModel, err := GetRrdpDeltaWithConfig(notificationModel.Deltas[i].Uri, httpClientConfig)
 	if err != nil {
-		belogs.Error("getRrdpDeltasImpl(): GetRrdpDelta fail, delta.Uri :", i,
+		belogs.Error("getRrdpDeltasImplWithConfig(): GetRrdpDelta fail, delta.Uri :", i,
 			notificationModel.Deltas[i].Uri, err, "   time(s):", time.Since(start))
 		errorMsgCh <- "get delta " + notificationModel.Deltas[i].Uri + " fail, error is " + err.Error()
 		return
 	}
-	belogs.Debug("getRrdpDeltasImpl():ok notificationModel.Deltas[i].Uri:", i, notificationModel.Deltas[i].Uri,
+	belogs.Debug("getRrdpDeltasImplWithConfig():ok notificationModel.Deltas[i].Uri:", i, notificationModel.Deltas[i].Uri,
 		"   time(s):", time.Since(start))
 
 	err = CheckRrdpDelta(&deltaModel, notificationModel)
 	if err != nil {
-		belogs.Error("getRrdpDeltasImpl(): CheckRrdpDelta fail, delta.Uri :", i,
+		belogs.Error("getRrdpDeltasImplWithConfig(): CheckRrdpDelta fail, delta.Uri :", i,
 			notificationModel.Deltas[i].Uri, err, "   time(s):", time.Since(start))
 		errorMsgCh <- "check delta " + notificationModel.Deltas[i].Uri + " fail, error is " + err.Error()
 		return
 	}
-	belogs.Debug("getRrdpDeltasImpl(): delta.Uri:", notificationModel.Deltas[i].Uri,
+	belogs.Debug("getRrdpDeltasImplWithConfig(): delta.Uri:", notificationModel.Deltas[i].Uri,
 		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
 		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
 		"   time(s):", time.Since(start))
 	deltaModelCh <- deltaModel
 	return
 }
-
 func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
+	belogs.Debug("GetRrdpDelta(): deltaUrl:", deltaUrl)
+	return GetRrdpDeltaWithConfig(deltaUrl, nil)
+}
+func GetRrdpDeltaWithConfig(deltaUrl string, httpClientConfig *httpclient.HttpClientConfig) (deltaModel DeltaModel, err error) {
 
 	start := time.Now()
+	if httpClientConfig == nil {
+		httpClientConfig = httpclient.CloneGLobalHttpClient()
+	}
 	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
-	belogs.Debug("GetRrdpDelta(): deltaUrl:", deltaUrl)
-	deltaModel, err = getRrdpDeltaImpl(deltaUrl)
+	belogs.Debug("GetRrdpDeltaWithConfig(): deltaUrl:", deltaUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	deltaModel, err = getRrdpDeltaImplWithConfig(deltaUrl, httpClientConfig)
 	if err != nil {
-		belogs.Error("GetRrdpDelta():getRrdpDeltaImpl fail:", deltaUrl, err)
+		belogs.Error("GetRrdpDeltaWithConfig():getRrdpDeltaImpl fail:", deltaUrl, err)
 		return deltaModel, err
 	}
 
-	belogs.Info("GetRrdpDelta(): deltaUrl ok:", deltaUrl, "  time(s):", time.Since(start))
+	belogs.Info("GetRrdpDeltaWithConfig(): deltaUrl ok:", deltaUrl, "  time(s):", time.Since(start))
 	return deltaModel, nil
 }
 
-func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
+func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.HttpClientConfig) (deltaModel DeltaModel, err error) {
 
 	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
-	belogs.Debug("getRrdpDeltaImpl(): deltaUrl:", deltaUrl)
+	belogs.Debug("getRrdpDeltaImplWithConfig(): deltaUrl:", deltaUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	deltaUrl = strings.TrimSpace(deltaUrl)
 	start := time.Now()
-	resp, body, err := httpclient.GetHttpsVerify(deltaUrl, true)
+	resp, body, err := httpclient.GetHttpsVerifyWithConfig(deltaUrl, true, httpClientConfig)
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			belogs.Error("getRrdpSnapshotImpl(): GetHttpsVerify deltaUrl, is not StatusOK:", deltaUrl,
+			belogs.Error("getRrdpDeltaImplWithConfig(): GetHttpsVerify deltaUrl, is not StatusOK:", deltaUrl,
 				"   resp.Status:", resp.Status, "    body:", body)
 			return deltaModel, errors.New("http status code of " + deltaUrl + " is " + resp.Status)
 		} else {
-			belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl ok:", deltaUrl, "   resp.Status:", resp.Status,
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsVerify deltaUrl ok:", deltaUrl, "   resp.Status:", resp.Status,
 				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 				"   len(body):", len(body), "  time(s):", time.Since(start))
 		}
 	} else {
-		belogs.Debug("getRrdpDeltaImpl(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
+		belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 			"   resp:", resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl
 		start = time.Now()
-		body, err = httpclient.GetByCurlWithConfig(deltaUrl, httpclient.NewHttpClientConfigWithParam(30, 3, "ipv4"))
+		httpClientConfig.IpType = "ipv4"
+		body, err = httpclient.GetByCurlWithConfig(deltaUrl, httpClientConfig)
 		if err != nil {
-			belogs.Debug("getRrdpDeltaImpl(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:", resp,
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:", resp,
 				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 				"   len(body):", len(body), "  time(s):", time.Since(start), err)
 			// then try again using curl, using all
 			start = time.Now()
-			body, err = httpclient.GetByCurlWithConfig(deltaUrl, httpclient.NewHttpClientConfigWithParam(30, 3, "all"))
+			httpClientConfig.IpType = "all"
+			body, err = httpclient.GetByCurlWithConfig(deltaUrl, httpClientConfig)
 			if err != nil {
-				belogs.Error("getRrdpDeltaImpl(): GetByCurlWithConfig deltaUrl, iptype is all, fail:", deltaUrl,
+				belogs.Error("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is all, fail:", deltaUrl,
 					"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl), "   resp:", resp,
 					"   len(body):", len(body), "  time(s):", time.Since(start), err)
 				return deltaModel, errors.New("http error of " + deltaUrl + " is " + err.Error())
 			}
-			belogs.Debug("getRrdpDeltaImpl(): GetByCurlWithConfig deltaUrl, iptype is all, ok", deltaUrl, "    len(body):", len(body),
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is all, ok", deltaUrl, "    len(body):", len(body),
 				"  time(s):", time.Since(start))
 		} else {
-			belogs.Debug("getRrdpDeltaImpl(): GetByCurlWithConfig deltaUrl, iptype is ipv4, ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is ipv4, ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
 		}
 	}
 
 	// check if body is xml file
 	if !strings.Contains(body, `<delta`) {
-		belogs.Error("getRrdpDeltaImpl(): body is not xml file:", deltaUrl, "   resp:",
+		belogs.Error("getRrdpDeltaImplWithConfig(): body is not xml file:", deltaUrl, "   resp:",
 			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
 		return deltaModel, errors.New("body of " + deltaUrl + " is not xml")
 	}
 
 	err = xmlutil.UnmarshalXml(body, &deltaModel)
 	if err != nil {
-		belogs.Error("getRrdpDeltaImpl(): UnmarshalXml fail:", deltaUrl, "    body:", body, err)
+		belogs.Error("getRrdpDeltaImplWithConfig(): UnmarshalXml fail:", deltaUrl, "    body:", body, err)
 		return deltaModel, err
 	}
 
 	deltaModel.Hash = hashutil.Sha256([]byte(body))
+	belogs.Debug("getRrdpDeltaImplWithConfig(): len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
+		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws))
 	for i := range deltaModel.DeltaPublishs {
 		uri := strings.Replace(deltaModel.DeltaPublishs[i].Uri, "../", "/", -1) //fix Path traversal
 		deltaModel.DeltaPublishs[i].Uri = uri
@@ -192,7 +210,9 @@ func getRrdpDeltaImpl(deltaUrl string) (deltaModel DeltaModel, err error) {
 		deltaModel.DeltaWithdraws[i].Uri = uri
 	}
 	deltaModel.DeltaUrl = deltaUrl
-	belogs.Info("getRrdpDeltaImpl(): get from deltaUrl ok", deltaUrl, "  time(s):", time.Since(start))
+	belogs.Info("getRrdpDeltaImplWithConfig(): get from deltaUrl ok", deltaUrl,
+		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
+		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws), "  time(s):", time.Since(start))
 	return deltaModel, nil
 }
 

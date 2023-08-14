@@ -20,60 +20,55 @@ import (
 )
 
 func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error) {
-	start := time.Now()
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
 	belogs.Info("GetRrdpSnapshot():will get snapshotUrl:", snapshotUrl)
-	snapshotModel, err = GetRrdpSnapshotWithConfig(snapshotUrl, nil)
-	if err != nil {
-		belogs.Error("GetRrdpSnapshot():GetRrdpSnapshotWithConfig fail:", snapshotUrl, err)
-		return snapshotModel, nil
-	}
-	belogs.Info("GetRrdpSnapshot(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Since(start))
-	return snapshotModel, nil
+	return GetRrdpSnapshotWithConfig(snapshotUrl, nil)
 }
+
 func GetRrdpSnapshotWithConfig(snapshotUrl string, httpClientConfig *httpclient.HttpClientConfig) (snapshotModel SnapshotModel, err error) {
 	start := time.Now()
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
-	belogs.Info("GetRrdpSnapshotWithConfig():will get snapshotUrl:", snapshotUrl, "  httpClientConfig:", jsonutil.MarshalJson(*httpClientConfig))
 	if httpClientConfig == nil {
 		httpClientConfig = httpclient.CloneGLobalHttpClient()
 	}
-	snapshotModel, err = getRrdpSnapshotImpl(snapshotUrl, httpClientConfig)
+	belogs.Info("GetRrdpSnapshotWithConfig():will get snapshotUrl:", snapshotUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+
+	snapshotModel, err = getRrdpSnapshotImplWithConfig(snapshotUrl, httpClientConfig)
 	if err != nil {
-		belogs.Error("GetRrdpSnapshot():getRrdpSnapshotImpl fail:", snapshotUrl, err)
+		belogs.Error("GetRrdpSnapshotWithConfig():getRrdpSnapshotImpl fail:", snapshotUrl, err)
 		return snapshotModel, nil
 	}
-	belogs.Info("GetRrdpSnapshot(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Since(start))
+	belogs.Info("GetRrdpSnapshotWithConfig(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Since(start))
 	return snapshotModel, nil
 }
 
-func getRrdpSnapshotImpl(snapshotUrl string, httpClientConfig *httpclient.HttpClientConfig) (snapshotModel SnapshotModel, err error) {
+func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpclient.HttpClientConfig) (snapshotModel SnapshotModel, err error) {
 
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
-	belogs.Debug("getRrdpSnapshotImpl(): snapshotUrl:", snapshotUrl, "  httpClientConfig:", jsonutil.MarshalJson(*httpClientConfig))
+	belogs.Debug("getRrdpSnapshotImplWithConfig(): snapshotUrl:", snapshotUrl, "  httpClientConfig:", jsonutil.MarshalJson(*httpClientConfig))
 	snapshotUrl = strings.TrimSpace(snapshotUrl)
 	start := time.Now()
 	httpclient.SetTimeout(30) // 30mins
 	defer httpclient.ResetTimeout()
 	resp, body, err := httpclient.GetHttpsVerifyWithConfig(snapshotUrl, true, httpClientConfig)
-	belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
+	belogs.Debug("getRrdpSnapshotImplWithConfig(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
 		"    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			belogs.Error("getRrdpSnapshotImpl(): GetHttpsVerify snapshotUrl, is not StatusOK:", snapshotUrl,
+			belogs.Error("getRrdpSnapshotImplWithConfig(): GetHttpsVerify snapshotUrl, is not StatusOK:", snapshotUrl,
 				"   resp.Status:", resp.Status, "    body:", body)
 			return snapshotModel, errors.New("http status code of " + snapshotUrl + " is " + resp.Status)
 		} else {
-			belogs.Debug("getRrdpSnapshotImpl():GetHttpsVerify snapshotUrl ok:", snapshotUrl,
+			belogs.Debug("getRrdpSnapshotImplWithConfig():GetHttpsVerify snapshotUrl ok:", snapshotUrl,
 				"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
 				"   len(body):", len(body), "  time(s):", time.Since(start))
 		}
 	} else {
-		belogs.Debug("getRrdpSnapshotImpl(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
+		belogs.Debug("getRrdpSnapshotImplWithConfig(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl, using ipv4
@@ -82,7 +77,7 @@ func getRrdpSnapshotImpl(snapshotUrl string, httpClientConfig *httpclient.HttpCl
 		httpClientConfig.IpType = "ipv4"
 		body, err = httpclient.GetByCurlWithConfig(snapshotUrl, httpClientConfig)
 		if err != nil {
-			belogs.Debug("getRrdpSnapshotImpl(): GetByCurlWithConfig snapshotUrl, iptype is ipv4, fail:", snapshotUrl,
+			belogs.Debug("getRrdpSnapshotImplWithConfig(): GetByCurlWithConfig snapshotUrl, iptype is ipv4, fail:", snapshotUrl,
 				"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl), "   resp:", resp,
 				"   len(body):", len(body), "  time(s):", time.Since(start), err)
 
@@ -91,19 +86,19 @@ func getRrdpSnapshotImpl(snapshotUrl string, httpClientConfig *httpclient.HttpCl
 			httpClientConfig.IpType = "all"
 			body, err = httpclient.GetByCurlWithConfig(snapshotUrl, httpClientConfig)
 			if err != nil {
-				belogs.Error("getRrdpSnapshotImpl(): GetByCurlWithConfig snapshotUrl, iptype is all, fail:", snapshotUrl,
+				belogs.Error("getRrdpSnapshotImplWithConfig(): GetByCurlWithConfig snapshotUrl, iptype is all, fail:", snapshotUrl,
 					"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl), "   resp:", resp,
 					"   len(body):", len(body), "  time(s):", time.Since(start), err)
 				return snapshotModel, errors.New("http error of " + snapshotUrl + " is " + err.Error())
 			}
-			belogs.Debug("getRrdpSnapshotImpl(): GetByCurlWithConfig snapshotUrl, iptype is all, ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
+			belogs.Debug("getRrdpSnapshotImplWithConfig(): GetByCurlWithConfig snapshotUrl, iptype is all, ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
 		} else {
-			belogs.Debug("getRrdpSnapshotImpl(): GetByCurlWithConfig snapshotUrl, iptype is ipv4, ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
+			belogs.Debug("getRrdpSnapshotImplWithConfig(): GetByCurlWithConfig snapshotUrl, iptype is ipv4, ok", snapshotUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
 		}
 	}
 	// check if body is xml file
 	if !strings.Contains(body, `<snapshot`) {
-		belogs.Error("GetRrdpSnapshot(): body is not xml file:", snapshotUrl, "   resp:",
+		belogs.Error("getRrdpSnapshotImplWithConfig(): body is not xml file:", snapshotUrl, "   resp:",
 			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
 		return snapshotModel, errors.New("body of " + snapshotUrl + " is not xml")
 	}
@@ -111,9 +106,10 @@ func getRrdpSnapshotImpl(snapshotUrl string, httpClientConfig *httpclient.HttpCl
 	// get snapshotModel
 	err = xmlutil.UnmarshalXml(body, &snapshotModel)
 	if err != nil {
-		belogs.Error("GetRrdpSnapshot(): UnmarshalXml fail:", snapshotUrl, "   body:", body, err)
+		belogs.Error("getRrdpSnapshotImplWithConfig(): UnmarshalXml fail:", snapshotUrl, "   body:", body, err)
 		return snapshotModel, err
 	}
+	belogs.Debug("getRrdpSnapshotImplWithConfig(): len(snapshotModel.SnapshotPublishs):", len(snapshotModel.SnapshotPublishs))
 	for i := range snapshotModel.SnapshotPublishs {
 		uri := strings.Replace(snapshotModel.SnapshotPublishs[i].Uri, "../", "/", -1) //fix Path traversal
 		snapshotModel.SnapshotPublishs[i].Uri = uri
@@ -123,7 +119,8 @@ func getRrdpSnapshotImpl(snapshotUrl string, httpClientConfig *httpclient.HttpCl
 	snapshotModel.Hash = hashutil.Sha256([]byte(body))
 	snapshotModel.SnapshotUrl = snapshotUrl
 
-	belogs.Info("getRrdpSnapshotImpl(): get from snapshotUrl ok", snapshotUrl, "  time(s):", time.Since(start))
+	belogs.Info("getRrdpSnapshotImplWithConfig(): get from snapshotUrl ok", snapshotUrl,
+		"   len(snapshotModel.SnapshotPublishs):", len(snapshotModel.SnapshotPublishs), "  time(s):", time.Since(start))
 	return snapshotModel, nil
 }
 
