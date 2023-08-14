@@ -24,3 +24,12 @@ func errorsToerror(resps gorequest.Response, bodys string, errs []error) (resp g
 	}
 	return resps, bodys, nil
 }
+
+func CloneGLobalHttpClient() *HttpClientConfig {
+	c := &HttpClientConfig{
+		TimeoutMins: globalHttpClientConfig.TimeoutMins,
+		RetryCount:  globalHttpClientConfig.RetryCount,
+		IpType:      globalHttpClientConfig.IpType,
+	}
+	return c
+}
