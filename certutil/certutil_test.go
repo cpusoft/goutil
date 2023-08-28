@@ -15,6 +15,7 @@ func TestReadFileToCer(t *testing.T) {
 	p, err = ReadFileToCer(fatherFile)
 	fmt.Println(p, err)
 }
+
 func TestReadFileToCrl(t *testing.T) {
 	path := `G:\Download\cert\1\`
 	fatherFile := path + `ACBRR9OW8JgDvUcuWBka9usiwvU.crl`
@@ -45,6 +46,7 @@ func TestVerifyCertByX509(t *testing.T) {
 	result, err := VerifyCerByX509(fatherFile, childFile)
 	fmt.Println(result, err)
 }
+
 func TestVerifyRootCertByX509(t *testing.T) {
 	path := `E:\Go\common-util\src\certutil\example\`
 	root := path + `root.cer`
@@ -53,6 +55,7 @@ func TestVerifyRootCertByX509(t *testing.T) {
 	result, err := VerifyRootCerByOpenssl(root)
 	fmt.Println(result, err)
 }
+
 func TestVerifyEeCertByX509(t *testing.T) {
 	/*
 		/root/rpki/repo/repo/rpki.ripe.net/repository/DEFAULT/ec/49c449-2d9c-4fc9-b340-51a23ddb6410/1/
