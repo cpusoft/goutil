@@ -96,7 +96,7 @@ func GetPwd() string {
 	return pwd
 }
 
-// will deprecated, will use GetAllFilesBySuffixs()
+//deprecated, will use GetAllFilesBySuffixs()
 func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string) *list.List {
 
 	absolutePath, _ := filepath.Abs(directory)

@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"strings"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/fileutil"
 )
 
 var oid = map[string]string{
@@ -178,52 +177,6 @@ func EncodeInteger(val uint64) []byte {
 	return out.Bytes()
 }
 
-func ReadFileAndDecodeBase64(file string) (fileByte []byte, fileDecodeBase64Byte []byte, err error) {
-	fileByte, err = ioutil.ReadFile(file)
-	if err != nil {
-		belogs.Error("ReadFileAndDecodeBase64():ReadFile err:", file, err)
-		return nil, nil, err
-	}
-	if len(fileByte) == 0 {
-		belogs.Error("ReadFileAndDecodeBase64():fileByte is emtpy:", file)
-		return nil, nil, errors.New("file is emtpy")
-	}
-	fileDecodeBase64Byte, err = DecodeBase64(fileByte)
-	if err != nil {
-		belogs.Error("ReadFileAndDecodeBase64():DecodeBase64 err:", file, err)
-		return nil, nil, err
-	}
-	return fileByte, fileDecodeBase64Byte, nil
-}
-
-func DecodeBase64(oldBytes []byte) ([]byte, error) {
-	isBinary := false
-
-	for _, b := range oldBytes {
-		t := int(b)
-
-		if t < 32 && t != 9 && t != 10 && t != 13 {
-			isBinary = true
-			break
-		}
-	}
-
-	belogs.Debug("DecodeBase64(): isBinary:", isBinary)
-	if isBinary {
-		return oldBytes, nil
-	}
-	txt := string(oldBytes)
-	txt = strings.Replace(txt, "-----BEGIN CERTIFICATE-----", "", -1)
-	txt = strings.Replace(txt, "-----END CERTIFICATE-----", "", -1)
-	txt = strings.Replace(txt, "-", "", -1)
-	txt = strings.Replace(txt, " ", "", -1)
-	txt = strings.Replace(txt, "\r", "", -1)
-	txt = strings.Replace(txt, "\n", "", -1)
-	belogs.Debug("DecodeBase64(): txt after Replace: %s", txt)
-	newBytes, err := base64.StdEncoding.DecodeString(txt)
-	return newBytes, err
-
-}
 func DecodeInteger(data []byte) (ret uint64) {
 	for _, i := range data {
 		ret = ret * 256
@@ -373,4 +326,9 @@ func ExtKeyUsagesToInts(exts []x509.ExtKeyUsage) []int {
 		ks = append(ks, int(e))
 	}
 	return ks
+}
+
+//deprecated
+func ReadFileAndDecodeBase64(file string) (fileByte []byte, fileDecodeBase64Byte []byte, err error) {
+	return fileutil.ReadFileAndDecodeCertBase64(file)
 }

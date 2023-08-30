@@ -2,6 +2,7 @@ package fileutil
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -52,6 +53,25 @@ func ReadFileToBytes(file string) (bytes []byte, err error) {
 	}
 	defer fi.Close()
 	return ioutil.ReadAll(fi)
+}
+
+func ReadFileAndDecodeCertBase64(file string) (fileByte []byte, fileDecodeBase64Byte []byte, err error) {
+	belogs.Debug("ReadFileAndDecodeCertBase64(): file:", file)
+	fileByte, err = ioutil.ReadFile(file)
+	if err != nil {
+		belogs.Error("ReadFileAndDecodeCertBase64():ReadFile err:", file, err)
+		return nil, nil, err
+	}
+	if len(fileByte) == 0 {
+		belogs.Error("ReadFileAndDecodeCertBase64():fileByte is emtpy:", file)
+		return nil, nil, errors.New("file is emtpy")
+	}
+	fileDecodeBase64Byte, err = base64util.DecodeCertBase64(fileByte)
+	if err != nil {
+		belogs.Error("ReadFileAndDecodeCertBase64():DecodeCertBase64 err:", file, err)
+		return nil, nil, err
+	}
+	return fileByte, fileDecodeBase64Byte, nil
 }
 
 // -rw-rw--r--
