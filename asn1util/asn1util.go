@@ -328,6 +328,57 @@ func ExtKeyUsagesToInts(exts []x509.ExtKeyUsage) []int {
 	return ks
 }
 
+// ipType:	iputil.Ipv4Type = 0x01, Ipv6Type = 0x02
+// isAddress: if is 1.1.1.1('address'), true; if is 1.1/16('addressprefix'), false
+// isMin: lower bits all are 0. isMax: lower bits all are 1.
+func DecodeBitStringToAddress(data []byte, ipType int, isAddress bool, isMin bool) (address string, err error) {
+	if len(data) < 4 {
+		return "", errors.New("data is empty")
+	}
+	address := asn1.BitString{}
+	_, err = asn1.Unmarshal(data, &address)
+	if err != nil {
+		return "", err
+	}
+	// BitLength = (len(data)-1)*8 - unusedBitsLen
+	// data:include 1Byte( unusedBits), -1 will get true address bytes, so it is len(BitString.Bytes)
+	unusedBitsLen := len(address.Bytes)*8 - address.BitLength
+	var buffer bytes.Buffer
+	if ipType == 1 {
+		if !isAddress {
+			for _, by := range address.Bytes {
+				if i < len(address.Bytes)-1 {
+					buffer.WriteString(fmt.Sprintf("%d.", by))
+				} else {
+					buffer.WriteString(fmt.Sprintf("%d", by))
+				}
+			}
+			addressPrefix := buffer.String() + "/" + fmt.Sprintf("%d", address.BitLength)
+			return addressPrefix, nil
+		} else {
+			var bits byte
+			if !isMin {
+				bits = 0x00
+			} else {
+				bits = 0xFF
+				bits << unusedBitsLen
+			}
+			for _, by := range address.Bytes {
+				if i < len(address.Bytes)-1 {
+					buffer.WriteString(fmt.Sprintf("%d.", by))
+				} else {
+
+					buffer.WriteString(fmt.Sprintf("%d", by))
+				}
+			}
+			addressPrefix := buffer.String() + "/" + fmt.Sprintf("%d", address.BitLength)
+			return addressPrefix, nil
+		}
+	} else {
+
+	}
+}
+
 //deprecated
 func ReadFileAndDecodeBase64(file string) (fileByte []byte, fileDecodeBase64Byte []byte, err error) {
 	return fileutil.ReadFileAndDecodeCertBase64(file)

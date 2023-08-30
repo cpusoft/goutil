@@ -2,6 +2,7 @@ package bitutil
 
 import ()
 
+/*
 // 0x01(0000 0001) --> left 2 --> 0x(0000 0111)
 // rfc3779 max : usine |, right bits are one
 func LeftAndFillOne(bits uint8) (a uint8) {
@@ -19,5 +20,19 @@ func LeftAndFillZero(bits uint8) (a uint8) {
 	for i := uint8(0); i < bits; i++ {
 		a = a << 1
 	}
+	return a
+}
+*/
+
+func Shift0x00LeftFillOne(bits uint8) (a byte) {
+	a = 1
+	for i := uint8(0); i < bits-1; i++ {
+		a = a | a<<1
+	}
+	return a
+}
+func Shift0xffLeftFillZero(bits uint8) (a byte) {
+	a = 0xff
+	a = a << bits
 	return a
 }
