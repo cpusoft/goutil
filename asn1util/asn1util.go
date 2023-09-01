@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/bitutil"
 	"github.com/cpusoft/goutil/fileutil"
 )
 
@@ -330,79 +328,6 @@ func ExtKeyUsagesToInts(exts []x509.ExtKeyUsage) []int {
 	return ks
 }
 
-// not finished --> use asn1cert.ParseToIpAddressBlocks()
-// ipType:	iputil.Ipv4Type = 0x01, Ipv6Type = 0x02
-// isAddress: if is 1.1.1.1('address'), true; if is 1.1/16('addressprefix'), false
-// when is address: isMin is true, then lower bits all are 0. when isMin is false, then lower bits all are 1.
-/*
-func DecodeBitStringToAddress(data []byte, ipType int, isAddress bool, isMin bool) (address string, err error) {
-	if len(data) < 4 {
-		return "", errors.New("data is empty")
-	}
-	addressBitString := asn1.BitString{}
-	_, err = asn1.Unmarshal(data, &addressBitString)
-	if err != nil {
-		return "", err
-	}
-	// BitLength = (len(data)-1)*8 - unusedBitsLen
-	// data:include 1Byte( unusedBits), -1 will get true address bytes, so it is len(BitString.Bytes)
-	unusedBitsLen := uint8(len(addressBitString.Bytes)*8 - addressBitString.BitLength)
-	belogs.Debug("DecodeBitStringToAddress(): addressBitString:", addressBitString, "  data:", data, "  ipType:", ipType,
-		" isAddress:", isAddress, "  isMin:", isMin, " unusedBitsLen:", unusedBitsLen)
-	var buffer bytes.Buffer
-	if ipType == 1 {
-		if !isAddress {
-			for i, by := range addressBitString.Bytes {
-				if i < len(addressBitString.Bytes)-1 {
-					buffer.WriteString(fmt.Sprintf("%d.", by))
-				} else {
-					buffer.WriteString(fmt.Sprintf("%d", by))
-				}
-			}
-			addressPrefix := buffer.String() + "/" + fmt.Sprintf("%d", addressBitString.BitLength)
-			belogs.Debug("DecodeBitStringToAddress(): ipv4 addressPrefix, addressBitString:", addressBitString, "  data:", data, "  addressPrefix:", addressPrefix)
-			return addressPrefix, nil
-		} else {
-			var bit byte
-			if isMin {
-				bit = bitutil.Shift0xffLeftFillZero(unusedBitsLen)
-			} else {
-				bit = bitutil.Shift0x00LeftFillOne(unusedBitsLen)
-			}
-			belogs.Debug("DecodeBitStringToAddress(): ipv4 address, addressBitString:", addressBitString, "  unusedBitsLen:", unusedBitsLen, "  bit:", bit)
-			for i, by := range addressBitString.Bytes {
-				if i < len(addressBitString.Bytes)-1 {
-					buffer.WriteString(fmt.Sprintf("%d.", by))
-				} else if i == len(addressBitString.Bytes)-1 {
-					if unusedBitsLen > 0 {
-						if isMin {
-							by = by & bit
-						} else {
-							by = by | bit
-						}
-					}
-					buffer.WriteString(fmt.Sprintf("%d", by))
-				}
-			}
-			belogs.Debug("DecodeBitStringToAddress(): ipv4 address, high address:", buffer.String(),
-				"  addressBitString:", addressBitString, "  unusedBitsLen:", unusedBitsLen)
-			for i := 0; i < 4-len(addressBitString.Bytes); i++ {
-				if isMin {
-					buffer.WriteString(".0")
-				} else {
-					buffer.WriteString(".255")
-				}
-			}
-			address := buffer.String()
-			belogs.Debug("DecodeBitStringToAddress(): ipv4 address, all address:", address,
-				"  addressBitString:", addressBitString, "  unusedBitsLen:", unusedBitsLen)
-			return address, nil
-		}
-	} else {
-		return "", nil
-	}
-}
-*/
 //deprecated
 func ReadFileAndDecodeBase64(file string) (fileByte []byte, fileDecodeBase64Byte []byte, err error) {
 	return fileutil.ReadFileAndDecodeCertBase64(file)
