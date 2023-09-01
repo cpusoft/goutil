@@ -330,9 +330,11 @@ func ExtKeyUsagesToInts(exts []x509.ExtKeyUsage) []int {
 	return ks
 }
 
+// not finished --> use asn1cert.ParseToIpAddressBlocks()
 // ipType:	iputil.Ipv4Type = 0x01, Ipv6Type = 0x02
 // isAddress: if is 1.1.1.1('address'), true; if is 1.1/16('addressprefix'), false
 // when is address: isMin is true, then lower bits all are 0. when isMin is false, then lower bits all are 1.
+/*
 func DecodeBitStringToAddress(data []byte, ipType int, isAddress bool, isMin bool) (address string, err error) {
 	if len(data) < 4 {
 		return "", errors.New("data is empty")
@@ -400,7 +402,7 @@ func DecodeBitStringToAddress(data []byte, ipType int, isAddress bool, isMin boo
 		return "", nil
 	}
 }
-
+*/
 //deprecated
 func ReadFileAndDecodeBase64(file string) (fileByte []byte, fileDecodeBase64Byte []byte, err error) {
 	return fileutil.ReadFileAndDecodeCertBase64(file)

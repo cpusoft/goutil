@@ -9,7 +9,27 @@ import (
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/guregu/null"
 )
+
+// addressPrefix or min/max
+type IpAddrBlock struct {
+	AddressFamily uint64 `json:"addressFamily" asn1:"optional"`
+	//address prefix: 147.28.83.0/24 '
+	AddressPrefix string `json:"addressPrefix"`
+	//min address:  99.96.0.0
+	Min string `json:"min"`
+	//max address:   99.105.127.255
+	Max string `json:"max"`
+}
+type IpAddrRaw struct {
+	AddressFamily   []byte
+	IpAddressChoice asn1.RawValue
+}
+type IpAddrRange struct {
+	Min asn1.BitString
+	Max asn1.BitString
+}
 
 // ipv4: ipType==4, ipv6: ipType==6
 // data: just ip data, no asn1 header
@@ -54,25 +74,6 @@ func ParseToAddressPrefix(data []byte, ipType int) (string, error) {
 	return net.String(), nil
 }
 
-// addressPrefix or min/max
-type IpAddrBlock struct {
-	AddressFamily uint64 `json:"addressFamily"`
-	//address prefix: 147.28.83.0/24 '
-	AddressPrefix string `json:"addressPrefix"`
-	//min address:  99.96.0.0
-	Min string `json:"min"`
-	//max address:   99.105.127.255
-	Max string `json:"max"`
-}
-type IpAddrAsn1 struct {
-	AddressFamily   []byte
-	IpAddressChoice asn1.RawValue
-}
-type IpAddrRangeAsn1 struct {
-	Min asn1.BitString
-	Max asn1.BitString
-}
-
 func ParseToAddressMinMax(data []byte, ipType int) (min, max string, err error) {
 	belogs.Debug("ParseToAddressMinMax():data:", convert.PrintBytesOneLine(data), ipType)
 
@@ -86,33 +87,33 @@ func ParseToAddressMinMax(data []byte, ipType int) (min, max string, err error) 
 		return "", "", errors.New("Not an IP address")
 	}
 
-	var ipAddrRangeAsn1 IpAddrRangeAsn1
-	_, err = asn1.Unmarshal(data, &ipAddrRangeAsn1)
+	var ipAddrRange IpAddrRange
+	_, err = asn1.Unmarshal(data, &ipAddrRange)
 	if err != nil {
-		belogs.Error("ParseToAddressMinMax():Unmarshal ipAddrRangeAsn1 fail:", convert.PrintBytesOneLine(data), err)
+		belogs.Error("ParseToAddressMinMax():Unmarshal ipAddrRange fail:", convert.PrintBytesOneLine(data), err)
 		return "", "", errors.New("data is not IP addresses(min/max)")
 	}
-	belogs.Debug("ParseToAddressMinMax():ipAddrRangeAsn1:", ipAddrRangeAsn1, err)
+	belogs.Debug("ParseToAddressMinMax():ipAddrRange:", ipAddrRange, err)
 
 	// get min
 	ipAddrMin := make([]byte, size)
-	copy(ipAddrMin, ipAddrRangeAsn1.Min.Bytes)
+	copy(ipAddrMin, ipAddrRange.Min.Bytes)
 	netIpMin := net.IP(ipAddrMin)
 	belogs.Info("ParseToAddressMinMax(): netIpMin:", netIpMin.String())
 
 	// get max, and may be set 0xFF
 	ipAddrMax := make([]byte, size)
-	copy(ipAddrMax, ipAddrRangeAsn1.Max.Bytes)
-	for i := ipAddrRangeAsn1.Max.BitLength/8 + 1; i < len(ipAddrMax); i++ {
+	copy(ipAddrMax, ipAddrRange.Max.Bytes)
+	for i := ipAddrRange.Max.BitLength/8 + 1; i < len(ipAddrMax); i++ {
 		ipAddrMax[i] = 0xFF
 	}
-	if ipAddrRangeAsn1.Max.BitLength/8 > len(ipAddrMax) {
-		belogs.Error("ParseToAddressMinMax():max fail, ipAddrRangeAsn1.Max.BitLength/8 > len(ipAddrMax):", convert.PrintBytesOneLine(ipAddrRangeAsn1.Max.Bytes),
-			"   ipAddrRangeAsn1.Max.BitLength/8:", ipAddrRangeAsn1.Max.BitLength/8, " len(ipAddrMax):", len(ipAddrMax))
+	if ipAddrRange.Max.BitLength/8 > len(ipAddrMax) {
+		belogs.Error("ParseToAddressMinMax():max fail, ipAddrRange.Max.BitLength/8 > len(ipAddrMax):", convert.PrintBytesOneLine(ipAddrRange.Max.Bytes),
+			"   ipAddrRange.Max.BitLength/8:", ipAddrRange.Max.BitLength/8, " len(ipAddrMax):", len(ipAddrMax))
 		return "", "", errors.New("get max fail")
 	}
-	if ipAddrRangeAsn1.Max.BitLength/8 < len(ipAddrMax) {
-		ipAddrMax[ipAddrRangeAsn1.Max.BitLength/8] |= 0xFF >> uint(8-(8*(ipAddrRangeAsn1.Max.BitLength/8+1)-ipAddrRangeAsn1.Max.BitLength))
+	if ipAddrRange.Max.BitLength/8 < len(ipAddrMax) {
+		ipAddrMax[ipAddrRange.Max.BitLength/8] |= 0xFF >> uint(8-(8*(ipAddrRange.Max.BitLength/8+1)-ipAddrRange.Max.BitLength))
 	}
 	netIpMax := net.IP(ipAddrMax)
 	belogs.Info("ParseToAddressMinMax(): netIpMax:", netIpMax.String())
@@ -126,27 +127,27 @@ func ParseToIpAddressBlocks(data []byte) ([]IpAddrBlock, error) {
 	belogs.Debug("ParseToIpAddressBlocks(): data:", convert.PrintBytesOneLine(data))
 	ipAddrBlocks := make([]IpAddrBlock, 0)
 
-	var ipAddrAsn1s []IpAddrAsn1
-	_, err := asn1.Unmarshal(data, &ipAddrAsn1s)
+	var ipAddrRaws []IpAddrRaw
+	_, err := asn1.Unmarshal(data, &ipAddrRaws)
 	if err != nil {
 		belogs.Error("ParseToIpAddressBlocks(): Unmarshal data fail:", convert.PrintBytesOneLine(data), err)
 		return ipAddrBlocks, err
 	}
-	belogs.Debug("ParseToIpAddressBlocks(): ipAddrAsn1s:", jsonutil.MarshalJson(ipAddrAsn1s))
+	belogs.Debug("ParseToIpAddressBlocks(): ipAddrRaws:", jsonutil.MarshalJson(ipAddrRaws))
 
-	for _, ipAddrssAsn1 := range ipAddrAsn1s {
+	for _, ipAddrRaw := range ipAddrRaws {
 		// compatible
 		var family uint64
-		if len(ipAddrssAsn1.AddressFamily) == 2 {
-			if ipAddrssAsn1.AddressFamily[1] == 1 {
+		if len(ipAddrRaw.AddressFamily) == 2 {
+			if ipAddrRaw.AddressFamily[1] == 1 {
 				family = 1
-			} else if ipAddrssAsn1.AddressFamily[1] == 2 {
+			} else if ipAddrRaw.AddressFamily[1] == 2 {
 				family = 2
 			}
-		} else if len(ipAddrssAsn1.AddressFamily) == 1 {
-			if ipAddrssAsn1.AddressFamily[0] == 1 {
+		} else if len(ipAddrRaw.AddressFamily) == 1 {
+			if ipAddrRaw.AddressFamily[0] == 1 {
 				family = 1
-			} else if ipAddrssAsn1.AddressFamily[0] == 2 {
+			} else if ipAddrRaw.AddressFamily[0] == 2 {
 				family = 2
 			}
 		}
@@ -154,24 +155,24 @@ func ParseToIpAddressBlocks(data []byte) ([]IpAddrBlock, error) {
 			belogs.Error("ParseToIpAddressBlocks(): family fail:", family)
 			return ipAddrBlocks, errors.New("family is error")
 		}
-		belogs.Debug("ParseToIpAddressBlocks(): ipAddrssAsn1.AddressFamily:", ipAddrssAsn1.AddressFamily,
+		belogs.Debug("ParseToIpAddressBlocks(): ipAddrRaw.AddressFamily:", ipAddrRaw.AddressFamily,
 			" family:", family)
 
-		if ipAddrssAsn1.IpAddressChoice.Tag == asn1.TagNull {
+		if ipAddrRaw.IpAddressChoice.Tag == asn1.TagNull {
 			// is null
 			ipAddrBlock := IpAddrBlock{AddressFamily: family}
-			belogs.Debug("ParseToIpAddressBlocks():ipAddrssAsn1 is TagNull:", ipAddrssAsn1.IpAddressChoice.Tag, ipAddrBlock)
+			belogs.Debug("ParseToIpAddressBlocks():ipAddrRaw is TagNull:", ipAddrRaw.IpAddressChoice.Tag, ipAddrBlock)
 			ipAddrBlocks = append(ipAddrBlocks, ipAddrBlock)
 
-		} else if ipAddrssAsn1.IpAddressChoice.Tag == asn1.TagSequence {
+		} else if ipAddrRaw.IpAddressChoice.Tag == asn1.TagSequence {
 			// have ips
-			belogs.Debug("ParseToIpAddressBlocks():ipAddrssAsn1 is TagSequence:", ipAddrssAsn1.IpAddressChoice.Tag)
+			belogs.Debug("ParseToIpAddressBlocks():ipAddrRaw is TagSequence:", ipAddrRaw.IpAddressChoice.Tag)
 
 			var ipAddrRawValues []asn1.RawValue
-			_, err = asn1.Unmarshal(ipAddrssAsn1.IpAddressChoice.FullBytes, &ipAddrRawValues)
+			_, err = asn1.Unmarshal(ipAddrRaw.IpAddressChoice.FullBytes, &ipAddrRawValues)
 			if err != nil {
 				belogs.Error("ParseToIpAddressBlocks():ipAddrRawValues Unmarshal fail:",
-					convert.PrintBytesOneLine(ipAddrssAsn1.IpAddressChoice.FullBytes),
+					convert.PrintBytesOneLine(ipAddrRaw.IpAddressChoice.FullBytes),
 					err)
 				return ipAddrBlocks, err
 			}
@@ -189,14 +190,14 @@ func ParseToIpAddressBlocks(data []byte) ([]IpAddrBlock, error) {
 					ipAddrBlock := IpAddrBlock{
 						AddressFamily: family,
 						AddressPrefix: addressPrefix}
-					belogs.Debug("ParseToIpAddressBlocks():TagBitString  ipAddrBlock:", ipAddrssAsn1.IpAddressChoice.Tag, ipAddrBlock)
+					belogs.Debug("ParseToIpAddressBlocks():TagBitString  ipAddrBlock:", ipAddrRaw.IpAddressChoice.Tag, ipAddrBlock)
 					ipAddrBlocks = append(ipAddrBlocks, ipAddrBlock)
 
 				} else if ipAddrRawValue.Tag == asn1.TagSequence {
 
-					//var ipAddrRangeAsn1 IpAddrRangeAsn1
-					//_, err := asn1.Unmarshal(ipAddrRawValue.FullBytes, &ipAddrRangeAsn1)
-					//belogs.Debug("ParseToIpAddressBlocks():TagSequence ipAddrRangeAsn1:", jsonutil.MarshalJson(ipAddrRangeAsn1))
+					//var ipAddrRange IpAddrRange
+					//_, err := asn1.Unmarshal(ipAddrRawValue.FullBytes, &ipAddrRange)
+					//belogs.Debug("ParseToIpAddressBlocks():TagSequence ipAddrRange:", jsonutil.MarshalJson(ipAddrRange))
 					min, max, err := ParseToAddressMinMax(ipAddrRawValue.FullBytes, int(family))
 					if err != nil {
 						belogs.Error("ParseToIpAddressBlocks():TagSequence ParseToAddressMinMax fail:",
@@ -207,7 +208,7 @@ func ParseToIpAddressBlocks(data []byte) ([]IpAddrBlock, error) {
 						AddressFamily: family,
 						Min:           min,
 						Max:           max}
-					belogs.Debug("ParseToIpAddressBlocks():TagSequence ipAddrBlock:", ipAddrssAsn1.IpAddressChoice.Tag, ipAddrBlock)
+					belogs.Debug("ParseToIpAddressBlocks():TagSequence ipAddrBlock:", ipAddrRaw.IpAddressChoice.Tag, ipAddrBlock)
 					ipAddrBlocks = append(ipAddrBlocks, ipAddrBlock)
 				}
 			}
@@ -232,4 +233,100 @@ func ParseToFileAndHashs(data []byte) ([]FileAndHash, error) {
 	}
 	belogs.Debug("ParseToFileAndHashs(): fileAndHashs:", jsonutil.MarshalJson(fileAndHashs))
 	return fileAndHashs, nil
+}
+
+type AsBlock struct {
+	As  null.Int `json:"as"`
+	Min null.Int `json:"min"`
+	Max null.Int `json:"Max"`
+}
+type AsRaw struct {
+	AsChoice asn1.RawValue `asn1:"explicit,optional,tag:0`
+	Rdi      asn1.RawValue `asn1:"explicit,optional,tag:1`
+}
+type AsRange struct {
+	Min int
+	Max int
+}
+
+func ParseToAsBlocks(data []byte) (asBlocks []AsBlock, err error) {
+	/*
+		belogs.Debug("ParseToAsBlocks(): data:", convert.PrintBytesOneLine(data))
+		asBlocks := make([]AsBlock, 0)
+
+		var asRaws AsRaw
+		_, err := asn1.Unmarshal(data, &asRaws)
+		if err != nil {
+			belogs.Error("ParseToAsBlocks(): Unmarshal data fail:", convert.PrintBytesOneLine(data), err)
+			return asBlocks, err
+		}
+		belogs.Debug("ParseToAsBlocks(): asRaws:", asRaws, jsonutil.MarshalJson(asRaws))
+
+		for _, asRaw := range asRaws {
+
+			if asRaw.AsChoice.Tag == asn1.TagNull {
+				// is null
+				belogs.Debug("ParseToAsBlocks():asRaw is TagNull:", asRaw.AsChoice.Tag, asRaw)
+
+			} else if asRaw.AsChoice.Tag == asn1.TagSequence {
+				// have ips
+				belogs.Debug("ParseToAsBlocks():asRaw is TagSequence:", asRaw.AsChoice.Tag)
+
+				var asRawValues []asn1.RawValue
+				_, err = asn1.Unmarshal(asRaw.AsChoice.FullBytes, &asRawValues)
+				if err != nil {
+					belogs.Error("ParseToAsBlocks():asRawValues Unmarshal fail:",
+						convert.PrintBytesOneLine(asRaw.AsChoice.FullBytes),
+						err)
+					return asBlocks, err
+				}
+				belogs.Debug("ParseToAsBlocks(): len(asRawValues):", len(asRawValues))
+
+				for _, asRawValue := range asRawValues {
+					if asRawValue.Tag == asn1.TagInteger {
+						as, err := asn1base.ParseBigInt(asRawValue.Bytes)
+						if err != nil {
+							belogs.Error("ParseToAsBlocks():TagInteger ParseBigInt fail:",
+								convert.PrintBytesOneLine(asRawValue.Bytes), err)
+							return asBlocks, err
+						}
+						asUint64 := as.Uint64()
+						asBlock := AsBlock{As: null.IntFrom(int64(asUint64))}
+						belogs.Debug("ParseToAsBlocks():TagInteger  AsBlock:", asRaw.AsChoice.Tag, asBlock)
+						asBlocks = append(asBlocks, asBlock)
+
+					} else if asRawValue.Tag == asn1.TagSequence {
+
+						min, max, err := ParseToAsMinMax(asRawValue.FullBytes)
+						if err != nil {
+							belogs.Error("ParseToAsBlocks():TagSequence ParseToAsMinMax fail:",
+								convert.PrintBytesOneLine(asRawValue.FullBytes), err)
+							return asBlocks, err
+						}
+						asBlock := AsBlock{
+							Min: null.IntFrom(int64(min)),
+							Max: null.IntFrom(int64(max))}
+						belogs.Debug("ParseToAsBlocks():TagSequence AsBlock:", asRaw.AsChoice.Tag, asBlock)
+						asBlocks = append(asBlocks, asBlock)
+					}
+				}
+			}
+		}
+
+		belogs.Info("ParseToAsBlocks():asBlocks:", jsonutil.MarshalJson(asBlocks))
+	*/
+	return
+}
+
+func ParseToAsMinMax(data []byte) (min, max int, err error) {
+	belogs.Debug("ParseToAsMinMax():data:", convert.PrintBytesOneLine(data))
+
+	var asRange AsRange
+	_, err = asn1.Unmarshal(data, &asRange)
+	if err != nil {
+		belogs.Error("ParseToAsMinMax():Unmarshal asRange fail:", convert.PrintBytesOneLine(data), err)
+		return 0, 0, errors.New("data is not As(min/max)")
+	}
+	belogs.Debug("ParseToAsMinMax():asRange:", asRange)
+	return asRange.Min, asRange.Max, nil
 }
