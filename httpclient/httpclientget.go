@@ -130,14 +130,15 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 	// --limit-rate:  100k  --no use
 	// --keepalive-time: <seconds> Interval time for keepalive probes
 	// -m: --max-time SECONDS  Maximum time allowed for the transfer
+	// -v, --verbose       Make the operation more talkative
 	/*
-		cmd := exec.Command("curl", "-4", "-v", "-o", tmpFile, url)
+		cmd := exec.Command("curl", "-4",  "-o", tmpFile, url)
 	*/
 	// minute-->second
 
 	start := time.Now()
 	cmd := exec.Command("curl", "--connect-timeout", timeout, "--keepalive-time", timeout,
-		"-m", timeout, ipType, "--retry", retryCount, "--compressed", "-v", "-o", tmpFile.Name(), url)
+		"-m", timeout, ipType, "--retry", retryCount, "--compressed", "-o", tmpFile.Name(), url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		var outputStr string
