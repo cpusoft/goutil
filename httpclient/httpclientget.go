@@ -140,13 +140,19 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 		"-m", timeout, ipType, "--retry", retryCount, "--compressed", "-v", "-o", tmpFile.Name(), url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		var outputStr string
+		if len(output) <= 100 {
+			outputStr = string(output)
+		} else {
+			outputStr = string(output[:100])
+		}
 		belogs.Error("GetByCurlWithConfig(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
-			"  tmpFile:", tmpFile.Name(), "  timeout:", timeout, "  retryCount:", retryCount, "  ipType:", ipType, "  time(s):", time.Since(start), "   err: ", err,
-			"  Output  is:", string(output))
-		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
+			"  tmpFile:", tmpFile.Name(), "  timeout:", timeout, "  retryCount:", retryCount, "  ipType:", ipType,
+			"  len(output):", len(output), "  outputStr:", outputStr, "  time(s):", time.Since(start), "   err:", err)
+		return "", errors.New("Fail to get by curl. url is " + url + ". " + err.Error())
 	}
 	belogs.Debug("GetByCurlWithConfig(): curl ok, url:", url, "   tmpFile:", tmpFile.Name(), "  timeout:", timeout, "  time(s):", time.Since(start),
-		" Output  is:", string(output))
+		"  len(output):", len(output))
 
 	b, err := fileutil.ReadFileToBytes(tmpFile.Name())
 	if err != nil {
