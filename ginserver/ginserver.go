@@ -108,7 +108,7 @@ func ReceiveFile(c *gin.Context, dir string) (receiveFile string, err error) {
 
 	postForm := c.PostForm("name")
 	file, err := c.FormFile("file")
-	belogs.Debug("ReceiveFile():dir:", dir, "  postForm:", postForm, "   file:", file)
+	belogs.Debug("ReceiveFile():dir:", dir, "  postForm:", postForm, "   file.Filename:", file.Filename)
 	if err != nil {
 		belogs.Error("ReceiveFile(): FormFile fail:", err)
 		return "", err

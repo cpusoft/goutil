@@ -164,7 +164,7 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 		httpClientConfig.IpType = "ipv4"
 		body, err = httpclient.GetByCurlWithConfig(deltaUrl, httpClientConfig)
 		if err != nil {
-			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurl deltaUrl fail:", deltaUrl, "   resp:", resp,
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl fail:", deltaUrl, "   resp:", resp,
 				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 				"   len(body):", len(body), "  time(s):", time.Since(start), err)
 			// then try again using curl, using all

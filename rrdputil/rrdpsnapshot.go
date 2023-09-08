@@ -230,7 +230,7 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 		}
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}
-	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save rrdpFiles ", jsonutil.MarshalJson(rrdpFiles))
+	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save len(rrdpFiles):", len(rrdpFiles))
 	return rrdpFiles, nil
 
 }

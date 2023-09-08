@@ -244,89 +244,113 @@ type AsRaw struct {
 	AsChoice asn1.RawValue `asn1:"explicit,optional,tag:0`
 	Rdi      asn1.RawValue `asn1:"explicit,optional,tag:1`
 }
-type AsRange struct {
-	Min int
-	Max int
+
+type ASIdentifiersModel struct {
+	Asnum ASIdentifierChoiceModel `asn1:"explicit,optional,tag:0`
+	Rdi   ASIdentifierChoiceModel `asn1:"explicit,optional,tag:1`
+}
+type ASIdentifierChoiceModel struct {
+	AsIdsOrRanges []AsnOrRangeModel
+}
+type AsnOrRangeModel struct {
+	Asn          AsnModel     `asn1:"optional"`
+	AsRangeModel AsRangeModel `asn1:"optional"`
+}
+type AsRangeModel struct {
+	Min AsnModel
+	Max AsnModel
 }
 
-func ParseToAsBlocks(data []byte) (asBlocks []AsBlock, err error) {
-	/*
-		belogs.Debug("ParseToAsBlocks(): data:", convert.PrintBytesOneLine(data))
-		asBlocks := make([]AsBlock, 0)
+type AsnModel int
 
+func ParseToAsBlocks(data []byte) (asBlocks []AsBlock, err error) {
+
+	belogs.Debug("ParseToAsBlocks(): data:", convert.PrintBytesOneLine(data))
+	var asIdentifiersModel ASIdentifiersModel
+	_, err = asn1.Unmarshal(data, &asIdentifiersModel)
+	if err != nil {
+		belogs.Error("ParseToAsBlocks(): Unmarshal data fail:", convert.PrintBytesOneLine(data), err)
+		return asBlocks, err
+	}
+	/*
+
+
+		asBlocks = make([]AsBlock, 0)
 		var asRaws AsRaw
-		_, err := asn1.Unmarshal(data, &asRaws)
+		_, err = asn1.Unmarshal(data, &asRaws)
 		if err != nil {
 			belogs.Error("ParseToAsBlocks(): Unmarshal data fail:", convert.PrintBytesOneLine(data), err)
 			return asBlocks, err
 		}
 		belogs.Debug("ParseToAsBlocks(): asRaws:", asRaws, jsonutil.MarshalJson(asRaws))
 
-		for _, asRaw := range asRaws {
 
-			if asRaw.AsChoice.Tag == asn1.TagNull {
-				// is null
-				belogs.Debug("ParseToAsBlocks():asRaw is TagNull:", asRaw.AsChoice.Tag, asRaw)
 
-			} else if asRaw.AsChoice.Tag == asn1.TagSequence {
-				// have ips
-				belogs.Debug("ParseToAsBlocks():asRaw is TagSequence:", asRaw.AsChoice.Tag)
+			for _, asRaw := range asRaws {
 
-				var asRawValues []asn1.RawValue
-				_, err = asn1.Unmarshal(asRaw.AsChoice.FullBytes, &asRawValues)
-				if err != nil {
-					belogs.Error("ParseToAsBlocks():asRawValues Unmarshal fail:",
-						convert.PrintBytesOneLine(asRaw.AsChoice.FullBytes),
-						err)
-					return asBlocks, err
-				}
-				belogs.Debug("ParseToAsBlocks(): len(asRawValues):", len(asRawValues))
+				if asRaw.AsChoice.Tag == asn1.TagNull {
+					// is null
+					belogs.Debug("ParseToAsBlocks():asRaw is TagNull:", asRaw.AsChoice.Tag, asRaw)
 
-				for _, asRawValue := range asRawValues {
-					if asRawValue.Tag == asn1.TagInteger {
-						as, err := asn1base.ParseBigInt(asRawValue.Bytes)
-						if err != nil {
-							belogs.Error("ParseToAsBlocks():TagInteger ParseBigInt fail:",
-								convert.PrintBytesOneLine(asRawValue.Bytes), err)
-							return asBlocks, err
+				} else if asRaw.AsChoice.Tag == asn1.TagSequence {
+					// have ips
+					belogs.Debug("ParseToAsBlocks():asRaw is TagSequence:", asRaw.AsChoice.Tag)
+
+					var asRawValues []asn1.RawValue
+					_, err = asn1.Unmarshal(asRaw.AsChoice.FullBytes, &asRawValues)
+					if err != nil {
+						belogs.Error("ParseToAsBlocks():asRawValues Unmarshal fail:",
+							convert.PrintBytesOneLine(asRaw.AsChoice.FullBytes),
+							err)
+						return asBlocks, err
+					}
+					belogs.Debug("ParseToAsBlocks(): len(asRawValues):", len(asRawValues))
+
+					for _, asRawValue := range asRawValues {
+						if asRawValue.Tag == asn1.TagInteger {
+							as, err := asn1base.ParseBigInt(asRawValue.Bytes)
+							if err != nil {
+								belogs.Error("ParseToAsBlocks():TagInteger ParseBigInt fail:",
+									convert.PrintBytesOneLine(asRawValue.Bytes), err)
+								return asBlocks, err
+							}
+							asUint64 := as.Uint64()
+							asBlock := AsBlock{As: null.IntFrom(int64(asUint64))}
+							belogs.Debug("ParseToAsBlocks():TagInteger  AsBlock:", asRaw.AsChoice.Tag, asBlock)
+							asBlocks = append(asBlocks, asBlock)
+
+						} else if asRawValue.Tag == asn1.TagSequence {
+
+							min, max, err := ParseToAsMinMax(asRawValue.FullBytes)
+							if err != nil {
+								belogs.Error("ParseToAsBlocks():TagSequence ParseToAsMinMax fail:",
+									convert.PrintBytesOneLine(asRawValue.FullBytes), err)
+								return asBlocks, err
+							}
+							asBlock := AsBlock{
+								Min: null.IntFrom(int64(min)),
+								Max: null.IntFrom(int64(max))}
+							belogs.Debug("ParseToAsBlocks():TagSequence AsBlock:", asRaw.AsChoice.Tag, asBlock)
+							asBlocks = append(asBlocks, asBlock)
 						}
-						asUint64 := as.Uint64()
-						asBlock := AsBlock{As: null.IntFrom(int64(asUint64))}
-						belogs.Debug("ParseToAsBlocks():TagInteger  AsBlock:", asRaw.AsChoice.Tag, asBlock)
-						asBlocks = append(asBlocks, asBlock)
-
-					} else if asRawValue.Tag == asn1.TagSequence {
-
-						min, max, err := ParseToAsMinMax(asRawValue.FullBytes)
-						if err != nil {
-							belogs.Error("ParseToAsBlocks():TagSequence ParseToAsMinMax fail:",
-								convert.PrintBytesOneLine(asRawValue.FullBytes), err)
-							return asBlocks, err
-						}
-						asBlock := AsBlock{
-							Min: null.IntFrom(int64(min)),
-							Max: null.IntFrom(int64(max))}
-						belogs.Debug("ParseToAsBlocks():TagSequence AsBlock:", asRaw.AsChoice.Tag, asBlock)
-						asBlocks = append(asBlocks, asBlock)
 					}
 				}
 			}
-		}
-
-		belogs.Info("ParseToAsBlocks():asBlocks:", jsonutil.MarshalJson(asBlocks))
 	*/
+	belogs.Info("ParseToAsBlocks():asBlocks:", jsonutil.MarshalJson(asBlocks))
+
 	return
 }
 
 func ParseToAsMinMax(data []byte) (min, max int, err error) {
 	belogs.Debug("ParseToAsMinMax():data:", convert.PrintBytesOneLine(data))
 
-	var asRange AsRange
+	var asRange AsRangeModel
 	_, err = asn1.Unmarshal(data, &asRange)
 	if err != nil {
 		belogs.Error("ParseToAsMinMax():Unmarshal asRange fail:", convert.PrintBytesOneLine(data), err)
 		return 0, 0, errors.New("data is not As(min/max)")
 	}
 	belogs.Debug("ParseToAsMinMax():asRange:", asRange)
-	return asRange.Min, asRange.Max, nil
+	return int(asRange.Min), int(asRange.Max), nil
 }
