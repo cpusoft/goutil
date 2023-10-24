@@ -38,7 +38,7 @@ func GetRrdpSnapshotWithConfig(snapshotUrl string, httpClientConfig *httpclient.
 	snapshotModel, err = getRrdpSnapshotImplWithConfig(snapshotUrl, httpClientConfig)
 	if err != nil {
 		belogs.Error("GetRrdpSnapshotWithConfig():getRrdpSnapshotImpl fail:", snapshotUrl, err)
-		return snapshotModel, nil
+		return snapshotModel, err
 	}
 	belogs.Info("GetRrdpSnapshotWithConfig(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Since(start))
 	return snapshotModel, nil
@@ -153,11 +153,11 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 func CheckRrdpSnapshotValue(snapshotModel *SnapshotModel) error {
 	if snapshotModel.Version != "1" {
 		belogs.Error("CheckRrdpSnapshotValue():  snapshotModel.Version != 1. current snapshot version is outdated, url is " + snapshotModel.SnapshotUrl)
-		return errors.New("snapshot is emtpy")
+		return errors.New("current snapshot version is not one, url is " + snapshotModel.SnapshotUrl)
 	}
 	if len(snapshotModel.SessionId) == 0 {
 		belogs.Error("CheckRrdpSnapshotValue(): len(snapshotModel.SessionId) == 0")
-		return errors.New("snapshot is emtpy")
+		return errors.New("snapshot session id is empty, url is " + snapshotModel.SnapshotUrl)
 	}
 	return nil
 }
