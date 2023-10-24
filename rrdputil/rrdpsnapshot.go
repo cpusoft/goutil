@@ -153,11 +153,11 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 func CheckRrdpSnapshotValue(snapshotModel *SnapshotModel) error {
 	if snapshotModel.Version != "1" {
 		belogs.Error("CheckRrdpSnapshotValue():  snapshotModel.Version != 1. current snapshot version is outdated, url is " + snapshotModel.SnapshotUrl)
-		return errors.New("current snapshot version is outdated, url is " + snapshotModel.SnapshotUrl)
+		return errors.New("snapshot is emtpy")
 	}
 	if len(snapshotModel.SessionId) == 0 {
 		belogs.Error("CheckRrdpSnapshotValue(): len(snapshotModel.SessionId) == 0")
-		return errors.New("snapshot session_id is error, session_id is empty  ")
+		return errors.New("snapshot is emtpy")
 	}
 	return nil
 }
