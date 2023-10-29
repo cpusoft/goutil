@@ -3,8 +3,8 @@ package fileutil
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -52,12 +52,12 @@ func ReadFileToBytes(file string) (bytes []byte, err error) {
 		return nil, err
 	}
 	defer fi.Close()
-	return ioutil.ReadAll(fi)
+	return io.ReadAll(fi)
 }
 
 func ReadFileAndDecodeCertBase64(file string) (fileByte []byte, fileDecodeBase64Byte []byte, err error) {
 	belogs.Debug("ReadFileAndDecodeCertBase64(): file:", file)
-	fileByte, err = ioutil.ReadFile(file)
+	fileByte, err = os.ReadFile(file)
 	if err != nil {
 		belogs.Error("ReadFileAndDecodeCertBase64():ReadFile err:", file, err)
 		return nil, nil, err
@@ -76,7 +76,17 @@ func ReadFileAndDecodeCertBase64(file string) (fileByte []byte, fileDecodeBase64
 
 // -rw-rw--r--
 func WriteBytesToFile(file string, bytes []byte) (err error) {
-	return ioutil.WriteFile(file, bytes, 0664)
+	return os.WriteFile(file, bytes, 0664)
+}
+
+func WiteBytesAppendFile(file string, bytes []byte) (err error) {
+	fd, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Println("文件打开失败", err)
+	}
+	defer fd.Close()
+	_, err = fd.Write(bytes)
+	return err
 }
 
 func GetFileLength(file string) (length int64, err error) {
