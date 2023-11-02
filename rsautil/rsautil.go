@@ -60,7 +60,7 @@ func RsaEncrypt(plainData, publicKey []byte) (encryptedData []byte, err error) {
 	rsaPublicKey := pubInterface.(*rsa.PublicKey)
 	encryptedData, err = rsa.EncryptPKCS1v15(rand.Reader, rsaPublicKey, plainData)
 	if err != nil {
-		belogs.Error("RsaEncrypt(): EncryptPKCS1v15 fail:", convert.PrintBytes(plainData, 8))
+		belogs.Error("RsaEncrypt(): EncryptPKCS1v15 fail:", convert.PrintBytes(plainData, 8), err)
 		return nil, err
 	}
 	return encryptedData, nil
