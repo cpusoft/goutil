@@ -1,7 +1,12 @@
 package datetime
 
 import (
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/Andrew-M-C/go.timeconv"
+	"github.com/cpusoft/goutil/belogs"
 )
 
 // return YYYY-MM-DD HH24:MS:SS Now
@@ -41,4 +46,28 @@ func CompareTimeRange(srcNotBefore, srcNotAfter,
 	}
 	return 0
 
+}
+
+// duration: 1y/1m/1d or -1y/-1m/-1d
+func AddDataByDuration(t time.Time, duration string) (newT time.Time, err error) {
+	belogs.Debug("AddDataByDuration(): t:", t, "  duration:", duration)
+	var years, months, days int
+	if strings.HasSuffix(duration, "y") {
+		y := strings.TrimSuffix(duration, "y")
+		years, err = strconv.Atoi(y)
+	} else if strings.HasSuffix(duration, "m") {
+		m := strings.TrimSuffix(duration, "m")
+		months, err = strconv.Atoi(m)
+	} else if strings.HasSuffix(duration, "d") {
+		d := strings.TrimSuffix(duration, "d")
+		days, err = strconv.Atoi(d)
+	}
+	if err != nil {
+		belogs.Error("AddDataByDuration(): atoi fail, duration:", duration, err)
+		return newT, err
+	}
+	belogs.Debug("AddDataByDuration(): years:", years, "  months:", months, "  days:", days, "  duration:", duration)
+	newT = timeconv.AddDate(t, years, months, days)
+	belogs.Debug("AddDataByDuration(): ok, newT:", newT, "   t:", t, "  duration:", duration)
+	return newT, nil
 }

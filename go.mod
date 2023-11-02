@@ -3,6 +3,7 @@ module github.com/cpusoft/goutil
 go 1.19
 
 require (
+	github.com/Andrew-M-C/go.timeconv v0.4.0
 	github.com/beego/goyaml2 v0.0.0-20130207012346-5545475820dd
 	github.com/beego/x2j v0.0.0-20131220205130-a0352aadc542
 	github.com/beevik/ntp v0.3.3
