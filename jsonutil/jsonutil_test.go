@@ -59,7 +59,8 @@ type UserSimple struct {
 type MyTime time.Time
 
 const (
-	timeFormart = "2006-01-02 15:04:05"
+	//timeFormart = "2006-01-02 15:04:05"
+	timeFormart = time.RFC3339
 )
 
 func (t *MyTime) UnmarshalJSON(data []byte) (err error) {
@@ -92,7 +93,7 @@ func TestTimeJson(t *testing.T) {
 		StartTime: MyTime(time.Now()),
 		EndTime:   MyTime(time.Now()),
 	}
-	fmt.Println("after Unmarshal: ", MarshalJson(syncLogRtrState))
+	fmt.Println("after MarshalJson: ", MarshalJson(syncLogRtrState))
 
 	UnmarshalJson(s, &syncLogRtrState)
 	fmt.Println("after Unmarshal: ", syncLogRtrState)

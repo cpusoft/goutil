@@ -94,7 +94,7 @@ func RsaEncryptByPublicKey(plainData []byte, publicKey string) (encryptedData []
 
 	grsa := gorsa.RSASecurity{}
 	grsa.SetPublicKey(publicKey)
-	belogs.Debug(publicKey)
+	belogs.Debug("RsaEncryptByPublicKey(): publicKey:", publicKey)
 
 	encryptedData, err = grsa.PubKeyENCTYPT(plainData)
 	if err != nil {
