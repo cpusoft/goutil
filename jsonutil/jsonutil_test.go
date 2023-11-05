@@ -88,7 +88,10 @@ type SyncLogRtrState struct {
 func TestTimeJson(t *testing.T) {
 
 	s := ""
-	var syncLogRtrState = SyncLogRtrState{}
+	var syncLogRtrState = SyncLogRtrState{
+		StartTime: MyTime(time.Now()),
+		EndTime:   MyTime(time.Now()),
+	}
 	fmt.Println("after Unmarshal: ", MarshalJson(syncLogRtrState))
 
 	UnmarshalJson(s, &syncLogRtrState)
