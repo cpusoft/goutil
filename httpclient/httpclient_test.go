@@ -5,6 +5,15 @@ import (
 	"testing"
 )
 
+func TestPostHttp(t *testing.T) {
+	urlStr := `https://202.173.14.105:8070/parsevalidate/parsefilesimple`
+	postJson := ``
+	res, body, err := Post(urlStr, postJson, false)
+	fmt.Println("res:", res)
+	fmt.Println("body:", body)
+	fmt.Println("err:", err)
+}
+
 func TestGetHttp(t *testing.T) {
 	/*
 		//往rp发送请求
