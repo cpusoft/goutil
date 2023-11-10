@@ -4,7 +4,7 @@ import (
 	xml "encoding/xml"
 )
 
-//str := MarshalJson(user)
+// str := MarshalXml(user)
 func MarshalXml(f interface{}) string {
 	body, err := xml.Marshal(f)
 	if err != nil {
@@ -14,8 +14,8 @@ func MarshalXml(f interface{}) string {
 }
 
 /*
-  var user1 = User{}
-  UnmarshalXml(body1, &user1)
+var user1 = User{}
+UnmarshalXml(body1, &user1)
 */
 func UnmarshalXml(str string, f interface{}) error {
 

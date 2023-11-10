@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-//str := MarshalJson(user)
+// str := MarshalJson(user)
 func MarshalJson(f interface{}) string {
 	body, err := json.Marshal(f)
 	if err != nil {
@@ -15,8 +15,7 @@ func MarshalJson(f interface{}) string {
 	}
 	return string(body)
 }
-
-func MarshallJsonIndent(f interface{}) string {
+func MarshalJsonIndent(f interface{}) string {
 	body, err := json.Marshal(f)
 	if err != nil {
 		return ""
@@ -29,9 +28,14 @@ func MarshallJsonIndent(f interface{}) string {
 	return out.String()
 }
 
+// Deprecated
+func MarshallJsonIndent(f interface{}) string {
+	return MarshalJsonIndent(f)
+}
+
 /*
-  var user1 = User{}
-  UnmarshalJson(body1, &user1)
+var user1 = User{}
+UnmarshalJson(body1, &user1)
 */
 func UnmarshalJson(str string, f interface{}) error {
 
