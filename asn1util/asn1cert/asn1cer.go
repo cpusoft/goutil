@@ -8,6 +8,7 @@ import (
 	"github.com/cpusoft/goutil/asn1util/asn1base"
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
+	"github.com/cpusoft/goutil/iputil"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/guregu/null"
 )
@@ -62,6 +63,29 @@ func ParseToIpNet(data []byte, ipType int) (*net.IPNet, error) {
 		Mask: mask,
 	}, nil
 
+}
+
+func ParseToAddressAndPrefix(bi asn1.BitString, ipType int) (address string, prefix uint64, err error) {
+	var size int
+	if ipType == 1 {
+		size = 4
+	} else if ipType == 2 {
+		size = 16
+	} else {
+		belogs.Error("ParseToAddressAndPrefix(): ipType fail:", ipType)
+		return "", 0, errors.New("Not an IP type")
+	}
+
+	ipAddr := make([]byte, size)
+	copy(ipAddr, bi.Bytes)
+	mask := net.CIDRMask(bi.BitLength, size*8)
+	belogs.Debug("ParseToAddressAndPrefix(): ipAddr:", convert.PrintBytesOneLine(ipAddr),
+		jsonutil.MarshalJson(ipAddr), "  mask:", mask)
+	ipNet := net.IPNet{
+		IP:   net.IP(ipAddr),
+		Mask: mask,
+	}
+	return iputil.SplitAddressAndPrefix(ipNet.String())
 }
 
 // use ParseToIpNet --> 134.144.0.0/16
@@ -354,3 +378,32 @@ func ParseToAsMinMax(data []byte) (min, max int, err error) {
 	belogs.Debug("ParseToAsMinMax():asRange:", asRange)
 	return int(asRange.Min), int(asRange.Max), nil
 }
+
+/* ok, but only ASId, not support min-max asn
+type AsnPoint struct {
+	AsnPointName AnsPointName `asn1:"optional,tag:0"`
+}
+
+type AnsPointName struct {
+	AsnNames []RawValue //`asn1:"optional,tag:0"`
+}
+
+func GetAsns(value []byte) (AsnPoint, error) {
+	fmt.Println("GetAsns(): value:", convert.PrintBytesOneLine(value))
+
+	var asnPoint AsnPoint
+	_, err := Unmarshal(value, &asnPoint)
+	if err != nil {
+		fmt.Println("GetAsns(): Unmarshal fail:", err)
+		return asnPoint, err
+	}
+
+	fmt.Println("GetAsns(): asnPoint:", jsonutil.MarshalJson(asnPoint))
+	for _, asnName := range asnPoint.AsnPointName.AsnNames {
+		b := asnName.Bytes
+		asn := big.NewInt(0).SetBytes(b)
+		fmt.Println(asn)
+	}
+	return asnPoint, nil
+}
+*/
