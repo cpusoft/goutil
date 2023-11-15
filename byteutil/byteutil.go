@@ -49,7 +49,8 @@ func IndexStartAndEnd(data, subData []byte) (startIndex, endIndex int, err error
 			"  subDataHex:", subDataHex, " index:", index)
 		return -1, -1, nil
 	} else if index%2 != 0 {
-		belogs.Debug("IndexStartAndEnd(): hex encoding is wrong, index:", index)
+		belogs.Debug("IndexStartAndEnd(): hex encoding is wrong, dataHex:", dataHex,
+			"  subDataHex:", subDataHex, "   index:", index)
 		return -1, -1, nil
 	}
 	startIndex = index / 2
