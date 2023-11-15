@@ -9,31 +9,6 @@ import (
 )
 
 func IndexStartAndEnd(data, subData []byte) (startIndex, endIndex int, err error) {
-	/*
-		dataLen := len(data)
-		subDataLen := len(subData)
-		if subDataLen == 0 {
-			return 0
-		}
-		if dataLen < subDataLen {
-			return -1
-		}
-		for i := 0; i <= dataLen-subDataLen; i++ {
-			j := 0
-			for ; j < subDataLen; j++ {
-				if data[i+j] == subData[j] {
-					startIndex = i
-				}
-				if data[i+j] != subData[j] && startIndex > 0 {
-					endIndex = i
-					break
-				}
-			}
-			if j == subDataLen {
-				return i
-			}
-		}
-	*/
 	if len(data) == 0 || len(subData) == 0 || len(data) < len(subData) {
 		belogs.Debug("IndexStartAndEnd(): data or subData is wrong, len(data):", len(data),
 			"    len(subData):", len(subData))
@@ -55,6 +30,6 @@ func IndexStartAndEnd(data, subData []byte) (startIndex, endIndex int, err error
 	}
 	startIndex = index / 2
 	endIndex = startIndex + len(subData)
-	belogs.Debug("IndexStartAndEnd(): startIndex:", subDataHex, " endIndex:", endIndex)
+	belogs.Debug("IndexStartAndEnd(): startIndex:", startIndex, " endIndex:", endIndex)
 	return startIndex, endIndex, nil
 }
