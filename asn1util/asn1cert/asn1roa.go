@@ -8,47 +8,47 @@ import (
 )
 
 type RoaFileAsn1 struct {
-	ContentType asn1.ObjectIdentifier
-	Seqs        []asn1.RawValue `asn1:"optional,explicit,default:0,tag:0""`
+	SignedDataOid asn1.ObjectIdentifier `json:"signedDataOid"`
+	SignedDatas   []asn1.RawValue       `json:"signedDatas" asn1:"optional,explicit,default:0,tag:0"`
 }
 
 type OctetString []byte
-type RoaAsn1 struct {
+type RoaOctectStringAsn1 struct {
 	RoaOid          asn1.ObjectIdentifier
 	RoaOctectString OctetString `asn1:"tag:0,explicit,optional"`
 }
 
 // asID as in rfc6482
-type RouteOriginAttestation struct {
-	AsId         AsId                 `json:"asID"`
-	IpAddrBlocks []RoaIpAddressFamily `json:"ipAddrBlocks"`
+type RoaAsn1 struct {
+	RoaAsIdAsn1       RoaAsIdAsn1        `json:"asID"`
+	RoaIpAddressAsn1s []RoaIpAddressAsn1 `json:"ipAddrBlocks"`
 }
-type AsId int64
-type RoaIpAddressFamily struct {
-	AddressFamily []byte         `json:"addressFamily"`
-	Addresses     []RoaIpAddress `json:"addresses"`
+type RoaAsIdAsn1 int64
+type RoaIpAddressAsn1 struct {
+	RoaAddressFamily      []byte                 `json:"roaAddressFamily"`
+	RoaPrefixAddressAsn1s []RoaPrefixAddressAsn1 `json:"addresses"`
 }
-type RoaIpAddress struct {
-	Address   asn1.BitString `json:"address"`
-	MaxLength int            `asn1:"optional,default:-1" json:"maxLength"`
+type RoaPrefixAddressAsn1 struct {
+	RoaPrefixAddressAsn1 asn1.BitString `json:"prefixAddress"`
+	RoaMaxLengthAsn1     int            `asn1:"optional,default:-1" json:"maxLength"`
 }
 
 // data: asn1.FullBytes
-func ParseToRouteOriginAttestation(data []byte) (routeOriginAttestation RouteOriginAttestation, err error) {
+func ParseToRouteOriginAttestation(data []byte) (roaAsn1 RoaAsn1, err error) {
 	belogs.Debug("ParseToRouteOriginAttestation(): len(data):", len(data))
-	var roaAsn1 RoaAsn1
-	_, err = asn1.Unmarshal(data, &roaAsn1)
+	var roaOctectStringAsn1 RoaOctectStringAsn1
+	_, err = asn1.Unmarshal(data, &roaOctectStringAsn1)
 	if err != nil {
 		belogs.Error("ParseToRouteOriginAttestation(): Unmarshal roaAsn1 fail:", err)
 		return
 	}
 	belogs.Debug("ParseToRouteOriginAttestation(): roaAsn1:", jsonutil.MarshalJson(roaAsn1))
 
-	_, err = asn1.Unmarshal([]byte(roaAsn1.RoaOctectString), &routeOriginAttestation)
+	_, err = asn1.Unmarshal([]byte(roaOctectStringAsn1.RoaOctectString), &roaAsn1)
 	if err != nil {
-		belogs.Error("ParseToRouteOriginAttestation(): Unmarshal routeOriginAttestation fail:", err)
+		belogs.Error("ParseToRouteOriginAttestation(): Unmarshal roaAsn1 fail:", err)
 		return
 	}
-	belogs.Debug("ParseToRouteOriginAttestation():routeOriginAttestation:", jsonutil.MarshalJson(routeOriginAttestation))
+	belogs.Debug("ParseToRouteOriginAttestation():roaAsn1:", jsonutil.MarshalJson(roaAsn1))
 	return
 }
