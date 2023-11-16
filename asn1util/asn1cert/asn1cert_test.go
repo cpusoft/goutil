@@ -38,7 +38,7 @@ func TestParseToIpNet(t *testing.T) {
 	hexStr := `002001067C208C`
 	by, err := hex.DecodeString(hexStr)
 	fmt.Println(convert.PrintBytesOneLine(by), err)
-	ipNet, err := ParseToIpNet(by, 2)
+	ipNet, err := ParseBytesToIpNet(by, 2)
 	fmt.Println(jsonutil.MarshalJson(ipNet), err)
 	addressPrefix, err := ParseToAddressPrefix(by, 2)
 	fmt.Println("addressPrefix:", addressPrefix, err)
@@ -48,7 +48,7 @@ func TestParseToIpNet(t *testing.T) {
 	hexStr = `074E8200`
 	by, err = hex.DecodeString(hexStr)
 	fmt.Println(convert.PrintBytesOneLine(by), err)
-	ipNet, err = ParseToIpNet(by, 1)
+	ipNet, err = ParseBytesToIpNet(by, 1)
 	ones, bits := ipNet.Mask.Size()
 	fmt.Println(jsonutil.MarshalJson(ipNet), ones, bits, err)
 	addressPrefix, err = ParseToAddressPrefix(by, 1)

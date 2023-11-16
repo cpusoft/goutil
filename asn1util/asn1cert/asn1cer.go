@@ -8,7 +8,6 @@ import (
 	"github.com/cpusoft/goutil/asn1util/asn1base"
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
-	"github.com/cpusoft/goutil/iputil"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/guregu/null"
 )
@@ -32,74 +31,67 @@ type IpAddrRange struct {
 	Max asn1.BitString
 }
 
-// ipv4: ipType==4, ipv6: ipType==6
-// data: just ip data, no asn1 header
-func ParseToIpNet(data []byte, ipType int) (*net.IPNet, error) {
-	belogs.Debug("ParseToIpNet(): ipType:", ipType, "   len(data):", len(data))
-
+// ipv4: size==4, ipv6: size==6
+func ParseBitStringToIpNet(bi asn1.BitString, ipType int) (ipNet *net.IPNet, err error) {
 	var size int
 	if ipType == 1 {
 		size = 4
 	} else if ipType == 2 {
 		size = 16
 	} else {
-		belogs.Error("ParseToIpNet(): ipType fail:", ipType)
-		return nil, errors.New("Not an IP address")
-	}
-
-	bi, err := asn1base.ParseBitString(data)
-	if err != nil {
-		belogs.Error("ParseToIpNet(): ParseBitString fail:", convert.PrintBytesOneLine(data))
-		return nil, errors.New("data is not IP address")
+		belogs.Error("ParseBitStringToAddressPrefix(): ipType fail:", ipType)
+		return nil, errors.New("Not an IP type")
 	}
 
 	ipAddr := make([]byte, size)
 	copy(ipAddr, bi.Bytes)
 	mask := net.CIDRMask(bi.BitLength, size*8)
-	belogs.Debug("ParseToIpNet(): ipAddr:", convert.PrintBytesOneLine(ipAddr),
+	belogs.Debug("ParseBitStringToAddressPrefix(): ipAddr:", convert.PrintBytesOneLine(ipAddr),
 		jsonutil.MarshalJson(ipAddr), "  mask:", mask)
 	return &net.IPNet{
 		IP:   net.IP(ipAddr),
 		Mask: mask,
 	}, nil
-
 }
 
-func ParseToAddressAndPrefix(bi asn1.BitString, ipType int) (address string, prefix uint64, err error) {
-	var size int
-	if ipType == 1 {
-		size = 4
-	} else if ipType == 2 {
-		size = 16
-	} else {
-		belogs.Error("ParseToAddressAndPrefix(): ipType fail:", ipType)
-		return "", 0, errors.New("Not an IP type")
-	}
+// data: just ip data, no asn1 header
+func ParseBytesToIpNet(data []byte, ipType int) (*net.IPNet, error) {
+	belogs.Debug("ParseBytesToIpNet(): ipType:", ipType, "   len(data):", len(data))
 
-	ipAddr := make([]byte, size)
-	copy(ipAddr, bi.Bytes)
-	mask := net.CIDRMask(bi.BitLength, size*8)
-	belogs.Debug("ParseToAddressAndPrefix(): ipAddr:", convert.PrintBytesOneLine(ipAddr),
-		jsonutil.MarshalJson(ipAddr), "  mask:", mask)
-	ipNet := net.IPNet{
-		IP:   net.IP(ipAddr),
-		Mask: mask,
-	}
-	return iputil.SplitAddressAndPrefix(ipNet.String())
-}
-
-// use ParseToIpNet --> 134.144.0.0/16
-func ParseToAddressPrefix(data []byte, ipType int) (string, error) {
-	net, err := ParseToIpNet(data, ipType)
+	bi, err := asn1base.ParseBitString(data)
 	if err != nil {
-		belogs.Error("ParseToAddressPrefix(): ParseToIpNet fail:", err)
+		belogs.Error("ParseBytesToIpNet(): ParseBitString fail:", convert.PrintBytesOneLine(data))
+		return nil, errors.New("data is not IP address")
+	}
+	bitString := asn1.BitString{
+		Bytes:     bi.Bytes,
+		BitLength: bi.BitLength,
+	}
+	return ParseBitStringToIpNet(bitString, ipType)
+}
+
+// use ParseBytesToIpNet --> 134.144.0.0/16
+func ParseBitStringToAddressPrefix(data []byte, ipType int) (addressPrefix string, err error) {
+	net, err := ParseBytesToIpNet(data, ipType)
+	if err != nil {
+		belogs.Error("ParseBitStringToAddressPrefix(): ParseBytesToIpNet fail:", err)
+		return "", errors.New("data is not IP address")
+	}
+	return net.String(), nil
+}
+
+// use ParseBytesToIpNet --> 134.144.0.0/16
+func ParseBytesToAddressPrefix(data []byte, ipType int) (addressPrefix string, err error) {
+	net, err := ParseBytesToIpNet(data, ipType)
+	if err != nil {
+		belogs.Error("ParseBytesToAddressPrefix(): ParseBytesToIpNet fail:", err)
 		return "", errors.New("data is not IP address")
 	}
 	return net.String(), nil
 }
 
 func ParseToAddressMinMax(data []byte, ipType int) (min, max string, err error) {
-	belogs.Debug("ParseToAddressMinMax():data:", convert.PrintBytesOneLine(data), ipType)
+	belogs.Debug("ParseToAddressMinMax():data:", convert.PrintBytesOneLine(data), "  ipType:", ipType)
 
 	var size int
 	if ipType == 1 {
@@ -205,9 +197,9 @@ func ParseToIpAddressBlocks(data []byte) ([]IpAddrBlock, error) {
 			for _, ipAddrRawValue := range ipAddrRawValues {
 				if ipAddrRawValue.Tag == asn1.TagBitString {
 
-					addressPrefix, err := ParseToAddressPrefix(ipAddrRawValue.Bytes, int(family))
+					addressPrefix, err := ParseBytesToAddressPrefix(ipAddrRawValue.Bytes, int(family))
 					if err != nil {
-						belogs.Error("ParseToIpAddressBlocks():TagBitString ParseToAddressPrefix fail:",
+						belogs.Error("ParseToIpAddressBlocks():TagBitString ParseBytesToAddressPrefix fail:",
 							convert.PrintBytesOneLine(ipAddrRawValue.Bytes), family, err)
 						return ipAddrBlocks, err
 					}
