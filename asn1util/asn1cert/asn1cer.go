@@ -71,10 +71,10 @@ func ParseBytesToIpNet(data []byte, ipType int) (*net.IPNet, error) {
 }
 
 // use ParseBytesToIpNet --> 134.144.0.0/16
-func ParseBitStringToAddressPrefix(data []byte, ipType int) (addressPrefix string, err error) {
-	net, err := ParseBytesToIpNet(data, ipType)
+func ParseBitStringToAddressPrefix(bi asn1.BitString, ipType int) (addressPrefix string, err error) {
+	net, err := ParseBitStringToIpNet(bi, ipType)
 	if err != nil {
-		belogs.Error("ParseBitStringToAddressPrefix(): ParseBytesToIpNet fail:", err)
+		belogs.Error("ParseBitStringToAddressPrefix(): ParseBitStringToIpNet fail:", err)
 		return "", errors.New("data is not IP address")
 	}
 	return net.String(), nil
