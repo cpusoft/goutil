@@ -85,7 +85,7 @@ func ParseBytes(data []byte) (n *Node, err error) {
 		belogs.Error("ParseBytes():  DecodeNode fail:", len(data), err)
 		return nil, err
 	}
-	belogs.Info("ParseBytes(): len(data):", len(data), "  n:", jsonutil.MarshalJson(n),
+	belogs.Debug("ParseBytes(): len(data):", len(data), "  n:", jsonutil.MarshalJson(n),
 		"   len(rest):", len(rest))
 	return n, nil
 }

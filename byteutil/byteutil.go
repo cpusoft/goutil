@@ -17,7 +17,7 @@ func IndexStartAndEnd(data, subData []byte) (startIndex, endIndex int, err error
 
 	dataHex := hex.EncodeToString(data)
 	subDataHex := hex.EncodeToString(subData)
-	belogs.Debug("IndexStartAndEnd(): dataHex:", dataHex, "  subDataHex:", subDataHex)
+	belogs.Debug("IndexStartAndEnd(): len(dataHex):", len(dataHex), "  len(subDataHex):", len(subDataHex))
 	index := strings.Index(dataHex, subDataHex)
 	if index < 0 {
 		belogs.Debug("IndexStartAndEnd(): not found subDataHex in dataHex, dataHex:", dataHex,

@@ -43,7 +43,7 @@ func GetAllTalFile(file string) ([]string, error) {
 }
 
 func ParseTalInfos(files []string) ([]TalInfo, error) {
-	belogs.Info("ParseTalInfos(): files:", len(files))
+	belogs.Debug("ParseTalInfos(): files:", len(files))
 
 	talInfos := make([]TalInfo, 0)
 	for _, v := range files {

@@ -115,7 +115,7 @@ func ParseToAddressMinMax(data []byte, ipType int) (min, max string, err error) 
 	ipAddrMin := make([]byte, size)
 	copy(ipAddrMin, ipAddrRange.Min.Bytes)
 	netIpMin := net.IP(ipAddrMin)
-	belogs.Info("ParseToAddressMinMax(): netIpMin:", netIpMin.String())
+	belogs.Debug("ParseToAddressMinMax(): netIpMin:", netIpMin.String())
 
 	// get max, and may be set 0xFF
 	ipAddrMax := make([]byte, size)
@@ -132,7 +132,7 @@ func ParseToAddressMinMax(data []byte, ipType int) (min, max string, err error) 
 		ipAddrMax[ipAddrRange.Max.BitLength/8] |= 0xFF >> uint(8-(8*(ipAddrRange.Max.BitLength/8+1)-ipAddrRange.Max.BitLength))
 	}
 	netIpMax := net.IP(ipAddrMax)
-	belogs.Info("ParseToAddressMinMax(): netIpMax:", netIpMax.String())
+	belogs.Debug("ParseToAddressMinMax(): netIpMax:", netIpMax.String())
 
 	return netIpMin.String(), netIpMax.String(), nil
 
@@ -230,7 +230,7 @@ func ParseToIpAddressBlocks(data []byte) ([]IpAddrBlock, error) {
 			}
 		}
 	}
-	belogs.Info("ParseToIpAddressBlocks():ipAddrBlocks:", jsonutil.MarshalJson(ipAddrBlocks))
+	belogs.Debug("ParseToIpAddressBlocks():ipAddrBlocks:", jsonutil.MarshalJson(ipAddrBlocks))
 	return ipAddrBlocks, nil
 }
 
@@ -353,7 +353,7 @@ func ParseToAsBlocks(data []byte) (asBlocks []AsBlock, err error) {
 				}
 			}
 	*/
-	belogs.Info("ParseToAsBlocks():asBlocks:", jsonutil.MarshalJson(asBlocks))
+	belogs.Debug("ParseToAsBlocks():asBlocks:", jsonutil.MarshalJson(asBlocks))
 
 	return
 }
