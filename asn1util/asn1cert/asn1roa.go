@@ -1,12 +1,6 @@
 package asn1cert
 
-import (
-	"encoding/asn1"
-
-	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/jsonutil"
-)
-
+/*
 type RoaFileAsn1 struct {
 	SignedDataOid asn1.ObjectIdentifier `json:"signedDataOid"`
 	SignedDatas   []asn1.RawValue       `json:"signedDatas" asn1:"optional,explicit,default:0,tag:0"`
@@ -52,3 +46,4 @@ func ParseToRouteOriginAttestation(data []byte) (roaAsn1 RoaAsn1, err error) {
 	belogs.Debug("ParseToRouteOriginAttestation():roaAsn1:", jsonutil.MarshalJson(roaAsn1))
 	return
 }
+*/

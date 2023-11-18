@@ -30,7 +30,51 @@ type IpAddrRange struct {
 	Max asn1.BitString
 }
 
-// ipv4: size==4, ipv6: size==6
+/*
+
+
+
+// use ParseBytesToIpNet --> 134.144.0.0/16
+func ParseBitStringToAddressPrefix(bi asn1.BitString, ipType int) (addressPrefix string, err error) {
+	net, err := ParseBitStringToIpNet(bi, ipType)
+	if err != nil {
+		belogs.Error("ParseBitStringToAddressPrefix(): ParseBitStringToIpNet fail:", err)
+		return "", errors.New("data is not IP address")
+	}
+	return net.String(), nil
+}
+
+
+
+*/
+
+// Deprecated : use ParseBytesToIpNet --> 134.144.0.0/16
+func ParseBytesToAddressPrefix(data []byte, ipType int) (addressPrefix string, err error) {
+	net, err := ParseBytesToIpNet(data, ipType)
+	if err != nil {
+		belogs.Error("ParseBytesToAddressPrefix(): ParseBytesToIpNet fail:", err)
+		return "", errors.New("data is not IP address")
+	}
+	return net.String(), nil
+}
+
+// Deprecated : data: just ip data, no asn1 header
+func ParseBytesToIpNet(data []byte, ipType int) (*net.IPNet, error) {
+	belogs.Debug("ParseBytesToIpNet(): ipType:", ipType, "   len(data):", len(data))
+
+	bi, err := asn1base.ParseBitString(data)
+	if err != nil {
+		belogs.Error("ParseBytesToIpNet(): ParseBitString fail:", convert.PrintBytesOneLine(data))
+		return nil, errors.New("data is not IP address")
+	}
+	bitString := asn1.BitString{
+		Bytes:     bi.Bytes,
+		BitLength: bi.BitLength,
+	}
+	return ParseBitStringToIpNet(bitString, ipType)
+}
+
+// Deprecated : ipv4: size==4, ipv6: size==6
 func ParseBitStringToIpNet(bi asn1.BitString, ipType int) (ipNet *net.IPNet, err error) {
 	var size int
 	if ipType == 1 {
@@ -53,42 +97,7 @@ func ParseBitStringToIpNet(bi asn1.BitString, ipType int) (ipNet *net.IPNet, err
 	}, nil
 }
 
-// data: just ip data, no asn1 header
-func ParseBytesToIpNet(data []byte, ipType int) (*net.IPNet, error) {
-	belogs.Debug("ParseBytesToIpNet(): ipType:", ipType, "   len(data):", len(data))
-
-	bi, err := asn1base.ParseBitString(data)
-	if err != nil {
-		belogs.Error("ParseBytesToIpNet(): ParseBitString fail:", convert.PrintBytesOneLine(data))
-		return nil, errors.New("data is not IP address")
-	}
-	bitString := asn1.BitString{
-		Bytes:     bi.Bytes,
-		BitLength: bi.BitLength,
-	}
-	return ParseBitStringToIpNet(bitString, ipType)
-}
-
-// use ParseBytesToIpNet --> 134.144.0.0/16
-func ParseBitStringToAddressPrefix(bi asn1.BitString, ipType int) (addressPrefix string, err error) {
-	net, err := ParseBitStringToIpNet(bi, ipType)
-	if err != nil {
-		belogs.Error("ParseBitStringToAddressPrefix(): ParseBitStringToIpNet fail:", err)
-		return "", errors.New("data is not IP address")
-	}
-	return net.String(), nil
-}
-
-// use ParseBytesToIpNet --> 134.144.0.0/16
-func ParseBytesToAddressPrefix(data []byte, ipType int) (addressPrefix string, err error) {
-	net, err := ParseBytesToIpNet(data, ipType)
-	if err != nil {
-		belogs.Error("ParseBytesToAddressPrefix(): ParseBytesToIpNet fail:", err)
-		return "", errors.New("data is not IP address")
-	}
-	return net.String(), nil
-}
-
+// Deprecated :
 func ParseToAddressMinMax(data []byte, ipType int) (min, max string, err error) {
 	belogs.Debug("ParseToAddressMinMax():data:", convert.PrintBytesOneLine(data), "  ipType:", ipType)
 

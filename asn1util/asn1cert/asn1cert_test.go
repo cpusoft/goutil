@@ -1,15 +1,6 @@
 package asn1cert
 
-import (
-	"encoding/hex"
-	"fmt"
-	"testing"
-
-	"github.com/cpusoft/goutil/convert"
-	"github.com/cpusoft/goutil/iputil"
-	"github.com/cpusoft/goutil/jsonutil"
-)
-
+/*
 func TestParseToAddressPrefix(t *testing.T) {
 	//03 04 04 0a0020            addressPrefix 10.0.32/20
 	data := []byte{0x03, 0x04, 0x04, 0x0a, 0x00, 0x20}
@@ -76,7 +67,7 @@ func TestParseToIpAddressBlock(t *testing.T) {
 	fmt.Println("-------------------------")
 
 	// 75414d.cer
-	/*   IPv4:
+	   IPv4:
 	  143.137.108.0/22
 	  168.181.76.0/22
 	  170.150.160.0/22
@@ -90,14 +81,14 @@ func TestParseToIpAddressBlock(t *testing.T) {
 	  201.175.0.0-201.175.47.255
 	IPv6:
 	  2001:1270::/32
-	*/
+
 	hexStr = `3060304F0402000130490304028F896C030402A8B54C030402AA96A0030402AAF478030402AAF5B8030402BAC28C030406C83580030404C83950030404C84DE0030404C99F80300B030300C9AF030404C9AF20300D04020002300703050020011270`
 	by, err = hex.DecodeString(hexStr)
 	fmt.Println(convert.PrintBytesOneLine(by), err)
 	ipAddrBlocks, err = ParseToIpAddressBlocks(by)
 	fmt.Println(jsonutil.MarshalJson(ipAddrBlocks), err)
 	fmt.Println("-------------------------")
-	/*
+
 		// ipv4+ipv6 range
 		hexStr = `3031302004020001301A0304022D40B8030402671BC8300C03040067F5A503040067F5A6300D04020002300703050024077900`
 		by, err = hex.DecodeString(hexStr)
@@ -121,15 +112,17 @@ func TestParseToIpAddressBlock(t *testing.T) {
 		fmt.Println(convert.PrintBytesOneLine(by), err)
 		ipAddrBlocks, err = ParseToIpAddressBlocks(by)
 		fmt.Println(jsonutil.MarshalJson(ipAddrBlocks), err)
-	*/
+
 }
 
 func TestParseToAsBlocks(t *testing.T) {
-	hexStr := `3009A00730050203020DC6`
-	by, err := hex.DecodeString(hexStr)
-	fmt.Println(convert.PrintBytesOneLine(by), err)
-	as, err := ParseToAsBlocks(by)
-	fmt.Println(jsonutil.MarshalJson(as), err)
+
+		hexStr := `3009A00730050203020DC6`
+		by, err := hex.DecodeString(hexStr)
+		fmt.Println(convert.PrintBytesOneLine(by), err)
+		as, err := ParseToAsBlocks(by)
+		fmt.Println(jsonutil.MarshalJson(as), err)
+
 }
 
 func TestParseToFileAndHashs(t *testing.T) {
@@ -139,3 +132,4 @@ func TestParseToFileAndHashs(t *testing.T) {
 	fs, err := ParseToFileAndHashs(by)
 	fmt.Println(jsonutil.MarshalJson(fs), err)
 }
+*/

@@ -1,15 +1,6 @@
 package asn1cert
 
-import (
-	"fmt"
-	"net"
-	"testing"
-
-	"github.com/cpusoft/goutil/convert"
-	"github.com/cpusoft/goutil/fileutil"
-	"github.com/cpusoft/goutil/jsonutil"
-)
-
+/*
 func TestParseToAddressPrefix(t *testing.T) {
 	files := []string{
 		`1.roa`,
@@ -108,3 +99,4 @@ func TestParseToAddressPrefix(t *testing.T) {
 	}
 
 }
+*/
