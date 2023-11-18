@@ -9,7 +9,6 @@ import (
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/guregu/null"
 )
 
 // addressPrefix or min/max
@@ -138,6 +137,7 @@ func ParseToAddressMinMax(data []byte, ipType int) (min, max string, err error) 
 
 }
 
+// Deprecated
 func ParseToIpAddressBlocks(data []byte) ([]IpAddrBlock, error) {
 
 	belogs.Debug("ParseToIpAddressBlocks(): data:", convert.PrintBytesOneLine(data))
@@ -239,6 +239,7 @@ type FileAndHash struct {
 	Hash []byte `json:"hash"`
 }
 
+// Deprecated
 func ParseToFileAndHashs(data []byte) ([]FileAndHash, error) {
 	belogs.Debug("ParseToFileAndHashs(): data:", convert.PrintBytesOneLine(data))
 	fileAndHashs := make([]FileAndHash, 0)
@@ -251,6 +252,7 @@ func ParseToFileAndHashs(data []byte) ([]FileAndHash, error) {
 	return fileAndHashs, nil
 }
 
+/*
 type AsBlock struct {
 	As  null.Int `json:"as"`
 	Min null.Int `json:"min"`
@@ -288,7 +290,7 @@ func ParseToAsBlocks(data []byte) (asBlocks []AsBlock, err error) {
 		belogs.Error("ParseToAsBlocks(): Unmarshal data fail:", convert.PrintBytesOneLine(data), err)
 		return asBlocks, err
 	}
-	/*
+
 
 
 		asBlocks = make([]AsBlock, 0)
@@ -352,7 +354,7 @@ func ParseToAsBlocks(data []byte) (asBlocks []AsBlock, err error) {
 					}
 				}
 			}
-	*/
+
 	belogs.Debug("ParseToAsBlocks():asBlocks:", jsonutil.MarshalJson(asBlocks))
 
 	return
@@ -369,33 +371,5 @@ func ParseToAsMinMax(data []byte) (min, max int, err error) {
 	}
 	belogs.Debug("ParseToAsMinMax():asRange:", asRange)
 	return int(asRange.Min), int(asRange.Max), nil
-}
-
-/* ok, but only ASId, not support min-max asn
-type AsnPoint struct {
-	AsnPointName AnsPointName `asn1:"optional,tag:0"`
-}
-
-type AnsPointName struct {
-	AsnNames []RawValue //`asn1:"optional,tag:0"`
-}
-
-func GetAsns(value []byte) (AsnPoint, error) {
-	fmt.Println("GetAsns(): value:", convert.PrintBytesOneLine(value))
-
-	var asnPoint AsnPoint
-	_, err := Unmarshal(value, &asnPoint)
-	if err != nil {
-		fmt.Println("GetAsns(): Unmarshal fail:", err)
-		return asnPoint, err
-	}
-
-	fmt.Println("GetAsns(): asnPoint:", jsonutil.MarshalJson(asnPoint))
-	for _, asnName := range asnPoint.AsnPointName.AsnNames {
-		b := asnName.Bytes
-		asn := big.NewInt(0).SetBytes(b)
-		fmt.Println(asn)
-	}
-	return asnPoint, nil
 }
 */
