@@ -11,7 +11,6 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/guregu/null v4.0.0+incompatible
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/parnurzeal/gorequest v0.2.17-0.20200918112808-3a0cb377f571
@@ -64,7 +63,7 @@ require (
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/wendal/errors v0.0.0-20181209125328-7f31f4b264ec // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
-	golang.org/x/arch v0.5.0 // indirect
+	golang.org/x/arch v0.6.0 // indirect
 	golang.org/x/crypto v0.15.0 // indirect
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
