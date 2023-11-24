@@ -20,7 +20,7 @@ import (
 
 // rsync type
 
-var rsyncClientConfig = NewRsyncClientConfig()
+var globalRsyncClientConfig = NewRsyncClientConfig()
 
 type RsyncRecord struct {
 	Id           uint64        `json:"id"`
@@ -72,11 +72,20 @@ func Rsync(rsyncUrl, destPath string) (rsyncResults []RsyncResult, err error) {
 // will rsync every file but no output
 // if success, the len(output) will be zero
 func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output []byte, err error) {
-	belogs.Debug("RsyncQuiet():rsyncUrl:", rsyncUrl, " destPath:", destPath)
+	belogs.Debug("RsyncQuiet():rsyncUrl:", rsyncUrl, " destPath:", destPath,
+		"   will use  globalRsyncClientConfig:", jsonutil.MarshalJson(globalRsyncClientConfig))
+	return RsyncQuietWithConfig(rsyncUrl, destPath, globalRsyncClientConfig)
+}
+
+// set rsync url and local dest path , then will call rsync
+// will rsync every file but no output
+// if success, the len(output) will be zero
+func RsyncQuietWithConfig(rsyncUrl string, destPath string, rsyncClientConfig *RsyncClientConfig) (rsyncDestPath string, output []byte, err error) {
+	belogs.Debug("RsyncQuietWithConfig():rsyncUrl:", rsyncUrl, " destPath:", destPath, "  rsyncClientConfig:", jsonutil.MarshalJson(rsyncClientConfig))
 	defer func(rsyncUrl string) {
 		if err := recover(); err != nil {
 			errStack := string(debug.Stack())
-			belogs.Error("RsyncQuiet(): recover from panic, rsyncUrl is :", rsyncUrl,
+			belogs.Error("RsyncQuietWithConfig(): recover from panic, rsyncUrl is :", rsyncUrl,
 				" debug.Stack():", errStack, "  err is :", err)
 
 		}
@@ -84,18 +93,18 @@ func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output 
 
 	// get host+path by url
 	hostAndPath, err := urlutil.HostAndPath(rsyncUrl)
-	belogs.Debug("RsyncQuiet():HostAndPath: rsyncUrl:", rsyncUrl, "  HostAndPath:", hostAndPath)
+	belogs.Debug("RsyncQuietWithConfig():HostAndPath: rsyncUrl:", rsyncUrl, "  HostAndPath:", hostAndPath)
 	if err != nil {
-		belogs.Error("RsyncQuiet():HostAndPath: rsyncUrl:", rsyncUrl, "  HostAndPath:", hostAndPath, " err:", err)
+		belogs.Error("RsyncQuietWithConfig():HostAndPath: rsyncUrl:", rsyncUrl, "  HostAndPath:", hostAndPath, " err:", err)
 		return "", output, err
 	}
 
 	// mkdirAll path
 	rsyncDestPath = osutil.JoinPathFile(destPath, hostAndPath)
-	belogs.Debug("RsyncQuiet():rsyncDestPath:", rsyncDestPath)
+	belogs.Debug("RsyncQuietWithConfig():rsyncDestPath:", rsyncDestPath)
 	err = os.MkdirAll(rsyncDestPath, os.ModePerm)
 	if err != nil {
-		belogs.Error("RsyncQuiet():MkdirAll:", rsyncDestPath, " err:", err)
+		belogs.Error("RsyncQuietWithConfig():MkdirAll:", rsyncDestPath, " err:", err)
 		return "", output, err
 	}
 
@@ -112,19 +121,19 @@ func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output 
 	//--timeout=SECONDS       set I/O timeout in seconds
 	//--no-motd               suppress daemon-mode MOTD (see manpage caveat)
 	//--contimeout=SECONDS    set daemon connection timeout in seconds
-	belogs.Debug("RsyncQuiet(): Command: rsync", "-Lirzts", "--del", "--timeout="+rsyncClientConfig.Timeout, "--contimeout="+rsyncClientConfig.ConTimeout,
+	belogs.Debug("RsyncQuietWithConfig(): Command: rsync", "-Lirzts", "--del", "--timeout="+rsyncClientConfig.Timeout, "--contimeout="+rsyncClientConfig.ConTimeout,
 		"--no-motd", "-4", rsyncUrl, rsyncDestPath)
 	cmd := exec.Command("rsync", "-Lrzts", "--del", "--timeout="+rsyncClientConfig.Timeout, "--contimeout="+rsyncClientConfig.ConTimeout,
 		"--no-motd", "-4", rsyncUrl, rsyncDestPath)
 	// if success, the len(output) will be zero
 	output, err = cmd.CombinedOutput()
 	if err != nil {
-		belogs.Error("RsyncQuiet(): exec.Command fail, rsyncUrl is :", rsyncUrl, "   output is ", string(output), " err is :", err)
+		belogs.Error("RsyncQuietWithConfig(): exec.Command fail, rsyncUrl is :", rsyncUrl, "   output is ", string(output), " err is :", err)
 		// some err detail in output
 		err = errors.New(string(output) + ", " + err.Error())
 		return "", output, err
 	}
-	belogs.Debug("RsyncQuiet(): rsyncDestPath:", rsyncDestPath, "  output:", string(output))
+	belogs.Debug("RsyncQuietWithConfig(): rsyncDestPath:", rsyncDestPath, "  output:", string(output))
 	return rsyncDestPath, output, nil
 }
 
@@ -512,24 +521,24 @@ func DiffFiles(filesFromDb, filesFromDisk map[string]RsyncFileHash) (addFiles,
 }
 
 func NewRsyncClientConfig() *RsyncClientConfig {
-	rsyncClientConfig := new(RsyncClientConfig)
-	rsyncClientConfig.Timeout = RSYNC_TIMEOUT_SEC
-	rsyncClientConfig.ConTimeout = RSYNC_CONTIMEOUT_SEC
-	return rsyncClientConfig
+	r := new(RsyncClientConfig)
+	r.Timeout = RSYNC_TIMEOUT_SEC
+	r.ConTimeout = RSYNC_CONTIMEOUT_SEC
+	return r
 }
 
 // seconds
 func SetTimeout(timeoutSec uint64) {
 	if timeoutSec > 0 {
-		rsyncClientConfig.Timeout = convert.ToString(timeoutSec)
+		globalRsyncClientConfig.Timeout = convert.ToString(timeoutSec)
 	}
 }
 func SetConTimeout(conTimeoutSec uint64) {
 	if conTimeoutSec > 0 {
-		rsyncClientConfig.ConTimeout = convert.ToString(conTimeoutSec)
+		globalRsyncClientConfig.ConTimeout = convert.ToString(conTimeoutSec)
 	}
 }
 func ResetAllTimeout() {
-	rsyncClientConfig.Timeout = RSYNC_TIMEOUT_SEC
-	rsyncClientConfig.ConTimeout = RSYNC_CONTIMEOUT_SEC
+	globalRsyncClientConfig.Timeout = RSYNC_TIMEOUT_SEC
+	globalRsyncClientConfig.ConTimeout = RSYNC_CONTIMEOUT_SEC
 }
