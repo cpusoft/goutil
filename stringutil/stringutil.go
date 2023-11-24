@@ -48,3 +48,15 @@ func GetValueFromJointStr(line, key, separator string) string {
 	}
 	return ""
 }
+
+// Ommitting too long string
+func OmitString(str string, end uint64) string {
+	len := uint64(len(str))
+	if len == 0 {
+		return ""
+	}
+	if end > len {
+		end = len
+	}
+	return str[:int(end)]
+}

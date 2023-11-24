@@ -15,6 +15,7 @@ import (
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/netutil"
 	"github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/stringutil"
 	"github.com/cpusoft/goutil/urlutil"
 	"github.com/cpusoft/goutil/xmlutil"
 )
@@ -60,7 +61,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
 			belogs.Error("getRrdpSnapshotImplWithConfig(): GetHttpsVerify snapshotUrl, is not StatusOK:", snapshotUrl,
-				"   resp.Status:", resp.Status, "    body:", body)
+				"   resp.Status:", resp.Status, "    body:", stringutil.OmitString(body, 100))
 			return snapshotModel, errors.New("http status code of " + snapshotUrl + " is " + resp.Status)
 		} else {
 			belogs.Debug("getRrdpSnapshotImplWithConfig():GetHttpsVerify snapshotUrl ok:", snapshotUrl,
@@ -99,14 +100,15 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 	// check if body is xml file
 	if !strings.Contains(body, `<snapshot`) {
 		belogs.Error("getRrdpSnapshotImplWithConfig(): body is not xml file:", snapshotUrl, "   resp:",
-			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
+			resp, "    len(body):", len(body), "       body:", stringutil.OmitString(body, 100), "  time(s):", time.Since(start), err)
 		return snapshotModel, errors.New("body of " + snapshotUrl + " is not xml")
 	}
 
 	// get snapshotModel
 	err = xmlutil.UnmarshalXml(body, &snapshotModel)
 	if err != nil {
-		belogs.Error("getRrdpSnapshotImplWithConfig(): UnmarshalXml fail:", snapshotUrl, "   body:", body, err)
+		belogs.Error("getRrdpSnapshotImplWithConfig(): UnmarshalXml fail:", snapshotUrl, "    len(body):", len(body),
+			"   body:", stringutil.OmitString(body, 100), err)
 		return snapshotModel, err
 	}
 	belogs.Debug("getRrdpSnapshotImplWithConfig(): len(snapshotModel.SnapshotPublishs):", len(snapshotModel.SnapshotPublishs))

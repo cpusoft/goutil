@@ -24,3 +24,19 @@ func TestGetValueFromJointStr(t *testing.T) {
 	v = GetValueFromJointStr(str, "c", "&")
 	fmt.Println(v)
 }
+
+func TestOmitString(t *testing.T) {
+	str := `0123456789a`
+	str1 := OmitString(str, 0)
+	fmt.Println(str1)
+	str1 = OmitString(str, 1)
+	fmt.Println(str1)
+	str1 = OmitString(str, 9)
+	fmt.Println(str1)
+	str1 = OmitString(str, 10)
+	fmt.Println(str1)
+	str1 = OmitString(str, 11)
+	fmt.Println(str1)
+	str1 = OmitString(str, 12)
+	fmt.Println(str1)
+}
