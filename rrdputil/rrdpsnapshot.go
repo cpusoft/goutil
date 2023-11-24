@@ -168,6 +168,7 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 		belogs.Error("SaveRrdpSnapshotToRrdpFiles(): len(snapshotModel.SnapshotPublishs)==0")
 		return nil, errors.New("snapshot's publishs is empty")
 	}
+	duplicateFilePathNames := make(map[string]string, 0)
 	for i := range snapshotModel.SnapshotPublishs {
 		uri := strings.Replace(snapshotModel.SnapshotPublishs[i].Uri, "../", "/", -1) //fix Path traversal
 		belogs.Debug("SaveRrdpSnapshotToRrdpFiles():snapshotModel.SnapshotPublishs[i].Uri:", snapshotModel.SnapshotPublishs[i].Uri,
@@ -188,6 +189,14 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 		if !fileutil.CheckFileNameMaxLength(file) {
 			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): CheckFileNameMaxLength fail,file:", file)
 			return nil, errors.New("snapshot file name is too long")
+		}
+
+		if _, ok := duplicateFilePathNames[filePathName]; ok {
+			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): duplicate file in snapshot, fail, filePathName:", filePathName,
+				"   snapshotModel:", snapshotModel.String())
+			continue
+		} else {
+			duplicateFilePathNames[filePathName] = filePathName
 		}
 
 		isExist, err := osutil.IsExists(dir)
