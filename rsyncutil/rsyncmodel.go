@@ -29,3 +29,10 @@ type RsyncClientConfig struct {
 	Timeout    string `json:"timeout"`
 	ConTimeout string `json:"conTimeout"`
 }
+
+func NewRsyncClientConfig(timeoutSec, conTimeoutSec string) *RsyncClientConfig {
+	r := new(RsyncClientConfig)
+	r.Timeout = timeoutSec       //RSYNC_TIMEOUT_SEC
+	r.ConTimeout = conTimeoutSec //RSYNC_CONTIMEOUT_SEC
+	return r
+}

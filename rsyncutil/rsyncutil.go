@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
@@ -20,7 +19,7 @@ import (
 
 // rsync type
 
-var globalRsyncClientConfig = NewRsyncClientConfig()
+var globalRsyncClientConfig = NewRsyncClientConfig(RSYNC_TIMEOUT_SEC, RSYNC_CONTIMEOUT_SEC)
 
 type RsyncRecord struct {
 	Id           uint64        `json:"id"`
@@ -518,27 +517,4 @@ func DiffFiles(filesFromDb, filesFromDisk map[string]RsyncFileHash) (addFiles,
 
 	return addFiles, delFiles, updateFiles, noChangeFiles, nil
 
-}
-
-func NewRsyncClientConfig() *RsyncClientConfig {
-	r := new(RsyncClientConfig)
-	r.Timeout = RSYNC_TIMEOUT_SEC
-	r.ConTimeout = RSYNC_CONTIMEOUT_SEC
-	return r
-}
-
-// seconds
-func SetTimeout(timeoutSec uint64) {
-	if timeoutSec > 0 {
-		globalRsyncClientConfig.Timeout = convert.ToString(timeoutSec)
-	}
-}
-func SetConTimeout(conTimeoutSec uint64) {
-	if conTimeoutSec > 0 {
-		globalRsyncClientConfig.ConTimeout = convert.ToString(conTimeoutSec)
-	}
-}
-func ResetAllTimeout() {
-	globalRsyncClientConfig.Timeout = RSYNC_TIMEOUT_SEC
-	globalRsyncClientConfig.ConTimeout = RSYNC_CONTIMEOUT_SEC
 }
