@@ -240,8 +240,8 @@ func CompressFillIpv6(oldIp string) (newIp string) {
 	return oldIp
 }
 
-//Bad way, still need to find a good way
-//19.99.91.0 --> []byte;     2001:DB8::-->[]byte
+// Bad way, still need to find a good way
+// 19.99.91.0 --> []byte;     2001:DB8::-->[]byte
 func IpToRtrFormatByte(ip string) []byte {
 	belogs.Debug("IpToRtrFormatByte():ip", ip)
 
@@ -327,7 +327,8 @@ func AddressToRtrFormatByte(address string) (ipHex []byte, ipType int, err error
 }
 
 // 192.168.0.0/24--> 192.168/24    192.168.1.0-->192.168.1
-//  2c0f:ea60::/32 --> 2c0f:ea60/32
+//
+//	2c0f:ea60::/32 --> 2c0f:ea60/32
 func TrimAddressPrefixZero(ip string, ipType int) (string, error) {
 	if ipType == Ipv4Type {
 		split := strings.Split(ip, "/")
@@ -568,7 +569,7 @@ func IsAddressPrefix(ip string) bool {
 
 	_, _, err = net.ParseCIDR(network)
 	if err != nil {
-		belogs.Error("IsAddressPrefix(): ParseCIDR err:", ip, err)
+		belogs.Error("IsAddressPrefix(): ParseCIDR err:", ip, "  ipType:", ipType, "   network:", network, err)
 		return false
 	}
 	//belogs.Debug("IsAddressPrefix(): subnet:", subnet)
