@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/stringutil"
 )
 
 func EncodeBase64(src []byte) string {
@@ -16,8 +17,7 @@ func DecodeBase64(src string) ([]byte, error) {
 }
 
 func TrimBase64(str string) string {
-	str = strings.Replace(str, "\r", "", -1)
-	str = strings.Replace(str, "\n", "", -1)
+	str = stringutil.TrimNewLine(str)
 	str = strings.Replace(str, " ", "", -1)
 	str = strings.Replace(str, "\t", "", -1)
 	str = strings.TrimSpace(str)
@@ -46,8 +46,7 @@ func DecodeCertBase64(oldBytes []byte) ([]byte, error) {
 	txt = strings.Replace(txt, "-----END CERTIFICATE-----", "", -1)
 	txt = strings.Replace(txt, "-", "", -1)
 	txt = strings.Replace(txt, " ", "", -1)
-	txt = strings.Replace(txt, "\r", "", -1)
-	txt = strings.Replace(txt, "\n", "", -1)
+	txt = stringutil.TrimNewLine(txt)
 	belogs.Debug("DecodeCertBase64(): txt after Replace: %s", txt)
 	newBytes, err := base64.StdEncoding.DecodeString(txt)
 	return newBytes, err

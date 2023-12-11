@@ -15,6 +15,7 @@ import (
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/netutil"
+	"github.com/cpusoft/goutil/stringutil"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -147,6 +148,7 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 		} else {
 			outputStr = string(output[:100])
 		}
+		outputStr = stringutil.TrimNewLine(outputStr)
 		belogs.Error("GetByCurlWithConfig(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
 			"  tmpFile:", tmpFile.Name(), "  timeout:", timeout, "  retryCount:", retryCount, "  ipType:", ipType,
 			"  len(output):", len(output), "  outputStr:", outputStr, "  time(s):", time.Since(start), "   err:", err)

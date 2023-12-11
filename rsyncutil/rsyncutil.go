@@ -13,6 +13,7 @@ import (
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/stringutil"
 	"github.com/cpusoft/goutil/transportutil"
 	"github.com/cpusoft/goutil/urlutil"
 )
@@ -314,8 +315,7 @@ func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string
 		if len(result) <= RSYNC_LOG_PREFIX {
 			continue
 		}
-		result = strings.Replace(result, "\n", "", -1)
-		result = strings.Replace(result, "\r", "", -1)
+		result = stringutil.TrimNewLine(result)
 		first := result[0]
 		second := result[1]
 		rsyncResult := RsyncResult{}

@@ -16,11 +16,15 @@ func ContainInSlice(slice []string, one string) bool {
 	return false
 }
 
-func TrimSpaceAneNewLine(str string) (s string) {
-	s = strings.TrimSpace(str)
+func TrimNewLine(str string) (s string) {
 	s = strings.Replace(s, "\r", "", -1)
 	s = strings.Replace(s, "\n", "", -1)
 	return s
+}
+
+func TrimSpaceAndNewLine(str string) (s string) {
+	s = strings.TrimSpace(str)
+	return TrimNewLine(s)
 }
 
 func TrimeSuffixAll(str, trim string) (s string) {

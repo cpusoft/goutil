@@ -203,7 +203,7 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 	for i := range deltaModel.DeltaPublishs {
 		uri := strings.Replace(deltaModel.DeltaPublishs[i].Uri, "../", "/", -1) //fix Path traversal
 		deltaModel.DeltaPublishs[i].Uri = uri
-		deltaModel.DeltaPublishs[i].Base64 = stringutil.TrimSpaceAneNewLine(deltaModel.DeltaPublishs[i].Base64)
+		deltaModel.DeltaPublishs[i].Base64 = stringutil.TrimSpaceAndNewLine(deltaModel.DeltaPublishs[i].Base64)
 	}
 	for i := range deltaModel.DeltaWithdraws {
 		uri := strings.Replace(deltaModel.DeltaWithdraws[i].Uri, "../", "/", -1) //fix Path traversal
