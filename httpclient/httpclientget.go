@@ -94,6 +94,7 @@ func GetByCurl(url string) (result string, err error) {
 	return GetByCurlWithConfig(url, nil)
 }
 func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result string, err error) {
+	belogs.Debug("GetByCurlWithConfig(): url:", url, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url = strings.TrimSpace(url)
 	if len(url) == 0 {
 		return "", errors.New("url is emtpy")

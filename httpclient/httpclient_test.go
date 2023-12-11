@@ -5,6 +5,14 @@ import (
 	"testing"
 )
 
+func TestGetHttpsVerifyWithConfig(t *testing.T) {
+	url := `https://rrdp.ripe.net/notification.xml`
+	resp, body, err := GetHttpsVerifyWithConfig(url, true, NewHttpClientConfigWithParam(5, 3, "all"))
+	fmt.Println("res:", resp)
+	fmt.Println("body:", body)
+	fmt.Println("err:", err)
+}
+
 func TestPostHttp(t *testing.T) {
 	urlStr := `https://202.173.14.105:8070/parsevalidate/parsefilesimple`
 	postJson := ``
