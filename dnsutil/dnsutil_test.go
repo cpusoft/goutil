@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+func TestDomainTrimFirstLabel(t *testing.T) {
+	s := `www.a.b.cn`
+	s = DomainTrimFirstLabel(s)
+	fmt.Println(s)
+
+	s = `b.cn`
+	s = DomainTrimFirstLabel(s)
+	fmt.Println(s)
+}
+
 func TestIsDomainCompressionPointer(t *testing.T) {
 	oneLen := []byte{0xc0, 0x11}
 	fmt.Printf("%0x\r\n", oneLen)

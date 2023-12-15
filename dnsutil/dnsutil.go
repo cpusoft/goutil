@@ -9,6 +9,18 @@ import (
 	"github.com/cpusoft/goutil/convert"
 )
 
+// host to domain:
+// aaa.test.cn --> test.cn : rm first label
+// test.cn --> test.cn: no change
+func DomainTrimFirstLabel(domain string) string {
+	splits := strings.Split(domain, ".")
+	if len(splits) > 2 {
+		return strings.TrimPrefix(domain, splits[0]+".")
+	} else {
+		return domain
+	}
+}
+
 //Name: dwn.roo.bo --> 03 64 77 6e 03 72 6f 6f 02 62 6f 00
 func DomainStrToBytes(domainStr string) (domainBytes []byte, err error) {
 	belogs.Debug("DomainStrToBytes(): domainStr:", domainStr)
