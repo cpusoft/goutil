@@ -21,6 +21,17 @@ func DomainTrimFirstLabel(domain string) string {
 	}
 }
 
+// aaa.test.cn --> aaa : obtain first label
+// test.cn --> test.cn: ""
+func DomainObtainFirstLabel(domain string) string {
+	splits := strings.Split(domain, ".")
+	if len(splits) > 2 {
+		return splits[0]
+	} else {
+		return ""
+	}
+}
+
 //Name: dwn.roo.bo --> 03 64 77 6e 03 72 6f 6f 02 62 6f 00
 func DomainStrToBytes(domainStr string) (domainBytes []byte, err error) {
 	belogs.Debug("DomainStrToBytes(): domainStr:", domainStr)
