@@ -95,6 +95,7 @@ func DefaultBool(key string, defaultVal bool) bool {
 
 //destpath=${rpstir2::datadir}/rsyncrepo   --> replace ${rpstir2::datadir}
 //-->/root/rpki/data/rsyncrepo --> get /root/rpki/data/rsyncrepo
+// Deprecated
 func VariableString(key string) string {
 	if len(key) == 0 || len(String(key)) == 0 {
 		return ""
