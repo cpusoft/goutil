@@ -11,4 +11,8 @@ func TestWriteBase64ToFile(t *testing.T) {
 	f := "G:\\1.asa"
 	err := WriteBase64ToFile(f, s)
 	fmt.Println(err)
+
+	f = "G:\\2.asa"
+	err = CreateAndWriteBase64ToFile(f, s)
+	fmt.Println(err)
 }

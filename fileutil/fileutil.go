@@ -3,7 +3,6 @@ package fileutil
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -82,7 +81,8 @@ func WriteBytesToFile(file string, bytes []byte) (err error) {
 func WiteBytesAppendFile(file string, bytes []byte) (err error) {
 	fd, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		fmt.Println("文件打开失败", err)
+		belogs.Error("WiteBytesAppendFile(): OpenFile fail, file:", file, err)
+		return err
 	}
 	defer fd.Close()
 	_, err = fd.Write(bytes)
@@ -112,12 +112,14 @@ func CheckPathNameMaxLength(pathName string) bool {
 }
 
 func WriteBase64ToFile(filePathName, base64 string) (err error) {
+	belogs.Debug("WriteBase64ToFile(): filePathName:", filePathName, " len(base64):", len(base64))
 	bytes, err := base64util.DecodeBase64(strings.TrimSpace(base64))
 	if err != nil {
 		belogs.Error("WriteBase64ToFile(): DecodeBase64 fail, base64:", base64, err)
 		return err
 	}
 
+	belogs.Debug("WriteBase64ToFile(): DecodeBase64, filePathName:", filePathName, " len(bytes):", len(bytes))
 	err = WriteBytesToFile(filePathName, bytes)
 	if err != nil {
 		belogs.Error("WriteBase64ToFile(): WriteBytesToFile fail:", filePathName, "  len(bytes):", len(bytes), err)
@@ -129,7 +131,7 @@ func WriteBase64ToFile(filePathName, base64 string) (err error) {
 
 func CreateAndWriteBase64ToFile(filePathName, base64 string) (err error) {
 	filePath, _ := osutil.Split(filePathName)
-	belogs.Debug("CreateAndWriteBase64ToFile(): Split filePathName:", filePathName)
+	belogs.Debug("CreateAndWriteBase64ToFile(): Split filePathName:", filePathName, " len(base64):", len(base64))
 	err = os.MkdirAll(filePath, os.ModePerm)
 	if err != nil {
 		belogs.Error("CreateAndWriteBase64ToFile(): MkdirAll fail, filePathName:", filePathName, err)
