@@ -147,16 +147,16 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			belogs.Error("getRrdpDeltaImplWithConfig(): GetHttpsVerify deltaUrl, is not StatusOK:", deltaUrl,
+			belogs.Error("getRrdpDeltaImplWithConfig(): GetHttpsVerifyWithConfig deltaUrl, is not StatusOK:", deltaUrl,
 				"   resp.Status:", resp.Status, "    body:", body)
 			return deltaModel, errors.New("http status code of " + deltaUrl + " is " + resp.Status)
 		} else {
-			belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsVerify deltaUrl ok:", deltaUrl, "   resp.Status:", resp.Status,
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsVerifyWithConfig deltaUrl ok:", deltaUrl, "   resp.Status:", resp.Status,
 				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 				"   len(body):", len(body), "  time(s):", time.Since(start))
 		}
 	} else {
-		belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsVerify deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
+		belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsVerifyWithConfig deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 			"   resp:", resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl
@@ -185,6 +185,7 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 	}
 
 	// check if body is xml file
+	belogs.Debug("getRrdpDeltaImplWithConfig(): get body, deltaUrl:",deltaUrl," len(body):", len(body))
 	if !strings.Contains(body, `<delta`) {
 		belogs.Error("getRrdpDeltaImplWithConfig(): body is not xml file:", deltaUrl, "   resp:",
 			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)

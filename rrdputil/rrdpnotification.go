@@ -112,6 +112,7 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 	}
 
 	// unmarshal xml
+	belogs.Debug("getRrdpNotificationImplWithConfig(): get body, notificationUrl:", notificationUrl, " len(body):", len(body))
 	err = xmlutil.UnmarshalXml(body, &notificationModel)
 	if err != nil {
 		belogs.Error("getRrdpNotificationImplWithConfig(): UnmarshalXml fail: ", notificationUrl, "        body:", body, err)
@@ -142,6 +143,7 @@ func RrdpNotificationTestConnectWithConfig(notificationUrl string, httpClientCon
 		"  time(s):", time.Since(start))
 
 	// test is legal
+	belogs.Debug("RrdpNotificationTestConnectWithConfig(): get body, notificationUrl:", notificationUrl, " len(body):", len(body))
 	var notificationModel NotificationModel
 	err = xmlutil.UnmarshalXml(body, &notificationModel)
 	if err != nil {

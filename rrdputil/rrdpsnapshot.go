@@ -105,6 +105,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 	}
 
 	// get snapshotModel
+	belogs.Debug("getRrdpSnapshotImplWithConfig(): get body, snapshotUrl:", snapshotUrl, " len(body):", len(body))
 	err = xmlutil.UnmarshalXml(body, &snapshotModel)
 	if err != nil {
 		belogs.Error("getRrdpSnapshotImplWithConfig(): UnmarshalXml fail:", snapshotUrl, "    len(body):", len(body),

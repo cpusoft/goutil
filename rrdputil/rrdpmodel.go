@@ -125,6 +125,7 @@ type DeltaPublish struct {
 	Uri     string   `xml:"uri,attr" json:"uri"`
 	Hash    string   `xml:"hash,attr" json:"-"`
 	Base64  string   `xml:",chardata" json:"-"`
+	//Base64 string `xml:",innerxml" json:"base64"`
 }
 type DeltaWithdraw struct {
 	XMLName xml.Name `xml:"withdraw" json:"withdraw"`

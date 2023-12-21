@@ -17,13 +17,19 @@ func ContainInSlice(slice []string, one string) bool {
 }
 
 func TrimNewLine(str string) (s string) {
-	s = strings.Replace(s, "\r", "", -1)
+	s = strings.Replace(str, "\r", "", -1)
 	s = strings.Replace(s, "\n", "", -1)
 	return s
 }
 
+func TrimSpace(str string) (s string) {
+	s = strings.Replace(str, "\t", "", -1)
+	s = strings.Replace(s, " ", "", -1)
+	return s
+}
+
 func TrimSpaceAndNewLine(str string) (s string) {
-	s = strings.TrimSpace(str)
+	s = TrimSpace(str)
 	return TrimNewLine(s)
 }
 
