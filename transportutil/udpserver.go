@@ -17,6 +17,8 @@ type UdpServer struct {
 	state uint64
 	// udp
 	connType string
+	// udp receive bytes len
+	receiveOnePacketLength int
 
 	// udp
 	udpConnsMutext sync.RWMutex
@@ -28,14 +30,15 @@ type UdpServer struct {
 	businessToConnMsg chan BusinessToConnMsg
 }
 
-func NewUdpServer(udpServerProcess UdpServerProcess, businessToConnMsg chan BusinessToConnMsg) (us *UdpServer) {
+func NewUdpServer(udpServerProcess UdpServerProcess, businessToConnMsg chan BusinessToConnMsg, receiveOnePacketLength int) (us *UdpServer) {
 
-	belogs.Debug("NewUdpServer():udpServerProcess:", udpServerProcess)
+	belogs.Debug("NewUdpServer():udpServerProcess:", udpServerProcess, "  receiveOnePacketLength:", receiveOnePacketLength)
 	us = &UdpServer{}
 	us.state = SERVER_STATE_INIT
 	us.connType = "udp"
 	us.udpServerProcess = udpServerProcess
 	us.businessToConnMsg = businessToConnMsg
+	us.receiveOnePacketLength = receiveOnePacketLength
 	belogs.Debug("NewUdpServer():us:", us)
 	return us
 }
@@ -69,15 +72,16 @@ func (us *UdpServer) StartUdpServer(port string) (err error) {
 
 func (us *UdpServer) receiveAndSend() {
 
-	belogs.Debug("UdpServer.receiveAndSend(): will read from client")
+	belogs.Debug("UdpServer.receiveAndSend(): wait for ReadFromClient, receiveOnePacketLength:", us.receiveOnePacketLength)
 	us.state = SERVER_STATE_RUNNING
 	for {
-		buffer := make([]byte, 1024)
+		buffer := make([]byte, us.receiveOnePacketLength)
 		len, clientUdpAddr, err := us.udpConn.ReadFromClient(buffer)
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
-				belogs.Info("UdpServer.receiveAndSend(): Read io.EOF, client close,  clientUdpAddr:", clientUdpAddr, err)
+				belogs.Info("UdpServer.receiveAndSend(): Read io.EOF, client close, receiveOnePacketLength:", us.receiveOnePacketLength,
+					"  clientUdpAddr:", clientUdpAddr, err)
 				return
 			}
 			belogs.Error("UdpServer.receiveAndSend(): Read remote fail: ", err)

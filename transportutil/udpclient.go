@@ -15,6 +15,8 @@ type UdpClient struct {
 	// both tcp and tls
 	connType         string
 	udpClientProcess UdpClientProcess
+	// udp receive bytes len
+	receiveOnePacketLength int
 
 	// for close
 	udpConn *UdpConn
@@ -27,14 +29,15 @@ type UdpClient struct {
 }
 
 // server: 0.0.0.0:port
-func NewUdpClient(udpClientProcess UdpClientProcess, businessToConnMsgCh chan BusinessToConnMsg) (uc *UdpClient) {
+func NewUdpClient(udpClientProcess UdpClientProcess, businessToConnMsgCh chan BusinessToConnMsg, receiveOnePacketLength int) (uc *UdpClient) {
 
-	belogs.Debug("NewUdpClient():udpClientProcess:", udpClientProcess)
+	belogs.Debug("NewUdpClient():udpClientProcess:", udpClientProcess, "  receiveOnePacketLength:", receiveOnePacketLength)
 	uc = &UdpClient{}
 	uc.connType = "udp"
 	uc.udpClientProcess = udpClientProcess
 	uc.businessToConnMsgCh = businessToConnMsgCh
 	uc.connToBusinessMsgCh = make(chan ConnToBusinessMsg)
+	uc.receiveOnePacketLength = receiveOnePacketLength
 	belogs.Info("NewUdpClient():tc:", uc)
 	return uc
 }
@@ -62,17 +65,20 @@ func (uc *UdpClient) StartUdpClient(server string) (err error) {
 }
 
 func (uc *UdpClient) onReceive() (err error) {
+	belogs.Debug("UdpClient.onReceive(): wait for ReadFromServer, receiveOnePacketLength:", uc.receiveOnePacketLength)
 	for {
 		start := time.Now()
-		buffer := make([]byte, 2048)
+		buffer := make([]byte, uc.receiveOnePacketLength)
 		n, err := uc.udpConn.ReadFromServer(buffer)
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just close
-				belogs.Debug("UdpClient.onReceive(): io.EOF, client close, udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, err)
+				belogs.Debug("UdpClient.onReceive(): io.EOF, client close, receiveOnePacketLength:", uc.receiveOnePacketLength,
+					"   udpConn.serverUdpAddr:", uc.udpConn.serverUdpAddr, err)
 				return nil
 			}
-			belogs.Error("UdpClient.onReceive(): Read fail or connect is closing, udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, err)
+			belogs.Error("UdpClient.onReceive(): Read fail or connect is closing, receiveOnePacketLength:", uc.receiveOnePacketLength,
+				"  udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, err)
 			return err
 		}
 

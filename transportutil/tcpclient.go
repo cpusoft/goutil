@@ -19,6 +19,8 @@ type TcpClient struct {
 	// both tcp and tls
 	connType         string
 	tcpClientProcess TcpClientProcess
+	// tcp/tls receive bytes len
+	receiveOnePacketLength int
 
 	// for tls
 	tlsRootCrtFileName    string
@@ -37,28 +39,32 @@ type TcpClient struct {
 
 // server: 0.0.0.0:port
 func NewTcpClient(tcpClientProcess TcpClientProcess,
-	businessToConnMsgCh chan BusinessToConnMsg) (tc *TcpClient) {
+	businessToConnMsgCh chan BusinessToConnMsg, receiveOnePacketLength int) (tc *TcpClient) {
 
-	belogs.Debug("NewTcpClient():tcpClientProcess:", tcpClientProcess)
+	belogs.Debug("NewTcpClient():tcpClientProcess:", tcpClientProcess, "  receiveOnePacketLength:", receiveOnePacketLength)
 	tc = &TcpClient{}
 	tc.connType = "tcp"
 	tc.tcpClientProcess = tcpClientProcess
 	tc.businessToConnMsgCh = businessToConnMsgCh
 	tc.connToBusinessMsgCh = make(chan ConnToBusinessMsg)
+	tc.receiveOnePacketLength = receiveOnePacketLength
 	belogs.Info("NewTcpClient():tc:", tc, "  tc.connToBusinessMsgCh:", tc.connToBusinessMsgCh)
 	return tc
 }
 
 // server: 0.0.0.0:port
 func NewTlsClient(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string,
-	tcpClientProcess TcpClientProcess, businessToConnMsgCh chan BusinessToConnMsg) (tc *TcpClient, err error) {
+	tcpClientProcess TcpClientProcess, businessToConnMsgCh chan BusinessToConnMsg, receiveOnePacketLength int) (tc *TcpClient, err error) {
 
-	belogs.Debug("NewTlsClient():tcpClientProcess:", &tcpClientProcess)
+	belogs.Debug("NewTlsClient(): tlsRootCrtFileName:", tlsRootCrtFileName, "  tlsPublicCrtFileName:", tlsPublicCrtFileName,
+		"   tlsPrivateKeyFileName:", tlsPrivateKeyFileName, "  tcpClientProcess:", &tcpClientProcess,
+		"   receiveOnePacketLength:", receiveOnePacketLength)
 	tc = &TcpClient{}
 	tc.connType = "tls"
 	tc.tcpClientProcess = tcpClientProcess
 	tc.businessToConnMsgCh = businessToConnMsgCh
 	tc.connToBusinessMsgCh = make(chan ConnToBusinessMsg)
+	tc.receiveOnePacketLength = receiveOnePacketLength
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
 	if !rootExists {
@@ -175,13 +181,13 @@ func (tc *TcpClient) StartTlsClient(server string) (err error) {
 }
 
 func (tc *TcpClient) onReceive() (err error) {
-	belogs.Debug("TcpClient.onReceive(): wait for onReceive, tcpConn:", tc.tcpConn.RemoteAddr().String())
+	belogs.Debug("TcpClient.onReceive(): wait for onReceive, receiveOnePacketLength:", tc.receiveOnePacketLength, " tcpConn:", tc.tcpConn.RemoteAddr().String())
 	var leftData []byte
 	// when end onReceive, will onClose
 	defer tc.onClose()
 	for {
 		start := time.Now()
-		buffer := make([]byte, 2048)
+		buffer := make([]byte, tc.receiveOnePacketLength)
 
 		n, err := tc.tcpConn.Read(buffer)
 		if err != nil {
@@ -209,7 +215,7 @@ func (tc *TcpClient) onReceive() (err error) {
 		}
 
 		// reset buffer
-		buffer = make([]byte, 2048)
+		buffer = make([]byte, tc.receiveOnePacketLength)
 		belogs.Debug("TcpClient.onReceive(): will reset buffer and wait for Read from tcpConn: ", tc.tcpConn.RemoteAddr().String(),
 			"  time(s):", time.Since(start))
 		go func() {
@@ -256,16 +262,17 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 		start := time.Now()
 		sendData := businessToConnMsg.SendData
 		belogs.Debug("TcpClient.SendAndReceiveMsg(): send to server:", tc.tcpConn.RemoteAddr().String(),
-			"   sendData:", convert.PrintBytesOneLine(sendData))
-
+			"   len(sendData):", len(sendData), "   sendData:", convert.PrintBytesOneLine(sendData))
+		belogs.Info("TcpClient.SendAndReceiveMsg(): send to server:", tc.tcpConn.RemoteAddr().String(),
+			"   len(sendData):", len(sendData))
 		n, err := tc.tcpConn.Write(sendData)
 		if err != nil {
-			belogs.Error("TcpClient.SendAndReceiveMsg(): Write fail, will close  tcpConn:", tc.tcpConn.RemoteAddr().String(), err)
+			belogs.Error("TcpClient.SendAndReceiveMsg(): Write fail, will close tcpConn:", tc.tcpConn.RemoteAddr().String(), err)
 			tc.onClose()
 			return nil, err
 		}
 		belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
-			"  len(sendData):", len(sendData), "  write n:", n, "  and wait for receive connToBusinessMsg",
+			"  len(sendData):", len(sendData), "  write n:", n, ",  and wait for receive connToBusinessMsg",
 			"  time(s):", time.Since(start))
 		if !businessToConnMsg.NeedClientWaitForServerResponse {
 			belogs.Debug("TcpClient.SendAndReceiveMsg(): isnot NeedClientWaitForServerResponse, just return, businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))

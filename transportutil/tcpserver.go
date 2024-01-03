@@ -22,6 +22,8 @@ type TcpServer struct {
 	state uint64
 	// tcp/tls/udp
 	connType string
+	// tcp/tls receive bytes len
+	receiveOnePacketLength int
 
 	// tls/tls/udp
 	tcpConnsMutex sync.RWMutex
@@ -45,9 +47,9 @@ type TcpServer struct {
 	businessToConnMsg chan BusinessToConnMsg
 }
 
-func NewTcpServer(tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg) (ts *TcpServer) {
+func NewTcpServer(tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg, receiveOnePacketLength int) (ts *TcpServer) {
 
-	belogs.Debug("NewTcpServer():tcpServerProcess:", tcpServerProcess)
+	belogs.Debug("NewTcpServer():tcpServerProcess:", tcpServerProcess, "  receiveOnePacketLength:", receiveOnePacketLength)
 	ts = &TcpServer{}
 	ts.state = SERVER_STATE_INIT
 	ts.connType = "tcp"
@@ -55,15 +57,16 @@ func NewTcpServer(tcpServerProcess TcpServerProcess, businessToConnMsg chan Busi
 	ts.tcpServerProcess = tcpServerProcess
 	ts.closeGraceful = make(chan struct{})
 	ts.businessToConnMsg = businessToConnMsg
+	ts.receiveOnePacketLength = receiveOnePacketLength
 	belogs.Debug("NewTcpServer():ts:", ts)
 	return ts
 }
 func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string, tlsVerifyClient bool,
-	tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg) (ts *TcpServer, err error) {
+	tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg, receiveOnePacketLength int) (ts *TcpServer, err error) {
 
 	belogs.Debug("NewTcpServer():tlsRootCrtFileName:", tlsRootCrtFileName, "  tlsPublicCrtFileName:", tlsPublicCrtFileName,
 		"   tlsPrivateKeyFileName:", tlsPrivateKeyFileName, "   tlsVerifyClient:", tlsVerifyClient,
-		"   tcpServerProcess:", tcpServerProcess)
+		"   tcpServerProcess:", tcpServerProcess, "   receiveOnePacketLength:", receiveOnePacketLength)
 	ts = &TcpServer{}
 	ts.state = SERVER_STATE_INIT
 	ts.connType = "tls"
@@ -71,6 +74,7 @@ func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	ts.closeGraceful = make(chan struct{})
 	ts.businessToConnMsg = businessToConnMsg
 	ts.tcpServerProcess = tcpServerProcess
+	ts.receiveOnePacketLength = receiveOnePacketLength
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
 	if !rootExists {
@@ -236,24 +240,26 @@ func (ts *TcpServer) receiveAndSend(tcpConn *TcpConn) {
 
 	var leftData []byte
 	// one packet
-	buffer := make([]byte, 2048)
-	belogs.Debug("TcpServer.receiveAndSend(): recive from tcpConn: ", tcpConn.RemoteAddr().String())
+	buffer := make([]byte, ts.receiveOnePacketLength)
+	belogs.Debug("TcpServer.receiveAndSend(): recive from tcpConn: ", tcpConn.RemoteAddr().String(),
+		"   receiveOnePacketLength:", ts.receiveOnePacketLength)
 
 	// wait for new packet to read
 	for {
 		start := time.Now()
 		n, err := tcpConn.Read(buffer)
-		belogs.Debug("TcpServer.receiveAndSend():server read: Read from : ", tcpConn.RemoteAddr().String(), "  read n:", n)
+		belogs.Debug("TcpServer.receiveAndSend():server read: Read from:", tcpConn.RemoteAddr().String(),
+			"   receiveOnePacketLength:", ts.receiveOnePacketLength, "  read n:", n)
 		//	if n == 0 {
 		//		continue
 		//	}
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
-				belogs.Info("TcpServer.receiveAndSend(): Read io.EOF, client close: ", tcpConn.RemoteAddr().String(), err)
+				belogs.Info("TcpServer.receiveAndSend(): Read io.EOF, client close, tcpConn:", tcpConn.RemoteAddr().String(), err)
 				return
 			}
-			belogs.Error("TcpServer.receiveAndSend(): Read fail, err ", tcpConn.RemoteAddr().String(), err)
+			belogs.Error("TcpServer.receiveAndSend(): Read fail, receiveOnePacketLength:", ts.receiveOnePacketLength, "  tcpConn:", tcpConn.RemoteAddr().String(), err)
 			return
 		}
 
