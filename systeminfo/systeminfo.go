@@ -3,6 +3,7 @@ package systeminfo
 import (
 	"crypto/sha256"
 	"errors"
+	"runtime"
 
 	"github.com/cpusoft/goutil/base64util"
 	"github.com/cpusoft/goutil/belogs"
@@ -11,7 +12,9 @@ import (
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/shirou/gopsutil/v3/net"
 )
 
 type SystemInfoUniqueId struct {
@@ -50,6 +53,21 @@ func GetHostInfo() (*host.InfoStat, error) {
 	}
 	return hostInfo, nil
 }
+func GetProcesLoad() (*load.MiscStat, *load.AvgStat, error) {
+	misStat, err := load.Misc()
+	if err != nil {
+		belogs.Error("GetProcesLoad(): Misc fail: ", err)
+		// no return err
+	}
+
+	avgStat, err := load.Avg()
+	if err != nil {
+		belogs.Error("GetProcesLoad(): Avg fail: ", err)
+		// no return err
+	}
+
+	return misStat, avgStat, nil
+}
 
 func GetDiskPartitions() ([]disk.PartitionStat, error) {
 	parts, err := disk.Partitions(false)
@@ -62,6 +80,18 @@ func GetDiskPartitions() ([]disk.PartitionStat, error) {
 	}
 	return parts, nil
 }
+func GetDiskUsage() (*disk.UsageStat, error) {
+	path := "/"
+	if runtime.GOOS == "windows" {
+		path = "C:"
+	}
+	u, err := disk.Usage(path)
+	if err != nil {
+		belogs.Error("GetDiskUsage(): Usage fail: ", err)
+		return nil, err
+	}
+	return u, nil
+}
 
 func GetCpusInfo() ([]cpu.InfoStat, error) {
 	cpus, err := cpu.Info()
@@ -73,6 +103,29 @@ func GetCpusInfo() ([]cpu.InfoStat, error) {
 		return nil, errors.New("cpu is empty")
 	}
 	return cpus, nil
+}
+
+func GetNetIoCounter() (*net.IOCountersStat, error) {
+	ioCounters, err := net.IOCounters(false)
+	if err != nil {
+		belogs.Error("GetNetIoCounter(): IOCounters fail: ", err)
+		return nil, err
+	}
+	if len(ioCounters) != 1 {
+		belogs.Error("GetNetIoCounter(): len(ioCounters) is not 1")
+		return nil, errors.New("ioCounters is not summary")
+	}
+	v := ioCounters[0]
+	return &v, nil
+}
+func GetNetInterfaces() (net.InterfaceStatList, error) {
+	ifs, err := net.Interfaces()
+	if err != nil {
+		belogs.Error("GetNetInterfaces(): Interfaces fail: ", err)
+		return nil, err
+	}
+	return ifs, nil
+
 }
 
 func GetSystemInfoUniqueId() (systemInfoUniqueId SystemInfoUniqueId, err error) {
