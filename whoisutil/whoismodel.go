@@ -29,14 +29,17 @@ func (c *WhoisConfig) getParamsWithQuery(query string) []string {
 }
 
 type WhoisResult struct {
+	WhoisOneResults []*WhoisOneResult `json:"whoisOneResults"`
+}
+
+type WhoisOneResult struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
-func NewWhoisResult(line string) *WhoisResult {
-	belogs.Debug("NewWhoisResult(): line:", line)
+func newWhoisResult(line string) *WhoisOneResult {
 	tmp := strings.TrimSpace(line)
-
+	belogs.Debug("newWhoisResult(): tmp:", tmp, "  len(tmp):", len(tmp), "  len(line):", len(line))
 	if len(tmp) == 0 ||
 		!strings.Contains(tmp, ":") ||
 		strings.HasPrefix(tmp, ">>>") ||
@@ -53,10 +56,10 @@ func NewWhoisResult(line string) *WhoisResult {
 	if len(split) > 1 {
 		value = strings.TrimSpace(split[1])
 	}
-	c := &WhoisResult{
+	c := &WhoisOneResult{
 		Key:   key,
 		Value: value,
 	}
-	belogs.Debug("GetWhoisResult(): line:", line, "   whoisResult:", jsonutil.MarshalJson(c))
+	belogs.Debug("GetWhoisResult(): line, tmp:", tmp, "   whoisResult:", jsonutil.MarshalJson(c))
 	return c
 }

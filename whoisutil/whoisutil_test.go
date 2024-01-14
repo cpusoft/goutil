@@ -22,5 +22,7 @@ func TestGetWhoisResult(t *testing.T) {
 	q = "AS45090"
 	r, e = GetWhoisResultWithConfig(q, whoisConfig)
 	fmt.Println(jsonutil.MarshalJson(r), e)
+	v := GetValueInWhoisResult(r, "country")
+	fmt.Println("country:", v)
 
 }
