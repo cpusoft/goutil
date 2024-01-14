@@ -16,8 +16,11 @@ func TestGetWhoisResult(t *testing.T) {
 	r, e = GetWhoisResult(q)
 	fmt.Println(jsonutil.MarshalJson(r), e)
 
+	whoisConfig := &WhoisConfig{
+		Host: "whois.apnic.net",
+	}
 	q = "AS45090"
-	r, e = GetWhoisResult(q)
+	r, e = GetWhoisResultWithConfig(q, whoisConfig)
 	fmt.Println(jsonutil.MarshalJson(r), e)
 
 }

@@ -5,13 +5,22 @@ import (
 	"strings"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
 )
 
-func GetWhoisResult(q string) (results []string, err error) {
-	belogs.Debug("GetWhoisResult(): cmd:  whois ", q)
+func GetWhoisResult(q string) (whoisResults []*WhoisResult, err error) {
+	return GetWhoisResultWithConfig(q, nil)
+}
+func GetWhoisResultWithConfig(q string, whoisConfig *WhoisConfig) (whoisResults []*WhoisResult, err error) {
+	belogs.Debug("GetWhoisResult(): cmd:  whois ", q, "  whoisConfig:", jsonutil.MarshalJson(whoisConfig))
 
-	cmd := exec.Command("whois", q)
+	var cmd *exec.Cmd
+	if whoisConfig == nil {
+		cmd = exec.Command("whois", q)
+	} else {
+		cmd = exec.Command("whois", whoisConfig.getParamsWithQuery(q)...)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetWhoisResult(): exec.Command: q:", q, "   err: ", err, "   output: "+string(output))
@@ -19,29 +28,15 @@ func GetWhoisResult(q string) (results []string, err error) {
 	}
 	outputStr := string(output)
 	tmps := strings.Split(outputStr, osutil.GetNewLineSep())
-	results = make([]string, 0, len(tmps))
+	whoisResults = make([]*WhoisResult, 0, len(tmps))
 	for i := range tmps {
-		tmp := strings.TrimSpace(tmps[i])
-		// >>> Last update of whois database: 2022-11-24T12:49:15Z <<<
-		// For more information on Whois status codes, please visit https://icann.org/epp
-		if strings.HasPrefix(tmp, ">>>") {
-			break
-		}
-		if len(tmp) == 0 || strings.HasPrefix(tmp, "#") ||
-			strings.HasPrefix(tmp, "%") || strings.HasPrefix(tmp, "No match found for") {
+		whoisResult := NewWhoisResult(tmps[i])
+		if whoisResults == nil {
 			continue
 		}
-
-		split := strings.SplitN(tmp, ":", 2)
-		key := strings.TrimSpace(split[0])
-		var value string
-		if len(split) > 1 {
-			value = strings.TrimSpace(split[1])
-		}
-		line := key + ":" + value
-		results = append(results, line)
-		belogs.Debug("GetWhoisResult(): line:", line)
+		belogs.Debug("GetWhoisResult(): line:", tmps[i], "  whoisResult:", jsonutil.MarshalJson(whoisResult))
+		whoisResults = append(whoisResults, whoisResult)
 	}
-	belogs.Debug("GetWhoisResult(): len(results):", len(results))
-	return results, nil
+	belogs.Debug("GetWhoisResult(): len(whoisResults):", len(whoisResults))
+	return whoisResults, nil
 }
