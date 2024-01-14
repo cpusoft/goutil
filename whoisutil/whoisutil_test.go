@@ -15,4 +15,9 @@ func TestGetWhoisResult(t *testing.T) {
 	q = "8.8.8.8"
 	r, e = GetWhoisResult(q)
 	fmt.Println(jsonutil.MarshalJson(r), e)
+
+	q = "AS45090"
+	r, e = GetWhoisResult(q)
+	fmt.Println(jsonutil.MarshalJson(r), e)
+
 }
