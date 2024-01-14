@@ -44,13 +44,22 @@ func GetWhoisResultWithConfig(query string, whoisConfig *WhoisConfig) (whoisResu
 	return whoisResult, nil
 }
 
-func GetValueInWhoisResult(whoisResult *WhoisResult, key string) string {
+// afterKey: may be "", Value is should afterKey to get by Key
+func GetValueInWhoisResult(whoisResult *WhoisResult, key string, afterKey string) string {
 	if whoisResult == nil || len(key) == 0 {
 		return ""
 	}
 	k := strings.TrimSpace(key)
+	aK := strings.TrimSpace(afterKey)
+	var haveAfter bool
+	if len(aK) == 0 {
+		haveAfter = true
+	}
 	for i := range whoisResult.WhoisOneResults {
-		if strings.EqualFold(k, whoisResult.WhoisOneResults[i].Key) {
+		if strings.EqualFold(aK, whoisResult.WhoisOneResults[i].Key) {
+			haveAfter = true
+		}
+		if haveAfter && strings.EqualFold(k, whoisResult.WhoisOneResults[i].Key) {
 			return whoisResult.WhoisOneResults[i].Value
 		}
 	}
