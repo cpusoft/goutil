@@ -74,6 +74,9 @@ func TestJoinPathFile(t *testing.T) {
 	dst := `G:\Download\rrdp`
 	filePath := JoinPathFile(dst, url)
 	fmt.Println(filePath)
+
+	filePath = JoinPathFile("", url)
+	fmt.Println(filePath)
 }
 
 func TestGetAllFileStatsBySuffixs(t *testing.T) {
