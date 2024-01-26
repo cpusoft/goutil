@@ -11,7 +11,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/mattn/go-sqlite3 v1.14.19
+	github.com/mattn/go-sqlite3 v1.14.20
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/openrdap/rdap v0.9.1
 	github.com/parnurzeal/gorequest v0.2.17-0.20200918112808-3a0cb377f571
@@ -22,7 +22,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/wenzhenxi/gorsa v0.0.0-20230530123828-0320cce15d81
 	gopkg.in/yaml.v2 v2.4.0
-	xorm.io/xorm v1.3.6
+	xorm.io/xorm v1.3.7
 )
 
 require (
@@ -48,6 +48,7 @@ require (
 	github.com/gorilla/sessions v1.2.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
