@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"net"
 	"strconv"
@@ -283,7 +284,11 @@ func IpToRtrFormatByte(ip string) []byte {
 
 			bb, err := strconv.ParseUint(tmp1, 16, 0)
 			if err != nil {
-				belogs.Debug("IpToRtrFormatByte():tmp1 Atoi err:", tmp1, err)
+				belogs.Debug("IpToRtrFormatByte():tmp1 ParseUint fail, tmp1:", tmp1, err)
+				return nil
+			}
+			if bb > math.MaxUint16 {
+				belogs.Debug("IpToRtrFormatByte():tmp1 > math.MaxUint16 fail, tmp1:", tmp1, err)
 				return nil
 			}
 			byt[bytIndx] = byte(bb)
@@ -291,7 +296,11 @@ func IpToRtrFormatByte(ip string) []byte {
 
 			bb, err = strconv.ParseUint(tmp2, 16, 0)
 			if err != nil {
-				belogs.Debug("IpToRtrFormatByte():tmp2 Atoi err:", tmp2, err)
+				belogs.Debug("IpToRtrFormatByte():tmp2 ParseUint fail, tmp2:", tmp2, err)
+				return nil
+			}
+			if bb > math.MaxUint16 {
+				belogs.Debug("IpToRtrFormatByte():tmp2 > math.MaxUint16 fail, tmp2:", tmp2, err)
 				return nil
 			}
 			byt[bytIndx] = byte(bb)
