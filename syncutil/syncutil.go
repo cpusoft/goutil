@@ -11,36 +11,36 @@ import (
 	"github.com/cpusoft/goutil/rsyncutil"
 )
 
-func TestConnnect(repoUrl string, timeoutMins uint64) (state string, DurationTime time.Duration, err error) {
-	belogs.Debug("TestConnnect(): repoUrl:", repoUrl, " timeoutMins:", timeoutMins)
+func TestConnect(repoUrl string, timeoutMins uint64) (state string, DurationTime time.Duration, err error) {
+	belogs.Debug("TestConnect(): repoUrl:", repoUrl, " timeoutMins:", timeoutMins)
 
 	if strings.HasPrefix(repoUrl, "https://") {
-		belogs.Debug("TestConnnect(): rrdp repoUrl:", repoUrl, " timeoutMins:", timeoutMins)
+		belogs.Debug("TestConnect(): rrdp repoUrl:", repoUrl, " timeoutMins:", timeoutMins)
 		start := time.Now()
 		err := rrdputil.RrdpNotificationTestConnectWithConfig(repoUrl,
 			httpclient.NewHttpClientConfigWithParam(uint64(timeoutMins), 1, "all"))
 		if err != nil {
-			belogs.Error("TestConnnect(): RrdpNotificationTestConnectWithConfig fail, repoUrl:", repoUrl, err)
+			belogs.Error("TestConnect(): RrdpNotificationTestConnectWithConfig fail, repoUrl:", repoUrl, err)
 			return "invalid", time.Since(start), err
 		} else {
-			belogs.Debug("TestConnnect(): RrdpNotificationTestConnectWithConfig ok,, repoUrl:", repoUrl)
+			belogs.Debug("TestConnect(): RrdpNotificationTestConnectWithConfig ok,, repoUrl:", repoUrl)
 			return "valid", time.Since(start), nil
 		}
 
 	} else if strings.HasPrefix(repoUrl, "rsync://") {
-		belogs.Debug("TestConnnect(): rsync repoUrl:", repoUrl)
+		belogs.Debug("TestConnect(): rsync repoUrl:", repoUrl)
 		start := time.Now()
 		err := rsyncutil.RsyncTestConnect(repoUrl)
 		if err != nil {
-			belogs.Error("TestConnnect(): RsyncTestConnect fail, repoUrl:", repoUrl, err)
+			belogs.Error("TestConnect(): RsyncTestConnect fail, repoUrl:", repoUrl, err)
 			return "invalid", time.Since(start), err
 		} else {
-			belogs.Debug("TestConnnect(): RsyncTestConnect ok,, repoUrl:", repoUrl)
+			belogs.Debug("TestConnect(): RsyncTestConnect ok,, repoUrl:", repoUrl)
 			return "valid", time.Since(start), nil
 		}
 	} else {
 		start := time.Now()
-		belogs.Error("TestConnnect(): protocol is wrong fail, repoUrl:", repoUrl)
+		belogs.Error("TestConnect(): protocol is wrong fail, repoUrl:", repoUrl)
 		return "invalid", time.Since(start), errors.New("repoUrl's protocol is wrong")
 	}
 
