@@ -177,3 +177,26 @@ func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
 	}
 	return nil
 }
+
+func GetAndCheckRrdpNotificationWithConfig(notifyUrl string, httpClientConfig *httpclient.HttpClientConfig) (notificationModel NotificationModel, err error) {
+	start := time.Now()
+	belogs.Debug("GetAndCheckRrdpNotificationWithConfig(): notifyUrl :", notifyUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	// get nofiy.xmlm
+	notificationModel, err = GetRrdpNotificationWithConfig(notifyUrl,
+		httpClientConfig)
+	if err != nil {
+		belogs.Error("GetAndCheckRrdpNotificationWithConfig(): GetRrdpNotificationWithConfig fail, notifyUrl: ",
+			notifyUrl, err, "  time(s):", time.Since(start))
+		return notificationModel, err
+	}
+
+	err = CheckRrdpNotification(&notificationModel)
+	if err != nil {
+		belogs.Error("GetAndCheckRrdpNotificationWithConfig(): CheckRrdpNotification fail, notifyUrl,notificationModel: ",
+			notifyUrl, jsonutil.MarshalJson(notificationModel), err, "  time(s):", time.Since(start))
+		return notificationModel, err
+	}
+	belogs.Debug("GetAndCheckRrdpNotificationWithConfig(): ok, notifyUrl :", notifyUrl, "  notificationModel:", jsonutil.MarshalJson(notificationModel), "  time(s):", time.Since(start))
+	belogs.Info("GetAndCheckRrdpNotificationWithConfig(): ok, notifyUrl :", notifyUrl, "  time(s):", time.Since(start))
+	return notificationModel, nil
+}
