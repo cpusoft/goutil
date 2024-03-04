@@ -1,6 +1,6 @@
 module github.com/cpusoft/goutil
 
-go 1.19
+go 1.20
 
 require (
 	github.com/Andrew-M-C/go.timeconv v0.4.0
