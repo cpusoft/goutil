@@ -6,7 +6,7 @@ import (
 )
 
 func TestIntn(t *testing.T) {
-	a := Intn(999999)
-	b := fmt.Sprintf("%s?%d", "http://www.aaa.com/", Intn(999))
+	a := Intn(2)
+	b := fmt.Sprintf("%s?%d", "http://www.aaa.com/", Intn(1))
 	fmt.Println(a, b)
 }
