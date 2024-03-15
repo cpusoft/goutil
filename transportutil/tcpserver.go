@@ -405,7 +405,7 @@ func (ts *TcpServer) waitBusinessToConnMsg() {
 				serverConnKey := businessToConnMsg.ServerConnKey
 				sendData := businessToConnMsg.SendData
 				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
-					"  sendData:", convert.PrintBytesOneLine(sendData))
+					"  len(sendData):", len(sendData))
 				err := ts.activeSend(serverConnKey, sendData)
 				if err != nil {
 					belogs.Error("TcpServer.waitBusinessToConnMsg(): activeSend fail, serverConnKey:", serverConnKey,
@@ -414,7 +414,7 @@ func (ts *TcpServer) waitBusinessToConnMsg() {
 					// return
 				} else {
 					belogs.Info("TcpServer.waitBusinessToConnMsg(): activeSend ok, serverConnKey:", serverConnKey,
-						"  sendData:", convert.PrintBytesOneLine(sendData))
+						"  len(sendData):", len(sendData))
 				}
 			}
 		}
@@ -442,7 +442,7 @@ func (ts *TcpServer) activeSend(connKey string, sendData []byte) (err error) {
 				continue
 			} else {
 				belogs.Info("TcpServer.activeSend(): server to all, tcpConn.Write ok, tcpConn:", ts.tcpConns[i].RemoteAddr().String(),
-					"   n:", n, "   sendData:", convert.PrintBytesOneLine(sendData), "   time(s):", time.Since(startOne))
+					"   n:", n, "   len(sendData):", len(sendData), "   time(s):", time.Since(startOne))
 			}
 		}
 		belogs.Info("TcpServer.activeSend(): send to all clients ok,  len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpConns),
@@ -459,10 +459,10 @@ func (ts *TcpServer) activeSend(connKey string, sendData []byte) (err error) {
 					"   n:", n, "   sendData:", convert.PrintBytesOneLine(sendData), "   time(s):", time.Since(startOne), err)
 			} else {
 				belogs.Info("TcpServer.activeSend(): to ", connKey, " tcpConn.Write ok, tcpConn:", tcpConn.RemoteAddr().String(),
-					"   n:", n, "   sendData:", convert.PrintBytesOneLine(sendData), "   time(s):", time.Since(startOne))
+					"   n:", n, "   len(sendData):", len(sendData), "   time(s):", time.Since(startOne))
 			}
 		} else {
-			belogs.Error("TcpServer.activeSend(): not found connKey: ", connKey, " fail: tcpConn:", tcpConn.RemoteAddr().String(),
+			belogs.Error("TcpServer.activeSend(): not found connKey: ", connKey, " fail: tcpConn:", tcpConn,
 				"   sendData:", convert.PrintBytesOneLine(sendData))
 		}
 		belogs.Info("TcpServer.activeSend(): send to connKey ok,  len(sendData):", len(sendData), "   connKey: ", connKey,

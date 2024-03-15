@@ -126,6 +126,8 @@ func (uc *UdpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 		sendData := businessToConnMsg.SendData
 		belogs.Debug("UdpClient.SendAndReceiveMsg(): send to server:", uc.udpConn.serverUdpAddr,
 			"   sendData:", convert.PrintBytesOneLine(sendData))
+		belogs.Info("UdpClient.SendAndReceiveMsg(): send to server:", uc.udpConn.serverUdpAddr,
+			"   len(sendData):", len(sendData))
 
 		// send data
 		start := time.Now()

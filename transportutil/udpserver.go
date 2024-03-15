@@ -142,7 +142,7 @@ func (us *UdpServer) waitBusinessToConnMsg() {
 				serverConnKey := businessToConnMsg.ServerConnKey
 				sendData := businessToConnMsg.SendData
 				belogs.Info("UdpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
-					"  sendData:", convert.PrintBytesOneLine(sendData))
+					"  len(sendData):", len(sendData))
 				start := time.Now()
 				n, err := us.udpConn.WriteToClient(sendData, serverConnKey)
 				if err != nil {
@@ -152,7 +152,7 @@ func (us *UdpServer) waitBusinessToConnMsg() {
 					// return
 				} else {
 					belogs.Info("UdpServer.waitBusinessToConnMsg(): activeSend ok, serverConnKey:", serverConnKey,
-						"  sendData:", convert.PrintBytesOneLine(sendData), " write n:", n,
+						"  len(sendData):", len(sendData), " write n:", n,
 						"  time(s):", time.Since(start))
 				}
 			}
