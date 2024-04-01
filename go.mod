@@ -9,7 +9,7 @@ require (
 	github.com/beevik/ntp v1.3.1
 	github.com/cpusoft/gin-contrib-sessions v0.0.0-20231125151611-39d208fec19a
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-sql-driver/mysql v1.8.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mitchellh/mapstructure v1.5.0
@@ -22,7 +22,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/wenzhenxi/gorsa v0.0.0-20230530123828-0320cce15d81
 	gopkg.in/yaml.v2 v2.4.0
-	xorm.io/xorm v1.3.8
+	xorm.io/xorm v1.3.9
 )
 
 require (
