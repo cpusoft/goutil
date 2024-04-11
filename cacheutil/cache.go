@@ -24,6 +24,10 @@ func (c *Cache) AddBaseCache(baseKey string, baseCapacity uint64) {
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+	if _, ok := c.datas[baseKey]; ok {
+		// only add once
+		return
+	}
 	c.datas[baseKey] = NewBaseCache(baseCapacity)
 }
 
@@ -45,6 +49,9 @@ func (c *Cache) Sets(baseKey string, values []any, getKey func(value any) string
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+	if _, ok := c.datas[baseKey]; !ok {
+		return
+	}
 	c.datas[baseKey].Sets(values, getKey)
 }
 
@@ -54,6 +61,9 @@ func (c *Cache) Get(baseKey string, key string) (value any, exist bool) {
 	}
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
+	if _, ok := c.datas[baseKey]; !ok {
+		return
+	}
 	return c.datas[baseKey].Get(key)
 }
 
@@ -63,6 +73,9 @@ func (c *Cache) Gets(baseKey string) map[string]any {
 	}
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
+	if _, ok := c.datas[baseKey]; !ok {
+		return make(map[string]any, 0)
+	}
 	return c.datas[baseKey].Gets()
 }
 
@@ -77,17 +90,26 @@ func (c *Cache) Update(baseKey string, key string, value any) {
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+	if _, ok := c.datas[baseKey]; !ok {
+		return
+	}
 	c.datas[baseKey].Update(key, value)
 }
 
 func (c *Cache) Remove(baseKey string, key string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+	if _, ok := c.datas[baseKey]; !ok {
+		return
+	}
 	c.datas[baseKey].Remove(key)
 }
 func (c *Cache) RemoveAll(baseKey string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+	if _, ok := c.datas[baseKey]; !ok {
+		return
+	}
 	c.datas[baseKey].RemoveAll()
 }
 
