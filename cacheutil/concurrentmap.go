@@ -1,4 +1,4 @@
-package maputil
+package cacheutil
 
 /*
 // https://github.com/orcaman/concurrent-map support capacity for each shards

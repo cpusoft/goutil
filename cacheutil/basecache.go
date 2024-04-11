@@ -1,4 +1,4 @@
-package maputil
+package cacheutil
 
 import (
 	"sync"
@@ -29,9 +29,9 @@ func (c *BaseCache) Sets(values []any, getKey func(value any) string) {
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	for i := range values {
-		key := getKey(i)
-		c.baseDatas[key] = values[i]
+	for _, value := range values {
+		key := getKey(value)
+		c.baseDatas[key] = value
 	}
 }
 func (c *BaseCache) Get(key string) (any, bool) {
