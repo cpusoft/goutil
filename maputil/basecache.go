@@ -10,7 +10,7 @@ type BaseCache struct {
 	baseCapacity uint64
 }
 
-func NewBaseMap(baseCapacity uint64) *BaseCache {
+func NewBaseCache(baseCapacity uint64) *BaseCache {
 	c := &BaseCache{
 		baseCapacity: baseCapacity,
 		baseDatas:    make(map[string]any, baseCapacity),

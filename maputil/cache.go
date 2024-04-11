@@ -18,13 +18,13 @@ func NewCache(capacity uint64) *Cache {
 	return c
 }
 
-func (c *Cache) AddBaseMap(baseKey string, baseCapacity uint64) {
+func (c *Cache) AddBaseCache(baseKey string, baseCapacity uint64) {
 	if baseKey == "" {
 		return
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.datas[baseKey] = NewBaseMap(baseCapacity)
+	c.datas[baseKey] = NewBaseCache(baseCapacity)
 }
 
 func (c *Cache) Set(baseKey string, key string, value any) {
