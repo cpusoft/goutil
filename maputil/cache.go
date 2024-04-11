@@ -62,6 +62,11 @@ func (c *Cache) Gets(baseKey string) map[string]any {
 	return c.datas[baseKey].Gets()
 }
 
+func (c *Cache) GetCount(baseKey string) int {
+	m := c.Gets(baseKey)
+	return len(m)
+}
+
 func (c *Cache) Update(baseKey string, key string, value any) {
 	if baseKey == "" || key == "" || value == nil {
 		return
