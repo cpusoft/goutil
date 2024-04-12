@@ -67,21 +67,25 @@ func (c *Cache) Get(baseKey string, key string) (value any, exist bool) {
 	return c.datas[baseKey].Get(key)
 }
 
-func (c *Cache) Gets(baseKey string) map[string]any {
+func (c *Cache) Gets(baseKey string) (values map[string]any, exist bool) {
 	if baseKey == "" {
-		return make(map[string]any, 0)
+		return nil, false
 	}
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	if _, ok := c.datas[baseKey]; !ok {
-		return make(map[string]any, 0)
+		return nil, false
 	}
-	return c.datas[baseKey].Gets()
+	return c.datas[baseKey].Gets(), true
 }
 
 func (c *Cache) GetCount(baseKey string) int {
-	m := c.Gets(baseKey)
-	return len(m)
+	m, ok := c.Gets(baseKey)
+	if ok {
+		return len(m)
+	} else {
+		return 0
+	}
 }
 
 func (c *Cache) Update(baseKey string, key string, value any) {
