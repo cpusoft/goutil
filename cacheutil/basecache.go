@@ -19,6 +19,9 @@ func NewBaseCache(baseCapacity uint64) *BaseCache {
 }
 
 func (c *BaseCache) Set(key string, value any) {
+	if key == "" || value == nil {
+		return
+	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.baseDatas[key] = value
@@ -45,21 +48,13 @@ func (c *BaseCache) Gets() map[string]any {
 	defer c.mutex.RUnlock()
 	return c.baseDatas
 }
-func (c *BaseCache) Update(key string, value any) {
-	if key == "" || value == nil {
-		return
-	}
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.baseDatas[key] = value
-}
 
 func (c *BaseCache) Remove(key string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	delete(c.baseDatas, key)
 }
-func (c *BaseCache) RemoveAll() {
+func (c *BaseCache) Reset() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.baseDatas = make(map[string]any, c.baseCapacity)

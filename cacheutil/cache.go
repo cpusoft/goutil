@@ -80,6 +80,9 @@ func (c *Cache) Gets(baseKey string) (values map[string]any, exist bool) {
 }
 
 func (c *Cache) GetCount(baseKey string) int {
+	if baseKey == "" {
+		return 0
+	}
 	m, ok := c.Gets(baseKey)
 	if ok {
 		return len(m)
@@ -88,19 +91,10 @@ func (c *Cache) GetCount(baseKey string) int {
 	}
 }
 
-func (c *Cache) Update(baseKey string, key string, value any) {
-	if baseKey == "" || key == "" || value == nil {
-		return
-	}
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if _, ok := c.datas[baseKey]; !ok {
-		return
-	}
-	c.datas[baseKey].Update(key, value)
-}
-
 func (c *Cache) Remove(baseKey string, key string) {
+	if baseKey == "" || key == "" {
+		return
+	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if _, ok := c.datas[baseKey]; !ok {
@@ -108,20 +102,12 @@ func (c *Cache) Remove(baseKey string, key string) {
 	}
 	c.datas[baseKey].Remove(key)
 }
-func (c *Cache) RemoveAll(baseKey string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if _, ok := c.datas[baseKey]; !ok {
-		return
-	}
-	c.datas[baseKey].RemoveAll()
-}
 
 func (c *Cache) Reset() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	for baseKey := range c.datas {
-		c.datas[baseKey].RemoveAll()
+		c.datas[baseKey].Reset()
 	}
 	c.datas = make(map[string]*BaseCache, c.capacity)
 }
