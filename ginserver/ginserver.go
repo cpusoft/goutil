@@ -150,7 +150,7 @@ func ReceiveFile(c *gin.Context, dir string) (receiveFile string, err error) {
 			"   receiveFile:", receiveFile, "   form:", form)
 		if part.FileName() == "" { // this is FormData
 			data, _ := io.ReadAll(part)
-			ioutil.WriteFile(receiveFile, data, 0644)
+			os.WriteFile(receiveFile, data, 0644)
 		} else { // This is FileData
 			dst, _ := os.Create(receiveFile)
 			defer dst.Close()
