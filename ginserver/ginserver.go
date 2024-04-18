@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -240,7 +239,7 @@ func saveToTmpFile(fileHeader *multipart.FileHeader) (tmpFile *os.File, tmpDir s
 	belogs.Debug("saveToTmpFile(): fileHeader.Filename:", fileHeader.Filename)
 
 	// create tmp file
-	tmpDir, err = ioutil.TempDir("", "tmp-")
+	tmpDir, err = os.MkdirTemp("", "tmp-")
 	if err != nil {
 		belogs.Error("saveToTmpFile(): TempDir fail:", err)
 		return nil, tmpDir, err
