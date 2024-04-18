@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/http/httptest"
@@ -109,7 +108,7 @@ func DecodeJsonPayload(r *httptest.ResponseRecorder, v interface{}) error {
 // gunzipped if Content-Encoding is set to gzip
 func DecodedBody(r *httptest.ResponseRecorder) ([]byte, error) {
 	if r.Header().Get("Content-Encoding") != "gzip" {
-		return ioutil.ReadAll(r.Body)
+		return io.ReadAll(r.Body)
 	}
 	dec, err := gzip.NewReader(r.Body)
 	if err != nil {

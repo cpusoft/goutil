@@ -22,7 +22,6 @@ import (
 )
 
 // port: ":443"
-//
 func RunTLSEx(engine *gin.Engine, port, certFile, keyFile string) (err error) {
 	// tls cipher suites
 	tlsconf := &tls.Config{
@@ -55,7 +54,7 @@ func RunTLSEx(engine *gin.Engine, port, certFile, keyFile string) (err error) {
 
 // decode json
 func DecodeJson(c *gin.Context, v interface{}) error {
-	content, err := ioutil.ReadAll(c.Request.Body)
+	content, err := io.ReadAll(c.Request.Body)
 	c.Request.Body.Close()
 	if err != nil {
 		return err
@@ -150,7 +149,7 @@ func ReceiveFile(c *gin.Context, dir string) (receiveFile string, err error) {
 			"   part.FormName:", part.FormName(),
 			"   receiveFile:", receiveFile, "   form:", form)
 		if part.FileName() == "" { // this is FormData
-			data, _ := ioutil.ReadAll(part)
+			data, _ := io.ReadAll(part)
 			ioutil.WriteFile(receiveFile, data, 0644)
 		} else { // This is FileData
 			dst, _ := os.Create(receiveFile)

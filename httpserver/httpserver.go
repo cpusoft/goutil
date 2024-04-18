@@ -3,7 +3,6 @@ package httpserver
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -82,8 +81,9 @@ func ReceiveFiles(receiveDir string, r *rest.Request) (receiveFiles map[string]s
 		form := strings.TrimSpace(part.FormName())
 		belogs.Debug("ReceiveFiles():FileName:", part.FileName(), "   FormName:", part.FormName()+"   file:", file)
 		if part.FileName() == "" { // this is FormData
-			data, _ := ioutil.ReadAll(part)
-			ioutil.WriteFile(file, data, 0644)
+			data, _ := io.ReadAll(part)
+			//ioutil.WriteFile(file, data, 0644)
+			os.WriteFile(file, data, 0644)
 		} else { // This is FileData
 			dst, _ := os.Create(file)
 			defer dst.Close()
@@ -94,7 +94,7 @@ func ReceiveFiles(receiveDir string, r *rest.Request) (receiveFiles map[string]s
 	return receiveFiles, nil
 }
 
-//map[fileFormName]=fileName
+// map[fileFormName]=fileName
 func RemoveReceiveFiles(receiveFiles map[string]string) {
 	if len(receiveFiles) == 0 {
 		return
