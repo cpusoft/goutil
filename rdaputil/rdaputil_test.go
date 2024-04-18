@@ -1,12 +1,5 @@
 package rdaputil
 
-import (
-	"fmt"
-	"testing"
-
-	"github.com/cpusoft/goutil/jsonutil"
-)
-
 /*
 whois.afrinic.net AS
 aut-num:        AS37133
@@ -40,6 +33,8 @@ country:        GB
 
 */
 
+/* temp close
+
 // https://datatracker.ietf.org/doc/rfc7485/?include_text=1
 // different items in 5 Rirs
 func TestRdap(t *testing.T) {
@@ -68,6 +63,7 @@ func TestRdap(t *testing.T) {
 	//	fmt.Println(jsonutil.MarshalJson(i), err)
 
 }
+*/
 
 /* APNIC
 {

@@ -1,15 +1,6 @@
 package rdaputil
 
-import (
-	"errors"
-	"time"
-
-	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/convert"
-	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/openrdap/rdap"
-)
-
+/*  temp close
 // domain: google.com
 func RdapDomain(domain string) (*rdap.Domain, error) {
 	start := time.Now()
@@ -84,3 +75,4 @@ func RdapAddressPrefix(addressprefix string) (*rdap.IPNetwork, error) {
 	belogs.Debug("RdapAddressPrefix(): get rdap ok, addressprefix:", addressprefix, "  rdapAddressPrefix:", jsonutil.MarshalJson(rdapAddressPrefix), "  time(s):", time.Since(start))
 	return rdapAddressPrefix, nil
 }
+*/
