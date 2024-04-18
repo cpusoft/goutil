@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 	"testing"
 
@@ -14,7 +14,7 @@ func TestRecoverMiddleware(t *testing.T) {
 
 	// the middleware to test
 	api.Use(&RecoverMiddleware{
-		Logger:                   log.New(ioutil.Discard, "", 0),
+		Logger:                   log.New(io.Discard, "", 0),
 		EnableLogAsJson:          false,
 		EnableResponseStackTrace: true,
 	})

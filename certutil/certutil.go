@@ -7,7 +7,7 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -44,9 +44,9 @@ func ReadFileToCrl(fileName string) (*pkix.CertificateList, error) {
 	return nil, errors.New("unknown cert type")
 }
 
-//no PEM data is found, p is nil and the whole of the input is returned in
+// no PEM data is found, p is nil and the whole of the input is returned in
 func ReadFileToByte(fileName string) (p *pem.Block, fileByte []byte, err error) {
-	buf, err := ioutil.ReadFile(fileName)
+	buf, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -57,12 +57,12 @@ func ReadFileToByte(fileName string) (p *pem.Block, fileByte []byte, err error) 
 
 // if cert cannot pass verify, just log info level
 func VerifyCerByX509(fatherCertFile string, childCertFile string) (result string, err error) {
-	fatherFileByte, err := ioutil.ReadFile(fatherCertFile)
+	fatherFileByte, err := os.ReadFile(fatherCertFile)
 	if err != nil {
 		belogs.Error("VerifyCerByX509():fatherCertFile:", fatherCertFile, "   ReadFile err:", err)
 		return "fail", err
 	}
-	childFileByte, err := ioutil.ReadFile(childCertFile)
+	childFileByte, err := os.ReadFile(childCertFile)
 	if err != nil {
 		belogs.Error("VerifyCerByX509():childCertFile:", childCertFile, "   ReadFile err:", err)
 		return "fail", err
@@ -77,12 +77,12 @@ func VerifyCerByX509(fatherCertFile string, childCertFile string) (result string
 
 // if cert cannot pass verify, just log info level
 func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, eeCertEnd uint64) (result string, err error) {
-	fatherFileByte, err := ioutil.ReadFile(fatherCertFile)
+	fatherFileByte, err := os.ReadFile(fatherCertFile)
 	if err != nil {
 		belogs.Error("VerifyEeCertByX509():read father, fatherCertFile:", fatherCertFile, "   mftRoaFile:", mftRoaFile, "     ReadFile err:", err)
 		return "fail", err
 	}
-	mftRoaFileByte, err := ioutil.ReadFile(mftRoaFile)
+	mftRoaFileByte, err := os.ReadFile(mftRoaFile)
 	if err != nil {
 		belogs.Error("VerifyEeCertByX509():ReadFile fail, fatherCertFile:", fatherCertFile, "    mftRoaFile:", mftRoaFile, "   ReadFile err:", err)
 		return "fail", err
@@ -233,7 +233,7 @@ func VerifyRootCerByOpenssl(rootFile string) (result string, err error) {
 	*/
 	belogs.Debug("VerifyRootCerByOpenssl():rootFile", rootFile)
 	_, file := osutil.Split(rootFile)
-	pemFile, err := ioutil.TempFile("", file+".pem") // temp file
+	pemFile, err := os.CreateTemp("", file+".pem") // temp file
 	if err != nil {
 		belogs.Error("VerifyRootCerByOpenssl(): exec.Command: err: ", err, rootFile)
 		return "fail", err
@@ -297,7 +297,7 @@ func VerifyCrlByX509(cerFile, crlFile string) (result string, err error) {
 	return "ok", nil
 }
 
-//deprecated
+// deprecated
 func JudgeBelongNic(repoDestPath, filePath string) (nicName string) {
 	if !strings.HasPrefix(filePath, repoDestPath) {
 		return ""

@@ -2,7 +2,6 @@ package rrdputil
 
 import (
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"runtime"
@@ -185,7 +184,7 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 	}
 
 	// check if body is xml file
-	belogs.Debug("getRrdpDeltaImplWithConfig(): get body, deltaUrl:",deltaUrl," len(body):", len(body))
+	belogs.Debug("getRrdpDeltaImplWithConfig(): get body, deltaUrl:", deltaUrl, " len(body):", len(body))
 	if !strings.Contains(body, `<delta`) {
 		belogs.Error("getRrdpDeltaImplWithConfig(): body is not xml file:", deltaUrl, "   resp:",
 			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
@@ -342,7 +341,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 			belogs.Error("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws CheckFileNameMaxLength fail,file:", file)
 			return nil, errors.New("DeltaWithdraw file name is too long")
 		}
-		files, err := ioutil.ReadDir(dir)
+		files, err := os.ReadDir(dir)
 		belogs.Info("saveRrdpDeltaToRrdpFiles():DeltaWithdraws will remove filePathName, uri:", uri,
 			"  	filePathName:", filePathName, "   dir:", dir,
 			"   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,

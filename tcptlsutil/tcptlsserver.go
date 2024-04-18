@@ -5,8 +5,8 @@ import (
 	"crypto/x509"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -41,7 +41,6 @@ type TcpTlsServer struct {
 	TcpTlsMsg chan TcpTlsMsg
 }
 
-//
 func NewTcpServer(tcpTlsServerProcess TcpTlsServerProcess, tcpTlsMsg chan TcpTlsMsg) (ts *TcpTlsServer) {
 
 	belogs.Debug("NewTcpServer():tcpTlsServerProcess:", tcpTlsServerProcess)
@@ -136,7 +135,7 @@ func (ts *TcpTlsServer) StartTlsServer(port string) (err error) {
 	}
 	belogs.Debug("StartTlsServer(): tlsserver  cert:", ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName)
 
-	rootCrtBytes, err := ioutil.ReadFile(ts.tlsRootCrtFileName)
+	rootCrtBytes, err := os.ReadFile(ts.tlsRootCrtFileName)
 	if err != nil {
 		belogs.Error("StartTlsServer(): tlsserver  ReadFile tlsRootCrtFileName fail, port:", port,
 			"  tlsRootCrtFileName:", ts.tlsRootCrtFileName, err)
@@ -297,58 +296,60 @@ func (ts *TcpTlsServer) receiveAndSend(tcpTlsConn *TcpTlsConn) {
 	// wait for new packet to read
 	//https://eli.thegreenplace.net/2020/graceful-shutdown-of-a-tcp-server-in-go/
 	//https://stackoverflow.com/questions/66755407/cancelling-a-net-listener-via-context-in-golang
+
 ReadLoop:
-	for {
-		select {
-		case <-ts.closeGraceful:
-			belogs.Info("receiveAndSend(): tcptlsserver closeGraceful, will return: ", tcpTlsConn.RemoteAddr().String())
-			return
-		default:
-			tcpTlsConn.SetDeadline(time.Now().Add(60 * time.Second))
-			start := time.Now()
-			n, err := tcpTlsConn.Read(buffer)
-			//	if n == 0 {
-			//		continue
-			//	}
-			if err != nil {
-				if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
-					belogs.Debug("receiveAndSend(): tcptlsserver Timeout :", tcpTlsConn.RemoteAddr().String(), opErr) //should //
-					continue ReadLoop
-				} else if err == io.EOF {
-					// is not error, just client close
-					belogs.Info("receiveAndSend(): tcptlsserver Read io.EOF, client close: ", tcpTlsConn.RemoteAddr().String(), err)
+
+		for {
+			select {
+			case <-ts.closeGraceful:
+				belogs.Info("receiveAndSend(): tcptlsserver closeGraceful, will return: ", tcpTlsConn.RemoteAddr().String())
+				return
+			default:
+				tcpTlsConn.SetDeadline(time.Now().Add(60 * time.Second))
+				start := time.Now()
+				n, err := tcpTlsConn.Read(buffer)
+				//	if n == 0 {
+				//		continue
+				//	}
+				if err != nil {
+					if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
+						belogs.Debug("receiveAndSend(): tcptlsserver Timeout :", tcpTlsConn.RemoteAddr().String(), opErr) //should //
+						continue ReadLoop
+					} else if err == io.EOF {
+						// is not error, just client close
+						belogs.Info("receiveAndSend(): tcptlsserver Read io.EOF, client close: ", tcpTlsConn.RemoteAddr().String(), err)
+						return
+					}
+					belogs.Error("receiveAndSend(): tcptlsserver Read fail, err ", tcpTlsConn.RemoteAddr().String(), err)
 					return
 				}
-				belogs.Error("receiveAndSend(): tcptlsserver Read fail, err ", tcpTlsConn.RemoteAddr().String(), err)
-				return
-			}
 
-			// call process func OnReceiveAndSend
-			// copy to leftData
-			belogs.Debug("receiveAndSend(): tcptlsserver tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
-				" , Read n:", n, "  time(s):", time.Since(start))
-			nextConnectPolicy, leftData, err := ts.tcpTlsServerProcess.OnReceiveAndSendProcess(tcpTlsConn, append(leftData, buffer[:n]...))
-			belogs.Debug("receiveAndSend(): tcptlsserver  after OnReceiveAndSendProcess,server tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), " receive n: ", n,
-				"  len(leftData):", len(leftData), "  time(s):", time.Since(start))
-			if err != nil {
-				belogs.Error("receiveAndSend(): tcptlsserver OnReceiveAndSendProcess fail ,will remove this tcpTlsConn : ", tcpTlsConn.RemoteAddr().String(), err)
-				return
-			}
+				// call process func OnReceiveAndSend
+				// copy to leftData
+				belogs.Debug("receiveAndSend(): tcptlsserver tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
+					" , Read n:", n, "  time(s):", time.Since(start))
+				nextConnectPolicy, leftData, err := ts.tcpTlsServerProcess.OnReceiveAndSendProcess(tcpTlsConn, append(leftData, buffer[:n]...))
+				belogs.Debug("receiveAndSend(): tcptlsserver  after OnReceiveAndSendProcess,server tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(), " receive n: ", n,
+					"  len(leftData):", len(leftData), "  time(s):", time.Since(start))
+				if err != nil {
+					belogs.Error("receiveAndSend(): tcptlsserver OnReceiveAndSendProcess fail ,will remove this tcpTlsConn : ", tcpTlsConn.RemoteAddr().String(), err)
+					return
+				}
 
-			if nextConnectPolicy == NEXT_CONNECT_POLICY_CLOSE_GRACEFUL ||
-				nextConnectPolicy == NEXT_CONNECT_POLICY_CLOSE_FORCIBLE {
-				belogs.Info("receiveAndSend(): tcptlsserver  nextConnectPolicy close,  return : ", tcpTlsConn.RemoteAddr().String(), nextConnectPolicy)
-				return
-			}
-			// reset buffer
-			buffer = make([]byte, 2048)
-			belogs.Debug("receiveAndSend(): tcptlsserver, will reset buffer, tcpTlsConn: ", tcpTlsConn.RemoteAddr().String())
+				if nextConnectPolicy == NEXT_CONNECT_POLICY_CLOSE_GRACEFUL ||
+					nextConnectPolicy == NEXT_CONNECT_POLICY_CLOSE_FORCIBLE {
+					belogs.Info("receiveAndSend(): tcptlsserver  nextConnectPolicy close,  return : ", tcpTlsConn.RemoteAddr().String(), nextConnectPolicy)
+					return
+				}
+				// reset buffer
+				buffer = make([]byte, 2048)
+				belogs.Debug("receiveAndSend(): tcptlsserver, will reset buffer, tcpTlsConn: ", tcpTlsConn.RemoteAddr().String())
 
-			belogs.Debug("onReceive(): tcptlsserver, will wait for Read from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
-				"  time(s):", time.Since(start))
+				belogs.Debug("onReceive(): tcptlsserver, will wait for Read from tcpTlsConn: ", tcpTlsConn.RemoteAddr().String(),
+					"  time(s):", time.Since(start))
+			}
 		}
 	}
-}
 */
 func (ts *TcpTlsServer) onConnect(tcpTlsConn *TcpTlsConn) {
 	start := time.Now()

@@ -5,8 +5,8 @@ import (
 	"crypto/x509"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -143,7 +143,7 @@ func (ts *TcpServer) StartTlsServer(port string) (err error) {
 	}
 	belogs.Debug("StartTlsServer(): tlsserver  cert:", ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName)
 
-	rootCrtBytes, err := ioutil.ReadFile(ts.tlsRootCrtFileName)
+	rootCrtBytes, err := os.ReadFile(ts.tlsRootCrtFileName)
 	if err != nil {
 		belogs.Error("StartTlsServer(): tlsserver  ReadFile tlsRootCrtFileName fail, port:", port,
 			"  tlsRootCrtFileName:", ts.tlsRootCrtFileName, err)

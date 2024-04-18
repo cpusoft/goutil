@@ -5,8 +5,8 @@ import (
 	"crypto/x509"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net"
+	"os"
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
@@ -126,7 +126,7 @@ func (tc *TcpTlsClient) StartTlsClient(server string) (err error) {
 	}
 	belogs.Debug("StartTlsClient(): LoadX509KeyPair ok, server is  ", server)
 
-	rootCrtBytes, err := ioutil.ReadFile(tc.tlsRootCrtFileName)
+	rootCrtBytes, err := os.ReadFile(tc.tlsRootCrtFileName)
 	if err != nil {
 		belogs.Error("StartTlsClient(): ReadFile tlsRootCrtFileName fail, server:", server,
 			"  tlsRootCrtFileName:", tc.tlsRootCrtFileName, err)

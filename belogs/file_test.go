@@ -3,7 +3,6 @@ package belogs
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"testing"
@@ -311,7 +310,7 @@ func testFileDailyRotate(t *testing.T, fn1, fn2 string) {
 		if err != nil {
 			t.FailNow()
 		}
-		content, err := ioutil.ReadFile(file)
+		content, err := os.ReadFile(file)
 		if err != nil {
 			t.FailNow()
 		}
@@ -345,7 +344,7 @@ func testFileHourlyRotate(t *testing.T, fn1, fn2 string) {
 		if err != nil {
 			t.FailNow()
 		}
-		content, err := ioutil.ReadFile(file)
+		content, err := os.ReadFile(file)
 		if err != nil {
 			t.FailNow()
 		}

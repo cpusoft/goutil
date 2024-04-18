@@ -3,7 +3,6 @@ package httpclient
 import (
 	"crypto/tls"
 	"errors"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -106,7 +105,7 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 	timeout := convert.ToString(httpClientConfig.TimeoutMins * 60)
 	retryCount := convert.ToString(httpClientConfig.RetryCount)
 	//	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
-	tmpFile, err := ioutil.TempFile("", "_tmp_") // temp file
+	tmpFile, err := os.CreateTemp("", "_tmp_") // temp file
 	if err != nil {
 		belogs.Error("GetByCurlWithConfig(): TempFile fail", err)
 		return "", err

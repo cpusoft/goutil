@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -62,7 +61,7 @@ func PostFile(urlStr string, fileName string, formName string, verifyHttps bool)
 func PostFileHttp(urlStr string, fileName string, formName string) (resp gorequest.Response, body string, err error) {
 
 	belogs.Debug("PostFileHttp():url:", urlStr, "   fileName:", fileName, "   formName:", formName)
-	b, err := ioutil.ReadFile(fileName)
+	b, err := os.ReadFile(fileName)
 	if err != nil {
 		belogs.Error("PostFileHttp():url:", urlStr, "   fileName:", fileName, "   err:", err)
 		return nil, "", err
@@ -90,7 +89,7 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 func PostFileHttps(urlStr string, fileName string, formName string, verify bool) (resp gorequest.Response, body string, err error) {
 
 	belogs.Debug("PostFileHttps():url:", urlStr, "   fileName:", fileName, "   formName:", formName, "  verify:", verify)
-	b, err := ioutil.ReadFile(fileName)
+	b, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, "", err
 	}

@@ -45,7 +45,7 @@ func newZoneFileModel(zonefile *zonefile.Zonefile, zoneFileName string) *ZoneFil
 // zoneFileName must be absolute path filename;
 func LoadZoneFile(zoneFileName string) (originModel *dnsutil.OriginModel, err error) {
 	// Load zonefile
-	data, err := ioutil.ReadFile(zoneFileName)
+	data, err := os.ReadFile(zoneFileName)
 	if err != nil {
 		belogs.Error("LoadZoneFile(): ReadFile fail:", zoneFileName, err)
 		return nil, err

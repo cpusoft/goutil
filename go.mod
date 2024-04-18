@@ -4,8 +4,6 @@ go 1.20
 
 require (
 	github.com/Andrew-M-C/go.timeconv v0.4.0
-	github.com/beego/goyaml2 v0.0.0-20130207012346-5545475820dd
-	github.com/beego/x2j v0.0.0-20131220205130-a0352aadc542
 	github.com/beevik/ntp v1.3.1
 	github.com/cpusoft/gin-contrib-sessions v0.0.0-20231125151611-39d208fec19a
 	github.com/gin-gonic/gin v1.9.1
@@ -21,7 +19,6 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.2
 	github.com/stretchr/testify v1.9.0
 	github.com/wenzhenxi/gorsa v0.0.0-20230530123828-0320cce15d81
-	gopkg.in/yaml.v2 v2.4.0
 	xorm.io/xorm v1.3.9
 )
 
@@ -68,7 +65,6 @@ require (
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	github.com/wendal/errors v0.0.0-20181209125328-7f31f4b264ec // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/arch v0.7.0 // indirect
@@ -77,6 +73,7 @@ require (
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	moul.io/http2curl v1.0.0 // indirect
 	xorm.io/builder v0.3.13 // indirect

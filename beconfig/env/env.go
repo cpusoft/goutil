@@ -3,7 +3,6 @@ package env
 import (
 	"fmt"
 	"go/build"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -103,7 +102,7 @@ func GetRuntimeEnv(key string) (string, error) {
 	}
 
 	var runtimeEnv string
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return "", err
 	}

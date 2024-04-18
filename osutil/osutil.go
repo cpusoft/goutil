@@ -3,7 +3,6 @@ package osutil
 import (
 	"container/list"
 	"errors"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	path "path"
@@ -163,7 +162,7 @@ func GetAllFileCountBySuffixs(directory string, suffixs map[string]string) (suff
 
 func GetFilesInDir(directory string, suffixs map[string]string) ([]string, error) {
 	files := make([]string, 0, 10)
-	dir, err := ioutil.ReadDir(directory)
+	dir, err := os.ReadDir(directory)
 	if err != nil {
 		return nil, err
 	}
