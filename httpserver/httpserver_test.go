@@ -1,14 +1,6 @@
 package httpserver
 
-import (
-	"fmt"
-	"testing"
-
-	rest "github.com/cpusoft/goutil/go-json-rest"
-
-	httpserver "github.com/cpusoft/goutil/httpserver"
-)
-
+/*
 func TestListenAndServe(t *testing.T) {
 
 	router, err := rest.MakeRouter(
@@ -28,7 +20,8 @@ func TestListenAndServe(t *testing.T) {
 	select {}
 }
 
-// 主动往RP发起请求，要求获取全量数据
+//
 func hello(w rest.ResponseWriter, req *rest.Request) {
 	w.WriteJson("hello world")
 }
+*/

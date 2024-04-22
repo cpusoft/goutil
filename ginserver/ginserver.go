@@ -14,7 +14,6 @@ import (
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/httpclient"
-	"github.com/cpusoft/goutil/httpserver"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/gin-gonic/gin"
@@ -75,6 +74,12 @@ type ResponseModel struct {
 	Result string      `json:"result"`
 	Msg    string      `json:"msg"`
 	Data   interface{} `json:"data,omitempty"`
+}
+
+// result:ok/fail
+type HttpResponse struct {
+	Result string `json:"result"`
+	Msg    string `json:"msg"`
 }
 
 func Html(c *gin.Context, html string, v interface{}) {
@@ -212,7 +217,7 @@ func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 	resp.Body.Close()
 	belogs.Debug("ReceiveFileAndPostNewUrl():upload body:", body)
 
-	httpResponse := httpserver.HttpResponse{}
+	httpResponse := HttpResponse{}
 	jsonutil.UnmarshalJson(body, &httpResponse)
 	belogs.Debug("ReceiveFileAndPostNewUrl(): upload response:", newUrl, jsonutil.MarshalJson(httpResponse))
 	if httpResponse.Result == "fail" {

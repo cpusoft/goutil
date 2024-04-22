@@ -1,17 +1,6 @@
 package httpserver
 
-import (
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"strings"
-
-	"github.com/cpusoft/goutil/belogs"
-	rest "github.com/cpusoft/goutil/go-json-rest"
-	"github.com/cpusoft/goutil/osutil"
-)
-
+/*
 // result:ok/fail
 type HttpResponse struct {
 	Result string `json:"result"`
@@ -119,3 +108,4 @@ func GetFailHttpResponse(err error) HttpResponse {
 		Msg:    err.Error()}
 
 }
+*/
