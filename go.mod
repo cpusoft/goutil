@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/Andrew-M-C/go.timeconv v0.4.0
 	github.com/beevik/ntp v1.3.1
-	github.com/cpusoft/gin-contrib-sessions v0.0.0-20240418084658-2eb5f2a03705
+	github.com/cpusoft/gin-contrib-sessions v0.0.0-20240418085653-04ec3b865ff4
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
