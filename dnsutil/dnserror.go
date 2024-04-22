@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/tcptlsutil"
 )
 
 // must be lower, so must NewDnsError(**,***), not allow dnsError{***}
@@ -23,12 +22,12 @@ func (c dnsError) Error() string {
 }
 
 /*
-func (c dnsError) MarshalJSON() ([]byte, error) {
-	fmt.Sprintf(`{"msg":"%s","id":%d,"opCode":%d,"rCode":%d,"nextConnectPolicy":%d}`,
-		c.msg, c.id, c.opCode, c.rCode, c.nextConnectPolicy)
-	belogs.Debug("MarshalJSON(): dnsError:", str)
-	return []byte(str), nil
-}
+	func (c dnsError) MarshalJSON() ([]byte, error) {
+		fmt.Sprintf(`{"msg":"%s","id":%d,"opCode":%d,"rCode":%d,"nextConnectPolicy":%d}`,
+			c.msg, c.id, c.opCode, c.rCode, c.nextConnectPolicy)
+		belogs.Debug("MarshalJSON(): dnsError:", str)
+		return []byte(str), nil
+	}
 */
 func NewDnsError(msg string, id uint16, opCode uint8, rCode uint8, nextConnectPolicy int) error {
 	return dnsError{
@@ -95,5 +94,5 @@ func GetDnsErrorNextConnectPolicy(err error) int {
 	if e, ok := err.(dnsError); ok {
 		return e.nextConnectPolicy
 	}
-	return tcptlsutil.NEXT_CONNECT_POLICY_KEEP
+	return 0 //tcptlsutil.NEXT_CONNECT_POLICY_KEEP
 }
