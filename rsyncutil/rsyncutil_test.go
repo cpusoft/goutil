@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-//destpath=G:\Download\cert\rsync
-//logpath=G:\Download\cert\log
+// destpath=G:\Download\cert\rsync
+// logpath=G:\Download\cert\log
 func TestRsyncToLogFile(t *testing.T) {
 	rsyncUrl := "http://rpki.apnic.net/repository/"
 	destPath := "/tmp/cer/"
@@ -16,7 +16,7 @@ func TestRsyncToLogFile(t *testing.T) {
 }
 
 func TestRsyncTestConnect(t *testing.T) {
-	isConnect, err := RsyncTestConnect("rsync://rpki-repo.as207960.net/repo")
-	fmt.Println(isConnect, err)
+	err := RsyncTestConnect("rsync://rpki-repo.as207960.net/repo")
+	fmt.Println(err)
 
 }
