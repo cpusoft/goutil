@@ -1,9 +1,5 @@
 package asn1util
 
-import (
-	"fmt"
-	"testing"
-)
 /*
 func TestDecodeBitStringToAddress(t *testing.T) {
 	//03 04 04 0a0020            addressPrefix 10.0.32/20

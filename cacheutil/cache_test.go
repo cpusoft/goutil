@@ -29,6 +29,6 @@ func TestCache(t *testing.T) {
 	ts = append(ts, t3)
 	fmt.Println(ts)
 	cache.Sets("test", ts, getKey)
-	m := cache.Gets("test")
+	m, _ := cache.Gets("test")
 	fmt.Println(m)
 }
