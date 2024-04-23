@@ -33,7 +33,7 @@ func StartDnsUdpServer(serverProtocol string, serverPort string) (err error) {
 	belogs.Debug("StartDnsUdpServer(): dnsServerProcess:", dnsServerProcess)
 
 	// tclTlsServer
-	dnsUdpServer.udpServer = NewUdpServer(dnsServerProcess, dnsUdpServer.businessToConnMsg)
+	dnsUdpServer.udpServer = NewUdpServer(dnsServerProcess, dnsUdpServer.businessToConnMsg, 4096)
 	belogs.Debug("StartDnsUdpServer(): dnsUdpServer:", dnsUdpServer)
 	if serverProtocol == "udp" {
 		err = dnsUdpServer.udpServer.StartUdpServer(serverPort)

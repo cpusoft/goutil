@@ -35,7 +35,7 @@ func StartDnsUdpClient(serverProtocol string, serverHost string, serverPort stri
 	belogs.Debug("StartDnsUdpClient(): NewDnsClientProcess:", dnsClientProcess)
 
 	// tclTlsClient
-	dnsUdpClient.udpClient = NewUdpClient(dnsClientProcess, dnsUdpClient.businessToConnMsg)
+	dnsUdpClient.udpClient = NewUdpClient(dnsClientProcess, dnsUdpClient.businessToConnMsg, 4096)
 	belogs.Debug("StartDnsUdpClient(): dnsUdpClient:", dnsUdpClient)
 
 	// set to global dnsClient
