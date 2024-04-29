@@ -15,10 +15,15 @@ type TestModel struct {
 	Aki string
 }
 
-func getKey(value any) string {
-	fmt.Println(value)
+func getName(value any) string {
+
 	t := value.(*TestModel)
 	return t.Name
+}
+func getAki(value any) string {
+
+	t := value.(*TestModel)
+	return t.Aki
 }
 
 func TestDualCache(t *testing.T) {
@@ -33,7 +38,7 @@ func TestDualCache(t *testing.T) {
 	ts = append(ts, t2)
 	ts = append(ts, t3)
 	fmt.Println(ts)
-	cache.Sets("test", ts, getKey)
+	cache.Sets("test", ts, getName)
 	m, ok, err := cache.Gets("test")
 	fmt.Println(m, ok, err)
 }
@@ -52,4 +57,22 @@ func TestNewAdjacentCache(t *testing.T) {
 	cds, _ := c.GetChildDatas()
 	fmt.Println(jsonutil.MarshalJson(pd))
 	fmt.Println(jsonutil.MarshalJson(cds))
+}
+
+func TestNewHorizontalCache(t *testing.T) {
+	cache := NewHorizontalCache(100)
+
+	c1 := &TestModel{Name: "c1", Aki: "ski1"}
+	c2 := &TestModel{Name: "c2", Aki: "ski1"}
+	c3 := &TestModel{Name: "c3", Aki: "ski1"}
+	c4 := &TestModel{Name: "c4", Aki: "ski1"}
+	anys := make([]any, 0)
+	anys = append(anys, c1)
+	anys = append(anys, c2)
+	anys = append(anys, c3)
+	anys = append(anys, c4)
+
+	cache.Sets(getAki, anys, getName)
+	c, ok, err := cache.Gets("ski1")
+	fmt.Println(c, ok, err)
 }
