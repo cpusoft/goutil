@@ -3,11 +3,16 @@ package cacheutil
 import (
 	"fmt"
 	"testing"
+
+	"github.com/cpusoft/goutil/jsonutil"
 )
 
 type TestModel struct {
 	Name    string
 	Address string
+
+	Ski string
+	Aki string
 }
 
 func getKey(value any) string {
@@ -16,8 +21,8 @@ func getKey(value any) string {
 	return t.Name
 }
 
-func TestCache(t *testing.T) {
-	cache := NewCache(100)
+func TestDualCache(t *testing.T) {
+	cache := NewDualCache(100)
 	cache.AddBaseCache("test", 100)
 
 	t1 := &TestModel{Name: "Name1", Address: "Address1"}
@@ -29,6 +34,22 @@ func TestCache(t *testing.T) {
 	ts = append(ts, t3)
 	fmt.Println(ts)
 	cache.Sets("test", ts, getKey)
-	m, _ := cache.Gets("test")
-	fmt.Println(m)
+	m, ok, err := cache.Gets("test")
+	fmt.Println(m, ok, err)
+}
+func TestNewAdjacentCache(t *testing.T) {
+	cache := NewAdjacentCache(100)
+
+	p := &TestModel{Name: "parent", Ski: "ski1"}
+	c1 := &TestModel{Name: "c1", Aki: "ski1"}
+	c2 := &TestModel{Name: "c2", Aki: "ski1"}
+
+	cache.AddAdjacentBaseCacheByParentData("ski1", "p", p)
+	cache.AddAdjacentBaseCacheByChildData("ski1", "c1", c1)
+	cache.AddAdjacentBaseCacheByChildData("ski1", "c2", c2)
+	c, _ := cache.GetAdjacentBaseCache("ski1")
+	pd, _ := c.GetParentData()
+	cds, _ := c.GetChildDatas()
+	fmt.Println(jsonutil.MarshalJson(pd))
+	fmt.Println(jsonutil.MarshalJson(cds))
 }

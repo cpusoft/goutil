@@ -1,34 +1,49 @@
 package cacheutil
 
-import (
-	"sync"
-)
-
+/*
 type Cache struct {
-	datas    map[string]*BaseCache
-	mutex    sync.RWMutex
-	capacity uint64
+	oneCaches   map[string]*OneCache
+	listCaches  map[string]*ListCache
+	useOneCache bool
+	mutex       sync.RWMutex
+	capacity    uint64
 }
 
-func NewCache(capacity uint64) *Cache {
+func NewCacheUseOne(capacity uint64) *Cache {
 	c := &Cache{
-		datas:    make(map[string]*BaseCache, capacity),
-		capacity: capacity,
+		oneCaches:   make(map[string]*OneCache, capacity),
+		capacity:    capacity,
+		useOneCache: true,
 	}
 	return c
 }
-
-func (c *Cache) AddBaseCache(baseKey string, baseCapacity uint64) {
+func NewCacheUseList(capacity uint64) *Cache {
+	c := &Cache{
+		listCaches:  make(map[string]*ListCache, capacity),
+		capacity:    capacity,
+		useOneCache: false,
+	}
+	return c
+}
+func (c *Cache) AddCache(baseKey string, mapCapacity uint64) {
 	if baseKey == "" {
 		return
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if _, ok := c.datas[baseKey]; ok {
-		// only add once
-		return
+	if c.useOneCache {
+		if _, ok := c.oneCaches[baseKey]; ok {
+			// only add once
+			return
+		}
+		c.oneCaches[baseKey] = NewOneCache(mapCapacity)
+	} else {
+		if _, ok := c.listCaches[baseKey]; ok {
+			// only add once
+			return
+		}
+		c.listCaches[baseKey] = NewListCache(mapCapacity)
 	}
-	c.datas[baseKey] = NewBaseCache(baseCapacity)
 }
 
 func (c *Cache) Set(baseKey string, key string, value any) {
@@ -37,10 +52,17 @@ func (c *Cache) Set(baseKey string, key string, value any) {
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if _, ok := c.datas[baseKey]; !ok {
-		return
+	if c.useOneCache {
+		if _, ok := c.oneCaches[baseKey]; !ok {
+			return
+		}
+		c.oneCaches[baseKey].Set(key, value)
+	} else {
+		if _, ok := c.listCaches[baseKey]; !ok {
+			return
+		}
+		c.listCaches[baseKey].Set(key, value)
 	}
-	c.datas[baseKey].Set(key, value)
 }
 
 func (c *Cache) Sets(baseKey string, values []any, getKey func(value any) string) {
@@ -49,43 +71,76 @@ func (c *Cache) Sets(baseKey string, values []any, getKey func(value any) string
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if _, ok := c.datas[baseKey]; !ok {
-		return
+	if c.useOneCache {
+		if _, ok := c.oneCaches[baseKey]; !ok {
+			return
+		}
+		c.oneCaches[baseKey].Sets(values, getKey)
+	} else {
+		if _, ok := c.listCaches[baseKey]; !ok {
+			return
+		}
+		c.listCaches[baseKey].Sets(values, getKey)
 	}
-	c.datas[baseKey].Sets(values, getKey)
 }
 
-func (c *Cache) Get(baseKey string, key string) (value any, exist bool) {
+func (c *Cache) Get(baseKey string, key string) (value any, values []any, exist bool) {
 	if baseKey == "" || key == "" {
 		return nil, false
 	}
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	if _, ok := c.datas[baseKey]; !ok {
-		return
+	if c.useOneCache {
+		oneCache, ok := c.oneCaches[baseKey]
+		if !ok {
+			return nil, nil, false
+		}
+		value, exist = oneCache.Get(key)
+		return value, nil, exist
+	} else {
+		listCache, ok := c.listCaches[baseKey]
+		if !ok {
+			return nil, nil, false
+		}
+		values, exist = listCache.Get(key)
+		return nil, values, exist
 	}
-	return c.datas[baseKey].Get(key)
 }
 
-func (c *Cache) Gets(baseKey string) (values map[string]any, exist bool) {
+func (c *Cache) Gets(baseKey string) (map[string]any, map[string]ListData, bool) {
 	if baseKey == "" {
 		return nil, false
 	}
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	if _, ok := c.datas[baseKey]; !ok {
-		return nil, false
+	if c.useOneCache {
+		oneCache, ok := c.oneCaches[baseKey]
+		if !ok {
+			return nil, nil, false
+		}
+		values := oneCache.Gets()
+		return values, nil, true
+	} else {
+		listCache, ok := c.listCaches[baseKey]
+		if !ok {
+			return nil, nil, false
+		}
+		values := listCache.Gets()
+		return nil, values, true
 	}
-	return c.datas[baseKey].Gets(), true
 }
 
 func (c *Cache) GetCount(baseKey string) int {
 	if baseKey == "" {
 		return 0
 	}
-	m, ok := c.Gets(baseKey)
+	d, ls, ok := c.Gets(baseKey)
 	if ok {
-		return len(m)
+		if c.useOneCache {
+			return len(d)
+		} else {
+			return len(ls)
+		}
 	} else {
 		return 0
 	}
@@ -109,5 +164,6 @@ func (c *Cache) Reset() {
 	for baseKey := range c.datas {
 		c.datas[baseKey].Reset()
 	}
-	c.datas = make(map[string]*BaseCache, c.capacity)
+	c.datas = make(map[string]*OneCache, c.capacity)
 }
+*/
