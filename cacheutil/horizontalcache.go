@@ -26,6 +26,9 @@ func (c *HorizontalCache) Sets(getBaseKey func(value any) string,
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+	if c.horizontalBaseCaches == nil {
+		return errors.New("horizontalBaseCaches is empty, need call NewHorizontalCache first")
+	}
 
 	for _, value := range values {
 		baseKey := getBaseKey(value)
@@ -45,7 +48,9 @@ func (c *HorizontalCache) Gets(baseKey string) (map[string]any, bool, error) {
 	}
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-
+	if c.horizontalBaseCaches == nil {
+		return nil, false, errors.New("horizontalBaseCaches is empty, need call NewHorizontalCache first")
+	}
 	horizontalBaseCache, ok := c.horizontalBaseCaches[baseKey]
 	if !ok {
 		return nil, false, errors.New("not found by baseKey")
@@ -65,13 +70,19 @@ func (c *HorizontalCache) GetCount(baseKey string) int {
 		return len(d)
 	}
 	return 0
-
 }
+
+func (c *HorizontalCache) GetCounts() int {
+	return len(c.horizontalBaseCaches)
+}
+
 func (c *HorizontalCache) Reset() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	for baseKey := range c.horizontalBaseCaches {
-		c.horizontalBaseCaches[baseKey].Reset()
+	if c.horizontalBaseCaches != nil {
+		for baseKey := range c.horizontalBaseCaches {
+			c.horizontalBaseCaches[baseKey].Reset()
+		}
 	}
 	c.horizontalBaseCaches = make(map[string]*HorizontalBaseCache, c.capacity)
 }
