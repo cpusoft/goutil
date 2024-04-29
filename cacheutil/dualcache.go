@@ -89,18 +89,18 @@ func (c *DualCache) Gets(baseKey string) (map[string]any, bool, error) {
 	return values, true, err
 }
 
-func (c *DualCache) GetCount(baseKey string) (int, error) {
+func (c *DualCache) GetCount(baseKey string) int {
 	if baseKey == "" {
-		return -1, errors.New("baseKey is empty")
+		return 0
 	}
 	d, ok, err := c.Gets(baseKey)
 	if err != nil {
-		return -1, err
+		return 0
 	}
 	if ok {
-		return len(d), nil
+		return len(d)
 	}
-	return 0, nil
+	return 0
 
 }
 

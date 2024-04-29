@@ -53,7 +53,20 @@ func (c *HorizontalCache) Gets(baseKey string) (map[string]any, bool, error) {
 	values, err := horizontalBaseCache.Gets()
 	return values, true, err
 }
+func (c *HorizontalCache) GetCount(baseKey string) int {
+	if baseKey == "" {
+		return 0
+	}
+	d, ok, err := c.Gets(baseKey)
+	if err != nil {
+		return 0
+	}
+	if ok {
+		return len(d)
+	}
+	return 0
 
+}
 func (c *HorizontalCache) Reset() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
