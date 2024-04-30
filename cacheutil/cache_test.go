@@ -25,6 +25,11 @@ func getAki(value any) string {
 	t := value.(*TestModel)
 	return t.Aki
 }
+func getSki(value any) string {
+
+	t := value.(*TestModel)
+	return t.Ski
+}
 
 func TestDualCache(t *testing.T) {
 	cache := NewDualCache(100)
@@ -46,12 +51,21 @@ func TestNewAdjacentCache(t *testing.T) {
 	cache := NewAdjacentCache(100)
 
 	p := &TestModel{Name: "parent", Ski: "ski1"}
-	c1 := &TestModel{Name: "c1", Aki: "ski1"}
-	c2 := &TestModel{Name: "c2", Aki: "ski1"}
+	c1 := &TestModel{Name: "c1", Aki: "ski1", Ski: "skic1"}
+	c2 := &TestModel{Name: "c2", Aki: "ski1", Ski: "skic2"}
+	c3 := &TestModel{Name: "c3", Aki: "ski1", Ski: "skic3"}
+	c4 := &TestModel{Name: "c4", Aki: "ski1", Ski: "skic4"}
+	anys := make([]any, 0)
+	anys = append(anys, p)
+	cache.AddParentData(getSki, anys, getName)
 
-	cache.AddAdjacentBaseCacheByParentData("ski1", "p", p)
-	cache.AddAdjacentBaseCacheByChildData("ski1", "c1", c1)
-	cache.AddAdjacentBaseCacheByChildData("ski1", "c2", c2)
+	anys = make([]any, 0)
+	anys = append(anys, c1)
+	anys = append(anys, c2)
+	anys = append(anys, c3)
+	anys = append(anys, c4)
+	cache.AddChildData(getAki, anys, getName)
+
 	c, _ := cache.GetAdjacentBaseCache("ski1")
 	pd, _ := c.GetParentData()
 	cds, _ := c.GetChildDatas()

@@ -6,52 +6,65 @@ import (
 )
 
 type AdjacentCache struct {
-	datas         map[string]*AdjacentBaseCache // baseKey is parent's ski, as child's aki
-	mutex         sync.RWMutex
-	datasCapacity uint64
+	adjacentBaseCaches map[string]*AdjacentBaseCache // baseKey is parent's ski, as child's aki
+	mutex              sync.RWMutex
+	datasCapacity      uint64
 }
 
 func NewAdjacentCache(datasCapacity uint64) *AdjacentCache {
 	c := &AdjacentCache{
 		datasCapacity: datasCapacity,
 	}
-	c.datas = make(map[string]*AdjacentBaseCache, datasCapacity)
+	c.adjacentBaseCaches = make(map[string]*AdjacentBaseCache, datasCapacity)
 	return c
 }
 
 // baseKey is parent's ski, as child's aki
-func (c *AdjacentCache) GetAdjacentBaseCache(baseKey string) (*AdjacentBaseCache, error) {
-	if baseKey == "" {
-		return nil, errors.New("baseKey is empty")
-	}
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return c.datas[baseKey], nil
-}
+func (c *AdjacentCache) GetBaseData(baseKey string) {
 
-func (c *AdjacentCache) AddAdjacentBaseCacheByParentData(baseKey string, key string, parentData any) error {
-	if baseKey == "" || key == "" || parentData == nil {
-		return errors.New("baseKey, key or parentData is empty")
+}
+func (c *AdjacentCache) AddParentData(getBaseKey func(value any) string,
+	values []any, getKey func(value any) string) error {
+	if getBaseKey == nil || len(values) == 0 || getKey == nil {
+		return errors.New("getBaseKey, values, or getKey is empty")
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	_, ok := c.datas[baseKey]
-	if !ok {
-		c.datas[baseKey] = NewAdjacentBaseCache(5)
+	if c.adjacentBaseCaches == nil {
+		return errors.New("adjacentBaseCaches is empty, need call NewAdjacentCache first")
 	}
-	c.datas[baseKey].SetParentData(key, parentData)
+
+	for _, value := range values {
+		baseKey := getBaseKey(value)
+		_, ok := c.adjacentBaseCaches[baseKey]
+		if !ok {
+			c.adjacentBaseCaches[baseKey] = NewAdjacentBaseCache(5)
+		}
+		key := getKey(value)
+		c.adjacentBaseCaches[baseKey].SetParentData(key, value)
+	}
 	return nil
 }
-func (c *AdjacentCache) AddAdjacentBaseCacheByChildData(baseKey string, key string, childData any) error {
-	if baseKey == "" || key == "" || childData == nil {
-		return errors.New("baseKey, key or childData is empty")
+
+func (c *AdjacentCache) AddChildData(getBaseKey func(value any) string,
+	values []any, getKey func(value any) string) error {
+	if getBaseKey == nil || len(values) == 0 || getKey == nil {
+		return errors.New("getBaseKey, values, or getKey is empty")
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	_, ok := c.datas[baseKey]
-	if !ok {
-		c.datas[baseKey] = NewAdjacentBaseCache(5)
+	if c.adjacentBaseCaches == nil {
+		return errors.New("adjacentBaseCaches is empty, need call NewAdjacentCache first")
 	}
-	c.datas[baseKey].SetChildData(key, childData)
+
+	for _, value := range values {
+		baseKey := getBaseKey(value)
+		_, ok := c.adjacentBaseCaches[baseKey]
+		if !ok {
+			c.adjacentBaseCaches[baseKey] = NewAdjacentBaseCache(5)
+		}
+		key := getKey(value)
+		c.adjacentBaseCaches[baseKey].SetChildData(key, value)
+	}
 	return nil
 }
