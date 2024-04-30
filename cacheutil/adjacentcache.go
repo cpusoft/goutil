@@ -19,10 +19,6 @@ func NewAdjacentCache(datasCapacity uint64) *AdjacentCache {
 	return c
 }
 
-// baseKey is parent's ski, as child's aki
-func (c *AdjacentCache) GetBaseData(baseKey string) {
-
-}
 func (c *AdjacentCache) AddParentData(getBaseKey func(value any) string,
 	values []any, getKey func(value any) string) error {
 	if getBaseKey == nil || len(values) == 0 || getKey == nil {
@@ -67,4 +63,22 @@ func (c *AdjacentCache) AddChildData(getBaseKey func(value any) string,
 		c.adjacentBaseCaches[baseKey].SetChildData(key, value)
 	}
 	return nil
+}
+
+// baseKey is parent's ski, as child's aki
+func (c *AdjacentCache) GetBaseCache(baseKey string) (*AdjacentBaseCache, bool, error) {
+	if baseKey == "" {
+		return nil, false, errors.New("baseKey is empty")
+	}
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	if c.adjacentBaseCaches == nil {
+		return nil, false, errors.New("adjacentBaseCaches is empty, need call NewAdjacentCache first")
+	}
+	v, ok := c.adjacentBaseCaches[baseKey]
+	return v, ok, nil
+}
+
+func (c *AdjacentCache) GetCounts() int {
+	return len(c.adjacentBaseCaches)
 }

@@ -66,7 +66,7 @@ func TestNewAdjacentCache(t *testing.T) {
 	anys = append(anys, c4)
 	cache.AddChildData(getAki, anys, getName)
 
-	c, _ := cache.GetAdjacentBaseCache("ski1")
+	c, _, _ := cache.GetBaseCache("ski1")
 	pd, _ := c.GetParentData()
 	cds, _ := c.GetChildDatas()
 	fmt.Println(jsonutil.MarshalJson(pd))
