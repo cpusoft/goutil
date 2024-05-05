@@ -84,7 +84,7 @@ func (c *DualCache) Get(baseKey string, key string) (any, bool, error) {
 	return dualBaseCache.Get(key)
 }
 
-func (c *DualCache) Gets(baseKey string) (map[string]any, bool, error) {
+func (c *DualCache) GetsClone(baseKey string) (map[string]any, bool, error) {
 	if baseKey == "" {
 		return nil, false, errors.New("baseKey is empty")
 	}
@@ -97,7 +97,7 @@ func (c *DualCache) Gets(baseKey string) (map[string]any, bool, error) {
 	if !ok {
 		return nil, false, errors.New("not found by baseKey, call AddBaseCache first")
 	}
-	values, err := dualBaseCache.Gets()
+	values, err := dualBaseCache.GetsClone()
 	return values, true, err
 }
 
@@ -105,7 +105,16 @@ func (c *DualCache) GetCount(baseKey string) int {
 	if baseKey == "" {
 		return 0
 	}
-	d, ok, err := c.Gets(baseKey)
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	if c.dualBaseCaches == nil {
+		return 0
+	}
+	dualBaseCache, ok := c.dualBaseCaches[baseKey]
+	if !ok {
+		return 0
+	}
+	d, err := dualBaseCache.GetsUnsafe()
 	if err != nil {
 		return 0
 	}

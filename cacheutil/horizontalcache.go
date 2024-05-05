@@ -42,7 +42,7 @@ func (c *HorizontalCache) Sets(getBaseKey func(value any) string,
 	return nil
 }
 
-func (c *HorizontalCache) Gets(baseKey string) (map[string]any, bool, error) {
+func (c *HorizontalCache) GetsClone(baseKey string) (map[string]any, bool, error) {
 	if baseKey == "" {
 		return nil, false, errors.New("baseKey is empty")
 	}
@@ -55,14 +55,23 @@ func (c *HorizontalCache) Gets(baseKey string) (map[string]any, bool, error) {
 	if !ok {
 		return nil, false, errors.New("not found by baseKey")
 	}
-	values, err := horizontalBaseCache.Gets()
+	values, err := horizontalBaseCache.GetsClone()
 	return values, true, err
 }
 func (c *HorizontalCache) GetCount(baseKey string) int {
 	if baseKey == "" {
 		return 0
 	}
-	d, ok, err := c.Gets(baseKey)
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	if c.horizontalBaseCaches == nil {
+		return 0
+	}
+	horizontalBaseCache, ok := c.horizontalBaseCaches[baseKey]
+	if !ok {
+		return 0
+	}
+	d, err := horizontalBaseCache.GetsUnsafe()
 	if err != nil {
 		return 0
 	}
@@ -73,6 +82,8 @@ func (c *HorizontalCache) GetCount(baseKey string) int {
 }
 
 func (c *HorizontalCache) GetCounts() int {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return len(c.horizontalBaseCaches)
 }
 

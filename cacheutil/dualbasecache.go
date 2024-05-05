@@ -54,13 +54,29 @@ func (c *DualBaseCache) Get(key string) (any, bool, error) {
 	v, ok := c.datas[key]
 	return v, ok, nil
 }
-func (c *DualBaseCache) Gets() (map[string]any, error) {
+
+// unsafe, be careful
+func (c *DualBaseCache) GetsUnsafe() (map[string]any, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	if c.datas == nil {
 		return nil, errors.New("datas is empty, need call NewDualBaseCache first")
 	}
 	return c.datas, nil
+}
+
+// safe
+func (c *DualBaseCache) GetsClone() (map[string]any, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	if c.datas == nil {
+		return nil, errors.New("datas is empty, need call NewDualBaseCache first")
+	}
+	n := make(map[string]any, len(c.datas))
+	for k, v := range c.datas {
+		n[k] = v
+	}
+	return n, nil
 }
 
 func (c *DualBaseCache) Remove(key string) {

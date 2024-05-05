@@ -31,13 +31,27 @@ func (c *HorizontalBaseCache) Set(key string, value any) error {
 	c.datas[key] = value
 	return nil
 }
-func (c *HorizontalBaseCache) Gets() (map[string]any, error) {
+
+// unsafe, be careful
+func (c *HorizontalBaseCache) GetsUnsafe() (map[string]any, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	if c.datas == nil {
 		return nil, errors.New("datas is empty, need call NewDualBaseCache first")
 	}
 	return c.datas, nil
+}
+func (c *HorizontalBaseCache) GetsClone() (map[string]any, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	if c.datas == nil {
+		return nil, errors.New("datas is empty, need call NewDualBaseCache first")
+	}
+	n := make(map[string]any, len(c.datas))
+	for k, v := range c.datas {
+		n[k] = v
+	}
+	return n, nil
 }
 
 func (c *HorizontalBaseCache) Reset() {
