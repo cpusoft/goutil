@@ -44,7 +44,7 @@ func TestDualCache(t *testing.T) {
 	ts = append(ts, t3)
 	fmt.Println(ts)
 	cache.Sets("test", ts, getName)
-	m, ok, err := cache.Gets("test")
+	m, ok, err := cache.GetsClone("test")
 	fmt.Println(m, ok, err)
 }
 func TestNewAdjacentCache(t *testing.T) {
@@ -87,6 +87,6 @@ func TestNewHorizontalCache(t *testing.T) {
 	anys = append(anys, c4)
 
 	cache.Sets(getAki, anys, getName)
-	c, ok, err := cache.Gets("ski1")
+	c, ok, err := cache.GetsClone("ski1")
 	fmt.Println(c, ok, err)
 }
