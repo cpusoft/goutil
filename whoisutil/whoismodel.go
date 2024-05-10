@@ -8,7 +8,7 @@ import (
 )
 
 type WhoisConfig struct {
-	Host string `json:"hots"` // -h whois.apnic.net
+	Host string `json:"host"` // -h whois.apnic.net
 	Port string `json:"port"` // default: 43
 }
 
