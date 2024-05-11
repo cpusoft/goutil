@@ -19,40 +19,47 @@ import (
 )
 
 // if cert cannot pass verify, just log info level
+// cerFile may be PEM
 func ReadFileToCer(fileName string) (*x509.Certificate, error) {
-	p, fileByte, err := ReadFileToByte(fileName)
+	belogs.Debug("ReadFileToCer(): fileName:", fileName)
+	buf, err := os.ReadFile(fileName)
 	if err != nil {
+		belogs.Error("ReadFileToCer(): ReadFile fail, fileName:", fileName, err)
 		return nil, err
 	}
-	if len(fileByte) > 0 {
-		return x509.ParseCertificate(fileByte)
-	} else if p != nil {
-		return x509.ParseCertificate(p.Bytes)
+	belogs.Debug("ReadFileToCer(): ReadFile fileName:", fileName, "  len(buf):", len(buf))
+	// default
+	fileByte := buf
+
+	// no PEM data is found, p is nil and the whole of the input is returned in
+	p, _ := pem.Decode(buf)
+	if p != nil {
+		fileByte = p.Bytes
+		belogs.Debug("ReadFileToCer(): is pem, pem.Decode ok, fileName:", fileName,
+			"  len(fileByte):", len(fileByte))
 	}
-	return nil, errors.New("unknown cert type")
+	belogs.Debug("ReadFileToCer(): ok, fileName:", fileName,
+		"  len(fileByte):", len(fileByte))
+	return x509.ParseCertificate(fileByte)
 }
 
 // if cert cannot pass verify, just log info level
 func ReadFileToCrl(fileName string) (*pkix.CertificateList, error) {
-	_, fileByte, err := ReadFileToByte(fileName)
+	belogs.Debug("ReadFileToCrl(): fileName:", fileName)
+	fileByte, err := os.ReadFile(fileName)
 	if err != nil {
+		belogs.Error("ReadFileToCrl(): ReadFile fail, fileName:", fileName, err)
 		return nil, err
 	}
-	if len(fileByte) > 0 {
-		return x509.ParseCRL(fileByte)
+	if len(fileByte) == 0 {
+		belogs.Error("ReadFileToCrl(): len(fileByte) is zero fail, fileName:", fileName,
+			"  len(fileByte):", len(fileByte))
+		return nil, errors.New("this file is not crl")
 	}
-	return nil, errors.New("unknown cert type")
-}
+	belogs.Debug("ReadFileToCrl(): ok, fileName:", fileName,
+		"  len(fileByte):", len(fileByte), err)
+	return x509.ParseCRL(fileByte)
 
-// no PEM data is found, p is nil and the whole of the input is returned in
-func ReadFileToByte(fileName string) (p *pem.Block, fileByte []byte, err error) {
-	buf, err := os.ReadFile(fileName)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	p, fileByte = pem.Decode(buf)
-	return p, fileByte, nil
 }
 
 // if cert cannot pass verify, just log info level
