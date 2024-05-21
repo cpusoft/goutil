@@ -284,27 +284,29 @@ func IpToRtrFormatByte(ip string) []byte {
 
 			bb, err := strconv.ParseUint(tmp1, 16, 0)
 			if err != nil {
-				belogs.Debug("IpToRtrFormatByte():tmp1 ParseUint fail, tmp1:", tmp1, err)
+				belogs.Error("IpToRtrFormatByte():tmp1 ParseUint fail, tmp1:", tmp1, err)
 				return nil
 			}
 			if bb > math.MaxUint16 {
-				belogs.Debug("IpToRtrFormatByte():tmp1 > math.MaxUint16 fail, tmp1:", tmp1, err)
+				belogs.Error("IpToRtrFormatByte():tmp1 > math.MaxUint16 fail, tmp1:", tmp1)
 				return nil
+			} else {
+				byt[bytIndx] = byte(bb)
+				bytIndx++
 			}
-			byt[bytIndx] = byte(bb)
-			bytIndx++
 
 			bb, err = strconv.ParseUint(tmp2, 16, 0)
 			if err != nil {
-				belogs.Debug("IpToRtrFormatByte():tmp2 ParseUint fail, tmp2:", tmp2, err)
+				belogs.Error("IpToRtrFormatByte():tmp2 ParseUint fail, tmp2:", tmp2, err)
 				return nil
 			}
 			if bb > math.MaxUint16 {
-				belogs.Debug("IpToRtrFormatByte():tmp2 > math.MaxUint16 fail, tmp2:", tmp2, err)
+				belogs.Error("IpToRtrFormatByte():tmp2 > math.MaxUint16 fail, tmp2:", tmp2)
 				return nil
+			} else {
+				byt[bytIndx] = byte(bb)
+				bytIndx++
 			}
-			byt[bytIndx] = byte(bb)
-			bytIndx++
 		}
 		return byt
 	}
