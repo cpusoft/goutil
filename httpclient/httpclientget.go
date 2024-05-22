@@ -4,17 +4,14 @@ import (
 	"crypto/tls"
 	"errors"
 	"net/url"
-	"os"
-	"os/exec"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
-	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/cpusoft/goutil/netutil"
-	"github.com/cpusoft/goutil/stringutil"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -40,6 +37,7 @@ func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp 
 	belogs.Debug("GetHttpWithConfig():url:", urlStr, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)
 	if err != nil {
+		belogs.Error("GetHttpWithConfig(): Parse fail, urlStr:", urlStr, err)
 		return nil, "", err
 	}
 	if httpClientConfig == nil {
@@ -70,6 +68,7 @@ func GetHttpsVerifyWithConfig(urlStr string, verify bool, httpClientConfig *Http
 	belogs.Debug("GetHttpsVerifyWithConfig():url:", urlStr, "    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)
 	if err != nil {
+		belogs.Error("GetHttpsVerifyWithConfig(): Parse fail, urlStr:", urlStr, err)
 		return nil, "", err
 	}
 	if httpClientConfig == nil {
@@ -88,80 +87,129 @@ func GetHttpsVerifyWithConfig(urlStr string, verify bool, httpClientConfig *Http
 
 }
 
-// get by Curl
-func GetByCurl(url string) (result string, err error) {
-	return GetByCurlWithConfig(url, nil)
-}
-func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result string, err error) {
-	belogs.Debug("GetByCurlWithConfig(): url:", url, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
-	url = strings.TrimSpace(url)
-	if len(url) == 0 {
-		return "", errors.New("url is emtpy")
+func GetHttpsResponseVerifyWithConfig(urlStr string, verify bool, httpClientConfig *HttpClientConfig) (resp gorequest.Response, err error) {
+	belogs.Debug("GetHttpsResponseVerifyWithConfig():url:", urlStr, "    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	url, err := url.Parse(urlStr)
+	if err != nil {
+		belogs.Error("GetHttpsResponseVerifyWithConfig(): Parse fail, urlStr:", urlStr, err)
+		return nil, err
 	}
 	if httpClientConfig == nil {
 		httpClientConfig = globalHttpClientConfig
 	}
-	// mins --> seconds
-	timeout := convert.ToString(httpClientConfig.TimeoutMins * 60)
-	retryCount := convert.ToString(httpClientConfig.RetryCount)
-	//	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
-	tmpFile, err := os.CreateTemp("", "_tmp_") // temp file
-	if err != nil {
-		belogs.Error("GetByCurlWithConfig(): TempFile fail", err)
-		return "", err
-	}
-	defer os.Remove(tmpFile.Name())
 
-	ipType := ""
-	if httpClientConfig.IpType == "ipv4" {
-		ipType = "-4"
-	} else if httpClientConfig.IpType == "ipv6" {
-		ipType = "-6"
-	}
-	belogs.Info("GetByCurlWithConfig():will curl, url:", url, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig),
-		"  httpClientConfig.TimeoutMins(m):", int64(httpClientConfig.TimeoutMins), "  timeout as seconds:", timeout,
-		"  retryCount:", retryCount, "  ipType:", ipType, "   tmpFile:", tmpFile.Name())
+	config := &tls.Config{InsecureSkipVerify: !verify}
+	resp, _, err = errorsToerror(gorequest.New().Head(urlStr).
+		TLSClientConfig(config).
+		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
+		Set("User-Agent", DefaultUserAgent).
+		Set("Referrer", url.Host).
+		Set("Connection", "keep-alive").
+		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
+		End())
+	return resp, err
+}
 
-	// -s: slient mode  --no use
-	// -4: ipv4  --no use
-	// --connect-timeout: SECONDS  Maximum time allowed for connection
-	// --ignore-content-length: Ignore the Content-Length header  --no use
-	// --retry:
-	// -o : output file
-	// --limit-rate:  100k  --no use
-	// --keepalive-time: <seconds> Interval time for keepalive probes
-	// -m: --max-time SECONDS  Maximum time allowed for the transfer
-	// -v, --verbose       Make the operation more talkative
-	/*
-		cmd := exec.Command("curl", "-4",  "-o", tmpFile, url)
-	*/
-	// minute-->second
+type rangeBody struct {
+	Index uint64
+	Body  string
+}
+type rangeBodySort []rangeBody
 
+func (v rangeBodySort) Len() int {
+	return len(v)
+}
+
+func (v rangeBodySort) Swap(i, j int) {
+	v[i], v[j] = v[j], v[i]
+}
+
+// default comparison.
+func (v rangeBodySort) Less(i, j int) bool {
+	return v[i].Index < v[j].Index
+}
+
+// contentLength: all bytes len
+// oneRangeLength: one range download bytes len
+func GetHttpsRangeVerifyWithConfig(urlStr string, contentLength uint64,
+	oneRangeLength uint64, verify bool,
+	httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
 	start := time.Now()
-	cmd := exec.Command("curl", "--connect-timeout", timeout, "--keepalive-time", timeout,
-		"-m", timeout, ipType, "--retry", retryCount, "--compressed", "-o", tmpFile.Name(), url)
-	output, err := cmd.CombinedOutput()
+	belogs.Debug("GetHttpsResponseVerifyWithConfig():url:", urlStr,
+		"    contentLength:", contentLength, "  oneRangeLength:", oneRangeLength,
+		"    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	url, err := url.Parse(urlStr)
 	if err != nil {
-		var outputStr string
-		if len(output) <= 100 {
-			outputStr = string(output)
-		} else {
-			outputStr = string(output[:100])
-		}
-		outputStr = stringutil.TrimNewLine(outputStr)
-		belogs.Error("GetByCurlWithConfig(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
-			"  tmpFile:", tmpFile.Name(), "  timeout:", timeout, "  retryCount:", retryCount, "  ipType:", ipType,
-			"  len(output):", len(output), "  outputStr:", outputStr, "  time(s):", time.Since(start), "   err:", err)
-		return "", errors.New("Fail to get by curl. url is " + url + ". " + err.Error())
+		belogs.Error("GetHttpsRangeVerifyWithConfig(): Parse fail, urlStr:", urlStr, err)
+		return nil, "", err
 	}
-	belogs.Debug("GetByCurlWithConfig(): curl ok, url:", url, "   tmpFile:", tmpFile.Name(), "  timeout:", timeout, "  time(s):", time.Since(start),
-		"  len(output):", len(output))
+	if httpClientConfig == nil {
+		httpClientConfig = globalHttpClientConfig
+	}
 
-	b, err := fileutil.ReadFileToBytes(tmpFile.Name())
-	if err != nil {
-		belogs.Error("GetByCurlWithConfig(): ReadFileToBytes fail, url", url, "   tmpFile:", tmpFile.Name(), "   err: ", err, "   output: "+string(output))
-		return "", errors.New("Fail to get by curl. Error is `" + err.Error() + "`. Output  is `" + string(output) + "`")
+	config := &tls.Config{InsecureSkipVerify: !verify}
+	count := contentLength / oneRangeLength
+	if contentLength%oneRangeLength != 0 {
+		count++
 	}
-	belogs.Debug("GetByCurlWithConfig(): ReadFileToBytes ok, url:", url, "   tmpFile:", tmpFile.Name(), "  len(b):", len(b), "  time(s):", time.Since(start))
-	return string(b), nil
+	belogs.Debug("GetHttpsResponseVerifyWithConfig(): get count, url:", urlStr,
+		"    contentLength:", contentLength, "  oneRangeLength:", oneRangeLength,
+		"    count:", count)
+	var wg sync.WaitGroup
+	rangeBodyCh := make(chan rangeBody, count)
+	for i := uint64(0); i < count; i++ {
+		startLen := i * oneRangeLength
+		endLen := (i+1)*oneRangeLength - 1
+		if endLen > contentLength {
+			endLen = contentLength
+		}
+		rangeStr := "bytes=" + convert.ToString(startLen) + "-" + convert.ToString(endLen)
+		wg.Add(1)
+		go func(rangeStrTmp string, iTmp uint64, rangeBodyCh chan rangeBody, wg *sync.WaitGroup) {
+			defer wg.Done()
+			resp, body, err = errorsToerror(gorequest.New().Get(urlStr).
+				TLSClientConfig(config).
+				Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
+				Set("User-Agent", DefaultUserAgent).
+				Set("Referrer", url.Host).
+				Set("Connection", "keep-alive").
+				Set("Range", rangeStrTmp).
+				Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
+				End())
+			if err != nil {
+				belogs.Error("GetHttpsRangeVerifyWithConfig(): go Get fail, iTmp:", iTmp, "  urlStr:", urlStr, err)
+				// no return
+				rangeBodyCh <- rangeBody{}
+			} else {
+				belogs.Debug("GetHttpsResponseVerifyWithConfig(): go Get, iTmp:", iTmp,
+					"  url:", urlStr,
+					"  contentLength:", contentLength,
+					"  startLen:", startLen, "  endLen:", endLen, " rangeStrTmp:", rangeStrTmp,
+					"  len(body):", len(body), "  time(s):", time.Since(start))
+				rangeBodyCh <- rangeBody{
+					Index: iTmp,
+					Body:  body,
+				}
+			}
+		}(rangeStr, i, rangeBodyCh, &wg)
+	}
+	wg.Wait()
+	close(rangeBodyCh)
+	belogs.Debug("GetHttpsResponseVerifyWithConfig(): after get all url:", urlStr,
+		"  len(rangeBodyCh):", len(rangeBodyCh), "  time(s):", time.Since(start))
+
+	rangeBodys := make([]rangeBody, 0, count)
+	for b := range rangeBodyCh {
+		rangeBodys = append(rangeBodys, b)
+	}
+	// sort, from newest to oldest
+	sort.Sort(rangeBodySort(rangeBodys))
+	var sbuilder strings.Builder
+	for r := range rangeBodys {
+		sbuilder.WriteString(rangeBodys[r].Body)
+	}
+	body = sbuilder.String()
+	belogs.Debug("GetHttpsResponseVerifyWithConfig(): done get url:", urlStr,
+		"  len(body):", len(body), "  time(s):", time.Since(start))
+	return resp, body, err
 }
