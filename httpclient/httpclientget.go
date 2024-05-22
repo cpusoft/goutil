@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -87,11 +88,11 @@ func GetHttpsVerifyWithConfig(urlStr string, verify bool, httpClientConfig *Http
 
 }
 
-func GetHttpsResponseVerifyWithConfig(urlStr string, verify bool, httpClientConfig *HttpClientConfig) (resp gorequest.Response, err error) {
-	belogs.Debug("GetHttpsResponseVerifyWithConfig():url:", urlStr, "    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+func GetHttpsVerifyResponseWithConfig(urlStr string, verify bool, httpClientConfig *HttpClientConfig) (resp gorequest.Response, err error) {
+	belogs.Debug("GetHttpsVerifyResponseWithConfig():url:", urlStr, "    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)
 	if err != nil {
-		belogs.Error("GetHttpsResponseVerifyWithConfig(): Parse fail, urlStr:", urlStr, err)
+		belogs.Error("GetHttpsVerifyResponseWithConfig(): Parse fail, urlStr:", urlStr, err)
 		return nil, err
 	}
 	if httpClientConfig == nil {
@@ -108,6 +109,33 @@ func GetHttpsResponseVerifyWithConfig(urlStr string, verify bool, httpClientConf
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		End())
 	return resp, err
+}
+func GetHttpsVerifySupportRangeWithConfig(urlStr string, verify bool, httpClientConfig *HttpClientConfig) (resp gorequest.Response,
+	supportRange bool, contentLength uint64, err error) {
+	belogs.Debug("GetHttpsVerifySupportRangeWithConfig():url:", urlStr, "    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	resp, err = GetHttpsVerifyResponseWithConfig(urlStr, verify, httpClientConfig)
+	if err != nil {
+		belogs.Error("GetHttpsVerifySupportRangeWithConfig(): GetHttpsVerifyResponseWithConfig fail, urlStr:", urlStr, err)
+		return nil, false, 0, err
+	}
+	if resp.StatusCode != 200 {
+		belogs.Error("GetHttpsVerifySupportRangeWithConfig(): StatusCode is not 200, urlStr:", urlStr, "  resp.StatusCode:", resp.StatusCode)
+		return nil, false, 0, errors.New("StatusCode is not 200")
+	}
+	acceptRanges := resp.Header.Get("Accept-Ranges")
+	if acceptRanges != "bytes" {
+		belogs.Debug("GetHttpsVerifySupportRangeWithConfig(): not support, urlStr:", urlStr, "  resp.Header:", jsonutil.MarshalJson(resp.Header))
+		return nil, false, 0, errors.New("Accept-Ranges is not supported")
+	}
+	contentLengthStr := resp.Header.Get("Content-Length")
+	len, err := strconv.Atoi(contentLengthStr)
+	if err != nil {
+		belogs.Error("GetHttpsVerifySupportRangeWithConfig(): contentLengthStr is not number, urlStr:", urlStr,
+			"  contentLengthStr:", contentLengthStr, err)
+		return nil, false, 0, err
+	}
+	belogs.Debug("GetHttpsVerifySupportRangeWithConfig(): support range, urlStr:", urlStr, "  contentLength:", len)
+	return resp, true, uint64(len), nil
 }
 
 type rangeBody struct {
@@ -131,16 +159,16 @@ func (v rangeBodySort) Less(i, j int) bool {
 
 // contentLength: all bytes len
 // oneRangeLength: one range download bytes len
-func GetHttpsRangeVerifyWithConfig(urlStr string, contentLength uint64,
+func GetHttpsVerifyRangeWithConfig(urlStr string, contentLength uint64,
 	oneRangeLength uint64, verify bool,
 	httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
 	start := time.Now()
-	belogs.Debug("GetHttpsResponseVerifyWithConfig():url:", urlStr,
+	belogs.Debug("GetHttpsVerifyResponseWithConfig():url:", urlStr,
 		"    contentLength:", contentLength, "  oneRangeLength:", oneRangeLength,
 		"    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)
 	if err != nil {
-		belogs.Error("GetHttpsRangeVerifyWithConfig(): Parse fail, urlStr:", urlStr, err)
+		belogs.Error("GetHttpsVerifyRangeWithConfig(): Parse fail, urlStr:", urlStr, err)
 		return nil, "", err
 	}
 	if httpClientConfig == nil {
@@ -152,7 +180,7 @@ func GetHttpsRangeVerifyWithConfig(urlStr string, contentLength uint64,
 	if contentLength%oneRangeLength != 0 {
 		count++
 	}
-	belogs.Debug("GetHttpsResponseVerifyWithConfig(): get count, url:", urlStr,
+	belogs.Debug("GetHttpsVerifyResponseWithConfig(): get count, url:", urlStr,
 		"    contentLength:", contentLength, "  oneRangeLength:", oneRangeLength,
 		"    count:", count)
 	var wg sync.WaitGroup
@@ -177,11 +205,11 @@ func GetHttpsRangeVerifyWithConfig(urlStr string, contentLength uint64,
 				Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 				End())
 			if err != nil {
-				belogs.Error("GetHttpsRangeVerifyWithConfig(): go Get fail, iTmp:", iTmp, "  urlStr:", urlStr, err)
+				belogs.Error("GetHttpsVerifyRangeWithConfig(): go Get fail, iTmp:", iTmp, "  urlStr:", urlStr, err)
 				// no return
 				rangeBodyCh <- rangeBody{}
 			} else {
-				belogs.Debug("GetHttpsResponseVerifyWithConfig(): go Get, iTmp:", iTmp,
+				belogs.Debug("GetHttpsVerifyResponseWithConfig(): go Get, iTmp:", iTmp,
 					"  url:", urlStr,
 					"  contentLength:", contentLength,
 					"  startLen:", startLen, "  endLen:", endLen, " rangeStrTmp:", rangeStrTmp,
@@ -195,7 +223,7 @@ func GetHttpsRangeVerifyWithConfig(urlStr string, contentLength uint64,
 	}
 	wg.Wait()
 	close(rangeBodyCh)
-	belogs.Debug("GetHttpsResponseVerifyWithConfig(): after get all url:", urlStr,
+	belogs.Debug("GetHttpsVerifyResponseWithConfig(): after get all url:", urlStr,
 		"  len(rangeBodyCh):", len(rangeBodyCh), "  time(s):", time.Since(start))
 
 	rangeBodys := make([]rangeBody, 0, count)
@@ -209,7 +237,7 @@ func GetHttpsRangeVerifyWithConfig(urlStr string, contentLength uint64,
 		sbuilder.WriteString(rangeBodys[r].Body)
 	}
 	body = sbuilder.String()
-	belogs.Debug("GetHttpsResponseVerifyWithConfig(): done get url:", urlStr,
+	belogs.Debug("GetHttpsVerifyResponseWithConfig(): done get url:", urlStr,
 		"  len(body):", len(body), "  time(s):", time.Since(start))
 	return resp, body, err
 }

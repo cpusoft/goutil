@@ -2,7 +2,6 @@ package httpclient
 
 import (
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/cpusoft/goutil/jsonutil"
@@ -19,29 +18,25 @@ func TestGetHttpsResponseVerifyWithConfig(t *testing.T) {
 	url := `https://rrdp.ripe.net/notification.xml`
 	url = `https://rrdp.ripe.net/172322cf-c642-4e6f-806c-bd2375d8001a/62034/snapshot-ed067615f1f801318d6233f9dd89aa204e250cdc30ced98918ceadbfcbc3d173.xml`
 	url = `https://rpki-repo.registro.br/rrdp/49582cf3-79ba-4cba-a1a9-14e966177268/137263/65979eb2b415672b/snapshot.xml`
-	resp, _ := GetHttpsResponseVerifyWithConfig(url, true, NewHttpClientConfigWithParam(5, 3, "all"))
+	resp, _ := GetHttpsVerifyResponseWithConfig(url, true, NewHttpClientConfigWithParam(5, 3, "all"))
 	fmt.Println("res:", jsonutil.MarshalJson(resp.Header))
 	ar := resp.Header.Get("Accept-Ranges")
 	len := resp.Header.Get("Content-Length")
 	fmt.Println("ar:", ar, "  len:", len)
 }
 func TestGetHttpsRangeVerifyWithConfig(t *testing.T) {
-	url := `https://rpki-repo.registro.br/rrdp/49582cf3-79ba-4cba-a1a9-14e966177268/137459/65979eb2b415672b/snapshot.xml`
-	resp, _ := GetHttpsResponseVerifyWithConfig(url, true, NewHttpClientConfigWithParam(5, 3, "all"))
-	fmt.Println("res:", jsonutil.MarshalJson(resp.Header))
-	ar := resp.Header.Get("Accept-Ranges")
-	if ar != "bytes" {
-		fmt.Println("no Accept-Ranges:")
-		return
-	}
-	contentLengthStr := resp.Header.Get("Content-Length")
-	contentLength, err := strconv.Atoi(contentLengthStr)
+	url := `https://rpki-repo.registro.br/rrdp/49582cf3-79ba-4cba-a1a9-14e966177268/137698/65979eb2b415672b/snapshot.xml`
+	_, supportRange, contentLength, err := GetHttpsVerifySupportRangeWithConfig(url, true, NewHttpClientConfigWithParam(5, 3, "all"))
 	if err != nil {
 		fmt.Println("err:", err)
 		return
 	}
+	if !supportRange {
+		fmt.Println("not suppport:")
+		return
+	}
 	fmt.Println("contentLength:", contentLength)
-	resp, body, err := GetHttpsRangeVerifyWithConfig(url, uint64(contentLength),
+	resp, body, err := GetHttpsVerifyRangeWithConfig(url, contentLength,
 		10000000, true, NewHttpClientConfigWithParam(5, 3, "all"))
 	fmt.Println("res:", jsonutil.MarshalJson(resp))
 	fmt.Println("body:", body)
