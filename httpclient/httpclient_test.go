@@ -26,18 +26,8 @@ func TestGetHttpsResponseVerifyWithConfig(t *testing.T) {
 }
 
 func TestGetHttpsRangeVerifyWithConfig(t *testing.T) {
-	urls := `[
-	"https://repo-rpki.idnic.net/rrdp/notification.xml",
-	"https://rpki-repo.registro.br/rrdp/notification.xml",
-	"https://rpki-repository.nic.ad.jp/rrdp/ap/notification.xml",
-	"https://rpki-rrdp.us-east-2.amazonaws.com/rrdp/20aa329b-fc52-4c61-bf53-09725c042942/notification.xml",
-	"https://rrdp.lacnic.net/rrdp/notification.xml",
-	"https://rrdp.afrinic.net/notification.xml",
-	"https://rrdp.apnic.net/notification.xml",
-	"https://rrdp.arin.net/notification.xml",
-	"https://rrdp.ripe.net/notification.xml",
-	"https://rrdp.twnic.tw/rrdp/notify.xml"
-]`
+	// support range
+	// support gzip
 
 	url := `https://rpki-repo.registro.br/rrdp/49582cf3-79ba-4cba-a1a9-14e966177268/137698/65979eb2b415672b/snapshot.xml`
 	_, supportRange, contentLength, err := GetHttpsVerifySupportRangeWithConfig(url, true, NewHttpClientConfigWithParam(5, 3, "all"))

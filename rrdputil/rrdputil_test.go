@@ -226,6 +226,14 @@ func TestGetHttpsVerifySupportRangeWithConfig(t *testing.T) {
 	}
 	fmt.Println(jsonutil.MarshalJson(supportUrls))
 	/*
-		["https://repo-rpki.idnic.net/rrdp/notification.xml","https://rpki-repo.registro.br/rrdp/notification.xml","https://rpki-repository.nic.ad.jp/rrdp/ap/notification.xml","https://rpki-rrdp.us-east-2.amazonaws.com/rrdp/20aa329b-fc52-4c61-bf53-09725c042942/notification.xml","https://rrdp.lacnic.net/rrdp/notification.xml","https://rrdp.twnic.tw/rrdp/notify.xml"]
+		[
+			"https://repo-rpki.idnic.net/rrdp/notification.xml",
+			"https://rpki-repo.registro.br/rrdp/notification.xml",
+			"https://rpki-repository.nic.ad.jp/rrdp/ap/notification.xml",
+			"https://rpki-rrdp.us-east-2.amazonaws.com/rrdp/20aa329b-fc52-4c61-bf53-09725c042942/notification.xml",
+			"https://rrdp.lacnic.net/rrdp/notification.xml",
+			"https://rrdp.twnic.tw/rrdp/notify.xml"
+		]
+
 	*/
 }
