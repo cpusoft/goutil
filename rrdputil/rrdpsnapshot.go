@@ -18,6 +18,7 @@ import (
 	"github.com/cpusoft/goutil/stringutil"
 	"github.com/cpusoft/goutil/urlutil"
 	"github.com/cpusoft/goutil/xmlutil"
+	"github.com/parnurzeal/gorequest"
 )
 
 func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error) {
@@ -52,24 +53,44 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 	belogs.Debug("getRrdpSnapshotImplWithConfig(): snapshotUrl:", snapshotUrl, "  httpClientConfig:", jsonutil.MarshalJson(*httpClientConfig))
 	snapshotUrl = strings.TrimSpace(snapshotUrl)
 	start := time.Now()
-	httpclient.SetTimeout(30) // 30mins
-	defer httpclient.ResetTimeout()
-	resp, body, err := httpclient.GetHttpsVerifyWithConfig(snapshotUrl, true, httpClientConfig)
-	belogs.Debug("getRrdpSnapshotImplWithConfig(): GetHttpsVerify, snapshotUrl:", snapshotUrl, "   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
-		"    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
+
+	var resp gorequest.Response
+	var supportRange bool
+	var contentLength uint64
+	var body string
+	ipAddrs := netutil.LookupIpByUrl(snapshotUrl)
+	// test support range
+	_, supportRange, contentLength, err = httpclient.GetHttpsVerifySupportRangeWithConfig(snapshotUrl, true, httpClientConfig)
+	if err == nil && supportRange && contentLength > httpClientConfig.RangeLength {
+		belogs.Debug("getRrdpSnapshotImplWithConfig(): support range, snapshotUrl:", snapshotUrl, "   ipAddrs:", ipAddrs,
+			"    contentLength:", contentLength, "  time(s):", time.Since(start))
+		start = time.Now()
+		// if support range, will call range download
+		resp, body, err = httpclient.GetHttpsVerifyRangeWithConfig(snapshotUrl, contentLength,
+			httpClientConfig.RangeLength, true, httpClientConfig)
+		belogs.Debug("getRrdpSnapshotImplWithConfig(): use range, GetHttpsVerifyRangeWithConfig, snapshotUrl:", snapshotUrl, "   ipAddrs:", ipAddrs,
+			"    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
+	} else {
+		// if not support range, will normal download
+		start = time.Now()
+		resp, body, err = httpclient.GetHttpsVerifyWithConfig(snapshotUrl, true, httpClientConfig)
+		belogs.Debug("getRrdpSnapshotImplWithConfig(): nouse range, GetHttpsVerifyWithConfig, snapshotUrl:", snapshotUrl, "   ipAddrs:", ipAddrs,
+			"    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
+	}
+
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			belogs.Error("getRrdpSnapshotImplWithConfig(): GetHttpsVerify snapshotUrl, is not StatusOK:", snapshotUrl,
+			belogs.Error("getRrdpSnapshotImplWithConfig(): GetHttpsVerifyWithConfig snapshotUrl, is not StatusOK:", snapshotUrl,
 				"   resp.Status:", resp.Status, "    body:", stringutil.OmitString(body, 100))
 			return snapshotModel, errors.New("http status code of " + snapshotUrl + " is " + resp.Status)
 		} else {
-			belogs.Debug("getRrdpSnapshotImplWithConfig():GetHttpsVerify snapshotUrl ok:", snapshotUrl,
-				"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl),
+			belogs.Debug("getRrdpSnapshotImplWithConfig():GetHttpsVerifyWithConfig snapshotUrl ok:", snapshotUrl,
+				"   ipAddrs:", ipAddrs,
 				"   len(body):", len(body), "  time(s):", time.Since(start))
 		}
 	} else {
-		belogs.Debug("getRrdpSnapshotImplWithConfig(): GetHttpsVerify snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
+		belogs.Debug("getRrdpSnapshotImplWithConfig(): GetHttpsVerifyWithConfig snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl, using ipv4
@@ -79,7 +100,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 		body, err = httpclient.GetByCurlWithConfig(snapshotUrl, httpClientConfig)
 		if err != nil {
 			belogs.Debug("getRrdpSnapshotImplWithConfig(): GetByCurlWithConfig snapshotUrl, iptype is ipv4, fail:", snapshotUrl,
-				"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl), "   resp:", resp,
+				"   ipAddrs:", ipAddrs, "   resp:", resp,
 				"   len(body):", len(body), "  time(s):", time.Since(start), err)
 
 			// then try again using curl, using all
@@ -88,7 +109,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 			body, err = httpclient.GetByCurlWithConfig(snapshotUrl, httpClientConfig)
 			if err != nil {
 				belogs.Error("getRrdpSnapshotImplWithConfig(): GetByCurlWithConfig snapshotUrl, iptype is all, fail:", snapshotUrl,
-					"   ipAddrs:", netutil.LookupIpByUrl(snapshotUrl), "   resp:", resp,
+					"   ipAddrs:", ipAddrs, "   resp:", resp,
 					"   len(body):", len(body), "  time(s):", time.Since(start), err)
 				return snapshotModel, errors.New("http error of " + snapshotUrl + " is " + err.Error())
 			}
