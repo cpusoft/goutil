@@ -3,6 +3,7 @@ package httpclient
 import (
 	"crypto/tls"
 	"errors"
+	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
@@ -118,7 +119,7 @@ func GetHttpsVerifySupportRangeWithConfig(urlStr string, verify bool, httpClient
 		belogs.Error("GetHttpsVerifySupportRangeWithConfig(): GetHttpsVerifyResponseWithConfig fail, urlStr:", urlStr, err)
 		return nil, false, 0, err
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		belogs.Error("GetHttpsVerifySupportRangeWithConfig(): StatusCode is not 200, urlStr:", urlStr, "  resp.StatusCode:", resp.StatusCode)
 		return nil, false, 0, errors.New("StatusCode is not 200")
 	}
