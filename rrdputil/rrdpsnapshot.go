@@ -80,7 +80,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 
 	if err == nil {
 		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK ||
+		if resp.StatusCode != http.StatusOK &&
 			resp.StatusCode != http.StatusPartialContent {
 			belogs.Error("getRrdpSnapshotImplWithConfig(): GetHttpsVerifyWithConfig snapshotUrl, is not StatusOK:", snapshotUrl,
 				"   resp.Status:", resp.Status, "    body:", stringutil.OmitString(body, 100))
