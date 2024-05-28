@@ -69,20 +69,20 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 		resp, body, err = httpclient.GetHttpsVerifyRangeWithConfig(snapshotUrl, contentLength,
 			httpClientConfig.RangeLength, true, httpClientConfig)
 		belogs.Debug("getRrdpSnapshotImplWithConfig(): use range, GetHttpsVerifyRangeWithConfig, snapshotUrl:", snapshotUrl, "   ipAddrs:", ipAddrs,
-			"    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
+			" resp.StatusCode:", resp.StatusCode, "    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
 	} else {
 		// if not support range, will normal download
 		start = time.Now()
 		resp, body, err = httpclient.GetHttpsVerifyWithConfig(snapshotUrl, true, httpClientConfig)
 		belogs.Debug("getRrdpSnapshotImplWithConfig(): nouse range, GetHttpsVerifyWithConfig, snapshotUrl:", snapshotUrl, "   ipAddrs:", ipAddrs,
-			"    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
+			" resp.StatusCode:", resp.StatusCode, "    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
 	}
 
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK &&
 			resp.StatusCode != http.StatusPartialContent {
-			belogs.Error("getRrdpSnapshotImplWithConfig(): GetHttpsVerifyWithConfig snapshotUrl, is not StatusOK:", snapshotUrl,
+			belogs.Error("getRrdpSnapshotImplWithConfig(): GetHttpsVerifyWithConfig snapshotUrl, is not StatusOK or StatusPartialContent, snapshotUrl:", snapshotUrl,
 				"   resp.Status:", resp.Status, "    body:", stringutil.OmitString(body, 100))
 			return snapshotModel, errors.New("http status code of " + snapshotUrl + " is " + resp.Status)
 		} else {
