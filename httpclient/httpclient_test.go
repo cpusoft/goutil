@@ -29,7 +29,7 @@ func TestGetHttpsRangeVerifyWithConfig(t *testing.T) {
 	// support range
 	// support gzip
 
-	url := `https://rpki-repo.registro.br/rrdp/49582cf3-79ba-4cba-a1a9-14e966177268/137698/65979eb2b415672b/snapshot.xml`
+	url := `https://rpki-repo.registro.br/rrdp/49582cf3-79ba-4cba-a1a9-14e966177268/147100/65979eb2b415672b/snapshot.xml`
 	_, supportRange, contentLength, err := GetHttpsVerifySupportRangeWithConfig(url, true, NewHttpClientConfigWithParam(5, 3, "all"))
 	if err != nil {
 		fmt.Println("err:", err)
@@ -42,8 +42,8 @@ func TestGetHttpsRangeVerifyWithConfig(t *testing.T) {
 	fmt.Println("contentLength:", contentLength)
 	resp, body, err := GetHttpsVerifyRangeWithConfig(url, contentLength,
 		10000000, true, NewHttpClientConfigWithParam(5, 3, "all"))
-	fmt.Println("res:", jsonutil.MarshalJson(resp))
-	fmt.Println("body:", body)
+	fmt.Println("res:", jsonutil.MarshalJson(resp)," status:",resp.StatusCode)
+	fmt.Println("body:", len(body))
 	fmt.Println("err:", err)
 }
 

@@ -158,6 +158,7 @@ func (v rangeBodySort) Less(i, j int) bool {
 	return v[i].Index < v[j].Index
 }
 
+// resp: one range response, should ignore
 // contentLength: all bytes len
 // oneRangeLength: one range download bytes len
 func GetHttpsVerifyRangeWithConfig(urlStr string, contentLength uint64,
@@ -206,14 +207,16 @@ func GetHttpsVerifyRangeWithConfig(urlStr string, contentLength uint64,
 				Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 				End())
 			if err != nil {
-				belogs.Error("GetHttpsVerifyRangeWithConfig(): go Get fail, iTmp:", iTmp, "  urlStr:", urlStr, err)
+				belogs.Error("GetHttpsVerifyRangeWithConfig(): go Get range fail, iTmp:", iTmp,
+					"  urlStr:", urlStr, "  rangeStrTmp:", rangeStrTmp,
+					"  resp.StatusCode:", resp.StatusCode, err)
 				// no return
-				rangeBodyCh <- rangeBody{}
+				rangeBodyCh <- rangeBody{Index: iTmp, Body: ""}
 			} else {
-				belogs.Debug("GetHttpsVerifyResponseWithConfig(): go Get, iTmp:", iTmp,
-					"  url:", urlStr,
-					"  contentLength:", contentLength,
-					"  startLen:", startLen, "  endLen:", endLen, " rangeStrTmp:", rangeStrTmp,
+				belogs.Debug("GetHttpsVerifyResponseWithConfig(): go Get range ok, iTmp:", iTmp,
+					"  urlStr:", urlStr, " rangeStrTmp:", rangeStrTmp,
+					"  contentLength:", contentLength, "  startLen:", startLen, "  endLen:", endLen,
+					"  resp.StatusCode:", resp.StatusCode,
 					"  len(body):", len(body), "  time(s):", time.Since(start))
 				rangeBodyCh <- rangeBody{
 					Index: iTmp,
