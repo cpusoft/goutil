@@ -30,6 +30,7 @@ func CloneGLobalHttpClient() *HttpClientConfig {
 		TimeoutMins: globalHttpClientConfig.TimeoutMins,
 		RetryCount:  globalHttpClientConfig.RetryCount,
 		IpType:      globalHttpClientConfig.IpType,
+		RangeLength: globalHttpClientConfig.RangeLength,
 	}
 	return c
 }

@@ -83,16 +83,17 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 		if resp.StatusCode != http.StatusOK &&
 			resp.StatusCode != http.StatusPartialContent {
 			belogs.Error("getRrdpSnapshotImplWithConfig(): GetHttpsVerifyWithConfig snapshotUrl, is not StatusOK or StatusPartialContent, snapshotUrl:", snapshotUrl,
-				"   resp.Status:", resp.Status, "    body:", stringutil.OmitString(body, 100))
+				"   resp.Status:", resp.Status, "   ipAddrs:", ipAddrs,
+				"   len(body):", len(body), "    body:", stringutil.OmitString(body, 100), "  time(s):", time.Since(start))
 			return snapshotModel, errors.New("http status code of " + snapshotUrl + " is " + resp.Status)
 		} else {
 			belogs.Debug("getRrdpSnapshotImplWithConfig():GetHttpsVerifyWithConfig snapshotUrl ok:", snapshotUrl,
-				"   ipAddrs:", ipAddrs,
+				"  resp.StatusCode:", resp.StatusCode, "   ipAddrs:", ipAddrs,
 				"   len(body):", len(body), "  time(s):", time.Since(start))
 		}
 	} else {
-		belogs.Debug("getRrdpSnapshotImplWithConfig(): GetHttpsVerifyWithConfig snapshotUrl fail, will use curl again:", snapshotUrl, "   resp:",
-			resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
+		belogs.Debug("getRrdpSnapshotImplWithConfig(): GetHttpsVerifyWithConfig snapshotUrl fail, will use curl again:", snapshotUrl,
+			"   resp.Status:", resp.Status, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl, using ipv4
 		// httpclient.NewHttpClientConfigWithParam(30, 3, "ipv4")
