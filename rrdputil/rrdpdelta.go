@@ -147,10 +147,10 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
 			belogs.Error("getRrdpDeltaImplWithConfig(): GetHttpsVerifyWithConfig deltaUrl, is not StatusOK:", deltaUrl,
-				"   resp.Status:", resp.Status, "    body:", body)
+				"   resp.StatusCode:", resp.StatusCode, "    body:", body)
 			return deltaModel, errors.New("http status code of " + deltaUrl + " is " + resp.Status)
 		} else {
-			belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsVerifyWithConfig deltaUrl ok:", deltaUrl, "   resp.Status:", resp.Status,
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsVerifyWithConfig deltaUrl ok:", deltaUrl, "   resp.StatusCode:", resp.StatusCode,
 				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 				"   len(body):", len(body), "  time(s):", time.Since(start))
 		}

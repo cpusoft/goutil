@@ -34,3 +34,10 @@ func CloneGLobalHttpClient() *HttpClientConfig {
 	}
 	return c
 }
+
+func GetStatusCode(resp gorequest.Response) int {
+	if resp == nil {
+		return 0
+	}
+	return resp.StatusCode
+}

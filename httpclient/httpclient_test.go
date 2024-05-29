@@ -42,7 +42,7 @@ func TestGetHttpsRangeVerifyWithConfig(t *testing.T) {
 	fmt.Println("contentLength:", contentLength)
 	resp, body, err := GetHttpsVerifyRangeWithConfig(url, contentLength,
 		10000000, true, NewHttpClientConfigWithParam(5, 3, "all"))
-	fmt.Println("res:", jsonutil.MarshalJson(resp)," status:",resp.StatusCode)
+	fmt.Println("res:", jsonutil.MarshalJson(resp), " status:", GetStatusCode(resp))
 	fmt.Println("body:", len(body))
 	fmt.Println("err:", err)
 }
