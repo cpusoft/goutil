@@ -83,12 +83,12 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 		if resp.StatusCode != http.StatusOK &&
 			resp.StatusCode != http.StatusPartialContent {
 			belogs.Error("getRrdpSnapshotImplWithConfig(): GetHttpsVerifyWithConfig snapshotUrl, is not StatusOK or StatusPartialContent, snapshotUrl:", snapshotUrl,
-				"   resp.Status:", resp.Status, "   ipAddrs:", ipAddrs,
+				"   resp.Status:", resp.Status, " supportRange:", supportRange, "   ipAddrs:", ipAddrs,
 				"   len(body):", len(body), "    body:", stringutil.OmitString(body, 100), "  time(s):", time.Since(start))
 			return snapshotModel, errors.New("http status code of " + snapshotUrl + " is " + resp.Status)
 		} else {
 			belogs.Debug("getRrdpSnapshotImplWithConfig():GetHttpsVerifyWithConfig snapshotUrl ok:", snapshotUrl,
-				"  resp.StatusCode:", resp.StatusCode, "   ipAddrs:", ipAddrs,
+				"  resp.StatusCode:", resp.StatusCode, " supportRange:", supportRange, "   ipAddrs:", ipAddrs,
 				"   len(body):", len(body), "  time(s):", time.Since(start))
 		}
 	} else {
