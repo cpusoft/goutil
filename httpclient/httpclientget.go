@@ -232,6 +232,12 @@ func GetHttpsVerifyRangeWithConfig(urlStr string, contentLength uint64,
 
 	rangeBodys := make([]rangeBody, 0, count)
 	for b := range rangeBodyCh {
+		if len(b.Body) == 0 {
+			belogs.Error("GetHttpsVerifyRangeWithConfig(): get empty body in range",
+				"  urlStr:", urlStr,
+				"  resp.StatusCode:", GetStatusCode(resp))
+			return resp, "", errors.New("get empty body in range")
+		}
 		rangeBodys = append(rangeBodys, b)
 	}
 	// sort, from newest to oldest
