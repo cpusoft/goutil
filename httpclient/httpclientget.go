@@ -120,7 +120,8 @@ func GetHttpsVerifySupportRangeWithConfig(urlStr string, verify bool, httpClient
 		return nil, false, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		belogs.Error("GetHttpsVerifySupportRangeWithConfig(): StatusCode is not 200, urlStr:", urlStr, "  resp.StatusCode:", GetStatusCode(resp))
+		belogs.Error("GetHttpsVerifySupportRangeWithConfig(): StatusCode is not 200, urlStr:", urlStr,
+			"  statusCode:", GetStatusCode(resp))
 		return nil, false, 0, errors.New("StatusCode is not 200")
 	}
 	acceptRanges := resp.Header.Get("Accept-Ranges")
@@ -209,14 +210,14 @@ func GetHttpsVerifyRangeWithConfig(urlStr string, contentLength uint64,
 			if err != nil {
 				belogs.Error("GetHttpsVerifyRangeWithConfig(): go Get range fail, iTmp:", iTmp,
 					"  urlStr:", urlStr, "  rangeStrTmp:", rangeStrTmp,
-					"  resp.StatusCode:", GetStatusCode(resp), err)
+					"  statusCode:", GetStatusCode(resp), err)
 				// no return
 				rangeBodyCh <- rangeBody{Index: iTmp, Body: ""}
 			} else {
 				belogs.Debug("GetHttpsVerifyResponseWithConfig(): go Get range ok, iTmp:", iTmp,
 					"  urlStr:", urlStr, " rangeStrTmp:", rangeStrTmp,
 					"  contentLength:", contentLength, "  startLen:", startLen, "  endLen:", endLen,
-					"  resp.StatusCode:", GetStatusCode(resp),
+					"  statusCode:", GetStatusCode(resp),
 					"  len(body):", len(body), "  time(s):", time.Since(start))
 				rangeBodyCh <- rangeBody{
 					Index: iTmp,
@@ -235,7 +236,7 @@ func GetHttpsVerifyRangeWithConfig(urlStr string, contentLength uint64,
 		if len(b.Body) == 0 {
 			belogs.Error("GetHttpsVerifyRangeWithConfig(): get empty body in range",
 				"  urlStr:", urlStr,
-				"  resp.StatusCode:", GetStatusCode(resp))
+				"  statusCode:", GetStatusCode(resp))
 			return resp, "", errors.New("get empty body in range")
 		}
 		rangeBodys = append(rangeBodys, b)
