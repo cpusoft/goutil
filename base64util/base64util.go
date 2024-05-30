@@ -13,7 +13,23 @@ func EncodeBase64(src []byte) string {
 }
 
 func DecodeBase64(src string) ([]byte, error) {
-	return base64.StdEncoding.DecodeString(src)
+	b, err := base64.StdEncoding.DecodeString(src)
+	if err == nil {
+		return b, nil
+	}
+	b, err = base64.RawStdEncoding.DecodeString(src)
+	if err == nil {
+		return b, nil
+	}
+	b, err = base64.URLEncoding.DecodeString(src)
+	if err == nil {
+		return b, nil
+	}
+	b, err = base64.RawURLEncoding.DecodeString(src)
+	if err == nil {
+		return b, nil
+	}
+	return nil, err
 }
 
 func TrimBase64(str string) string {
@@ -48,6 +64,6 @@ func DecodeCertBase64(oldBytes []byte) ([]byte, error) {
 	txt = strings.Replace(txt, " ", "", -1)
 	txt = stringutil.TrimNewLine(txt)
 	belogs.Debug("DecodeCertBase64(): txt after Replace: %s", txt)
-	newBytes, err := base64.StdEncoding.DecodeString(txt)
+	newBytes, err := DecodeBase64(txt)
 	return newBytes, err
 }
