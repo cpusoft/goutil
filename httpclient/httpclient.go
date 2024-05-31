@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/cpusoft/goutil/stringutil"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -40,4 +41,14 @@ func GetStatusCode(resp gorequest.Response) int {
 		return 0
 	}
 	return resp.StatusCode
+}
+
+func GetOutputStr(output []byte) string {
+	var outputStr string
+	if len(output) <= 100 {
+		outputStr = string(output)
+	} else {
+		outputStr = string(output[:100])
+	}
+	return stringutil.TrimNewLine(outputStr)
 }
