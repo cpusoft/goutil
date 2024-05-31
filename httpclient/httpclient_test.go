@@ -91,6 +91,7 @@ func TestGetHttpsRrdp(t *testing.T) {
 	//`https://rrdp.afrinic.net/notification.xml` //https://rpki.august.tw/rrdp/notification.xml`
 	url := `https://rrdp-as0.apnic.net/e197f36e-b1c0-46f8-a2f6-ffc00cf83c38/44292/snapshot.xml`
 	url = `https://rrdp.ripe.net/notification.xml`
+	url = `https://rrdp.arin.net/4a394319-7460-4141-a416-1addb69284ff/67365/snapshot.xml`
 	//SetTimeout(30)
 	//defer ResetTimeout()
 	resutl, err := GetByCurlWithConfig(url, NewHttpClientConfigWithParam(5, 3, "ipv4"))
