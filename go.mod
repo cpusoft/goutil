@@ -15,7 +15,7 @@ require (
 	github.com/redis/go-redis/v9 v9.5.2
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02
-	github.com/shirou/gopsutil/v3 v3.24.4
+	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.9.0
 	github.com/wenzhenxi/gorsa v0.0.0-20230530123828-0320cce15d81
 	xorm.io/xorm v1.3.9
