@@ -84,6 +84,28 @@ func (c *DualCache) Get(baseKey string, key string) (any, bool, error) {
 	return dualBaseCache.Get(key)
 }
 
+//func (c *DualCache) GetsKeys(baseKey string) (map[]string, error) {
+//	keys := make([]string, 0)
+//	if baseKey == ""  {
+//		return keys, errors.New(" is empty")
+//	}
+//	c.mutex.RLock()
+//	defer c.mutex.RUnlock()
+//
+//	if c.dualBaseCaches == nil {
+//		return keys,  errors.New("dualBaseCaches is empty, need call NewDualCache first")
+//	}
+//	dualBaseCache, ok := c.dualBaseCaches[baseKey]
+//	if !ok {
+//		return keys, errors.New("not found by baseKey, call AddBaseCache first")
+//	}
+//
+//	for keys {
+//
+//	}
+//
+//}
+
 func (c *DualCache) GetsClone(baseKey string) (map[string]any, bool, error) {
 	if baseKey == "" {
 		return nil, false, errors.New("baseKey is empty")
@@ -140,6 +162,21 @@ func (c *DualCache) Remove(baseKey string, key string) error {
 	}
 	c.dualBaseCaches[baseKey].Remove(key)
 	return nil
+}
+
+func (c *DualCache) Append(baseKey string, key string, value any) error {
+	if baseKey == "" || key == "" || value == nil {
+		return errors.New("baseKey, key or value is empty")
+	}
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	if c.dualBaseCaches == nil {
+		return errors.New("dualBaseCaches is empty, need call NewDualCache first")
+	}
+	if _, ok := c.dualBaseCaches[baseKey]; !ok {
+		return errors.New("not found by baseKey, call AddBaseCache first")
+	}
+	return c.dualBaseCaches[baseKey].Set(key, value)
 }
 
 func (c *DualCache) Reset() {
