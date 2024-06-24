@@ -20,12 +20,13 @@ func NewCacheSet(capacity uint64) *CacheSet {
 }
 
 func (c *CacheSet) Append(baseKey string, element string) (int64, error) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if baseKey == "" {
-		return 0, errors.New("baseKey is empty")
+
+	if baseKey == "" || element == "" {
+		return 0, errors.New("baseKey or element is empty")
 	}
 
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	m, ok := c.dualBaseCaches[baseKey]
 	if !ok {
 		c.dualBaseCaches[baseKey] = NewDualBaseCache(c.capacity)
@@ -37,19 +38,17 @@ func (c *CacheSet) Append(baseKey string, element string) (int64, error) {
 }
 
 func (c *CacheSet) ListElements(baseKey string) ([]string, error) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	elements := make([]string, 0)
 	if baseKey == "" {
-		return elements, errors.New("baseKey is empty")
+		return nil, errors.New("baseKey is empty")
 	}
 
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	m, ok := c.dualBaseCaches[baseKey]
 	if !ok {
-		return elements, errors.New("baseKey not in dualBaseCaches")
+		return nil, errors.New("baseKey not in dualBaseCaches")
 	}
-
+	elements := make([]string, 0, len(m.datas))
 	for k := range m.datas {
 		elements = append(elements, k)
 	}

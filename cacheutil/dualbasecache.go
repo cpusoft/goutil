@@ -80,8 +80,8 @@ func (c *DualBaseCache) GetsClone() (map[string]any, error) {
 }
 
 func (c *DualBaseCache) Count() (int64, error) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	if c.datas == nil {
 		return 0, errors.New("datas is empty, need call NewDualBaseCache first")
 	}
