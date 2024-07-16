@@ -71,10 +71,16 @@ func PostHttpsWithConfig(urlStr string, postJson string, verify bool,
 		httpClientConfig = globalHttpClientConfig
 	}
 
+	timeOut := time.Duration(httpClientConfig.TimeoutMins) * time.Minute
+
+	if httpClientConfig.TimeoutMillis > 0 {
+		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
+	}
+
 	config := &tls.Config{InsecureSkipVerify: !verify}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
-		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
+		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").

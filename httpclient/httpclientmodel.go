@@ -10,8 +10,9 @@ const (
 )
 
 type HttpClientConfig struct {
-	TimeoutMins uint64 `json:"timeoutMins"`
-	RetryCount  uint64 `json:"retryCount"`
+	TimeoutMins   uint64 `json:"timeoutMins"`
+	TimeoutMillis uint64 `json:"timeoutMillis"`
+	RetryCount    uint64 `json:"retryCount"`
 	// all/ipv4/ipv6
 	IpType string `json:"ipType"`
 	// range
