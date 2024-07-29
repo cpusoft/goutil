@@ -12,7 +12,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/parnurzeal/gorequest v0.2.17-0.20200918112808-3a0cb377f571
-	github.com/redis/go-redis/v9 v9.5.4
+	github.com/redis/go-redis/v9 v9.6.1
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02
 	github.com/shirou/gopsutil/v3 v3.24.5
@@ -24,14 +24,14 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/bytedance/sonic v1.11.9 // indirect
-	github.com/bytedance/sonic/loader v0.1.1 // indirect
+	github.com/bytedance/sonic/loader v0.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/elazarl/goproxy v0.0.0-20240618083138-03be62527ccb // indirect
-	github.com/gabriel-vasile/mimetype v1.4.4 // indirect
+	github.com/elazarl/goproxy v0.0.0-20240726154733-8b0c20506380 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.5 // indirect
 	github.com/gin-contrib/sse v0.1.1-0.20230214053213-e597170caac8 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
