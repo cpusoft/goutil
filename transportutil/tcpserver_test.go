@@ -7,8 +7,9 @@ import (
 
 /*
 func TestCreateTcpServer(t *testing.T) {
-	serverProcessFunc := new(ServerProcessFunc)
+
 	businessToConnMsg := make(chan BusinessToConnMsg, 16)
+	dnsTcpServerProcess := NewDnsTcpServerProcess(tcpBusinessToConnMsg)
 	ts := NewTcpServer(serverProcessFunc, businessToConnMsg)
 	fmt.Println("CreateTcpServer():", 9999)
 	err := ts.StartTcpServer("9999")
@@ -22,28 +23,31 @@ func TestCreateTcpServer(t *testing.T) {
 	time.Sleep(5 * time.Second)
 	//ts.CloseGraceful()
 }
-func TestCreateTlsServer(t *testing.T) {
-	serverProcessFunc := new(ServerProcessFunc)
-	tlsRootCrtFileName := `catlsroot.cer`       //`ca.cer`
-	tlsPublicCrtFileName := `servertlscrt.cer`  //`server.cer`
-	tlsPrivateKeyFileName := `servertlskey.pem` //`serverkey.pem`
-	fmt.Println("CreateTlsServer(): tlsRootCrtFileName:", tlsRootCrtFileName,
-		"tlsPublicCrtFileName:", tlsPublicCrtFileName,
-		"tlsPrivateKeyFileName:", tlsPrivateKeyFileName)
-	businessToConnMsg := make(chan BusinessToConnMsg, 16)
-	ts, err := NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName,
-		tlsPrivateKeyFileName, true, serverProcessFunc, businessToConnMsg)
-	if err != nil {
-		fmt.Println("CreateTlsServer(): NewTlsServer ts fail: ", &ts, err)
-		return
-	}
-	go ts.StartTlsServer("9999")
 
-	time.Sleep(5 * time.Second)
-	ts.activeSend("", GetData())
-	time.Sleep(8 * time.Second)
+
+	func TestCreateTlsServer(t *testing.T) {
+		serverProcessFunc := new(ServerProcessFunc)
+		tlsRootCrtFileName := `catlsroot.cer`       //`ca.cer`
+		tlsPublicCrtFileName := `servertlscrt.cer`  //`server.cer`
+		tlsPrivateKeyFileName := `servertlskey.pem` //`serverkey.pem`
+		fmt.Println("CreateTlsServer(): tlsRootCrtFileName:", tlsRootCrtFileName,
+			"tlsPublicCrtFileName:", tlsPublicCrtFileName,
+			"tlsPrivateKeyFileName:", tlsPrivateKeyFileName)
+		businessToConnMsg := make(chan BusinessToConnMsg, 16)
+		ts, err := NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName,
+			tlsPrivateKeyFileName, true, serverProcessFunc, businessToConnMsg)
+		if err != nil {
+			fmt.Println("CreateTlsServer(): NewTlsServer ts fail: ", &ts, err)
+			return
+		}
+		go ts.StartTlsServer("9999")
+
+		time.Sleep(5 * time.Second)
+		ts.activeSend("", GetData())
+		time.Sleep(8 * time.Second)
 
 }
+
 func RtrProcess(receiveData []byte) (sendData []byte, err error) {
 	buf := bytes.NewReader(receiveData)
 	fmt.Println("RtrProcess(): buf:", buf)
