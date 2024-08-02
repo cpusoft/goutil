@@ -3,6 +3,7 @@ package transportutil
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/binary"
 	"errors"
 	"io"
 	"net"
@@ -245,35 +246,46 @@ func (ts *TcpServer) receiveAndSend(tcpConn *TcpConn) {
 
 	defer ts.onClose(tcpConn)
 
-	var leftData []byte
 	// one packet
-	buffer := make([]byte, ts.receiveOnePacketLength)
-	belogs.Debug("TcpServer.receiveAndSend(): recive from tcpConn: ", tcpConn.RemoteAddr().String(),
-		"   receiveOnePacketLength:", ts.receiveOnePacketLength)
 
+	belogs.Debug("TcpServer.receiveAndSend(): recive from tcpConn: ", tcpConn.RemoteAddr().String(),
+		"  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "   receiveOnePacketLength:", ts.receiveOnePacketLength)
+	var leftData []byte
+	var buffer []byte
+	var length uint16
 	// wait for new packet to read
 	for {
 		start := time.Now()
+		if ts.tcptlsLengthDeclaration == "true" {
+			binary.Read(tcpConn, binary.BigEndian, &length)
+		} else {
+			length = uint16(ts.receiveOnePacketLength)
+		}
+		buffer = make([]byte, length)
 		n, err := tcpConn.Read(buffer)
 		belogs.Debug("TcpServer.receiveAndSend():server read: Read from:", tcpConn.RemoteAddr().String(),
-			"   receiveOnePacketLength:", ts.receiveOnePacketLength, "  read n:", n)
-		//	if n == 0 {
-		//		continue
-		//	}
+			"   tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration,
+			"   length:", length, "  read n:", n, " buffer:", convert.PrintBytesOneLine(buffer),
+			"   time(s):", time.Since(start))
+
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
-				belogs.Info("TcpServer.receiveAndSend(): Read io.EOF, client close, tcpConn:", tcpConn.RemoteAddr().String(), err)
+				belogs.Info("TcpServer.receiveAndSend(): Read io.EOF, client close, tcpConn:", tcpConn.RemoteAddr().String(),
+					"   length:", length, " time(s):", time.Since(start), err)
 				return
 			}
-			belogs.Error("TcpServer.receiveAndSend(): Read fail, receiveOnePacketLength:", ts.receiveOnePacketLength, "  tcpConn:", tcpConn.RemoteAddr().String(), err)
+			belogs.Error("TcpServer.receiveAndSend(): Read fail, receiveOnePacketLength:", ts.receiveOnePacketLength,
+				"   length:", length, "  tcpConn:", tcpConn.RemoteAddr().String(),
+				"   time(s):", time.Since(start), err)
 			return
 		}
 
 		// call process func OnReceiveAndSend
 		// copy to leftData
 		belogs.Debug("TcpServer.receiveAndSend(): tcpConn: ", tcpConn.RemoteAddr().String(),
-			" , Read n:", n, "  time(s):", time.Since(start))
+			"   length:", length, " , Read n:", n,
+			"   time(s):", time.Since(start))
 		nextConnectPolicy, leftData, err := ts.tcpServerProcess.OnReceiveAndSendProcess(tcpConn, append(leftData, buffer[:n]...))
 		belogs.Debug("TcpServer.receiveAndSend(): after OnReceiveAndSendProcess,server tcpConn: ", tcpConn.RemoteAddr().String(), " receive n: ", n,
 			"  len(leftData):", len(leftData), "  time(s):", time.Since(start))

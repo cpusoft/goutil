@@ -197,14 +197,16 @@ func (tc *TcpClient) onReceive() (err error) {
 	var buffer []byte
 	var length uint16
 	for {
+		start := time.Now()
 		if tc.tcptlsLengthDeclaration == "true" {
 			binary.Read(tc.tcpConn, binary.BigEndian, &length)
 		} else {
 			length = uint16(tc.receiveOnePacketLength)
 		}
 		buffer = make([]byte, length)
-		start := time.Now()
 		n, err := tc.tcpConn.Read(buffer)
+		belogs.Debug("TcpClient.onReceive(): Read n :", n, "  length:", length, " from tcpConn: ", tc.tcpConn.RemoteAddr().String(),
+			" buffer:", convert.PrintBytesOneLine(buffer), "  time(s):", time.Since(start))
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close

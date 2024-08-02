@@ -146,7 +146,7 @@ func GetUdpAddrKey(udpAddr *net.UDPAddr) string {
 
 func getLengthDeclarationSendData(tcptlsLengthDeclaration string, sendData []byte) (sendDataNew []byte) {
 	belogs.Debug("getLengthDeclarationSendData(): tcptlsLengthDeclaration:", tcptlsLengthDeclaration,
-		"   len(sendData):", len(sendData))
+		"   len(sendData):", len(sendData), convert.PrintBytesOneLine(sendData))
 	if tcptlsLengthDeclaration == "true" {
 		sendDataNew = make([]byte, 2+len(sendData))
 		binary.BigEndian.PutUint16(sendDataNew, uint16(len(sendData)))
