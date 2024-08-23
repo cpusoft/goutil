@@ -12,6 +12,7 @@ func TestIni(t *testing.T) {
 		inicontext = `
 ;comment one
 #comment two
+tsig.example.com.=pRZgBrBvI4NAHZYhxmhs/Q==
 appname = beeapi
 httpport = 8080
 mysqlport = 3600
@@ -34,8 +35,10 @@ key2 = "xie"
 CaseInsensitive = true
 peers = one;two;three
 password = ${GOPATH}
-`
 
+
+`
+		//;;##"pRZgBrBvI4NAHZYhxmhs/Q\=\="
 		keyValue = map[string]interface{}{
 			"appname":               "beeapi",
 			"httpport":              8080,
@@ -113,6 +116,9 @@ password = ${GOPATH}
 	if res != "astaxie" {
 		t.Fatal("get name error")
 	}
+
+	tsigexample, err := iniconf.String("tsig.example.com.") //")
+	t.Log(tsigexample, err)
 }
 
 func TestIniSave(t *testing.T) {
