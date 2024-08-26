@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/big"
 	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 
@@ -25,6 +26,28 @@ const (
 	IPv4_PREFIX_MAXLENGTH = 32
 	IPv6_PREFIX_MAXLENGTH = 128
 )
+
+// IsIPv4 returns true iff the addr string represents an IPv4 address.
+func IsIPv4(s string) bool {
+	addr, err := netip.ParseAddr(s)
+	return err == nil && addr.Is4()
+}
+
+// IsIPv6 returns true iff the addr string represents an IPv6 address.
+func IsIPv6(s string) bool {
+	addr, err := netip.ParseAddr(s)
+	return err == nil && addr.Is6()
+}
+
+// AddrAsIp converts a [netip.Addr] to a [net.IP].
+func AddrAsIP(addr netip.Addr) net.IP {
+	return net.ParseIP(addr.String())
+}
+
+// IPAsAddr converts a [net.IP] to a [netip.Addr].
+func IPAsAddr(ip net.IP) (netip.Addr, error) {
+	return netip.ParseAddr(ip.String())
+}
 
 func RoaFormtToIp(ans1Ip []byte, ipType int) string {
 	//belogs.Debug("RoaFormtToIp():ans1Ip: %+v:", ans1Ip, "  ipType:", ipType)
