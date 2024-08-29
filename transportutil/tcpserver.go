@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
@@ -142,18 +141,18 @@ func (ts *TcpServer) StartTcpServer(port string) (err error) {
 func (ts *TcpServer) StartTlsServer(port string) (err error) {
 
 	belogs.Debug("StartTlsServer(): tlsserver  port:", port)
-	path := conf.String("dns-server::programDir") + "/conf/cert/"
-	tlsRootCrtFileName := path + conf.String("dns-server::caTlsRoot")
-	tlsPublicCrtFileName := path + conf.String("dns-server::serverTlsCrt")
-	tlsPrivateKeyFileName := path + conf.String("dns-server::serverTlsKey")
+	clientAuth := "NoClientCert"
+	if ts.tlsVerifyClient {
+		clientAuth = "RequireAndVerifyClientCert"
+	}
 	tlsConfigModel := TlsConfigModel{
-		TlsPort:                conf.String("dns-server::serverTlsPort"),
-		TlsRootCrtFileName:     tlsRootCrtFileName,
-		TlsPublicCrtFileName:   tlsPublicCrtFileName,
-		TlsPrivateKeyFileName:  tlsPrivateKeyFileName,
-		ClientAuth:             conf.String("dns-server::ClientAuth"), // tls.NoClientCert or tls.RequireAndVerifyClientCert
-		InsecureSkipVerify:     conf.Bool("dns-server::insecureSkipVerify"),
-		KeepAlivePeriodSeconds: conf.Int("dns-server::KeepAlivePeriodSeconds"), // if is 0, not set keepalive
+		TlsPort:                port,
+		TlsRootCrtFileName:     ts.tlsRootCrtFileName,
+		TlsPublicCrtFileName:   ts.tlsPublicCrtFileName,
+		TlsPrivateKeyFileName:  ts.tlsPrivateKeyFileName,
+		ClientAuth:             clientAuth, // tls.NoClientCert or tls.RequireAndVerifyClientCert
+		InsecureSkipVerify:     false,
+		KeepAlivePeriodSeconds: 300, // if is 0, not set keepalive
 	}
 	tlsConfig, err := GetTlsConfig(tlsConfigModel)
 	if err != nil {
