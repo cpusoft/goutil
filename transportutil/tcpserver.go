@@ -2,16 +2,15 @@ package transportutil
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"io"
 	"net"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
@@ -143,56 +142,76 @@ func (ts *TcpServer) StartTcpServer(port string) (err error) {
 func (ts *TcpServer) StartTlsServer(port string) (err error) {
 
 	belogs.Debug("StartTlsServer(): tlsserver  port:", port)
-	cert, err := tls.LoadX509KeyPair(ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName)
+	path := conf.String("dns-server::programDir") + "/conf/cert/"
+	tlsRootCrtFileName := path + conf.String("dns-server::caTlsRoot")
+	tlsPublicCrtFileName := path + conf.String("dns-server::serverTlsCrt")
+	tlsPrivateKeyFileName := path + conf.String("dns-server::serverTlsKey")
+	tlsConfigModel := TlsConfigModel{
+		TlsPort:                conf.String("dns-server::serverTlsPort"),
+		TlsRootCrtFileName:     tlsRootCrtFileName,
+		TlsPublicCrtFileName:   tlsPublicCrtFileName,
+		TlsPrivateKeyFileName:  tlsPrivateKeyFileName,
+		ClientAuth:             conf.String("dns-server::ClientAuth"), // tls.NoClientCert or tls.RequireAndVerifyClientCert
+		InsecureSkipVerify:     conf.Bool("dns-server::insecureSkipVerify"),
+		KeepAlivePeriodSeconds: conf.Int("dns-server::KeepAlivePeriodSeconds"), // if is 0, not set keepalive
+	}
+	tlsConfig, err := GetTlsConfig(tlsConfigModel)
 	if err != nil {
-		belogs.Error("StartTlsServer(): tlsserver  LoadX509KeyPair fail: port:", port,
-			"  tlsPublicCrtFileName, tlsPrivateKeyFileName:", ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName, err)
+		belogs.Error("StartTlsServer(): GetTlsConfig fail, tlsConfigModel:", jsonutil.MarshalJson(tlsConfigModel), err)
 		return err
 	}
-	belogs.Debug("StartTlsServer(): tlsserver  cert:", ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName)
-
-	rootCrtBytes, err := os.ReadFile(ts.tlsRootCrtFileName)
-	if err != nil {
-		belogs.Error("StartTlsServer(): tlsserver  ReadFile tlsRootCrtFileName fail, port:", port,
-			"  tlsRootCrtFileName:", ts.tlsRootCrtFileName, err)
-		return err
-	}
-	belogs.Debug("StartTlsServer(): tlsserver  len(rootCrtBytes):", len(rootCrtBytes), "  tlsRootCrtFileName:", ts.tlsRootCrtFileName)
-
-	rootCertPool := x509.NewCertPool()
-	ok := rootCertPool.AppendCertsFromPEM(rootCrtBytes)
-	if !ok {
-		belogs.Error("StartTlsServer(): tlsserver  AppendCertsFromPEM tlsRootCrtFileName fail,port:", port,
-			"  tlsRootCrtFileName:", ts.tlsRootCrtFileName, "  len(rootCrtBytes):", len(rootCrtBytes), err)
-		return err
-	}
-	belogs.Debug("StartTlsServer(): tlsserver  AppendCertsFromPEM len(rootCrtBytes):", len(rootCrtBytes), "  tlsRootCrtFileName:", ts.tlsRootCrtFileName)
-
-	clientAuthType := tls.NoClientCert
-	if ts.tlsVerifyClient {
-		clientAuthType = tls.RequireAndVerifyClientCert
-	}
-	belogs.Debug("StartTlsServer(): tlsserver clientAuthType:", clientAuthType)
-
-	// https://stackoverflow.com/questions/63676241/how-to-set-setkeepaliveperiod-on-a-tls-conn
-	setTCPKeepAlive := func(clientHello *tls.ClientHelloInfo) (*tls.Config, error) {
-		// Check that the underlying connection really is TCP.
-		if tcpConn, ok := clientHello.Conn.(*net.TCPConn); ok {
-			tcpConn.SetKeepAlive(true)
-			tcpConn.SetKeepAlivePeriod(time.Second * 300)
-			belogs.Debug("StartTlsServer(): tlsserver SetKeepAlive:")
+	/*
+		cert, err := tls.LoadX509KeyPair(ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName)
+		if err != nil {
+			belogs.Error("StartTlsServer(): tlsserver  LoadX509KeyPair fail: port:", port,
+				"  tlsPublicCrtFileName, tlsPrivateKeyFileName:", ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName, err)
+			return err
 		}
-		// Make sure to return nil, nil to let the caller fall back on the default behavior.
-		return nil, nil
-	}
-	config := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		ClientAuth:         clientAuthType,
-		RootCAs:            rootCertPool,
-		InsecureSkipVerify: false,
-		GetConfigForClient: setTCPKeepAlive,
-	}
-	listener, err := tls.Listen("tcp", ":"+port, config)
+		belogs.Debug("StartTlsServer(): tlsserver  cert:", ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName)
+
+		rootCrtBytes, err := os.ReadFile(ts.tlsRootCrtFileName)
+		if err != nil {
+			belogs.Error("StartTlsServer(): tlsserver  ReadFile tlsRootCrtFileName fail, port:", port,
+				"  tlsRootCrtFileName:", ts.tlsRootCrtFileName, err)
+			return err
+		}
+		belogs.Debug("StartTlsServer(): tlsserver  len(rootCrtBytes):", len(rootCrtBytes), "  tlsRootCrtFileName:", ts.tlsRootCrtFileName)
+
+		rootCertPool := x509.NewCertPool()
+		ok := rootCertPool.AppendCertsFromPEM(rootCrtBytes)
+		if !ok {
+			belogs.Error("StartTlsServer(): tlsserver  AppendCertsFromPEM tlsRootCrtFileName fail,port:", port,
+				"  tlsRootCrtFileName:", ts.tlsRootCrtFileName, "  len(rootCrtBytes):", len(rootCrtBytes), err)
+			return err
+		}
+		belogs.Debug("StartTlsServer(): tlsserver  AppendCertsFromPEM len(rootCrtBytes):", len(rootCrtBytes), "  tlsRootCrtFileName:", ts.tlsRootCrtFileName)
+
+		clientAuthType := tls.NoClientCert
+		if ts.tlsVerifyClient {
+			clientAuthType = tls.RequireAndVerifyClientCert
+		}
+		belogs.Debug("StartTlsServer(): tlsserver clientAuthType:", clientAuthType)
+
+		// https://stackoverflow.com/questions/63676241/how-to-set-setkeepaliveperiod-on-a-tls-conn
+		setTCPKeepAlive := func(clientHello *tls.ClientHelloInfo) (*tls.Config, error) {
+			// Check that the underlying connection really is TCP.
+			if tcpConn, ok := clientHello.Conn.(*net.TCPConn); ok {
+				tcpConn.SetKeepAlive(true)
+				tcpConn.SetKeepAlivePeriod(time.Second * 300)
+				belogs.Debug("StartTlsServer(): tlsserver SetKeepAlive:")
+			}
+			// Make sure to return nil, nil to let the caller fall back on the default behavior.
+			return nil, nil
+		}
+		config := &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			ClientAuth:         clientAuthType,
+			RootCAs:            rootCertPool,
+			InsecureSkipVerify: false,
+			GetConfigForClient: setTCPKeepAlive,
+		}
+	*/
+	listener, err := tls.Listen("tcp", ":"+port, tlsConfig)
 	if err != nil {
 		belogs.Error("StartTlsServer(): tlsserver  Listen fail, port:", port, err)
 		return err

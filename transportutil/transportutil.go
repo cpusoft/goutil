@@ -2,13 +2,17 @@ package transportutil
 
 import (
 	"container/list"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"net"
+	"os"
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
+	"github.com/cpusoft/goutil/jsonutil"
 )
 
 const (
@@ -155,4 +159,97 @@ func getLengthDeclarationSendData(tcptlsLengthDeclaration string, sendData []byt
 		return sendDataNew
 	}
 	return sendData
+}
+
+type TlsConfigModel struct {
+	TlsPort                string `json:"tlsPort"`
+	TlsRootCrtFileName     string `json:"tlsRootCrtFileName"`
+	TlsPublicCrtFileName   string `json:"tlsPublicCrtFileName"`
+	TlsPrivateKeyFileName  string `json:"tlsPrivateKeyFileName"`
+	ClientAuth             string `json:"clientAuth"` //NoClientCert or RequireAndVerifyClientCert
+	InsecureSkipVerify     bool   `json:"insecureSkipVerify"`
+	KeepAlivePeriodSeconds int    `json:"keepAlivePeriodSeconds"` // if is 0, not set keepalive
+}
+
+/*
+serverTlsPort := conf.String("dns-server::serverTlsPort")
+path := conf.String("dns-server::programDir") + "/conf/cert/"
+tlsRootCrtFileName := path + conf.String("dns-server::caTlsRoot")
+tlsPublicCrtFileName := path + conf.String("dns-server::serverTlsCrt")
+tlsPrivateKeyFileName := path + conf.String("dns-server::serverTlsKey")
+dns-server::ClientAuth="NoClientCert" 	"RequestClientCert"
+"RequireAnyClientCert"	"VerifyClientCertIfGiven" "RequireAndVerifyClientCert"
+ClientAuth := conf.String("dns-server::ClientAuth")
+insecureSkipVerify := conf.Bool("dns-server::insecureSkipVerify")
+KeepAlivePeriodSeconds:=conf.Int("dns-server::keepAlivePeriodSeconds")
+*/
+func GetTlsConfig(tlsConfigModel TlsConfigModel) (*tls.Config, error) {
+
+	belogs.Debug("getTlsConfig(): tlsConfigModel:", jsonutil.MarshalJson(tlsConfigModel))
+
+	cert, err := tls.LoadX509KeyPair(tlsConfigModel.TlsPublicCrtFileName,
+		tlsConfigModel.TlsPrivateKeyFileName)
+	if err != nil {
+		belogs.Error("getTlsConfig(): tlsserver  LoadX509KeyPair fail:",
+			"  tlsPublicCrtFileName, tlsPrivateKeyFileName:",
+			tlsConfigModel.TlsPublicCrtFileName, tlsConfigModel.TlsPrivateKeyFileName, err)
+		return nil, err
+	}
+	belogs.Debug("getTlsConfig(): tlsserver  cert:", "  tlsPublicCrtFileName, tlsPrivateKeyFileName:",
+		tlsConfigModel.TlsPublicCrtFileName, tlsConfigModel.TlsPrivateKeyFileName)
+
+	rootCrtBytes, err := os.ReadFile(tlsConfigModel.TlsRootCrtFileName)
+	if err != nil {
+		belogs.Error("getTlsConfig(): tlsserver  ReadFile tlsRootCrtFileName fail:",
+			"  tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName, err)
+		return nil, err
+	}
+	belogs.Debug("getTlsConfig(): tlsserver  len(rootCrtBytes):", len(rootCrtBytes),
+		"  tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName)
+
+	rootCertPool := x509.NewCertPool()
+	ok := rootCertPool.AppendCertsFromPEM(rootCrtBytes)
+	if !ok {
+		belogs.Error("getTlsConfig(): tlsserver  AppendCertsFromPEM tlsRootCrtFileName fail:",
+			"  tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName, "  len(rootCrtBytes):", len(rootCrtBytes), err)
+		return nil, err
+	}
+	belogs.Debug("getTlsConfig(): tlsserver  AppendCertsFromPEM len(rootCrtBytes):", len(rootCrtBytes),
+		"  tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName)
+
+	clientAuthType := tls.NoClientCert
+	switch tlsConfigModel.ClientAuth {
+	case "RequestClientCert":
+		clientAuthType = tls.RequestClientCert
+	case "RequireAnyClientCert":
+		clientAuthType = tls.RequireAnyClientCert
+	case "VerifyClientCertIfGiven":
+		clientAuthType = tls.VerifyClientCertIfGiven
+	case "RequireAndVerifyClientCert":
+		clientAuthType = tls.RequireAndVerifyClientCert
+	}
+	belogs.Debug("getTlsConfig(): tlsserver clientAuthType:", clientAuthType)
+
+	// https://stackoverflow.com/questions/63676241/how-to-set-setkeepaliveperiod-on-a-tls-conn
+	var setTCPKeepAlive func(*tls.ClientHelloInfo) (*tls.Config, error)
+	if tlsConfigModel.KeepAlivePeriodSeconds > 0 {
+		setTCPKeepAlive = func(clientHello *tls.ClientHelloInfo) (*tls.Config, error) {
+			// Check that the underlying connection really is TCP.
+			if tcpConn, ok := clientHello.Conn.(*net.TCPConn); ok {
+				tcpConn.SetKeepAlive(true)
+				tcpConn.SetKeepAlivePeriod(time.Second * time.Duration(tlsConfigModel.KeepAlivePeriodSeconds))
+				belogs.Debug("getTlsConfig(): SetKeepAlivePeriod KeepAlivePeriodSeconds:", tlsConfigModel.KeepAlivePeriodSeconds)
+			}
+			// Make sure to return nil, nil to let the caller fall back on the default behavior.
+			return nil, nil
+		}
+	}
+	config := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		ClientAuth:         clientAuthType,
+		RootCAs:            rootCertPool,
+		GetConfigForClient: setTCPKeepAlive,
+		InsecureSkipVerify: tlsConfigModel.InsecureSkipVerify,
+	}
+	return config, nil
 }
