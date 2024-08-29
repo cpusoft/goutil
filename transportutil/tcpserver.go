@@ -154,9 +154,9 @@ func (ts *TcpServer) StartTlsServer(port string) (err error) {
 		InsecureSkipVerify:     false,
 		KeepAlivePeriodSeconds: 300, // if is 0, not set keepalive
 	}
-	tlsConfig, err := GetTlsConfig(tlsConfigModel)
+	tlsConfig, err := GetServerTlsConfig(tlsConfigModel)
 	if err != nil {
-		belogs.Error("StartTlsServer(): GetTlsConfig fail, tlsConfigModel:", jsonutil.MarshalJson(tlsConfigModel), err)
+		belogs.Error("StartTlsServer(): GetServerTlsConfig fail, tlsConfigModel:", jsonutil.MarshalJson(tlsConfigModel), err)
 		return err
 	}
 	/*

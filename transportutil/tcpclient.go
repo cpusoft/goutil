@@ -2,12 +2,10 @@ package transportutil
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"io"
 	"net"
-	"os"
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
@@ -135,37 +133,51 @@ func (tc *TcpClient) StartTlsClient(server string) (err error) {
 		"  tlsPublicCrtFileName:", tc.tlsPublicCrtFileName,
 		"  tlsPrivateKeyFileName:", tc.tlsPrivateKeyFileName)
 
-	cert, err := tls.LoadX509KeyPair(tc.tlsPublicCrtFileName, tc.tlsPrivateKeyFileName)
+	tlsConfigModel := TlsConfigModel{
+		TlsRootCrtFileName:    tc.tlsRootCrtFileName,
+		TlsPublicCrtFileName:  tc.tlsPublicCrtFileName,
+		TlsPrivateKeyFileName: tc.tlsPublicCrtFileName,
+		InsecureSkipVerify:    false,
+	}
+	config, err := GetClientTlsConfig(tlsConfigModel)
 	if err != nil {
-		belogs.Error("TcpClient.StartTlsClient(): LoadX509KeyPair fail: server:", server,
-			"  tlsPublicCrtFileName:", tc.tlsPublicCrtFileName,
-			"  tlsPrivateKeyFileName:", tc.tlsPrivateKeyFileName, err)
+		belogs.Error("TcpClient.StartTlsClient(): GetClientTlsConfig fail, tlsConfigModel:", jsonutil.MarshalJson(tlsConfigModel), err)
 		return err
 	}
-	belogs.Debug("TcpClient.StartTlsClient(): LoadX509KeyPair ok, server is  ", server)
+	/*
+		cert, err := tls.LoadX509KeyPair(tc.tlsPublicCrtFileName, tc.tlsPrivateKeyFileName)
+		if err != nil {
+			belogs.Error("TcpClient.StartTlsClient(): LoadX509KeyPair fail: server:", server,
+				"  tlsPublicCrtFileName:", tc.tlsPublicCrtFileName,
+				"  tlsPrivateKeyFileName:", tc.tlsPrivateKeyFileName, err)
+			return err
+		}
+		belogs.Debug("TcpClient.StartTlsClient(): LoadX509KeyPair ok, server is  ", server)
 
-	rootCrtBytes, err := os.ReadFile(tc.tlsRootCrtFileName)
-	if err != nil {
-		belogs.Error("TcpClient.StartTlsClient(): ReadFile tlsRootCrtFileName fail, server:", server,
-			"  tlsRootCrtFileName:", tc.tlsRootCrtFileName, err)
-		return err
-	}
-	belogs.Debug("TcpClient.StartTlsClient(): ReadFile ok, server is  ", server)
+		rootCrtBytes, err := os.ReadFile(tc.tlsRootCrtFileName)
+		if err != nil {
+			belogs.Error("TcpClient.StartTlsClient(): ReadFile tlsRootCrtFileName fail, server:", server,
+				"  tlsRootCrtFileName:", tc.tlsRootCrtFileName, err)
+			return err
+		}
+		belogs.Debug("TcpClient.StartTlsClient(): ReadFile ok, tlsRootCrtFileName:", tc.tlsRootCrtFileName)
 
-	rootCertPool := x509.NewCertPool()
-	ok := rootCertPool.AppendCertsFromPEM(rootCrtBytes)
-	if !ok {
-		belogs.Error("TcpClient.StartTlsClient(): AppendCertsFromPEM tlsRootCrtFileName fail,server:", server,
-			"  tlsRootCrtFileName:", tc.tlsRootCrtFileName, "  len(rootCrtBytes):", len(rootCrtBytes), err)
-		return err
-	}
-	belogs.Debug("TcpClient.StartTlsClient(): AppendCertsFromPEM ok, server is  ", server)
+		rootCertPool := x509.NewCertPool()
+		ok := rootCertPool.AppendCertsFromPEM(rootCrtBytes)
+		if !ok {
+			belogs.Error("TcpClient.StartTlsClient(): AppendCertsFromPEM tlsRootCrtFileName fail,server:", server,
+				"  tlsRootCrtFileName:", tc.tlsRootCrtFileName, "  len(rootCrtBytes):", len(rootCrtBytes), err)
+			return err
+		}
+		belogs.Debug("TcpClient.StartTlsClient(): AppendCertsFromPEM ok, server is  ", server)
 
-	config := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		RootCAs:            rootCertPool,
-		InsecureSkipVerify: false,
-	}
+		config := &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			RootCAs:            rootCertPool,
+			InsecureSkipVerify: false,
+		}
+	*/
+
 	dialer := &net.Dialer{Timeout: time.Duration(60) * time.Second}
 	tlsConn, err := tls.DialWithDialer(dialer, "tcp", server, config)
 	if err != nil {
