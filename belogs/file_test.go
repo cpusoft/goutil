@@ -167,6 +167,7 @@ func TestFileDailyRotate_01(t *testing.T) {
 		os.Remove("test3.log")
 		t.Fatal("rotate not generated")
 	}
+	time.Sleep(999 * time.Second)
 	os.Remove(rotateName)
 	os.Remove("test3.log")
 }

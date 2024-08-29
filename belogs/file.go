@@ -328,7 +328,7 @@ func (w *fileLogWriter) doRotate(logTime time.Time) error {
 	if w.Hourly {
 		format = "2006010215"
 		openTime = w.hourlyOpenTime
-	} else {
+	} else if w.Daily {
 		format = "2006-01-02"
 		openTime = w.dailyOpenTime
 	}
@@ -340,7 +340,9 @@ func (w *fileLogWriter) doRotate(logTime time.Time) error {
 			_, err = os.Lstat(fName)
 		}
 	} else {
-		fName = w.fileNameOnly + fmt.Sprintf(".%s.%03d%s", openTime.Format(format), num, w.suffix)
+		//fName = w.fileNameOnly + fmt.Sprintf(".%s.%03d%s", openTime.Format(format), num, w.suffix)
+		// suffix has .
+		fName = w.fileNameOnly + fmt.Sprintf(".%s%s", openTime.Format(format), w.suffix)
 		_, err = os.Lstat(fName)
 		w.MaxFilesCurFiles = num
 	}
