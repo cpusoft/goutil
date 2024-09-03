@@ -57,3 +57,8 @@ func TestOmitString(t *testing.T) {
 	str1 = OmitString(str, 12)
 	fmt.Println(str1)
 }
+func TestStringsToInString(t *testing.T) {
+	ips := []string{"16.70.0.0", "16.0.1.0"}
+	s := StringsToInString(ips)
+	fmt.Println(s)
+}

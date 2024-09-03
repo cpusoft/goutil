@@ -97,7 +97,7 @@ func StringsToInString(s []string) string {
 	var buffer bytes.Buffer
 	buffer.WriteString("(")
 	for i := 0; i < len(s); i++ {
-		buffer.WriteString(s[i])
+		buffer.WriteString("\"" + s[i] + "\"")
 		if i < len(s)-1 {
 			buffer.WriteString(",")
 		}
