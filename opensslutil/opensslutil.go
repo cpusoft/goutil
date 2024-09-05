@@ -10,8 +10,8 @@ import (
 )
 
 func GetResultsByOpensslX509(certFile string) (results []string, err error) {
-	belogs.Debug("GetResultsByOpensslX509(): cmd:  openssl", "x509", "-noout", "-text", "-in", certFile, "--inform", "der")
-	cmd := exec.Command("openssl", "x509", "-noout", "-text", "-in", certFile, "--inform", "der")
+	belogs.Debug("GetResultsByOpensslX509(): cmd:  openssl", "x509", "-noout", "-text", "-in", certFile, "-inform", "der")
+	cmd := exec.Command("openssl", "x509", "-noout", "-text", "-in", certFile, "-inform", "der")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetResultsByOpensslX509(): exec.Command: certFile:", certFile, "   err: ", err, "   output: "+string(output))
@@ -31,8 +31,8 @@ func GetResultsByOpensslAns1(certFile string) (results []string, err error) {
 
 	//https://blog.csdn.net/Zhymax/article/details/7683925
 	//openssl asn1parse -in -ard.mft -inform DER
-	belogs.Debug("GetResultsByOpensslAns1():cmd: openssl", "asn1parse", "-in", certFile, "--inform", "der")
-	cmd := exec.Command("openssl", "asn1parse", "-in", certFile, "--inform", "der")
+	belogs.Debug("GetResultsByOpensslAns1():cmd: openssl", "asn1parse", "-in", certFile, "-inform", "der", " GetResultsByOpensslAns1_bao")
+	cmd := exec.Command("openssl", "asn1parse", "-in", certFile, "-inform", "der")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetResultsByOpensslAns1(): exec.Command: certFile:", certFile, "   err: ", err, ": "+string(output))
