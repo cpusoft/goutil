@@ -32,7 +32,7 @@ func GetResultsByOpensslAns1(certFile string) (results []string, err error) {
 	//https://blog.csdn.net/Zhymax/article/details/7683925
 	//openssl asn1parse -in -ard.mft -inform DER
 	belogs.Debug("GetResultsByOpensslAns1():cmd: openssl", "asn1parse", "-in", certFile, "--inform", "der")
-	cmd := exec.Command("openssl", "asn1parse", "-in", certFile, "--inform", "der")
+	cmd := exec.Command("openssl", "asn1parse", "-in", certFile, "-inform", "der")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("GetResultsByOpensslAns1(): exec.Command: certFile:", certFile, "   err: ", err, ": "+string(output))
