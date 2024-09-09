@@ -45,14 +45,20 @@ func SearchIp2Region(dataFilePathName, ip string) (Ip2RegionModel, error) {
 	}
 	ip2RegionModel := Ip2RegionModel{
 		Ip:       ip,
-		Country:  split[0],
-		Province: split[2],
-		City:     split[3],
+		Country:  removeZero(split[0]),
+		Province: removeZero(split[2]),
+		City:     removeZero(split[3]),
+		Isp:      removeZero(split[4]),
 	}
-	if split[4] != "0" {
-		ip2RegionModel.Isp = split[4]
-	}
+
 	belogs.Debug("SearchIp2Region(): get ip2RegionModel, ip", ip, "   ip2RegionModel:", jsonutil.MarshalJson(ip2RegionModel),
 		time.Since(start))
 	return ip2RegionModel, nil
+}
+
+func removeZero(s string) string {
+	if s == "0" {
+		return ""
+	}
+	return s
 }
