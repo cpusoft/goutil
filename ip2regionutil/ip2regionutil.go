@@ -11,6 +11,7 @@ import (
 )
 
 type IpRegionModel struct {
+	Ip       string `json:"ip"`
 	Country  string `json:"country"`
 	Province string `json:"province"`
 	City     string `json:"city"`
@@ -43,6 +44,7 @@ func SearchIp2Region(dataFilePathName, ip string) (IpRegionModel, error) {
 		return IpRegionModel{}, errors.New("region format error")
 	}
 	ipRegionModel := IpRegionModel{
+		Ip:       ip,
 		Country:  split[0],
 		Province: split[2],
 		City:     split[3],
