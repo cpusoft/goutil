@@ -1,0 +1,7 @@
+{
+    "go.inferGopath": false,
+    "files.autoSave": "afterDelay"
+    "go.languageServerExperimentalFeatures": {
+        "diagnostics": false
+    }
+}
