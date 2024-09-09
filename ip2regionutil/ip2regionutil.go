@@ -10,7 +10,7 @@ import (
 	"github.com/lionsoul2014/ip2region/binding/golang/xdb"
 )
 
-type IpRegionModel struct {
+type Ip2RegionModel struct {
 	Ip       string `json:"ip"`
 	Country  string `json:"country"`
 	Province string `json:"province"`
@@ -18,14 +18,14 @@ type IpRegionModel struct {
 	Isp      string `json:"isp"`
 }
 
-func SearchIp2Region(dataFilePathName, ip string) (IpRegionModel, error) {
+func SearchIp2Region(dataFilePathName, ip string) (Ip2RegionModel, error) {
 	//var dbPath = `./ip2region.xdb`
 	start := time.Now()
 	belogs.Debug("SearchIp2Region(): dataFilePathName:", dataFilePathName, "  ip:", ip)
 	searcher, err := xdb.NewWithFileOnly(dataFilePathName)
 	if err != nil {
 		belogs.Error("SearchIp2Region(): NewWithFileOnly fail, dataFilePathName:", dataFilePathName, err, "  time(s):", time.Since(start))
-		return IpRegionModel{}, err
+		return Ip2RegionModel{}, err
 	}
 	defer searcher.Close()
 
@@ -33,7 +33,7 @@ func SearchIp2Region(dataFilePathName, ip string) (IpRegionModel, error) {
 	region, err := searcher.SearchByStr(ip)
 	if err != nil {
 		belogs.Error("SearchIp2Region(): SearchByStr fail, ip:", ip, err, "  time(s):", time.Since(start))
-		return IpRegionModel{}, err
+		return Ip2RegionModel{}, err
 	}
 
 	// 中国|0|江苏省|南京市|0
@@ -41,18 +41,18 @@ func SearchIp2Region(dataFilePathName, ip string) (IpRegionModel, error) {
 	split := strings.Split(region, "|")
 	if len(split) != 5 {
 		belogs.Error("SearchIp2Region(): Split region fail, region:", region, "  time(s):", time.Since(start))
-		return IpRegionModel{}, errors.New("region format error")
+		return Ip2RegionModel{}, errors.New("region format error")
 	}
-	ipRegionModel := IpRegionModel{
+	ip2RegionModel := Ip2RegionModel{
 		Ip:       ip,
 		Country:  split[0],
 		Province: split[2],
 		City:     split[3],
 	}
 	if split[4] != "0" {
-		ipRegionModel.Isp = split[4]
+		ip2RegionModel.Isp = split[4]
 	}
-	belogs.Debug("SearchIp2Region(): get ipRegionModel, ip", ip, "   ipRegionModel:", jsonutil.MarshalJson(ipRegionModel),
+	belogs.Debug("SearchIp2Region(): get ip2RegionModel, ip", ip, "   ip2RegionModel:", jsonutil.MarshalJson(ip2RegionModel),
 		time.Since(start))
-	return ipRegionModel, nil
+	return ip2RegionModel, nil
 }
