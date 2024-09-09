@@ -1,6 +1,0 @@
-{
-    "go.inferGopath": false,
-    "files.autoSave": "afterDelay",
-    "go.vetOnSave": "off",
-    "go.useLanguageServer": true
-}

@@ -14,3 +14,7 @@
 /transportutil/conf
 /transportutil/log
 /grpcutil/cert
+/.vscode
+/whyall.txt
+/graph.txt
+/update_all_mod.bat
