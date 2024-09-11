@@ -21,8 +21,8 @@ github.com/cloudwego/base64x v0.1.4 h1:jwCgWpFanWmN8xoIUHa2rtzmkd5J2plF/dnLS6Xd/
 github.com/cloudwego/base64x v0.1.4/go.mod h1:0zlkT4Wn5C6NdauXdJRhSKRlJvmclQ1hhJgA0rcu/8w=
 github.com/cloudwego/iasm v0.2.0 h1:1KNIy1I1H9hNNFEEH3DVnI4UujN+1zjpuk6gwHLTssg=
 github.com/cloudwego/iasm v0.2.0/go.mod h1:8rXZaNYT2n95jn+zTI1sDr+IgcD2GVs0nlbbQPiEFhY=
-github.com/cpusoft/gin-contrib-sessions v0.0.0-20240606080141-4c74bd151e89 h1:hVHK2J0eIkVGrOvxbxvuEiPoodsxf3N+BRoZX7qH9xM=
-github.com/cpusoft/gin-contrib-sessions v0.0.0-20240606080141-4c74bd151e89/go.mod h1:AbfWrV5PzQALcyC0qLmwbWuQ+s8P9SiIVU9auL6mx6A=
+github.com/cpusoft/gin-contrib-sessions v0.0.0-20240909025410-814616650739 h1:6CrQYZT6i4Z5TPNF5tNk3dN4gR4Trn1hh2ntCqMRXMc=
+github.com/cpusoft/gin-contrib-sessions v0.0.0-20240909025410-814616650739/go.mod h1:2sI43ARjpus982NRQ5w810hJOHvm0SFm4LDkBAb+tNg=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

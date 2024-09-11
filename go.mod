@@ -7,7 +7,7 @@ toolchain go1.23.1
 require (
 	github.com/Andrew-M-C/go.timeconv v0.4.0
 	github.com/beevik/ntp v1.4.3
-	github.com/cpusoft/gin-contrib-sessions v0.0.0-20240606080141-4c74bd151e89
+	github.com/cpusoft/gin-contrib-sessions v0.0.0-20240909025410-814616650739
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
