@@ -1,0 +1,396 @@
+root@888abd3fa599:/# nicinfo 8.8.8.0/24 -V --pager no 
+# NicInfo v.1.5.0
+## Using configuration found in /root/.NicInfo
+## Evicted 0 files from the cache
+## Assuming query value is IP4CIDR
+## Looking up bootstrap from /root/.NicInfo/bsfiles/ipv4.json
+/var/lib/gems/2.7.0/gems/nicinfo-1.5.0/lib/nicinfo/utils.rb:23: warning: URI.escape is obsolete
+/var/lib/gems/2.7.0/gems/nicinfo-1.5.0/lib/nicinfo/utils.rb:24: warning: URI.escape is obsolete
+## Getting https://rdap.arin.net/registry/ip/8.8.8.0/24 from cache.
+## Server conforms to nro_rdap_profile_0
+## Server conforms to rdap_level_0
+## Server conforms to cidr0
+## Server conforms to arin_originas0
+/var/lib/gems/2.7.0/gems/nicinfo-1.5.0/lib/nicinfo/utils.rb:23: warning: URI.escape is obsolete
+/var/lib/gems/2.7.0/gems/nicinfo-1.5.0/lib/nicinfo/utils.rb:24: warning: URI.escape is obsolete
+/var/lib/gems/2.7.0/gems/nicinfo-1.5.0/lib/nicinfo/utils.rb:23: warning: URI.escape is obsolete
+/var/lib/gems/2.7.0/gems/nicinfo-1.5.0/lib/nicinfo/utils.rb:24: warning: URI.escape is obsolete
+/var/lib/gems/2.7.0/gems/nicinfo-1.5.0/lib/nicinfo/utils.rb:23: warning: URI.escape is obsolete
+/var/lib/gems/2.7.0/gems/nicinfo-1.5.0/lib/nicinfo/utils.rb:24: warning: URI.escape is obsolete
+/var/lib/gems/2.7.0/gems/nicinfo-1.5.0/lib/nicinfo/utils.rb:23: warning: URI.escape is obsolete
+/var/lib/gems/2.7.0/gems/nicinfo-1.5.0/lib/nicinfo/utils.rb:24: warning: URI.escape is obsolete
+
+[ NOTICE ] Terms of Service
+         1 By using the ARIN RDAP/Whois service, you are agreeing to the RDAP/Whois Terms of Use
+       TOS https://www.arin.net/resources/registry/whois/tou/
+
+[ NOTICE ] Whois Inaccuracy Reporting
+         1 If you see inaccuracies in the results, please visit: 
+
+[ NOTICE ] Copyright Notice
+         1 Copyright 1997-2022, American Registry for Internet Numbers, Ltd.
+
+# Query type is IP4CIDR. Result type is IP.
+
+[ RESPONSE DATA ]  
+  1= NET-8-8-8-0-1
+     `--- 1= Google LLC ( GOGL )
+          |--- 1= Abuse ( ABUSE5250-ARIN )
+          `--- 2= Google LLC ( ZG39-ARIN )
+
+           [ IP NETWORK ] 
+                   Handle:  NET-8-8-8-0-1
+        Object Class Name:  ip network
+            Start Address:  8.8.8.0
+              End Address:  8.8.8.255
+                    CIDRs:  8.8.8.0/24
+               IP Version:  v4
+                     Name:  LVLT-GOGL-8-8-8
+                     Type:  ALLOCATION
+            Parent Handle:  NET-8-0-0-0-1
+                   Status:  Active
+             Last Changed:  Fri, 14 Mar 2014 16:52:05 -0400
+             Registration:  Fri, 14 Mar 2014 16:52:05 -0400
+                    Links:  -- for NET-8-8-8-0-1 --
+                Reference:  https://rdap.arin.net/registry/ip/8.8.8.0
+                     More:  https://whois.arin.net/rest/net/NET-8-8-8-0-1
+
+               [ ENTITY ] 
+                   Handle:  GOGL
+        Object Class Name:  entity
+              Common Name:  Google LLC
+                    Roles:  Registrant
+            Port 43 Whois:  whois.arin.net
+             Last Changed:  Thu, 31 Oct 2019 15:45:45 -0400
+             Registration:  Thu, 30 Mar 2000 00:00:00 -0500
+                  Address:  -- for Google LLC ( GOGL ) --
+                        1:  1600 Amphitheatre Parkway
+                        2:  Mountain View
+                        3:  CA
+                        4:  94043
+                        5:  United States
+                     Kind:  org
+                  Remarks:  -- Registration Comments --
+                        1:  Please note that the recommended way to file abuse complaints are located in the following links. 
+                        3:  To report abuse and illegal activity: https://www.google.com/contact/
+                        5:  For legal requests: http://support.google.com/legal 
+                        7:  Regards, 
+                        8:  The Google Team
+                    Links:  -- for Google LLC ( GOGL ) --
+                Reference:  https://rdap.arin.net/registry/entity/GOGL
+                     More:  https://whois.arin.net/rest/org/GOGL
+
+               [ ENTITY ] 
+                   Handle:  ABUSE5250-ARIN
+        Object Class Name:  entity
+              Common Name:  Abuse
+             Organization:  Abuse
+                    Email:  network-abuse@google.com
+                    Phone:  +1-650-253-0000 ( work, voice )
+                    Roles:  Abuse
+                   Status:  Validated
+            Port 43 Whois:  whois.arin.net
+             Last Changed:  Mon, 24 Oct 2022 08:43:11 -0400
+             Registration:  Fri, 06 Nov 2015 15:36:35 -0500
+                  Address:  -- for Abuse ( ABUSE5250-ARIN ) --
+                        1:  1600 Amphitheatre Parkway
+                        2:  Mountain View
+                        3:  CA
+                        4:  94043
+                        5:  United States
+                     Kind:  group
+                  Remarks:  -- Registration Comments --
+                        1:  Please note that the recommended way to file abuse complaints are located in the following links.
+                        3:  To report abuse and illegal activity: https://www.google.com/contact/
+                        5:  For legal requests: http://support.google.com/legal 
+                        7:  Regards,
+                        8:  The Google Team
+                    Links:  -- for Abuse ( ABUSE5250-ARIN ) --
+                Reference:  https://rdap.arin.net/registry/entity/ABUSE5250-ARIN
+                     More:  https://whois.arin.net/rest/poc/ABUSE5250-ARIN
+
+               [ ENTITY ] 
+                   Handle:  ZG39-ARIN
+        Object Class Name:  entity
+              Common Name:  Google LLC
+             Organization:  Google LLC
+                    Email:  arin-contact@google.com
+                    Phone:  +1-650-253-0000 ( work, voice )
+                    Roles:  Technical, Administrative
+                   Status:  Validated
+            Port 43 Whois:  whois.arin.net
+             Last Changed:  Thu, 10 Nov 2022 07:12:44 -0500
+             Registration:  Thu, 30 Nov 2000 13:54:08 -0500
+                  Address:  -- for Google LLC ( ZG39-ARIN ) --
+                        1:  1600 Amphitheatre Parkway
+                        2:  Mountain View
+                        3:  CA
+                        4:  94043
+                        5:  United States
+                     Kind:  group
+                    Links:  -- for Google LLC ( ZG39-ARIN ) --
+                Reference:  https://rdap.arin.net/registry/entity/ZG39-ARIN
+                     More:  https://whois.arin.net/rest/poc/ZG39-ARIN
+
+# Use "nicinfo 1=" to show NET-8-8-8-0-1
+# Use "nicinfo 1.1=" to show Google LLC ( GOGL )
+# Use "nicinfo https://rdap.arin.net/registry/ip/8.8.8.0" to directly query this resource in the future.
+# Use "nicinfo -h" for help.
+
+==================================================================
+
+root@888abd3fa599:/# nicinfo 202.173.14.104
+# NicInfo v.1.5.0
+
+Excessive Notices
+-----------------
+Response contains excessive notices.
+Use the "-V" or "--data extra" options to see them.
+
+# Query type is IP4ADDR. Result type is IP.
+
+[ RESPONSE DATA ]  
+  1= 202.173.14.0 - 202.173.15.255
+     |--- 1= IRT-CNNIC-CN ( IRT-CNNIC-CN )
+     `--- 2= Xing Zhijie ( XZ4638-AP )
+
+           [ IP NETWORK ] 
+                   Handle:  202.173.14.0 - 202.173.15.255
+            Start Address:  202.173.14.0
+              End Address:  202.173.15.255
+                    CIDRs:  202.173.14.0/23
+               IP Version:  v4
+                  Country:  CN
+                     Type:  ALLOCATED PORTABLE
+                   Status:  Active
+             Registration:  Tue, 20 Sep 2016 06:16:02 -0000
+             Last Changed:  Wed, 16 Jun 2021 01:33:14 -0000
+                  Remarks:  -- description --
+                        1:  Internet Domain Name System Beijing Engineering Resrarch Center Ltd.
+                        2:  4,South 4th street, Zhongguancun,Haidian District,Beijing
+
+               [ ENTITY ] 
+                   Handle:  IRT-CNNIC-CN
+              Common Name:  IRT-CNNIC-CN
+                    Email:  ipas@cnnic.cn
+                    Email:  ipas@cnnic.cn
+                    Roles:  Abuse
+             Registration:  Mon, 08 Nov 2010 06:47:38 -0000
+             Last Changed:  Wed, 16 Jun 2021 01:39:57 -0000
+                  Remarks:  -- remarks --
+                        1:  Please note that CNNIC is not an ISP and is not
+                        2:  empowered to investigate complaints of network abuse.
+                        3:  Please contact the tech-c or admin-c of the network.
+
+               [ ENTITY ] 
+                   Handle:  XZ4638-AP
+              Common Name:  Xing Zhijie
+                    Email:  xingzhijie@knet.cn
+                    Phone:  +86-010-58813342 ( voice )
+                    Roles:  Technical, Administrative
+             Registration:  Tue, 20 Sep 2016 06:04:01 -0000
+             Last Changed:  Tue, 20 Sep 2016 06:04:01 -0000
+
+# Use "nicinfo 1=" to show 202.173.14.0 - 202.173.15.255
+# Use "nicinfo 1.1=" to show IRT-CNNIC-CN ( IRT-CNNIC-CN )
+# Use "nicinfo 1.2=" to show Xing Zhijie ( XZ4638-AP )
+# Use "nicinfo https://rdap.apnic.net/ip/202.173.14.0/23" to directly query this resource in the future.
+# Use "nicinfo -h" for help.
+
+=============================================
+
+root@888abd3fa599:/# nicinfo 8.8.8/24
+# NicInfo v.1.5.0
+# Unable to guess type of query. You must specify it.
+root@888abd3fa599:/# nicinfo 8.8.8.0/24
+# NicInfo v.1.5.0
+Excessive Notices
+-----------------
+Response contains excessive notices.
+Use the "-V" or "--data extra" options to see them.
+
+# Query type is IP4CIDR. Result type is IP.
+
+[ RESPONSE DATA ]  
+  1= NET-8-8-8-0-1
+     `--- 1= Google LLC ( GOGL )
+          |--- 1= Abuse ( ABUSE5250-ARIN )
+          `--- 2= Google LLC ( ZG39-ARIN )
+
+           [ IP NETWORK ] 
+                   Handle:  NET-8-8-8-0-1
+            Start Address:  8.8.8.0
+              End Address:  8.8.8.255
+                    CIDRs:  8.8.8.0/24
+               IP Version:  v4
+                     Type:  ALLOCATION
+                   Status:  Active
+             Last Changed:  Fri, 14 Mar 2014 16:52:05 -0400
+             Registration:  Fri, 14 Mar 2014 16:52:05 -0400
+
+               [ ENTITY ] 
+                   Handle:  GOGL
+              Common Name:  Google LLC
+                    Roles:  Registrant
+             Last Changed:  Thu, 31 Oct 2019 15:45:45 -0400
+             Registration:  Thu, 30 Mar 2000 00:00:00 -0500
+                  Remarks:  -- Registration Comments --
+                        1:  Please note that the recommended way to file abuse complaints are located in the following links. 
+                        3:  To report abuse and illegal activity: https://www.google.com/contact/
+                        5:  For legal requests: http://support.google.com/legal 
+                        7:  Regards, 
+                        8:  The Google Team
+
+               [ ENTITY ] 
+                   Handle:  ABUSE5250-ARIN
+              Common Name:  Abuse
+             Organization:  Abuse
+                    Email:  network-abuse@google.com
+                    Phone:  +1-650-253-0000 ( work, voice )
+                    Roles:  Abuse
+                   Status:  Validated
+             Last Changed:  Mon, 24 Oct 2022 08:43:11 -0400
+             Registration:  Fri, 06 Nov 2015 15:36:35 -0500
+                  Remarks:  -- Registration Comments --
+                        1:  Please note that the recommended way to file abuse complaints are located in the following links.
+                        3:  To report abuse and illegal activity: https://www.google.com/contact/
+                        5:  For legal requests: http://support.google.com/legal 
+                        7:  Regards,
+                        8:  The Google Team
+
+               [ ENTITY ] 
+                   Handle:  ZG39-ARIN
+              Common Name:  Google LLC
+             Organization:  Google LLC
+                    Email:  arin-contact@google.com
+                    Phone:  +1-650-253-0000 ( work, voice )
+                    Roles:  Administrative, Technical
+                   Status:  Validated
+             Last Changed:  Thu, 10 Nov 2022 07:12:44 -0500
+             Registration:  Thu, 30 Nov 2000 13:54:08 -0500
+
+# Use "nicinfo 1=" to show NET-8-8-8-0-1
+# Use "nicinfo 1.1=" to show Google LLC ( GOGL )
+# Use "nicinfo https://rdap.arin.net/registry/ip/8.8.8.0" to directly query this resource in the future.
+# Use "nicinfo -h" for help.
+
+(END)
+====================================================================
+
+ nicinfo google.com
+# NicInfo v.1.5.0
+
+Excessive Notices
+-----------------
+Response contains excessive notices.
+Use the "-V" or "--data extra" options to see them.
+
+# Result type is DOMAIN.
+
+[ RESPONSE DATA ]  
+  1= GOOGLE.COM ( 2138514_DOMAIN_COM-VRSN )
+     |--- 1. MarkMonitor Inc. ( 292 )
+     |    `--- 1.  ( (unidentifiable entity 1360) )
+     |--- 2. NS1.GOOGLE.COM ( NS1.GOOGLE.COM )
+     |--- 3. NS2.GOOGLE.COM ( NS2.GOOGLE.COM )
+     |--- 4. NS3.GOOGLE.COM ( NS3.GOOGLE.COM )
+     `--- 5. NS4.GOOGLE.COM ( NS4.GOOGLE.COM )
+
+               [ DOMAIN ] 
+                   Handle:  2138514_DOMAIN_COM-VRSN
+              Domain Name:  GOOGLE.COM
+                   Status:  Client Delete Prohibited, Client Transfer Prohibited, Client Update Prohibited, Server Delete Prohibited,
+                         :  Server Transfer Prohibited, Server Update Prohibited
+             Registration:  Mon, 15 Sep 1997 04:00:00 -0000
+               Expiration:  Thu, 14 Sep 2028 04:00:00 -0000
+             Last Changed:  Mon, 09 Sep 2019 15:39:04 -0000
+Last Update Of Rdap Database:  Wed, 23 Nov 2022 10:36:01 -0000
+        Delegation Signed:  false
+
+               [ ENTITY ] 
+                   Handle:  292
+              Common Name:  MarkMonitor Inc.
+                    Roles:  Registrar
+                Public ID:  292 (IANA Registrar ID)
+
+               [ ENTITY ] 
+                    Email:  abusecomplaints@markmonitor.com
+                    Phone:  +1.2086851750 ( voice )
+                    Roles:  Abuse
+
+          [ NAME SERVER ] 
+                Host Name:  NS1.GOOGLE.COM
+
+          [ NAME SERVER ] 
+                Host Name:  NS2.GOOGLE.COM
+
+          [ NAME SERVER ] 
+                Host Name:  NS3.GOOGLE.COM
+
+          [ NAME SERVER ] 
+                Host Name:  NS4.GOOGLE.COM
+
+# Use "nicinfo 1=" to show GOOGLE.COM ( 2138514_DOMAIN_COM-VRSN )
+# Use "nicinfo https://rdap.verisign.com/com/v1/domain/GOOGLE.COM" to directly query this resource in the future.
+# Use "nicinfo -h" for help.
+
+======================================================================
+
+root@888abd3fa599:/# nicinfo 4134
+# NicInfo v.1.5.0
+
+Excessive Notices
+-----------------
+Response contains excessive notices.
+Use the "-V" or "--data extra" options to see them.
+
+# Result type is ASNUMBER.
+
+[ RESPONSE DATA ]  
+  1= AS4134
+     |--- 1= Chinanet Hostmaster ( CH93-AP )
+     `--- 2= IRT-CHINANET-CN ( IRT-CHINANET-CN )
+
+            [ AS NUMBER ] 
+                   Handle:  AS4134
+          Start AS Number:  4134
+            End AS Number:  4134
+                  Country:  CN
+                   Status:  Active
+             Registration:  Thu, 04 Sep 2008 06:40:34 -0000
+             Last Changed:  Tue, 15 Jun 2021 08:05:05 -0000
+                  Remarks:  -- description --
+                        1:  No.31,Jin-rong Street
+                        2:  Beijing
+                        3:  100032
+                  Remarks:  -- remarks --
+                        1:  for backbone of chinanet
+
+               [ ENTITY ] 
+                   Handle:  CH93-AP
+              Common Name:  Chinanet Hostmaster
+                    Email:  anti-spam@chinatelecom.cn
+                    Phone:  +86-10-58501724 ( voice )
+                    Phone:  +86-10-58501724 ( fax )
+                    Roles:  Administrative, Technical
+             Registration:  Thu, 04 Sep 2008 07:29:13 -0000
+             Last Changed:  Mon, 28 Feb 2022 06:53:44 -0000
+
+               [ ENTITY ] 
+                   Handle:  IRT-CHINANET-CN
+              Common Name:  IRT-CHINANET-CN
+                    Email:  anti-spam@chinatelecom.cn
+                    Email:  anti-spam@chinatelecom.cn
+                    Roles:  Abuse
+             Registration:  Mon, 15 Nov 2010 00:31:55 -0000
+             Last Changed:  Mon, 14 Feb 2022 07:13:12 -0000
+                  Remarks:  -- remarks --
+                        1:  anti-spam@chinatelecom.cn was validated on 2022-02-14
+
+# Use "nicinfo 4134" or "nicinfo as4134" for autnums.
+# Use "nicinfo 1=" to show AS4134
+# Use "nicinfo 1.1=" to show Chinanet Hostmaster ( CH93-AP )
+# Use "nicinfo 1.2=" to show IRT-CHINANET-CN ( IRT-CHINANET-CN )
+# Use "nicinfo https://rdap.apnic.net/autnum/4134" to directly query this resource in the future.
+# Use "nicinfo -h" for help.
+

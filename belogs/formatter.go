@@ -1,6 +1,7 @@
 package belogs
 
 import (
+	"fmt"
 	"path"
 	"strconv"
 )
@@ -46,13 +47,14 @@ func GetFormatter(name string) (LogFormatter, bool) {
 	return res, ok
 }
 
-// 'w' when, 'm' msg,'f' filename，'F' full path，'n' line number
+// ToString 'w' when, 'm' msg,'f' filename，'F' full path，'n' line number
 // 'l' level number, 't' prefix of level type, 'T' full name of level type
 func (p *PatternLogFormatter) ToString(lm *LogMsg) string {
 	s := []rune(p.Pattern)
+	msg := fmt.Sprintf(lm.Msg, lm.Args...)
 	m := map[rune]string{
 		'w': lm.When.Format(p.getWhenFormatter()),
-		'm': lm.Msg,
+		'm': msg,
 		'n': strconv.Itoa(lm.LineNumber),
 		'l': strconv.Itoa(lm.Level),
 		't': levelPrefix[lm.Level],

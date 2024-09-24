@@ -180,3 +180,39 @@ func JoinPrefixPathAndUrlHost(prefixPath, url string) (path string, err error) {
 	}
 	return osutil.JoinPathFile(prefixPath, host), nil
 }
+
+// HostPort returns whether addr includes a port number (i.e.,
+// is of the form HOST:PORT).  It handles a corner-case in [net.SplitHostPort]
+// which returns an empty port for addresses of the form "1.2.3.4:".  For such
+// addresses, HasPort returns false.
+func HasPort(addr string) bool {
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return false
+	}
+
+	// this deals with the corner-case of, e.g., "1.2.3.4:".  For
+	// addresses of this form, net.SplitHostAddr does not return an
+	// error, and returns an empty port string.
+	if port == "" {
+		return false
+	}
+	return true
+}
+
+// TryJoinHostPort checks whether the server string already has a port (i.e.,
+// ends with ':<PORT>'.  If it does, then the function simply returns
+// that string.  If it does not, it returns the server string with
+// the port appended.
+func TryJoinHostPort(server string, port string) string {
+	if HasPort(server) {
+		return server
+	}
+
+	sanitized := server
+	if strings.HasSuffix(server, ":") && !strings.HasSuffix(server, "::") {
+		sanitized = server[:len(server)-1]
+	}
+
+	return net.JoinHostPort(sanitized, port)
+}

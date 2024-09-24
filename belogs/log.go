@@ -1,7 +1,6 @@
 package belogs
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -84,13 +83,17 @@ type BeeLogger struct {
 	enableFuncCallDepth bool
 	enableFullFilePath  bool
 	asynchronous        bool
+	// Whether to discard logs when buffer is full and asynchronous is true
+	// No discard by default
+	logWithNonBlocking  bool
 	wg                  sync.WaitGroup
 	level               int
 	loggerFuncCallDepth int
 	prefix              string
 	msgChanLen          int64
 	msgChan             chan *LogMsg
-	signalChan          chan string
+	closeChan           chan struct{}
+	flushChan           chan struct{}
 	outputs             []*nameLogger
 	globalFormatter     string
 }
@@ -115,7 +118,8 @@ func NewLogger(channelLens ...int64) *BeeLogger {
 	if bl.msgChanLen <= 0 {
 		bl.msgChanLen = defaultAsyncMsgLen
 	}
-	bl.signalChan = make(chan string, 1)
+	bl.flushChan = make(chan struct{}, 1)
+	bl.closeChan = make(chan struct{}, 1)
 	bl.setLogger(AdapterConsole)
 	return bl
 }
@@ -142,8 +146,18 @@ func (bl *BeeLogger) Async(msgLen ...int64) *BeeLogger {
 	return bl
 }
 
+// AsyncNonBlockWrite Non-blocking write in asynchronous mode
+// Only works if asynchronous write logging is set
+func (bl *BeeLogger) AsyncNonBlockWrite() *BeeLogger {
+	if !bl.asynchronous {
+		return bl
+	}
+	bl.logWithNonBlocking = true
+	return bl
+}
+
 // SetLogger provides a given logger adapter into BeeLogger with config string.
-// config must in in JSON format like {"interval":360}}
+// config must in JSON format like {"interval":360}}
 func (bl *BeeLogger) setLogger(adapterName string, configs ...string) error {
 	config := append(configs, "{}")[0]
 	for _, l := range bl.outputs {
@@ -159,26 +173,26 @@ func (bl *BeeLogger) setLogger(adapterName string, configs ...string) error {
 
 	lg := logAdapter()
 
+	err := lg.Init(config)
+	if err != nil {
+		return err
+	}
+
 	// Global formatter overrides the default set formatter
 	if len(bl.globalFormatter) > 0 {
 		fmtr, ok := GetFormatter(bl.globalFormatter)
 		if !ok {
-			return errors.New(fmt.Sprintf("the formatter with name: %s not found", bl.globalFormatter))
+			return fmt.Errorf("the formatter with name: %s not found", bl.globalFormatter)
 		}
 		lg.SetFormatter(fmtr)
 	}
 
-	err := lg.Init(config)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "logs.BeeLogger.SetLogger: "+err.Error())
-		return err
-	}
 	bl.outputs = append(bl.outputs, &nameLogger{name: adapterName, Logger: lg})
 	return nil
 }
 
 // SetLogger provides a given logger adapter into BeeLogger with config string.
-// config must in in JSON format like {"interval":360}}
+// config must in JSON format like {"interval":360}}
 func (bl *BeeLogger) SetLogger(adapterName string, configs ...string) error {
 	bl.lock.Lock()
 	defer bl.lock.Unlock()
@@ -193,7 +207,7 @@ func (bl *BeeLogger) SetLogger(adapterName string, configs ...string) error {
 func (bl *BeeLogger) DelLogger(adapterName string) error {
 	bl.lock.Lock()
 	defer bl.lock.Unlock()
-	outputs := []*nameLogger{}
+	outputs := make([]*nameLogger, 0, len(bl.outputs))
 	for _, lg := range bl.outputs {
 		if lg.name == adapterName {
 			lg.Destroy()
@@ -279,8 +293,17 @@ func (bl *BeeLogger) writeMsg(lm *LogMsg) error {
 		logM.FilePath = lm.FilePath
 		logM.LineNumber = lm.LineNumber
 		logM.Prefix = lm.Prefix
+
 		if bl.outputs != nil {
-			bl.msgChan <- lm
+			if bl.logWithNonBlocking {
+				select {
+				case bl.msgChan <- lm:
+				// discard log when channel is full
+				default:
+				}
+			} else {
+				bl.msgChan <- lm
+			}
 		} else {
 			logMsgPool.Put(lm)
 		}
@@ -328,19 +351,23 @@ func (bl *BeeLogger) startLogger() {
 	gameOver := false
 	for {
 		select {
-		case bm := <-bl.msgChan:
-			bl.writeToLoggers(bm)
-			logMsgPool.Put(bm)
-		case sg := <-bl.signalChan:
-			// Now should only send "flush" or "close" to bl.signalChan
-			bl.flush()
-			if sg == "close" {
-				for _, l := range bl.outputs {
-					l.Destroy()
-				}
-				bl.outputs = nil
-				gameOver = true
+		case bm, ok := <-bl.msgChan:
+			// this is a terrible design to have a signal channel that accept two inputs
+			// so we only handle the msg if the channel is not closed
+			if ok {
+				bl.writeToLoggers(bm)
+				logMsgPool.Put(bm)
 			}
+		case <-bl.closeChan:
+			bl.flush()
+			for _, l := range bl.outputs {
+				l.Destroy()
+			}
+			bl.outputs = nil
+			gameOver = true
+			bl.wg.Done()
+		case <-bl.flushChan:
+			bl.flush()
 			bl.wg.Done()
 		}
 		if gameOver {
@@ -486,25 +513,55 @@ func (bl *BeeLogger) Debug(format string, v ...interface{}) {
 // Warn Log WARN level message.
 // compatibility alias for Warning()
 func (bl *BeeLogger) Warn(format string, v ...interface{}) {
-	bl.Warning(format, v...)
+	if LevelWarn > bl.level {
+		return
+	}
+	lm := &LogMsg{
+		Level: LevelWarn,
+		Msg:   format,
+		When:  time.Now(),
+		Args:  v,
+	}
+
+	bl.writeMsg(lm)
 }
 
 // Info Log INFO level message.
 // compatibility alias for Informational()
 func (bl *BeeLogger) Info(format string, v ...interface{}) {
-	bl.Informational(format, v...)
+	if LevelInfo > bl.level {
+		return
+	}
+	lm := &LogMsg{
+		Level: LevelInfo,
+		Msg:   format,
+		When:  time.Now(),
+		Args:  v,
+	}
+
+	bl.writeMsg(lm)
 }
 
 // Trace Log TRACE level message.
 // compatibility alias for Debug()
 func (bl *BeeLogger) Trace(format string, v ...interface{}) {
-	bl.Debug(format, v...)
+	if LevelDebug > bl.level {
+		return
+	}
+	lm := &LogMsg{
+		Level: LevelDebug,
+		Msg:   format,
+		When:  time.Now(),
+		Args:  v,
+	}
+
+	bl.writeMsg(lm)
 }
 
 // Flush flush all chan data.
 func (bl *BeeLogger) Flush() {
 	if bl.asynchronous {
-		bl.signalChan <- "flush"
+		bl.flushChan <- struct{}{}
 		bl.wg.Wait()
 		bl.wg.Add(1)
 		return
@@ -515,7 +572,7 @@ func (bl *BeeLogger) Flush() {
 // Close close logger, flush all chan data and destroy all adapters in BeeLogger.
 func (bl *BeeLogger) Close() {
 	if bl.asynchronous {
-		bl.signalChan <- "close"
+		bl.closeChan <- struct{}{}
 		bl.wg.Wait()
 		close(bl.msgChan)
 	} else {
@@ -525,7 +582,8 @@ func (bl *BeeLogger) Close() {
 		}
 		bl.outputs = nil
 	}
-	close(bl.signalChan)
+	close(bl.flushChan)
+	close(bl.closeChan)
 }
 
 // Reset close all outputs, and set bl.outputs to nil
@@ -541,7 +599,10 @@ func (bl *BeeLogger) flush() {
 	if bl.asynchronous {
 		for {
 			if len(bl.msgChan) > 0 {
-				bm := <-bl.msgChan
+				bm, ok := <-bl.msgChan
+				if !ok {
+					continue
+				}
 				bl.writeToLoggers(bm)
 				logMsgPool.Put(bm)
 				continue
@@ -641,61 +702,61 @@ func SetLogger(adapter string, config ...string) error {
 
 // Emergency logs a message at emergency level.
 func Emergency(f interface{}, v ...interface{}) {
-	beeLogger.Emergency(formatLog(f, v...))
+	beeLogger.Emergency(formatPattern(f, v...), v...)
 }
 
 // Alert logs a message at alert level.
 func Alert(f interface{}, v ...interface{}) {
-	beeLogger.Alert(formatLog(f, v...))
+	beeLogger.Alert(formatPattern(f, v...), v...)
 }
 
 // Critical logs a message at critical level.
 func Critical(f interface{}, v ...interface{}) {
-	beeLogger.Critical(formatLog(f, v...))
+	beeLogger.Critical(formatPattern(f, v...), v...)
 }
 
 // Error logs a message at error level.
 func Error(f interface{}, v ...interface{}) {
-	beeLogger.Error(formatLog(f, v...))
+	beeLogger.Error(formatPattern(f, v...), v...)
 }
 
 // Warning logs a message at warning level.
 func Warning(f interface{}, v ...interface{}) {
-	beeLogger.Warn(formatLog(f, v...))
+	beeLogger.Warn(formatPattern(f, v...), v...)
 }
 
 // Warn compatibility alias for Warning()
 func Warn(f interface{}, v ...interface{}) {
-	beeLogger.Warn(formatLog(f, v...))
+	beeLogger.Warn(formatPattern(f, v...), v...)
 }
 
 // Notice logs a message at notice level.
 func Notice(f interface{}, v ...interface{}) {
-	beeLogger.Notice(formatLog(f, v...))
+	beeLogger.Notice(formatPattern(f, v...), v...)
 }
 
 // Informational logs a message at info level.
 func Informational(f interface{}, v ...interface{}) {
-	beeLogger.Info(formatLog(f, v...))
+	beeLogger.Info(formatPattern(f, v...), v...)
 }
 
 // Info compatibility alias for Warning()
 func Info(f interface{}, v ...interface{}) {
-	beeLogger.Info(formatLog(f, v...))
+	beeLogger.Info(formatPattern(f, v...), v...)
 }
 
 // Debug logs a message at debug level.
 func Debug(f interface{}, v ...interface{}) {
-	beeLogger.Debug(formatLog(f, v...))
+	beeLogger.Debug(formatPattern(f, v...), v...)
 }
 
 // Trace logs a message at trace level.
 // compatibility alias for Warning()
 func Trace(f interface{}, v ...interface{}) {
-	beeLogger.Trace(formatLog(f, v...))
+	beeLogger.Trace(formatPattern(f, v...), v...)
 }
 
-func formatLog(f interface{}, v ...interface{}) string {
+func formatPattern(f interface{}, v ...interface{}) string {
 	var msg string
 	switch f.(type) {
 	case string:
@@ -714,5 +775,5 @@ func formatLog(f interface{}, v ...interface{}) string {
 		}
 		msg += strings.Repeat(" %v", len(v))
 	}
-	return fmt.Sprintf(msg, v...)
+	return msg
 }
