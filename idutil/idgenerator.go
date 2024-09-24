@@ -1,6 +1,8 @@
 package idutil
 
 import (
+	"fmt"
+	"github.com/bwmarrin/snowflake"
 	"sync"
 	"time"
 )
@@ -55,4 +57,22 @@ func (gen *IDGeneratorBaseTime) Generate() int64 {
 
 	id := (now << 20) | int64(gen.sequence)
 	return id
+}
+
+// 定义全局的 snowflake 节点
+var node *snowflake.Node
+
+// 初始化节点
+func InitSnowflake(nodeID int64) error {
+	var err error
+	node, err = snowflake.NewNode(nodeID)
+	if err != nil {
+		return fmt.Errorf("failed to initialize snowflake node: %w", err)
+	}
+	return nil
+}
+
+// 生成自增 ID 的方法
+func GenerateID() snowflake.ID {
+	return node.Generate()
 }
