@@ -71,3 +71,8 @@ func InitSnowflake(nodeID int64) error {
 	}
 	return nil
 }
+
+// 生成自增 ID 的方法
+func GenerateID() snowflake.ID {
+	return node.Generate()
+}
