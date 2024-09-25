@@ -6,6 +6,7 @@ import (
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/dgraph-io/badger/v4"
 	"log"
+	"sort"
 	"strings"
 )
 
@@ -280,6 +281,9 @@ func BuildMultipleColumnIndexes(txn *badger.Txn, entityKey string, columns map[s
 
 // --------构造复合键  ----------
 func buildCompositeKey(columns ...string) string {
+	// 对传入的列进行字典序排序
+	sort.Strings(columns)
+
 	return strings.Join(columns, ":")
 }
 
@@ -345,36 +349,90 @@ func StoreWithCompositeKeyWithTxn(txn *badger.Txn, entity string, id string, col
 
 }
 
-func QueryByCompositeKey(entity string, columns map[string]string) ([]byte, error) {
+func QueryByCompositeKey[T any](entity string, columns map[string]string) (T, error) {
+	var result T
 	var compositeKey string
+
 	for col, val := range columns {
 		compositeKey = buildCompositeKey(entity, col, val)
 	}
 
-	var result []byte
 	err := db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(compositeKey))
 		if err != nil {
 			return err
 		}
-		result, err = item.ValueCopy(nil)
-		return err
+
+		val, err := item.ValueCopy(nil)
+		if err != nil {
+			return err
+		}
+
+		return unmarshalValue(val, &result)
 	})
+
 	return result, err
 }
 
-func QueryByCompositeKeyWithTxn(txn *badger.Txn, entity string, columns map[string]string) ([]byte, error) {
+func QueryByCompositeKeyWithTxn[T any](txn *badger.Txn, entity string, columns map[string]string) (T, error) {
+	var result T
 	var compositeKey string
+
 	for col, val := range columns {
 		compositeKey = buildCompositeKey(entity, col, val)
 	}
-
-	var result []byte
 
 	item, err := txn.Get([]byte(compositeKey))
 	if err != nil {
 		return result, err
 	}
-	result, err = item.ValueCopy(nil)
+
+	val, err := item.ValueCopy(nil)
+	if err != nil {
+		return result, err
+	}
+
+	err = unmarshalValue(val, &result)
 	return result, err
+}
+
+func BatchQueryByPrefix[T any](prefix string) (map[string]T, error) {
+	results := make(map[string]T)
+
+	err := db.View(func(txn *badger.Txn) error {
+		// 设置迭代器选项，按前缀查询
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = true
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		// 迭代查询
+		for it.Seek([]byte(prefix)); it.ValidForPrefix([]byte(prefix)); it.Next() {
+			item := it.Item()
+			key := string(item.Key())
+
+			// 获取值并解析为 T
+			val, err := item.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+
+			var parsedValue T
+			err = unmarshalValue(val, &parsedValue)
+			if err != nil {
+				return err
+			}
+
+			// 存储到结果 map 中
+			results[key] = parsedValue
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
