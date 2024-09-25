@@ -64,7 +64,6 @@ func unmarshalValue[T any](data []byte, v *T) error {
 	}
 	return nil
 }
-
 func IterateBadgerDB() error {
 	err := db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
