@@ -315,3 +315,66 @@ func StoreWithCompositeKey(entity string, id string, columns map[string]string) 
 
 	return err
 }
+
+func StoreWithCompositeKeyWithTxn(txn *badger.Txn, entity string, id string, columns map[string]string) error {
+	// 构造复合键
+	compositeKey := buildCompositeKey(entity, id)
+
+	// 将数据序列化
+	userData, err := marshalValue(columns)
+	if err != nil {
+		return err
+	}
+
+	// 存储数据
+	err = txn.Set([]byte(compositeKey), userData)
+	if err != nil {
+		return err
+	}
+
+	// 存储列索引，基于复合键
+	for col, val := range columns {
+		indexKey := buildCompositeKey(entity, col, val)
+		err := txn.Set([]byte(indexKey), []byte(compositeKey))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
+
+func QueryByCompositeKey(entity string, columns map[string]string) ([]byte, error) {
+	var compositeKey string
+	for col, val := range columns {
+		compositeKey = buildCompositeKey(entity, col, val)
+	}
+
+	var result []byte
+	err := db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(compositeKey))
+		if err != nil {
+			return err
+		}
+		result, err = item.ValueCopy(nil)
+		return err
+	})
+	return result, err
+}
+
+func QueryByCompositeKeyWithTxn(txn *badger.Txn, entity string, columns map[string]string) ([]byte, error) {
+	var compositeKey string
+	for col, val := range columns {
+		compositeKey = buildCompositeKey(entity, col, val)
+	}
+
+	var result []byte
+
+	item, err := txn.Get([]byte(compositeKey))
+	if err != nil {
+		return result, err
+	}
+	result, err = item.ValueCopy(nil)
+	return result, err
+}
