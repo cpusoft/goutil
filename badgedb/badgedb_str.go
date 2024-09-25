@@ -2,6 +2,7 @@ package badgedb
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/dgraph-io/badger/v4"
@@ -154,65 +155,78 @@ func GetWithTxn[T any](txn *badger.Txn, key string) (T, error) {
 	return result, nil
 }
 
-func MGet[T any](keys []string) (map[string]T, error) {
+func MGet[T any](keys []string) (map[string]T, map[string]error, error) {
 	results := make(map[string]T)
+	resultsErrors := make(map[string]error)
+
+	// 执行数据库操作
 	err := db.View(func(txn *badger.Txn) error {
-
 		for _, key := range keys {
-
 			var result T
 			item, err := txn.Get([]byte(key))
 			if err != nil {
-				return err
+				// 区分键不存在和其他错误
+				if errors.Is(err, badger.ErrKeyNotFound) {
+					resultsErrors[key] = badger.ErrKeyNotFound // 记录键不存在的错误
+				} else {
+					resultsErrors[key] = err // 记录其他错误
+				}
+				continue
 			}
 
-			val, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-
-			// 调用辅助函数将 []byte 转换为泛型类型 T
-			result, err = convertToType[T](val)
-			if err != nil {
-				return err
+			val, _ := item.ValueCopy(nil)
+			result, convErr := convertToType[T](val)
+			if convErr != nil {
+				resultsErrors[key] = convErr // 记录转换错误
+				continue
 			}
 			results[key] = result
 		}
-
 		return nil
 	})
 
 	if err != nil {
-		log.Fatal(err)
-		return results, err
+		return results, resultsErrors, err
 	}
 
-	return results, nil
+	return results, resultsErrors, nil
 }
 
-func MGetWithTxn[T any](txn *badger.Txn, keys []string) (map[string]T, error) {
+func MGetWithTxn[T any](txn *badger.Txn, keys []string) (map[string]T, map[string]error, error) {
 	results := make(map[string]T)
-	for _, key := range keys {
+	resultsErrors := make(map[string]error)
 
+	for _, key := range keys {
 		var result T
 		item, err := txn.Get([]byte(key))
+
 		if err != nil {
-			return results, err
+			// 区分键不存在和其他错误
+			if errors.Is(err, badger.ErrKeyNotFound) {
+				resultsErrors[key] = badger.ErrKeyNotFound // 记录键不存在的情况
+			} else {
+				resultsErrors[key] = err // 记录其他错误
+			}
+			continue
 		}
 
 		val, err := item.ValueCopy(nil)
 		if err != nil {
-			return results, err
+			resultsErrors[key] = err // 记录复制值的错误
+			continue
 		}
 
-		// 调用辅助函数将 []byte 转换为泛型类型 T
 		result, err = convertToType[T](val)
 		if err != nil {
-			return results, err
+			resultsErrors[key] = err // 记录转换错误
+			continue
 		}
+
 		results[key] = result
 	}
-	return results, nil
+
+	// 返回结果和错误
+	return results, resultsErrors, nil
 }
 
 // convertToType 根据目标类型 T 将 []byte 转换为 T
