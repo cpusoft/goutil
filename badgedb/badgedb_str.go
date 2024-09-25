@@ -436,3 +436,35 @@ func BatchQueryByPrefix[T any](prefix string) (map[string]T, error) {
 
 	return results, nil
 }
+
+func BatchQueryByPrefixWithTxn[T any](txn *badger.Txn, prefix string) (map[string]T, error) {
+	results := make(map[string]T)
+
+	// 设置迭代器选项，按前缀查询
+	opts := badger.DefaultIteratorOptions
+	opts.PrefetchValues = true
+	it := txn.NewIterator(opts)
+	defer it.Close()
+
+	// 迭代查询
+	for it.Seek([]byte(prefix)); it.ValidForPrefix([]byte(prefix)); it.Next() {
+		item := it.Item()
+		key := string(item.Key())
+
+		// 获取值并解析为 T
+		val, err := item.ValueCopy(nil)
+		if err != nil {
+			return results, err
+		}
+
+		var parsedValue T
+		err = unmarshalValue(val, &parsedValue)
+		if err != nil {
+			return results, err
+		}
+
+		// 存储到结果 map 中
+		results[key] = parsedValue
+	}
+	return results, nil
+}
