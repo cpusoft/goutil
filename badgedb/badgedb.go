@@ -35,11 +35,10 @@ func BadgerDB() {
 
 }
 
-// marshalValue 将任意类型的数据转换为字节切片
 func marshalValue(v any) ([]byte, error) {
-	return []byte(fmt.Sprintf("%v", v)), nil
+	// 使用JSON序列化保持类型信息
+	return json.Marshal(v)
 }
-
 func unmarshalValue[T any](data []byte, v *T) error {
 	switch any(v).(type) {
 	case *string:
