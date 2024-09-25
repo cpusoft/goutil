@@ -144,7 +144,7 @@ func IntToBytes(n interface{}) ([]byte, error) {
 	return nil, errors.New("n is not digital")
 }
 
-//0102abc1
+// 0102abc1
 func Bytes2String(byt []byte) string {
 	return hex.EncodeToString(byt)
 }
@@ -332,4 +332,20 @@ func PrintBytesOneLine(data []byte) (ret string) {
 		ret += fmt.Sprintf("%02x ", b)
 	}
 	return strings.TrimSpace(ret)
+}
+
+func MapKeysToSlice[K comparable, V any](m map[K]V) []K {
+	keys := make([]K, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func MapValuesToSlice[K comparable, V any](m map[K]V) []V {
+	values := make([]V, 0, len(m))
+	for _, v := range m {
+		values = append(values, v)
+	}
+	return values
 }
