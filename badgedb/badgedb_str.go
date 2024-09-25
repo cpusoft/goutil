@@ -97,6 +97,31 @@ func BatchInsert[T any](data map[string]T) map[string]error {
 
 	return nil
 }
+
+func BatchInsertWithTxn[T any](txn *badger.Txn, data map[string]T) error {
+	if len(data) <= 0 {
+		return nil
+	}
+	errs := make(map[string]error)
+
+	for key, value := range data {
+		valueBytes, err := marshalValue(value)
+		if err != nil {
+			errs[key] = err
+			belogs.Error("BatchInsertWithTxn, marshalValue failed, but continue, key:", key)
+			continue
+		}
+
+		// 使用 txn.Set 进行事务写入
+		err = txn.Set([]byte(key), valueBytes)
+		if err != nil {
+			belogs.Error("BatchInsertWithTxn failed, key:", key, " err:", err)
+			return err
+		}
+	}
+
+	return nil
+}
 func Get[T any](key string) (T, bool, error) {
 	var result T
 	var exists bool
