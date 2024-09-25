@@ -362,44 +362,29 @@ func StoreWithCompositeKeyWithTxn(txn *badger.Txn, entity string, id string, col
 }
 
 func QueryByCompositeKey[T any](entity string, columns map[string]string) (T, error) {
-	var result T
-	var compositeKey string
-	compositeKey = buildCompositeKey(columns)
-
-	err := db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(compositeKey))
-		if err != nil {
-			return err
-		}
-
-		val, err := item.ValueCopy(nil)
-		if err != nil {
-			return err
-		}
-		return unmarshalValue(val, &result)
-	})
-
-	return result, err
+	compositeKey := buildCompositeKey(columns)
+	result, exists, err := Get[T](compositeKey)
+	if err != nil {
+		return result, err
+	}
+	if !exists {
+		return result, nil
+	}
+	return result, nil
 }
 
 func QueryByCompositeKeyWithTxn[T any](txn *badger.Txn, entity string, columns map[string]string) (T, error) {
 	var result T
-	var compositeKey string
+	compositeKey := buildCompositeKey(columns)
 
-	compositeKey = buildCompositeKey(columns)
-
-	item, err := txn.Get([]byte(compositeKey))
+	value, exists, err := GetWithTxn[T](txn, compositeKey)
 	if err != nil {
 		return result, err
 	}
-
-	val, err := item.ValueCopy(nil)
-	if err != nil {
-		return result, err
+	if !exists {
+		return result, nil
 	}
-
-	err = unmarshalValue(val, &result)
-	return result, err
+	return value, nil
 }
 
 func BatchQueryByPrefix[T any](prefix string) (map[string]T, error) {
