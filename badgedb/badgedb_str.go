@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cpusoft/goutil/belogs"
-	"github.com/dgraph-io/badger/v4"
 	"log"
 	"sort"
 	"strings"
+
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/dgraph-io/badger/v4"
 )
 
 // Insert 泛型函数用于插入键值对到数据库
@@ -96,15 +97,20 @@ func BatchInsert[T any](data map[string]T) map[string]error {
 
 	return nil
 }
-
-func Get[T any](key string) (T, error) {
+func Get[T any](key string) (T, bool, error) {
 	var result T
+	var exists bool
 
 	err := db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(key))
 		if err != nil {
+			if err == badger.ErrKeyNotFound {
+				return nil // Key not found, but not considered an error
+			}
 			return err
 		}
+
+		exists = true
 
 		val, err := item.ValueCopy(nil)
 		if err != nil {
@@ -121,38 +127,38 @@ func Get[T any](key string) (T, error) {
 	})
 
 	if err != nil {
-		log.Fatal(err)
-		return result, err
+		return result, exists, err
 	}
 
-	return result, nil
+	return result, exists, nil
 }
 
-func GetWithTxn[T any](txn *badger.Txn, key string) (T, error) {
+func GetWithTxn[T any](txn *badger.Txn, key string) (T, bool, error) {
 	var result T
+	var exists bool
 
 	item, err := txn.Get([]byte(key))
 	if err != nil {
-		return result, err
+		if err == badger.ErrKeyNotFound {
+			return result, exists, nil // Key not found, but not considered an error
+		}
+		return result, exists, err
 	}
+
+	exists = true
 
 	val, err := item.ValueCopy(nil)
 	if err != nil {
-		return result, err
+		return result, exists, err
 	}
 
 	// 调用辅助函数将 []byte 转换为泛型类型 T
 	result, err = convertToType[T](val)
 	if err != nil {
-		return result, err
+		return result, exists, err
 	}
 
-	if err != nil {
-		log.Fatal(err)
-		return result, err
-	}
-
-	return result, nil
+	return result, exists, nil
 }
 
 func MGet[T any](keys []string) (map[string]T, map[string]error, error) {
