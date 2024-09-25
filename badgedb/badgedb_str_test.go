@@ -23,7 +23,7 @@ func TestStoreWithCompositeKey(t *testing.T) {
 		"age":  "30",
 	}
 
-	result, err := QueryByCompositeKey("user", columnsToQuery)
+	result, err := QueryByCompositeKey[string]("user", columnsToQuery)
 	if err != nil {
 		log.Fatal(err)
 	}

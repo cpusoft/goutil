@@ -1,11 +1,12 @@
 package badgedb
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/dgraph-io/badger/v4"
-	"github.com/goccy/go-json"
 )
 
 var db *badger.DB
@@ -38,8 +39,30 @@ func BadgerDB() {
 func marshalValue(v any) ([]byte, error) {
 	return []byte(fmt.Sprintf("%v", v)), nil
 }
+
 func unmarshalValue[T any](data []byte, v *T) error {
-	return json.Unmarshal(data, v)
+	switch any(v).(type) {
+	case *string:
+		*v = any(string(data)).(T) // 直接处理为字符串
+	case *int:
+		// 尝试将字节数据转换为整数
+		i, err := strconv.Atoi(string(data))
+		if err != nil {
+			return err
+		}
+		*v = any(i).(T)
+	case *float64:
+		// 尝试将字节数据转换为浮点数
+		f, err := strconv.ParseFloat(string(data), 64)
+		if err != nil {
+			return err
+		}
+		*v = any(f).(T)
+	default:
+		// 其他类型，假设是结构化数据，使用 JSON 反序列化
+		return json.Unmarshal(data, v)
+	}
+	return nil
 }
 
 func IterateBadgerDB() error {

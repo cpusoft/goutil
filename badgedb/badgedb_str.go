@@ -280,38 +280,44 @@ func BuildMultipleColumnIndexes(txn *badger.Txn, entityKey string, columns map[s
 }
 
 // --------构造复合键  ----------
-func buildCompositeKey(columns ...string) string {
+func buildBaseKey(columns ...string) string {
 	// 对传入的列进行字典序排序
 	sort.Strings(columns)
 
 	return strings.Join(columns, ":")
 }
 
+// 构造复合键，并按键排序以保证唯一性和一致性
+func buildCompositeKey(columns map[string]string) string {
+	var parts []string
+
+	// 提取所有列并按字典序排序
+	keys := make([]string, 0, len(columns))
+	for k := range columns {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys) // 对键进行字典序排序
+
+	// 构建 "column:value" 的字符串形式
+	for _, key := range keys {
+		parts = append(parts, key+":"+columns[key])
+	}
+
+	// 使用 ":" 将所有部分拼接成最终的复合键
+	return strings.Join(parts, ":")
+}
+
 // 存储数据和构造复合键索引
 func StoreWithCompositeKey(entity string, id string, columns map[string]string) error {
 	// 构造复合键
-	compositeKey := buildCompositeKey(entity, id)
-
-	// 将数据序列化
-	userData, err := marshalValue(columns)
-	if err != nil {
-		return err
-	}
-
-	err = db.Update(func(txn *badger.Txn) error {
-		// 存储数据
-		err := txn.Set([]byte(compositeKey), userData)
-		if err != nil {
-			return err
-		}
+	baseKey := buildBaseKey(entity, id)
+	err := db.Update(func(txn *badger.Txn) error {
 
 		// 存储列索引，基于复合键
-		for col, val := range columns {
-			indexKey := buildCompositeKey(entity, col, val)
-			err := txn.Set([]byte(indexKey), []byte(compositeKey))
-			if err != nil {
-				return err
-			}
+		indexKey := buildCompositeKey(columns)
+		err := txn.Set([]byte(indexKey), []byte(baseKey))
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -322,27 +328,13 @@ func StoreWithCompositeKey(entity string, id string, columns map[string]string) 
 
 func StoreWithCompositeKeyWithTxn(txn *badger.Txn, entity string, id string, columns map[string]string) error {
 	// 构造复合键
-	compositeKey := buildCompositeKey(entity, id)
-
-	// 将数据序列化
-	userData, err := marshalValue(columns)
-	if err != nil {
-		return err
-	}
-
-	// 存储数据
-	err = txn.Set([]byte(compositeKey), userData)
-	if err != nil {
-		return err
-	}
+	baseKey := buildBaseKey(entity, id)
 
 	// 存储列索引，基于复合键
-	for col, val := range columns {
-		indexKey := buildCompositeKey(entity, col, val)
-		err := txn.Set([]byte(indexKey), []byte(compositeKey))
-		if err != nil {
-			return err
-		}
+	indexKey := buildCompositeKey(columns)
+	err := txn.Set([]byte(indexKey), []byte(baseKey))
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -352,10 +344,7 @@ func StoreWithCompositeKeyWithTxn(txn *badger.Txn, entity string, id string, col
 func QueryByCompositeKey[T any](entity string, columns map[string]string) (T, error) {
 	var result T
 	var compositeKey string
-
-	for col, val := range columns {
-		compositeKey = buildCompositeKey(entity, col, val)
-	}
+	compositeKey = buildCompositeKey(columns)
 
 	err := db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(compositeKey))
@@ -367,7 +356,6 @@ func QueryByCompositeKey[T any](entity string, columns map[string]string) (T, er
 		if err != nil {
 			return err
 		}
-
 		return unmarshalValue(val, &result)
 	})
 
@@ -378,9 +366,7 @@ func QueryByCompositeKeyWithTxn[T any](txn *badger.Txn, entity string, columns m
 	var result T
 	var compositeKey string
 
-	for col, val := range columns {
-		compositeKey = buildCompositeKey(entity, col, val)
-	}
+	compositeKey = buildCompositeKey(columns)
 
 	item, err := txn.Get([]byte(compositeKey))
 	if err != nil {
