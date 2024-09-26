@@ -98,25 +98,28 @@ func BatchInsert[T any](data map[string]T) map[string]error {
 	return nil
 }
 
+// 事务保证
 func BatchInsertWithTxn[T any](txn *badger.Txn, data map[string]T) error {
-	if len(data) <= 0 {
-		return nil
+	const defaultBatchSize = 100 // 默认批量大小
+
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
 	}
-	errs := make(map[string]error)
 
-	for key, value := range data {
-		valueBytes, err := marshalValue(value)
-		if err != nil {
-			errs[key] = err
-			belogs.Error("BatchInsertWithTxn, marshalValue failed, but continue, key:", key)
-			continue
-		}
+	for i := 0; i < len(keys); i += defaultBatchSize {
+		for j := i; j < i+defaultBatchSize && j < len(keys); j++ {
+			key := keys[j]
+			valueBytes, err := marshalValue(data[key])
+			if err != nil {
+				belogs.Error("marshalValue failed, err", err)
+				return err
+			}
+			if err := txn.Set([]byte(key), valueBytes); err != nil {
+				belogs.Error("Set failed, err", err)
+				return err
+			}
 
-		// 使用 txn.Set 进行事务写入
-		err = txn.Set([]byte(key), valueBytes)
-		if err != nil {
-			belogs.Error("BatchInsertWithTxn failed, key:", key, " err:", err)
-			return err
 		}
 	}
 
