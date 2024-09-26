@@ -29,9 +29,10 @@ func BadgerDB() {
 	Init()
 
 	Insert("name", "baozhuo")
-	get, err := Get[string]("name")
+	get, exists, err := Get[string]("name")
 	fmt.Println(err)
 	fmt.Println(get)
+	fmt.Println(exists)
 
 }
 
