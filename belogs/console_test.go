@@ -49,6 +49,8 @@ func TestConsoleAsync(t *testing.T) {
 	for len(log.msgChan) != 0 {
 		time.Sleep(1 * time.Millisecond)
 	}
+	log.Flush()
+	log.Close()
 }
 
 func TestFormat(t *testing.T) {
@@ -62,7 +64,7 @@ func TestFormat(t *testing.T) {
 		Prefix:     "Cus",
 	}
 	res := log.Format(lm)
-	assert.Equal(t, "2020/09/19 20:12:37.000 \x1b[1;44m[D]\x1b[0m Cus Hello, world\n", res)
+	assert.Equal(t, "2020/09/19 20:12:37.000 \x1b[1;44m[D]\x1b[0m Cus Hello, world", res)
 	err := log.WriteMsg(lm)
 	assert.Nil(t, err)
 }

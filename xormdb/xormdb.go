@@ -1,14 +1,13 @@
 package xormdb
 
 import (
-	"bytes"
 	"database/sql"
 	"os"
 	"path/filepath"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
-	"github.com/cpusoft/goutil/convert"
+	"github.com/cpusoft/goutil/stringutil"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 	"xorm.io/xorm"
@@ -179,19 +178,7 @@ func SqlNullInt(s int64) sql.NullInt64 {
 	}
 }
 
+// Deprecated: should using stringutil.Int64sToInString
 func Int64sToInString(s []int64) string {
-	if len(s) == 0 {
-		return ""
-	}
-	var buffer bytes.Buffer
-	buffer.WriteString("(")
-	for i := 0; i < len(s); i++ {
-		buffer.WriteString(convert.ToString(s[i]))
-		if i < len(s)-1 {
-			buffer.WriteString(",")
-		}
-	}
-	buffer.WriteString(")")
-	return buffer.String()
-
+	return stringutil.Int64sToInString(s)
 }

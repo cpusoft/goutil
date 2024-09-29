@@ -2,9 +2,10 @@ package idutil
 
 import (
 	"fmt"
-	"github.com/bwmarrin/snowflake"
 	"sync"
 	"time"
+
+	"github.com/bwmarrin/snowflake"
 )
 
 // IDGenerator 结构体

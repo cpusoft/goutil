@@ -18,7 +18,8 @@ func init() {
 		seed = time.Now().UnixNano()
 	}
 	fmt.Printf("seed: %d\n", seed)
-	rand.Seed(seed)
+	//rand.Seed(seed)
+	rand.New(rand.NewSource(seed))
 }
 
 // testKind is the item type.

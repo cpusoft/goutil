@@ -2,12 +2,17 @@ package transportutil
 
 import (
 	"container/list"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/binary"
 	"errors"
 	"net"
+	"os"
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
+	"github.com/cpusoft/goutil/jsonutil"
 )
 
 const (
@@ -141,4 +146,150 @@ func GetUdpAddrKey(udpAddr *net.UDPAddr) string {
 		return ""
 	}
 	return udpAddr.String()
+}
+
+func getLengthDeclarationSendData(tcptlsLengthDeclaration string, sendData []byte) (sendDataNew []byte) {
+	belogs.Debug("getLengthDeclarationSendData(): tcptlsLengthDeclaration:", tcptlsLengthDeclaration,
+		"   len(sendData):", len(sendData), convert.PrintBytesOneLine(sendData))
+	if tcptlsLengthDeclaration == "true" {
+		sendDataNew = make([]byte, 2+len(sendData))
+		binary.BigEndian.PutUint16(sendDataNew, uint16(len(sendData)))
+		copy(sendDataNew[2:], sendData)
+		belogs.Debug("getLengthDeclarationSendData():  len(sendDataNew):", len(sendDataNew))
+		return sendDataNew
+	}
+	return sendData
+}
+
+type TlsConfigModel struct {
+	TlsPort                string `json:"tlsPort"`
+	TlsRootCrtFileName     string `json:"tlsRootCrtFileName"`
+	TlsPublicCrtFileName   string `json:"tlsPublicCrtFileName"`
+	TlsPrivateKeyFileName  string `json:"tlsPrivateKeyFileName"`
+	ClientAuth             string `json:"clientAuth"` //NoClientCert or RequireAndVerifyClientCert
+	InsecureSkipVerify     bool   `json:"insecureSkipVerify"`
+	KeepAlivePeriodSeconds int    `json:"keepAlivePeriodSeconds"` // if is 0, not set keepalive
+}
+
+/*
+serverTlsPort := conf.String("dns-server::serverTlsPort")
+path := conf.String("dns-server::programDir") + "/conf/cert/"
+tlsRootCrtFileName := path + conf.String("dns-server::caTlsRoot")
+tlsPublicCrtFileName := path + conf.String("dns-server::serverTlsCrt")
+tlsPrivateKeyFileName := path + conf.String("dns-server::serverTlsKey")
+dns-server::ClientAuth="NoClientCert" 	"RequestClientCert"
+"RequireAnyClientCert"	"VerifyClientCertIfGiven" "RequireAndVerifyClientCert"
+ClientAuth := conf.String("dns-server::ClientAuth")
+insecureSkipVerify := conf.Bool("dns-server::insecureSkipVerify")
+KeepAlivePeriodSeconds:=conf.Int("dns-server::keepAlivePeriodSeconds")
+*/
+func GetServerTlsConfig(tlsConfigModel TlsConfigModel) (*tls.Config, error) {
+
+	belogs.Debug("GetServerTlsConfig(): tlsConfigModel:", jsonutil.MarshalJson(tlsConfigModel))
+
+	cert, err := tls.LoadX509KeyPair(tlsConfigModel.TlsPublicCrtFileName,
+		tlsConfigModel.TlsPrivateKeyFileName)
+	if err != nil {
+		belogs.Error("GetServerTlsConfig(): tlsserver  LoadX509KeyPair fail:",
+			"  tlsPublicCrtFileName, tlsPrivateKeyFileName:",
+			tlsConfigModel.TlsPublicCrtFileName, tlsConfigModel.TlsPrivateKeyFileName, err)
+		return nil, err
+	}
+	belogs.Debug("GetServerTlsConfig(): tlsserver  cert:", "  tlsPublicCrtFileName, tlsPrivateKeyFileName:",
+		tlsConfigModel.TlsPublicCrtFileName, tlsConfigModel.TlsPrivateKeyFileName)
+
+	rootCrtBytes, err := os.ReadFile(tlsConfigModel.TlsRootCrtFileName)
+	if err != nil {
+		belogs.Error("GetServerTlsConfig(): tlsserver  ReadFile tlsRootCrtFileName fail:",
+			"  tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName, err)
+		return nil, err
+	}
+	belogs.Debug("GetServerTlsConfig(): tlsserver  len(rootCrtBytes):", len(rootCrtBytes),
+		"  tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName)
+
+	rootCertPool := x509.NewCertPool()
+	ok := rootCertPool.AppendCertsFromPEM(rootCrtBytes)
+	if !ok {
+		belogs.Error("GetServerTlsConfig(): tlsserver  AppendCertsFromPEM tlsRootCrtFileName fail:",
+			"  tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName, "  len(rootCrtBytes):", len(rootCrtBytes), err)
+		return nil, err
+	}
+	belogs.Debug("GetServerTlsConfig(): tlsserver  AppendCertsFromPEM len(rootCrtBytes):", len(rootCrtBytes),
+		"  tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName)
+
+	clientAuthType := tls.NoClientCert
+	switch tlsConfigModel.ClientAuth {
+	case "RequestClientCert":
+		clientAuthType = tls.RequestClientCert
+	case "RequireAnyClientCert":
+		clientAuthType = tls.RequireAnyClientCert
+	case "VerifyClientCertIfGiven":
+		clientAuthType = tls.VerifyClientCertIfGiven
+	case "RequireAndVerifyClientCert":
+		clientAuthType = tls.RequireAndVerifyClientCert
+	}
+	belogs.Debug("GetServerTlsConfig(): tlsserver clientAuthType:", clientAuthType)
+
+	// https://stackoverflow.com/questions/63676241/how-to-set-setkeepaliveperiod-on-a-tls-conn
+	var setTCPKeepAlive func(*tls.ClientHelloInfo) (*tls.Config, error)
+	if tlsConfigModel.KeepAlivePeriodSeconds > 0 {
+		setTCPKeepAlive = func(clientHello *tls.ClientHelloInfo) (*tls.Config, error) {
+			// Check that the underlying connection really is TCP.
+			if tcpConn, ok := clientHello.Conn.(*net.TCPConn); ok {
+				tcpConn.SetKeepAlive(true)
+				tcpConn.SetKeepAlivePeriod(time.Second * time.Duration(tlsConfigModel.KeepAlivePeriodSeconds))
+				belogs.Debug("GetServerTlsConfig(): SetKeepAlivePeriod KeepAlivePeriodSeconds:", tlsConfigModel.KeepAlivePeriodSeconds)
+			}
+			// Make sure to return nil, nil to let the caller fall back on the default behavior.
+			return nil, nil
+		}
+	}
+	config := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		ClientAuth:         clientAuthType,
+		RootCAs:            rootCertPool,
+		GetConfigForClient: setTCPKeepAlive,
+		InsecureSkipVerify: tlsConfigModel.InsecureSkipVerify,
+	}
+	return config, nil
+}
+
+func GetClientTlsConfig(tlsConfigModel TlsConfigModel) (*tls.Config, error) {
+
+	belogs.Debug("GetClientTlsConfig(): tlsConfigModel:", jsonutil.MarshalJson(tlsConfigModel))
+
+	cert, err := tls.LoadX509KeyPair(tlsConfigModel.TlsPublicCrtFileName, tlsConfigModel.TlsPrivateKeyFileName)
+	if err != nil {
+		belogs.Error("GetClientTlsConfig(): LoadX509KeyPair fail:",
+			"  tlsPublicCrtFileName:", tlsConfigModel.TlsPublicCrtFileName,
+			"  tlsPrivateKeyFileName:", tlsConfigModel.TlsPrivateKeyFileName, err)
+		return nil, err
+	}
+	belogs.Debug("GetClientTlsConfig(): LoadX509KeyPair ok,  tlsPublicCrtFileName:", tlsConfigModel.TlsPublicCrtFileName,
+		"  tlsPrivateKeyFileName:", tlsConfigModel.TlsPrivateKeyFileName)
+
+	rootCrtBytes, err := os.ReadFile(tlsConfigModel.TlsRootCrtFileName)
+	if err != nil {
+		belogs.Error("GetClientTlsConfig(): ReadFile tlsRootCrtFileName fail:",
+			"  tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName, err)
+		return nil, err
+	}
+	belogs.Debug("GetClientTlsConfig(): ReadFile ok, tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName)
+
+	rootCertPool := x509.NewCertPool()
+	ok := rootCertPool.AppendCertsFromPEM(rootCrtBytes)
+	if !ok {
+		belogs.Error("GetClientTlsConfig(): AppendCertsFromPEM tlsRootCrtFileName fail,",
+			"  tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName, "  len(rootCrtBytes):", len(rootCrtBytes), err)
+		return nil, err
+	}
+	belogs.Debug("GetClientTlsConfig(): AppendCertsFromPEM ok, tlsRootCrtFileName:", tlsConfigModel.TlsRootCrtFileName)
+
+	config := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            rootCertPool,
+		InsecureSkipVerify: tlsConfigModel.InsecureSkipVerify,
+	}
+	belogs.Debug("GetClientTlsConfig(): config:", jsonutil.MarshalJson(config))
+	return config, nil
 }

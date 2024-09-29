@@ -2,11 +2,10 @@ package transportutil
 
 import (
 	"crypto/tls"
-	"crypto/x509"
+	"encoding/binary"
 	"errors"
 	"io"
 	"net"
-	"os"
 	"sync"
 	"time"
 
@@ -22,7 +21,10 @@ type TcpServer struct {
 	state uint64
 	// tcp/tls/udp
 	connType string
-	// tcp/tls receive bytes len
+
+	// will set tcp length first
+	tcptlsLengthDeclaration string
+	// if tcptlsLengthDeclaration ==false, then shoud set tcp/tls receive bytes len
 	receiveOnePacketLength int
 
 	// tls/tls/udp
@@ -47,7 +49,8 @@ type TcpServer struct {
 	businessToConnMsg chan BusinessToConnMsg
 }
 
-func NewTcpServer(tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg, receiveOnePacketLength int) (ts *TcpServer) {
+func NewTcpServer(tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg,
+	tcptlsLengthDeclaration string, receiveOnePacketLength int) (ts *TcpServer) {
 
 	belogs.Debug("NewTcpServer():tcpServerProcess:", tcpServerProcess, "  receiveOnePacketLength:", receiveOnePacketLength)
 	ts = &TcpServer{}
@@ -57,12 +60,14 @@ func NewTcpServer(tcpServerProcess TcpServerProcess, businessToConnMsg chan Busi
 	ts.tcpServerProcess = tcpServerProcess
 	ts.closeGraceful = make(chan struct{})
 	ts.businessToConnMsg = businessToConnMsg
+	ts.tcptlsLengthDeclaration = tcptlsLengthDeclaration
 	ts.receiveOnePacketLength = receiveOnePacketLength
 	belogs.Debug("NewTcpServer():ts:", ts)
 	return ts
 }
 func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileName string, tlsVerifyClient bool,
-	tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg, receiveOnePacketLength int) (ts *TcpServer, err error) {
+	tcpServerProcess TcpServerProcess, businessToConnMsg chan BusinessToConnMsg,
+	tcptlsLengthDeclaration string, receiveOnePacketLength int) (ts *TcpServer, err error) {
 
 	belogs.Debug("NewTcpServer():tlsRootCrtFileName:", tlsRootCrtFileName, "  tlsPublicCrtFileName:", tlsPublicCrtFileName,
 		"   tlsPrivateKeyFileName:", tlsPrivateKeyFileName, "   tlsVerifyClient:", tlsVerifyClient,
@@ -74,6 +79,7 @@ func NewTlsServer(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	ts.closeGraceful = make(chan struct{})
 	ts.businessToConnMsg = businessToConnMsg
 	ts.tcpServerProcess = tcpServerProcess
+	ts.tcptlsLengthDeclaration = tcptlsLengthDeclaration
 	ts.receiveOnePacketLength = receiveOnePacketLength
 
 	rootExists, _ := osutil.IsExists(tlsRootCrtFileName)
@@ -135,56 +141,76 @@ func (ts *TcpServer) StartTcpServer(port string) (err error) {
 func (ts *TcpServer) StartTlsServer(port string) (err error) {
 
 	belogs.Debug("StartTlsServer(): tlsserver  port:", port)
-	cert, err := tls.LoadX509KeyPair(ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName)
-	if err != nil {
-		belogs.Error("StartTlsServer(): tlsserver  LoadX509KeyPair fail: port:", port,
-			"  tlsPublicCrtFileName, tlsPrivateKeyFileName:", ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName, err)
-		return err
-	}
-	belogs.Debug("StartTlsServer(): tlsserver  cert:", ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName)
-
-	rootCrtBytes, err := os.ReadFile(ts.tlsRootCrtFileName)
-	if err != nil {
-		belogs.Error("StartTlsServer(): tlsserver  ReadFile tlsRootCrtFileName fail, port:", port,
-			"  tlsRootCrtFileName:", ts.tlsRootCrtFileName, err)
-		return err
-	}
-	belogs.Debug("StartTlsServer(): tlsserver  len(rootCrtBytes):", len(rootCrtBytes), "  tlsRootCrtFileName:", ts.tlsRootCrtFileName)
-
-	rootCertPool := x509.NewCertPool()
-	ok := rootCertPool.AppendCertsFromPEM(rootCrtBytes)
-	if !ok {
-		belogs.Error("StartTlsServer(): tlsserver  AppendCertsFromPEM tlsRootCrtFileName fail,port:", port,
-			"  tlsRootCrtFileName:", ts.tlsRootCrtFileName, "  len(rootCrtBytes):", len(rootCrtBytes), err)
-		return err
-	}
-	belogs.Debug("StartTlsServer(): tlsserver  AppendCertsFromPEM len(rootCrtBytes):", len(rootCrtBytes), "  tlsRootCrtFileName:", ts.tlsRootCrtFileName)
-
-	clientAuthType := tls.NoClientCert
+	clientAuth := "NoClientCert"
 	if ts.tlsVerifyClient {
-		clientAuthType = tls.RequireAndVerifyClientCert
+		clientAuth = "RequireAndVerifyClientCert"
 	}
-	belogs.Debug("StartTlsServer(): tlsserver clientAuthType:", clientAuthType)
-
-	// https://stackoverflow.com/questions/63676241/how-to-set-setkeepaliveperiod-on-a-tls-conn
-	setTCPKeepAlive := func(clientHello *tls.ClientHelloInfo) (*tls.Config, error) {
-		// Check that the underlying connection really is TCP.
-		if tcpConn, ok := clientHello.Conn.(*net.TCPConn); ok {
-			tcpConn.SetKeepAlive(true)
-			tcpConn.SetKeepAlivePeriod(time.Second * 300)
-			belogs.Debug("StartTlsServer(): tlsserver SetKeepAlive:")
+	tlsConfigModel := TlsConfigModel{
+		TlsPort:                port,
+		TlsRootCrtFileName:     ts.tlsRootCrtFileName,
+		TlsPublicCrtFileName:   ts.tlsPublicCrtFileName,
+		TlsPrivateKeyFileName:  ts.tlsPrivateKeyFileName,
+		ClientAuth:             clientAuth, // tls.NoClientCert or tls.RequireAndVerifyClientCert
+		InsecureSkipVerify:     false,
+		KeepAlivePeriodSeconds: 300, // if is 0, not set keepalive
+	}
+	tlsConfig, err := GetServerTlsConfig(tlsConfigModel)
+	if err != nil {
+		belogs.Error("StartTlsServer(): GetServerTlsConfig fail, tlsConfigModel:", jsonutil.MarshalJson(tlsConfigModel), err)
+		return err
+	}
+	/*
+		cert, err := tls.LoadX509KeyPair(ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName)
+		if err != nil {
+			belogs.Error("StartTlsServer(): tlsserver  LoadX509KeyPair fail: port:", port,
+				"  tlsPublicCrtFileName, tlsPrivateKeyFileName:", ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName, err)
+			return err
 		}
-		// Make sure to return nil, nil to let the caller fall back on the default behavior.
-		return nil, nil
-	}
-	config := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		ClientAuth:         clientAuthType,
-		RootCAs:            rootCertPool,
-		InsecureSkipVerify: false,
-		GetConfigForClient: setTCPKeepAlive,
-	}
-	listener, err := tls.Listen("tcp", ":"+port, config)
+		belogs.Debug("StartTlsServer(): tlsserver  cert:", ts.tlsPublicCrtFileName, ts.tlsPrivateKeyFileName)
+
+		rootCrtBytes, err := os.ReadFile(ts.tlsRootCrtFileName)
+		if err != nil {
+			belogs.Error("StartTlsServer(): tlsserver  ReadFile tlsRootCrtFileName fail, port:", port,
+				"  tlsRootCrtFileName:", ts.tlsRootCrtFileName, err)
+			return err
+		}
+		belogs.Debug("StartTlsServer(): tlsserver  len(rootCrtBytes):", len(rootCrtBytes), "  tlsRootCrtFileName:", ts.tlsRootCrtFileName)
+
+		rootCertPool := x509.NewCertPool()
+		ok := rootCertPool.AppendCertsFromPEM(rootCrtBytes)
+		if !ok {
+			belogs.Error("StartTlsServer(): tlsserver  AppendCertsFromPEM tlsRootCrtFileName fail,port:", port,
+				"  tlsRootCrtFileName:", ts.tlsRootCrtFileName, "  len(rootCrtBytes):", len(rootCrtBytes), err)
+			return err
+		}
+		belogs.Debug("StartTlsServer(): tlsserver  AppendCertsFromPEM len(rootCrtBytes):", len(rootCrtBytes), "  tlsRootCrtFileName:", ts.tlsRootCrtFileName)
+
+		clientAuthType := tls.NoClientCert
+		if ts.tlsVerifyClient {
+			clientAuthType = tls.RequireAndVerifyClientCert
+		}
+		belogs.Debug("StartTlsServer(): tlsserver clientAuthType:", clientAuthType)
+
+		// https://stackoverflow.com/questions/63676241/how-to-set-setkeepaliveperiod-on-a-tls-conn
+		setTCPKeepAlive := func(clientHello *tls.ClientHelloInfo) (*tls.Config, error) {
+			// Check that the underlying connection really is TCP.
+			if tcpConn, ok := clientHello.Conn.(*net.TCPConn); ok {
+				tcpConn.SetKeepAlive(true)
+				tcpConn.SetKeepAlivePeriod(time.Second * 300)
+				belogs.Debug("StartTlsServer(): tlsserver SetKeepAlive:")
+			}
+			// Make sure to return nil, nil to let the caller fall back on the default behavior.
+			return nil, nil
+		}
+		config := &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			ClientAuth:         clientAuthType,
+			RootCAs:            rootCertPool,
+			InsecureSkipVerify: false,
+			GetConfigForClient: setTCPKeepAlive,
+		}
+	*/
+	listener, err := tls.Listen("tcp", ":"+port, tlsConfig)
 	if err != nil {
 		belogs.Error("StartTlsServer(): tlsserver  Listen fail, port:", port, err)
 		return err
@@ -238,35 +264,46 @@ func (ts *TcpServer) receiveAndSend(tcpConn *TcpConn) {
 
 	defer ts.onClose(tcpConn)
 
-	var leftData []byte
 	// one packet
-	buffer := make([]byte, ts.receiveOnePacketLength)
-	belogs.Debug("TcpServer.receiveAndSend(): recive from tcpConn: ", tcpConn.RemoteAddr().String(),
-		"   receiveOnePacketLength:", ts.receiveOnePacketLength)
 
+	belogs.Debug("TcpServer.receiveAndSend(): recive from tcpConn: ", tcpConn.RemoteAddr().String(),
+		"  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "   receiveOnePacketLength:", ts.receiveOnePacketLength)
+	var leftData []byte
+	var buffer []byte
+	var length uint16
 	// wait for new packet to read
 	for {
 		start := time.Now()
+		if ts.tcptlsLengthDeclaration == "true" {
+			binary.Read(tcpConn, binary.BigEndian, &length)
+		} else {
+			length = uint16(ts.receiveOnePacketLength)
+		}
+		buffer = make([]byte, length)
 		n, err := tcpConn.Read(buffer)
 		belogs.Debug("TcpServer.receiveAndSend():server read: Read from:", tcpConn.RemoteAddr().String(),
-			"   receiveOnePacketLength:", ts.receiveOnePacketLength, "  read n:", n)
-		//	if n == 0 {
-		//		continue
-		//	}
+			"   tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration,
+			"   length:", length, "  read n:", n, " buffer:", convert.PrintBytesOneLine(buffer),
+			"   time(s):", time.Since(start))
+
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
-				belogs.Info("TcpServer.receiveAndSend(): Read io.EOF, client close, tcpConn:", tcpConn.RemoteAddr().String(), err)
+				belogs.Info("TcpServer.receiveAndSend(): Read io.EOF, client close, tcpConn:", tcpConn.RemoteAddr().String(),
+					"   length:", length, " time(s):", time.Since(start), err)
 				return
 			}
-			belogs.Error("TcpServer.receiveAndSend(): Read fail, receiveOnePacketLength:", ts.receiveOnePacketLength, "  tcpConn:", tcpConn.RemoteAddr().String(), err)
+			belogs.Error("TcpServer.receiveAndSend(): Read fail, receiveOnePacketLength:", ts.receiveOnePacketLength,
+				"   length:", length, "  tcpConn:", tcpConn.RemoteAddr().String(),
+				"   time(s):", time.Since(start), err)
 			return
 		}
 
 		// call process func OnReceiveAndSend
 		// copy to leftData
 		belogs.Debug("TcpServer.receiveAndSend(): tcpConn: ", tcpConn.RemoteAddr().String(),
-			" , Read n:", n, "  time(s):", time.Since(start))
+			"   length:", length, " , Read n:", n,
+			"   time(s):", time.Since(start))
 		nextConnectPolicy, leftData, err := ts.tcpServerProcess.OnReceiveAndSendProcess(tcpConn, append(leftData, buffer[:n]...))
 		belogs.Debug("TcpServer.receiveAndSend(): after OnReceiveAndSendProcess,server tcpConn: ", tcpConn.RemoteAddr().String(), " receive n: ", n,
 			"  len(leftData):", len(leftData), "  time(s):", time.Since(start))
@@ -428,45 +465,54 @@ func (ts *TcpServer) activeSend(connKey string, sendData []byte) (err error) {
 	defer ts.tcpConnsMutex.RUnlock()
 	start := time.Now()
 
-	belogs.Debug("TcpServer.activeSend(): ,len(sendData):", len(sendData),
+	belogs.Debug("TcpServer.activeSend(): before lengthDeclaration, len(sendData):", len(sendData),
+		"   tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration,
 		"   tcpConns: ", ts.tcpConns, "  connKey:", connKey)
+	sendDataNew := getLengthDeclarationSendData(ts.tcptlsLengthDeclaration, sendData)
+	length := len(sendDataNew)
+	var n int
 	if len(connKey) == 0 {
-		belogs.Debug("TcpServer.activeSend(): to all, len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpConns))
+		belogs.Debug("TcpServer.activeSend(): to all, len(sendDataNew):", len(sendDataNew), "   len(tcpConns): ", len(ts.tcpConns))
 		for i := range ts.tcpConns {
-			belogs.Debug("TcpServer.activeSend(): to all, client: ", i, "    ts.tcpConns[i]:", ts.tcpConns[i].RemoteAddr().String())
+			belogs.Debug("TcpServer.activeSend(): to all, client: ", i,
+				"  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "    ts.tcpConns[i]:", ts.tcpConns[i].RemoteAddr().String())
 			startOne := time.Now()
-			n, err := ts.tcpConns[i].Write(sendData)
+			n, err = ts.tcpConns[i].Write(sendDataNew)
 			if err != nil {
 				belogs.Error("TcpServer.activeSend(): server to all, tcpConn.Write fail, will ignore, tcpConn:", ts.tcpConns[i].RemoteAddr().String(),
-					"   n:", n, "   sendData:", convert.PrintBytesOneLine(sendData), "   time(s):", time.Since(startOne), err)
+					"   n:", n, "  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "   sendDataNew:", convert.PrintBytesOneLine(sendDataNew),
+					"   time(s):", time.Since(startOne), err)
 				continue
 			} else {
 				belogs.Info("TcpServer.activeSend(): server to all, tcpConn.Write ok, tcpConn:", ts.tcpConns[i].RemoteAddr().String(),
-					"   n:", n, "   len(sendData):", len(sendData), "   time(s):", time.Since(startOne))
+					"   n:", n, "  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "   len(sendDataNew):", length, "   time(s):", time.Since(startOne))
 			}
 		}
-		belogs.Info("TcpServer.activeSend(): send to all clients ok,  len(sendData):", len(sendData), "   len(tcpConns): ", len(ts.tcpConns),
+		belogs.Info("TcpServer.activeSend(): send to all clients ok, tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "  len(sendDataNew):", length, "   len(tcpConns): ", len(ts.tcpConns),
 			"  time(s):", time.Since(start).Seconds())
 		return
 	} else {
-		belogs.Debug("TcpServer.activeSend(): to connKey:", connKey, "   ts.tcpConns:", ts.tcpConns)
+		belogs.Debug("TcpServer.activeSend(): to connKey:", connKey, "  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "   ts.tcpConns:", ts.tcpConns)
 		if tcpConn, ok := ts.tcpConns[connKey]; ok {
+
+			belogs.Debug("TcpServer.activeSend(): found connKey: ", connKey, "  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration,
+				"   sendDataNew:", convert.PrintBytesOneLine(sendDataNew))
 			startOne := time.Now()
-			belogs.Debug("TcpServer.activeSend(): found connKey: ", connKey, "   sendData:", convert.PrintBytesOneLine(sendData))
-			n, err := tcpConn.Write(sendData)
+			n, err = tcpConn.Write(sendDataNew)
 			if err != nil {
 				belogs.Error("TcpServer.activeSend(): to ", connKey, " tcpConn.Write fail: tcpConn:", tcpConn.RemoteAddr().String(),
-					"   n:", n, "   sendData:", convert.PrintBytesOneLine(sendData), "   time(s):", time.Since(startOne), err)
+					"   n:", n, "  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration,
+					"   sendDataNew:", convert.PrintBytesOneLine(sendDataNew), "   time(s):", time.Since(startOne), err)
 			} else {
 				belogs.Info("TcpServer.activeSend(): to ", connKey, " tcpConn.Write ok, tcpConn:", tcpConn.RemoteAddr().String(),
-					"   n:", n, "   len(sendData):", len(sendData), "   time(s):", time.Since(startOne))
+					"   n:", n, "  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "   len(sendDataNew):", length, "   time(s):", time.Since(startOne))
 			}
 		} else {
 			belogs.Error("TcpServer.activeSend(): not found connKey: ", connKey, " fail: tcpConn:", tcpConn,
-				"   sendData:", convert.PrintBytesOneLine(sendData))
+				"  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "   sendDataNew:", convert.PrintBytesOneLine(sendDataNew))
 		}
-		belogs.Info("TcpServer.activeSend(): send to connKey ok,  len(sendData):", len(sendData), "   connKey: ", connKey,
-			"  time(s):", time.Since(start).Seconds())
+		belogs.Info("TcpServer.activeSend(): send to connKey ok,  len(sendDataNew):", length, "   connKey: ", connKey,
+			"  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "  time(s):", time.Since(start).Seconds())
 		return
 	}
 

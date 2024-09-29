@@ -6,8 +6,8 @@ import (
 )
 
 type AdjacentBaseCache struct {
-	parentData    map[string]any //key: filenamepath
-	childDatas    map[string]any //key: filenamepath
+	parentData    map[string]any //key: filepathname
+	childDatas    map[string]any //key: filepathname
 	mutex         sync.RWMutex
 	datasCapacity uint64
 }

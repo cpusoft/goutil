@@ -31,7 +31,7 @@ func init() {
 	var conf string
 	if len(os.Args) > 1 {
 		args := strings.Split(os.Args[1], "=")
-		if len(args) > 0 && (args[0] == "conf" || args[0] == "-conf" || args[0] == "--conf") {
+		if len(args) > 1 && (args[0] == "conf" || args[0] == "-conf" || args[0] == "--conf") {
 			conf = args[1]
 		}
 	}
@@ -48,7 +48,7 @@ func init() {
 	//fmt.Println("conf file is ", conf)
 	configure, err = config.NewConfig("ini", conf)
 	if err != nil {
-		fmt.Println("load " + conf + " failed, " + err.Error())
+		fmt.Println("Loaded configuration file " + conf + " is not in ini format. " + err.Error())
 		return
 	}
 
@@ -93,8 +93,8 @@ func DefaultBool(key string, defaultVal bool) bool {
 	return false
 }
 
-//destpath=${rpstir2::datadir}/rsyncrepo   --> replace ${rpstir2::datadir}
-//-->/root/rpki/data/rsyncrepo --> get /root/rpki/data/rsyncrepo
+// destpath=${rpstir2::datadir}/rsyncrepo   --> replace ${rpstir2::datadir}
+// -->/root/rpki/data/rsyncrepo --> get /root/rpki/data/rsyncrepo
 // Deprecated
 func VariableString(key string) string {
 	if len(key) == 0 || len(String(key)) == 0 {

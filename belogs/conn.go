@@ -2,7 +2,6 @@ package belogs
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -41,7 +40,7 @@ func (c *connWriter) Init(config string) error {
 	if res == nil && len(c.Formatter) > 0 {
 		fmtr, ok := GetFormatter(c.Formatter)
 		if !ok {
-			return errors.New(fmt.Sprintf("the formatter with name: %s not found", c.Formatter))
+			return fmt.Errorf("the formatter with name: %s not found", c.Formatter)
 		}
 		c.formatter = fmtr
 	}
