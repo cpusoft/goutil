@@ -1,139 +1,212 @@
 package badgedb
 
-import "github.com/dgraph-io/badger/v4"
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/dgraph-io/badger/v4"
+	"strconv"
+)
 
-func Append[T any](key string, value T) error {
-	// 获取当前列表
-	var list []T
-	err := db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(key))
-		if err == badger.ErrKeyNotFound {
-			// 如果 key 不存在，则初始化为空列表
-			list = []T{}
-			return nil
-		} else if err != nil {
-			return err
-		}
+func (b *BadgeDBImpl) Append(key string, value any) error {
 
-		val, err := item.ValueCopy(nil)
+	var valueBytes []byte
+	switch v := value.(type) {
+	case string:
+		valueBytes = []byte(v)
+	case []byte:
+		valueBytes = v
+	default:
+
+		var err error
+		valueBytes, err = json.Marshal(v)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to marshal value: %v", err)
 		}
-
-		// 反序列化为列表
-		err = unmarshalValue(val, &list)
-		return err
-	})
-
-	if err != nil {
-		return err
 	}
 
-	// 将新的值追加到列表中
-	list = append(list, value)
+	return b.db.Update(func(txn *badger.Txn) error {
+		// 获取当前尾部索引
+		tailKey := key + ":tail"
+		item, err := txn.Get([]byte(tailKey))
+		var tailIndex int64
+		if err == badger.ErrKeyNotFound {
+			tailIndex = 0
+		} else {
+			val, _ := item.ValueCopy(nil)
+			tailIndex, _ = strconv.ParseInt(string(val), 10, 64)
+		}
 
-	// 将更新后的列表存储回数据库
-	return db.Update(func(txn *badger.Txn) error {
-		// 序列化列表
-		listBytes, err := marshalValue(list)
+		// 存储新元素到尾部
+		newKey := fmt.Sprintf("%s:%d", key, tailIndex)
+		err = txn.Set([]byte(newKey), valueBytes)
 		if err != nil {
 			return err
 		}
 
-		// 存储回数据库
-		return txn.Set([]byte(key), listBytes)
+		// 更新尾部索引
+		tailIndex++
+		return txn.Set([]byte(tailKey), []byte(strconv.FormatInt(tailIndex, 10)))
 	})
 }
 
-func AppendWithTxn[T any](txn *badger.Txn, key string, value T) error {
-	// 获取当前列表
-	var list []T
-	item, err := txn.Get([]byte(key))
+func (b *BadgeDBImpl) AppendWithTxn(txn *badger.Txn, key string, value any) error {
+	var valueBytes []byte
+	switch v := value.(type) {
+	case string:
+		valueBytes = []byte(v)
+	case []byte:
+		valueBytes = v
+	default:
+		var err error
+		valueBytes, err = json.Marshal(v)
+		if err != nil {
+			return fmt.Errorf("failed to marshal value: %v", err)
+		}
+	}
+
+	tailKey := key + ":tail"
+	item, err := txn.Get([]byte(tailKey))
+	var tailIndex int64
 	if err == badger.ErrKeyNotFound {
-		// 如果 key 不存在，则初始化为空列表
-		list = []T{}
-	} else if err != nil {
-		return err
+		tailIndex = 0
 	} else {
-		// 获取当前的值
-		val, err := item.ValueCopy(nil)
-		if err != nil {
-			return err
-		}
-
-		// 反序列化为列表
-		err = unmarshalValue(val, &list)
-		if err != nil {
-			return err
-		}
+		val, _ := item.ValueCopy(nil)
+		tailIndex, _ = strconv.ParseInt(string(val), 10, 64)
 	}
-
-	// 将新的值追加到列表中
-	list = append(list, value)
-
-	// 序列化列表
-	listBytes, err := marshalValue(list)
+	newKey := fmt.Sprintf("%s:%d", key, tailIndex)
+	err = txn.Set([]byte(newKey), valueBytes)
 	if err != nil {
 		return err
 	}
 
-	// 存储更新后的列表回数据库
-	return txn.Set([]byte(key), listBytes)
+	tailIndex++
+	return txn.Set([]byte(tailKey), []byte(strconv.FormatInt(tailIndex, 10)))
+
 }
 
-func GetList[T any](key string) ([]T, error) {
-	var list []T
-
-	err := db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(key))
+func (b *BadgeDBImpl) GetList(key string) ([][]byte, error) {
+	var result [][]byte
+	err := b.db.View(func(txn *badger.Txn) error {
+		tailKey := key + ":tail"
+		item, err := txn.Get([]byte(tailKey))
 		if err == badger.ErrKeyNotFound {
-			// 如果 key 不存在，返回空列表
-			list = []T{}
-			return nil
-		} else if err != nil {
-			return err
+			return nil //
 		}
 
-		// 获取当前值
-		val, err := item.ValueCopy(nil)
+		val, _ := item.ValueCopy(nil)
+		tailIndex, _ := strconv.ParseInt(string(val), 10, 64)
+
+		for i := int64(0); i < tailIndex; i++ {
+			elementKey := fmt.Sprintf("%s:%d", key, i)
+			item, err := txn.Get([]byte(elementKey))
+			if err == badger.ErrKeyNotFound {
+				continue
+			}
+			val, _ := item.ValueCopy(nil)
+			result = append(result, val)
+		}
+
+		return nil
+	})
+	return result, err
+}
+
+func (b *BadgeDBImpl) GetListWithTxn(txn *badger.Txn, key string) ([][]byte, error) {
+	var result [][]byte
+
+	tailKey := key + ":tail"
+	item, err := txn.Get([]byte(tailKey))
+	if err == badger.ErrKeyNotFound {
+		return result, nil
+	}
+
+	val, _ := item.ValueCopy(nil)
+	tailIndex, _ := strconv.ParseInt(string(val), 10, 64)
+
+	for i := int64(0); i < tailIndex; i++ {
+		elementKey := fmt.Sprintf("%s:%d", key, i)
+		item, err := txn.Get([]byte(elementKey))
+		if err == badger.ErrKeyNotFound {
+			continue
+		}
+		val, _ := item.ValueCopy(nil)
+		result = append(result, val)
+	}
+
+	return result, err
+}
+
+func (b *BadgeDBImpl) ClearList(key string) error {
+	return b.db.Update(func(txn *badger.Txn) error {
+		tailKey := key + ":tail"
+		item, err := txn.Get([]byte(tailKey))
+		if err == badger.ErrKeyNotFound {
+			return nil
+		}
+
+		val, _ := item.ValueCopy(nil)
+		tailIndex, _ := strconv.ParseInt(string(val), 10, 64)
+
+		for i := int64(0); i < tailIndex; i++ {
+			elementKey := fmt.Sprintf("%s:%d", key, i)
+			err := txn.Delete([]byte(elementKey))
+			if err != nil {
+				return err
+			}
+		}
+
+		err = txn.Delete([]byte(key + ":head"))
 		if err != nil {
 			return err
 		}
-
-		// 反序列化为列表
-		err = unmarshalValue(val, &list)
+		err = txn.Delete([]byte(tailKey))
 		return err
 	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return list, nil
 }
 
-func GetListWithTxn[T any](txn *badger.Txn, key string) ([]T, error) {
-	var list []T
+func (b *BadgeDBImpl) ClearListWithTxn(txn *badger.Txn, key string) error {
 
-	item, err := txn.Get([]byte(key))
+	tailKey := key + ":tail"
+	item, err := txn.Get([]byte(tailKey))
 	if err == badger.ErrKeyNotFound {
-		// 如果 key 不存在，返回空列表
-		return []T{}, nil
-	} else if err != nil {
-		return nil, err
+		return nil
 	}
 
-	// 获取值
-	val, err := item.ValueCopy(nil)
+	val, _ := item.ValueCopy(nil)
+	tailIndex, _ := strconv.ParseInt(string(val), 10, 64)
+
+	for i := int64(0); i < tailIndex; i++ {
+		elementKey := fmt.Sprintf("%s:%d", key, i)
+		err := txn.Delete([]byte(elementKey))
+		if err != nil {
+			return err
+		}
+	}
+
+	err = txn.Delete([]byte(key + ":head"))
 	if err != nil {
-		return nil, err
+		return err
 	}
+	err = txn.Delete([]byte(tailKey))
+	return err
 
-	// 反序列化列表
-	err = unmarshalValue(val, &list)
-	if err != nil {
-		return nil, err
+}
+
+func (b *BadgeDBImpl) marshalValueForList(value any) ([]byte, error) {
+	switch v := value.(type) {
+	case string:
+		return []byte(v), nil
+	case int, int64, float64, bool:
+		return []byte(fmt.Sprintf("%v", v)), nil
+	default:
+		return json.Marshal(v)
 	}
+}
 
-	return list, nil
+func (b *BadgeDBImpl) unmarshalValueForList(data []byte, v any) error {
+	if json.Valid(data) {
+		return json.Unmarshal(data, v)
+	} else {
+		return fmt.Errorf("invalid data format: %s", string(data))
+	}
 }
