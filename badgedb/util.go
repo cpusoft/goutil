@@ -469,3 +469,75 @@ func unmarshalValue[T any](data []byte, v *T) error {
 	}
 	return nil
 }
+
+//
+
+func AddToSet[T any](key string, value T) error {
+	mu.RLock()
+	defer mu.RUnlock()
+	if globalDB == nil {
+		return ErrDBNotInitialized
+	}
+	return globalDB.AddToSet(key, value)
+}
+
+func AddToSetWithTxn[T any](txn *badger.Txn, key string, value T) error {
+	mu.RLock()
+	defer mu.RUnlock()
+	if globalDB == nil {
+		return ErrDBNotInitialized
+	}
+	return globalDB.AddToSetWithTxn(txn, key, value)
+}
+
+func GetSet[T any](key string) ([]T, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	if globalDB == nil {
+		return nil, ErrDBNotInitialized
+	}
+
+	anyList, err := globalDB.GetSet(key)
+	if err != nil {
+		return nil, err
+	}
+
+	typedList := make([]T, len(anyList))
+	for i, v := range anyList {
+		var typedValue T
+		err = unmarshalValue[T](v, &typedValue)
+
+		if err != nil {
+			return nil, fmt.Errorf("type assertion to %T failed for element at index %d", typedValue, i)
+		}
+		typedList[i] = typedValue
+	}
+
+	return typedList, nil
+}
+
+func GetSetWithTxn[T any](txn *badger.Txn, key string) ([]T, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	if globalDB == nil {
+		return nil, ErrDBNotInitialized
+	}
+
+	anyList, err := globalDB.GetSetWithTxn(txn, key)
+	if err != nil {
+		return nil, err
+	}
+
+	typedList := make([]T, len(anyList))
+	for i, v := range anyList {
+		var typedValue T
+		err = unmarshalValue[T](v, &typedValue)
+
+		if err != nil {
+			return nil, fmt.Errorf("type assertion to %T failed for element at index %d", typedValue, i)
+		}
+		typedList[i] = typedValue
+	}
+
+	return typedList, nil
+}
