@@ -182,6 +182,27 @@ func MGet[T any](keys []string) (map[string]T, map[string]error, error) {
 	return typedResults, errors, nil
 }
 
+func MGetWithTxn[T any](txn *badger.Txn, keys []string) (map[string]T, map[string]error, error) {
+	results, errors, err := globalDB.MGetWithTxn(txn, keys)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	typedResults := make(map[string]T)
+	for key, value := range results {
+
+		var typedValue T
+		err = unmarshalValue[T](value, &typedValue)
+
+		if err != nil {
+			return nil, nil, fmt.Errorf("type assertion to %T failed for key %s", typedValue, key)
+		}
+		typedResults[key] = typedValue
+	}
+
+	return typedResults, errors, nil
+}
+
 // Append appends a value to a list stored at key
 
 func Append[T any](key string, value T) error {
