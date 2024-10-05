@@ -18,3 +18,9 @@
 /whyall.txt
 /graph.txt
 /update_all_mod.bat
+/badgedb/badgerdb/*.sst
+/badgedb/badgerdb/*.vlog
+/badgedb/badgerdb/DISCARD
+/badgedb/badgerdb/*.sst
+/badgedb/badgerdb/KEYREGISTRY
+/badgedb/badgerdb/MANIFEST
