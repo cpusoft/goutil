@@ -1,26 +1,140 @@
 package badgedb
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
+	"github.com/goccy/go-json"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/dgraph-io/badger/v4"
 )
 
-// Insert 泛型函数用于插入键值对到数据库
-func Insert[T any](key string, value T) error {
-	// 将 value 转换为字节切片
+func (b *BadgeDBImpl) Get(key string) ([]byte, bool, error) {
+	var result []byte
+	var exists bool
+
+	err := b.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(key))
+		if err != nil {
+			if err == badger.ErrKeyNotFound {
+				return nil // Key not found, but not considered an error
+			}
+			return err
+		}
+
+		exists = true
+
+		result, err = item.ValueCopy(nil)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return result, exists, err
+	}
+
+	return result, exists, nil
+}
+
+func (b *BadgeDBImpl) GetWithTxn(txn *badger.Txn, key string) ([]byte, bool, error) {
+	var result []byte
+	var exists bool
+
+	item, err := txn.Get([]byte(key))
+	if err != nil {
+		if err == badger.ErrKeyNotFound {
+			return result, exists, nil // Key not found, but not considered an error
+		}
+		return result, exists, err
+	}
+
+	exists = true
+
+	result, err = item.ValueCopy(nil)
+	if err != nil {
+		return result, exists, err
+	}
+
+	return result, exists, nil
+}
+
+func (b *BadgeDBImpl) MGet(keys []string) (map[string][]byte, map[string]error, error) {
+	results := make(map[string][]byte)
+	resultsErrors := make(map[string]error)
+
+	err := b.db.View(func(txn *badger.Txn) error {
+		for _, key := range keys {
+			var result []byte
+			item, err := txn.Get([]byte(key))
+			if err != nil {
+				if errors.Is(err, badger.ErrKeyNotFound) {
+					resultsErrors[key] = badger.ErrKeyNotFound
+				} else {
+					resultsErrors[key] = err
+				}
+				continue
+			}
+			result, convErr := item.ValueCopy(nil)
+			if convErr != nil {
+				resultsErrors[key] = convErr
+				continue
+			}
+			results[key] = result
+		}
+		return nil
+	})
+
+	if err != nil {
+		return results, resultsErrors, err
+	}
+
+	return results, resultsErrors, nil
+}
+
+func (b *BadgeDBImpl) MGetWithTxn(txn *badger.Txn, keys []string) (map[string][]byte, map[string]error, error) {
+	results := make(map[string][]byte)
+	resultsErrors := make(map[string]error)
+
+	for _, key := range keys {
+		var result []byte
+		item, err := txn.Get([]byte(key))
+
+		if err != nil {
+			if errors.Is(err, badger.ErrKeyNotFound) {
+				resultsErrors[key] = badger.ErrKeyNotFound
+			} else {
+				resultsErrors[key] = err
+			}
+			continue
+		}
+
+		result, err = item.ValueCopy(nil)
+		if err != nil {
+			resultsErrors[key] = err
+			continue
+		}
+
+		results[key] = result
+	}
+
+	return results, resultsErrors, nil
+}
+
+// Insert generic function to insert key-value pairs into the database
+func (b *BadgeDBImpl) Insert(key string, value any) error {
+	// Convert value to byte slice
 	valueBytes, err := marshalValue(value)
 	if err != nil {
 		return err
 	}
 
-	err = db.Update(func(txn *badger.Txn) error {
+	err = b.db.Update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(key), valueBytes)
 	})
 
@@ -30,8 +144,8 @@ func Insert[T any](key string, value T) error {
 	return err
 }
 
-func InsertWithTxn[T any](txn *badger.Txn, key string, value T) error {
-	// 将 value 转换为字节切片
+func (b *BadgeDBImpl) InsertWithTxn(txn *badger.Txn, key string, value any) error {
+	// Convert value to byte slice
 	valueBytes, err := marshalValue(value)
 	if err != nil {
 		return err
@@ -43,8 +157,8 @@ func InsertWithTxn[T any](txn *badger.Txn, key string, value T) error {
 	}
 	return err
 }
-func Delete(key string) error {
-	err := db.Update(func(txn *badger.Txn) error {
+func (b *BadgeDBImpl) Delete(key string) error {
+	err := b.db.Update(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(key))
 	})
 
@@ -54,7 +168,7 @@ func Delete(key string) error {
 	return err
 }
 
-func DeleteWithTxn(txn *badger.Txn, key string) error {
+func (b *BadgeDBImpl) DeleteWithTxn(txn *badger.Txn, key string) error {
 	err := txn.Delete([]byte(key))
 	if err != nil {
 		log.Fatal(err)
@@ -62,23 +176,23 @@ func DeleteWithTxn(txn *badger.Txn, key string) error {
 	return err
 }
 
-func BatchInsert[T any](data map[string]T) map[string]error {
+func (b *BadgeDBImpl) BatchInsert(data map[string]any) map[string]error {
 	if len(data) <= 0 {
 		return nil
 	}
 	errs := make(map[string]error)
-	wb := db.NewWriteBatch() // 创建一个批量写入对象
-	defer wb.Cancel()        // 在出错或完成时取消或提交
+	wb := b.db.NewWriteBatch() // Create a batch write object
+	defer wb.Cancel()          // Cancel or commit on error or completion
 
 	for key, value := range data {
-		// 将 value 转换为字节切片
+		// Convert value to byte slice
 		valueBytes, err := marshalValue(value)
 		if err != nil {
 			errs[key] = err
 			belogs.Error("BatchInsert, marshalValue failed, but continue, key:", key)
 			continue
 		}
-		err = wb.Set([]byte(key), valueBytes) // 添加要写入的 key-value 对
+		err = wb.Set([]byte(key), valueBytes) // Add key-value to be written
 		if err != nil {
 			errs[key] = err
 			belogs.Error("BatchInsert, Set failed, but continue, key:", key)
@@ -86,11 +200,11 @@ func BatchInsert[T any](data map[string]T) map[string]error {
 		}
 	}
 
-	// 提交批量写入
+	// Commit batch write
 	err := wb.Flush()
 	if err != nil {
 		for key := range data {
-			errs[key] = err // 标记所有未成功写入的键
+			errs[key] = err // Mark all keys that were not successfully written
 		}
 		return errs
 	}
@@ -98,9 +212,10 @@ func BatchInsert[T any](data map[string]T) map[string]error {
 	return nil
 }
 
-// 事务保证
-func BatchInsertWithTxn[T any](txn *badger.Txn, data map[string]T) error {
-	const defaultBatchSize = 100 // 默认批量大小
+// Transaction guarantee
+
+func (b *BadgeDBImpl) BatchInsertWithTxn(txn *badger.Txn, data map[string]any) error {
+	const defaultBatchSize = 100
 
 	keys := make([]string, 0, len(data))
 	for k := range data {
@@ -125,365 +240,148 @@ func BatchInsertWithTxn[T any](txn *badger.Txn, data map[string]T) error {
 
 	return nil
 }
-func Get[T any](key string) (T, bool, error) {
-	var result T
-	var exists bool
 
-	err := db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(key))
-		if err != nil {
-			if err == badger.ErrKeyNotFound {
-				return nil // Key not found, but not considered an error
-			}
-			return err
-		}
-
-		exists = true
-
-		val, err := item.ValueCopy(nil)
-		if err != nil {
-			return err
-		}
-
-		// 调用辅助函数将 []byte 转换为泛型类型 T
-		result, err = convertToType[T](val)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
+func (b *BadgeDBImpl) QueryByCompositeKey(entity string, columns map[string]string) ([]byte, bool, error) {
+	compositeKey := b.buildCompositeKey(columns)
+	result, exists, err := b.Get(compositeKey)
 	if err != nil {
-		return result, exists, err
-	}
-
-	return result, exists, nil
-}
-
-func GetWithTxn[T any](txn *badger.Txn, key string) (T, bool, error) {
-	var result T
-	var exists bool
-
-	item, err := txn.Get([]byte(key))
-	if err != nil {
-		if err == badger.ErrKeyNotFound {
-			return result, exists, nil // Key not found, but not considered an error
-		}
-		return result, exists, err
-	}
-
-	exists = true
-
-	val, err := item.ValueCopy(nil)
-	if err != nil {
-		return result, exists, err
-	}
-
-	// 调用辅助函数将 []byte 转换为泛型类型 T
-	result, err = convertToType[T](val)
-	if err != nil {
-		return result, exists, err
-	}
-
-	return result, exists, nil
-}
-
-func MGet[T any](keys []string) (map[string]T, map[string]error, error) {
-	results := make(map[string]T)
-	resultsErrors := make(map[string]error)
-
-	// 执行数据库操作
-	err := db.View(func(txn *badger.Txn) error {
-		for _, key := range keys {
-			var result T
-			item, err := txn.Get([]byte(key))
-			if err != nil {
-				// 区分键不存在和其他错误
-				if errors.Is(err, badger.ErrKeyNotFound) {
-					resultsErrors[key] = badger.ErrKeyNotFound // 记录键不存在的错误
-				} else {
-					resultsErrors[key] = err // 记录其他错误
-				}
-				continue
-			}
-
-			val, _ := item.ValueCopy(nil)
-			result, convErr := convertToType[T](val)
-			if convErr != nil {
-				resultsErrors[key] = convErr // 记录转换错误
-				continue
-			}
-			results[key] = result
-		}
-		return nil
-	})
-
-	if err != nil {
-		return results, resultsErrors, err
-	}
-
-	return results, resultsErrors, nil
-}
-
-func MGetWithTxn[T any](txn *badger.Txn, keys []string) (map[string]T, map[string]error, error) {
-	results := make(map[string]T)
-	resultsErrors := make(map[string]error)
-
-	for _, key := range keys {
-		var result T
-		item, err := txn.Get([]byte(key))
-
-		if err != nil {
-			// 区分键不存在和其他错误
-			if errors.Is(err, badger.ErrKeyNotFound) {
-				resultsErrors[key] = badger.ErrKeyNotFound // 记录键不存在的情况
-			} else {
-				resultsErrors[key] = err // 记录其他错误
-			}
-			continue
-		}
-
-		val, err := item.ValueCopy(nil)
-		if err != nil {
-			resultsErrors[key] = err // 记录复制值的错误
-			continue
-		}
-
-		result, err = convertToType[T](val)
-		if err != nil {
-			resultsErrors[key] = err // 记录转换错误
-			continue
-		}
-
-		results[key] = result
-	}
-
-	// 返回结果和错误
-	return results, resultsErrors, nil
-}
-
-// convertToType 根据目标类型 T 将 []byte 转换为 T
-func convertToType[T any](data []byte) (T, error) {
-	var result T
-
-	// 通过类型断言处理几种常见类型
-	switch any(result).(type) {
-	case string:
-		// 如果 T 是 string 类型，直接转换
-		return any(string(data)).(T), nil
-	case int, int32, int64, float32, float64, bool:
-		// 如果是基本类型，尝试 JSON 解析
-		err := json.Unmarshal(data, &result)
-		if err != nil {
-			return result, err
-		}
-		return result, nil
-	default:
-		// 处理复杂类型（例如结构体）
-		err := json.Unmarshal(data, &result)
-		if err != nil {
-			return result, err
-		}
-		return result, nil
-	}
-}
-
-// 构建索列
-func BuildColumnIndex[T any](txn *badger.Txn, entityKey string, column string, value T) error {
-	// 将列名和值组合成索引键
-	valueStr, err := marshalValue(value)
-	if err != nil {
-		return err
-	}
-
-	// 生成列索引键，形式为 "column:value:entityKey"
-	indexKey := fmt.Sprintf("%s:%s:%s", column, string(valueStr), entityKey)
-
-	// 存储索引
-	err = txn.Set([]byte(indexKey), []byte(entityKey))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func BuildMultipleColumnIndexes(txn *badger.Txn, entityKey string, columns map[string]interface{}) error {
-	for column, value := range columns {
-		valueStr, err := marshalValue(value)
-		if err != nil {
-			return err
-		}
-
-		// 生成列索引键
-		indexKey := fmt.Sprintf("%s:%s:%s", column, string(valueStr), entityKey)
-
-		// 存储索引
-		err = txn.Set([]byte(indexKey), []byte(entityKey))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// --------构造复合键  ----------
-func buildBaseKey(columns ...string) string {
-	// 对传入的列进行字典序排序
-	sort.Strings(columns)
-
-	return strings.Join(columns, ":")
-}
-
-// 构造复合键，并按键排序以保证唯一性和一致性
-func buildCompositeKey(columns map[string]string) string {
-	var parts []string
-
-	// 提取所有列并按字典序排序
-	keys := make([]string, 0, len(columns))
-	for k := range columns {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys) // 对键进行字典序排序
-
-	// 构建 "column:value" 的字符串形式
-	for _, key := range keys {
-		parts = append(parts, key+":"+columns[key])
-	}
-
-	// 使用 ":" 将所有部分拼接成最终的复合键
-	return strings.Join(parts, ":")
-}
-
-// 存储数据和构造复合键索引
-func StoreWithCompositeKey(entity string, id string, columns map[string]string) error {
-	// 构造复合键
-	baseKey := buildBaseKey(entity, id)
-	err := db.Update(func(txn *badger.Txn) error {
-
-		// 存储列索引，基于复合键
-		indexKey := buildCompositeKey(columns)
-		err := txn.Set([]byte(indexKey), []byte(baseKey))
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return err
-}
-
-func StoreWithCompositeKeyWithTxn(txn *badger.Txn, entity string, id string, columns map[string]string) error {
-	// 构造复合键
-	baseKey := buildBaseKey(entity, id)
-
-	// 存储列索引，基于复合键
-	indexKey := buildCompositeKey(columns)
-	err := txn.Set([]byte(indexKey), []byte(baseKey))
-	if err != nil {
-		return err
-	}
-
-	return nil
-
-}
-
-func QueryByCompositeKey[T any](entity string, columns map[string]string) (T, error) {
-	compositeKey := buildCompositeKey(columns)
-	result, exists, err := Get[T](compositeKey)
-	if err != nil {
-		return result, err
+		return result, false, err
 	}
 	if !exists {
-		return result, nil
+		return result, false, nil
 	}
-	return result, nil
+	return result, true, nil
 }
 
-func QueryByCompositeKeyWithTxn[T any](txn *badger.Txn, entity string, columns map[string]string) (T, error) {
-	var result T
-	compositeKey := buildCompositeKey(columns)
+func (b *BadgeDBImpl) QueryByCompositeKeyWithTxn(txn *badger.Txn, entity string, columns map[string]string) ([]byte, bool, error) {
+	var result []byte
+	compositeKey := b.buildCompositeKey(columns)
 
-	value, exists, err := GetWithTxn[T](txn, compositeKey)
+	result, exists, err := b.GetWithTxn(txn, compositeKey)
 	if err != nil {
-		return result, err
+		return result, false, err
 	}
 	if !exists {
-		return result, nil
+		return result, false, nil
 	}
-	return value, nil
+	return result, true, nil
 }
 
-func BatchQueryByPrefix[T any](prefix string) (map[string]T, error) {
-	results := make(map[string]T)
+func (b *BadgeDBImpl) BatchQueryByPrefix(prefix string) (map[string][]byte, map[string]error, error) {
+	results := make(map[string][]byte)
+	errMaps := make(map[string]error)
 
-	err := db.View(func(txn *badger.Txn) error {
-		// 设置迭代器选项，按前缀查询
+	err := b.db.View(func(txn *badger.Txn) error {
+		// Set iterator options, query by prefix
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = true
 		it := txn.NewIterator(opts)
 		defer it.Close()
 
-		// 迭代查询
+		// Iterate and query
 		for it.Seek([]byte(prefix)); it.ValidForPrefix([]byte(prefix)); it.Next() {
 			item := it.Item()
 			key := string(item.Key())
 
-			// 获取值并解析为 T
+			// Get value and parse to T
 			val, err := item.ValueCopy(nil)
 			if err != nil {
-				return err
+				errMaps[key] = err
+				continue
 			}
 
-			var parsedValue T
-			err = unmarshalValue(val, &parsedValue)
-			if err != nil {
-				return err
-			}
-
-			// 存储到结果 map 中
-			results[key] = parsedValue
+			// Store in result map
+			results[key] = val
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		return nil, err
+		return results, errMaps, err
 	}
 
-	return results, nil
+	return results, errMaps, nil
 }
 
-func BatchQueryByPrefixWithTxn[T any](txn *badger.Txn, prefix string) (map[string]T, error) {
-	results := make(map[string]T)
+func (b *BadgeDBImpl) BatchQueryByPrefixWithTxn(txn *badger.Txn, prefix string) (map[string][]byte, map[string]error, error) {
+	results := make(map[string][]byte)
+	errMaps := make(map[string]error)
 
-	// 设置迭代器选项，按前缀查询
+	// Set iterator options, query by prefix
 	opts := badger.DefaultIteratorOptions
 	opts.PrefetchValues = true
 	it := txn.NewIterator(opts)
 	defer it.Close()
 
-	// 迭代查询
+	// Iterate and query
 	for it.Seek([]byte(prefix)); it.ValidForPrefix([]byte(prefix)); it.Next() {
 		item := it.Item()
 		key := string(item.Key())
 
-		// 获取值并解析为 T
+		// Get value and parse to T
 		val, err := item.ValueCopy(nil)
 		if err != nil {
-			return results, err
+			errMaps[key] = err
+			continue
 		}
 
-		var parsedValue T
-		err = unmarshalValue(val, &parsedValue)
-		if err != nil {
-			return results, err
-		}
-
-		// 存储到结果 map 中
-		results[key] = parsedValue
+		// Store in result map
+		results[key] = val
 	}
-	return results, nil
+	return results, errMaps, nil
+}
+
+func (b *BadgeDBImpl) buildBaseKey(columns ...string) string {
+	sort.Strings(columns)
+	return strings.Join(columns, ":")
+}
+
+func (b *BadgeDBImpl) buildCompositeKey(columns map[string]string) string {
+	var parts []string
+
+	keys := make([]string, 0, len(columns))
+	for k := range columns {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		parts = append(parts, key+":"+columns[key])
+	}
+
+	return strings.Join(parts, ":")
+}
+
+func (b *BadgeDBImpl) convertToType(data []byte) (any, error) {
+	strData := string(data)
+
+	// 处理简单类型
+	if isNumeric(strData) {
+		if i, err := strconv.ParseInt(strData, 10, 64); err == nil {
+			return i, nil
+		} else if f, err := strconv.ParseFloat(strData, 64); err == nil {
+			return f, nil
+		}
+	} else if b, err := strconv.ParseBool(strData); err == nil {
+		return b, nil
+	}
+
+	// 如果是 JSON 数据
+	if json.Valid(data) {
+		var result any
+		err := json.Unmarshal(data, &result)
+		if err != nil {
+			return result, err
+		}
+		return result, nil
+	}
+
+	// 返回字符串数据
+	return strData, nil
+}
+
+// 判断是否是数字
+func isNumeric(data string) bool {
+	_, err := strconv.ParseFloat(data, 64)
+	return err == nil
 }

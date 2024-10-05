@@ -2,52 +2,52 @@ package badgedb
 
 import "github.com/dgraph-io/badger/v4"
 
-func HSet[T any](key, field string, value T) error {
-	// 组合 key 和 field 作为 BadgerDB 的键
+func (b *BadgeDBImpl) HSet(key, field string, value any) error {
+	// Combine key and field as BadgerDB key
 	hashKey := key + ":" + field
 
-	// 将 value 序列化为字节
+	// Serialize value to bytes
 	valueBytes, err := marshalValue(value)
 	if err != nil {
 		return err
 	}
 
-	// 存储字段和值到数据库
-	return db.Update(func(txn *badger.Txn) error {
+	// Store field and value to database
+	return b.db.Update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(hashKey), valueBytes)
 	})
 }
 
-func HSetWithTxn[T any](txn *badger.Txn, key, field string, value T) error {
-	// 组合 key 和 field 作为 BadgerDB 的键
+func (b *BadgeDBImpl) HSetWithTxn(txn *badger.Txn, key, field string, value any) error {
+	// Combine key and field as BadgerDB key
 	hashKey := key + ":" + field
 
-	// 将 value 序列化为字节
+	// Serialize value to bytes
 	valueBytes, err := marshalValue(value)
 	if err != nil {
 		return err
 	}
-	// 存储字段和值到数据库
+	// Store field and value to database
 	return txn.Set([]byte(hashKey), valueBytes)
 }
 
-func HGet[T any](key, field string) (T, error) {
-	var result T
+func (b *BadgeDBImpl) HGet(key, field string) ([]byte, error) {
+	var result []byte
 	hashKey := key + ":" + field
 
-	err := db.View(func(txn *badger.Txn) error {
+	err := b.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(hashKey))
 		if err != nil {
 			return err
 		}
 
-		val, err := item.ValueCopy(nil)
+		result, err = item.ValueCopy(nil)
 		if err != nil {
 			return err
 		}
 
-		// 反序列化为类型 T
-		return unmarshalValue(val, &result)
+		// Deserialize to type T
+		return nil
 	})
 
 	if err != nil {
@@ -56,8 +56,8 @@ func HGet[T any](key, field string) (T, error) {
 	return result, nil
 }
 
-func HGetWithTxn[T any](txn *badger.Txn, key, field string) (T, error) {
-	var result T
+func (b *BadgeDBImpl) HGetWithTxn(txn *badger.Txn, key, field string) ([]byte, error) {
+	var result []byte
 	hashKey := key + ":" + field
 
 	item, err := txn.Get([]byte(hashKey))
@@ -65,31 +65,26 @@ func HGetWithTxn[T any](txn *badger.Txn, key, field string) (T, error) {
 		return result, err
 	}
 
-	val, err := item.ValueCopy(nil)
+	result, err = item.ValueCopy(nil)
 	if err != nil {
 		return result, err
 	}
 
-	// 反序列化为类型 T
-	err = unmarshalValue(val, &result)
-	if err != nil {
-		return result, err
-	}
 	return result, nil
 }
 
-func HDel(key, field string) error {
+func (b *BadgeDBImpl) HDel(key, field string) error {
 	hashKey := key + ":" + field
 
-	// 删除字段
-	return db.Update(func(txn *badger.Txn) error {
+	// Delete field
+	return b.db.Update(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(hashKey))
 	})
 }
 
-func HDelWithTxn(txn *badger.Txn, key, field string) error {
+func (b *BadgeDBImpl) HDelWithTxn(txn *badger.Txn, key, field string) error {
 	hashKey := key + ":" + field
 
-	// 删除字段
+	// Delete field
 	return txn.Delete([]byte(hashKey))
 }

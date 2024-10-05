@@ -5,6 +5,6 @@ import "testing"
 func TestBadgerDB(t *testing.T) {
 	//BadgerDB()
 
-	Init()
-	IterateBadgerDB()
+	//Init()
+	//IterateBadgerDB()
 }
