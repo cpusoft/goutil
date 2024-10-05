@@ -24,3 +24,5 @@
 /badgedb/badgerdb/*.sst
 /badgedb/badgerdb/KEYREGISTRY
 /badgedb/badgerdb/MANIFEST
+/badgedb/badgerdb/*.sst
+/badgedb/badgerdb/*.vlog
