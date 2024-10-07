@@ -49,6 +49,18 @@ type BadgeDB interface {
 	ClearList(key string) error
 	ClearListWithTxn(txn *badger.Txn, key string) error
 
+	// Set operations
+	AddToSet(key string, value any) error
+	AddToSetWithTxn(txn *badger.Txn, key string, value any) error
+	RemoveFromSet(key string, value any) error
+	RemoveFromSetWithTxn(txn *badger.Txn, key string, value any) error
+	ContainsInSet(key string, value any) (bool, error)
+	ContainsInSetWithTxn(txn *badger.Txn, key string, value any) (bool, error)
+	GetSet(key string) ([][]byte, error)
+	GetSetWithTxn(txn *badger.Txn, key string) ([][]byte, error)
+	ClearSet(key string) error
+	ClearSetWithTxn(txn *badger.Txn, key string) error
+
 	// Index operations
 	BuildColumnIndex(txn *badger.Txn, entityKey string, column string, value any) error
 	BuildMultipleColumnIndexes(txn *badger.Txn, entityKey string, columns map[string]interface{}) error
