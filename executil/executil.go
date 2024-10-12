@@ -16,7 +16,7 @@ func ExecCommandCombinedOutput(commandName string, params []string) (out string,
 	b, err := result.CombinedOutput()
 	if err != nil {
 		belogs.Error("ExecCommandCombinedOutput(): CombinedOutput fail, commandName:", commandName,
-			"   params:", params, err)
+			"   params:", params, "  out:", string(b), err)
 		return "", err
 	}
 	out = string(b)
