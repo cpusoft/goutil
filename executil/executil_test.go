@@ -8,7 +8,7 @@ import (
 
 func TestExecCommand(t *testing.T) {
 
-	params := []string{"/C", "dir", "/a"}
+	params := []string{"ca", "-gencrl", "-verbose", "-out", "/home/rpki/gencerts/ripencc/subcert/tmp/test.crl", "", "-cert", "/home/rpki/gencerts/ripencc/subca/ripencc_subca.pem", "-keyfile", "/home/rpki/gencerts/ripencc/subca/ripencc_subca.key", "-config", "/home/rpki/gencerts/ripencc/subcert/crl.cnf", "-crl_lastupdate", "241011010203Z", "-crl_nextupdate", "341011010203Z"}
 	fmtShow := true
 
 	ss, err := ExecCommandStdoutPipe("openssl", params, fmtShow)
