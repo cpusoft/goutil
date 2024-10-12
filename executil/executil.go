@@ -7,21 +7,37 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/cpusoft/goutil/belogs"
 )
 
-func ExecCommand(commandName string, params []string, ftmShow bool) (contentArray []string, err error) {
+func ExecCommandCombinedOutput(commandName string, params []string) (out string, err error) {
+	result := exec.Command(commandName, params...)
+	b, err := result.CombinedOutput()
+	if err != nil {
+		belogs.Error("ExecCommandCombinedOutput(): CombinedOutput fail, commandName:", commandName,
+			"   params:", params, err)
+		return "", err
+	}
+	out = string(b)
+	belogs.Debug("ExecCommandCombinedOutput(): CombinedOutput , commandName:", commandName,
+		"   params:", params, "  out:", out)
+	return out, nil
+}
+
+func ExecCommandStdoutPipe(commandName string, params []string, fmtShow bool) (contentArray []string, err error) {
 
 	var line string
 	contentArray = make([]string, 0)
 	cmd := exec.Command(commandName, params...)
 	//显示运行的命令
-	if ftmShow {
+	if fmtShow {
 		fmt.Printf("exec:%s\n", strings.Join(cmd.Args[:], " "))
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		//belogs.Error("execCommand(): commandName:", commandName, "  err:", err)
-		if ftmShow {
+		if fmtShow {
 			fmt.Fprintln(os.Stderr, "error=>", err.Error())
 		}
 		return contentArray, err
@@ -37,7 +53,7 @@ func ExecCommand(commandName string, params []string, ftmShow bool) (contentArra
 			//belogs.Error("execCommand(): ReadString(): line: ", line, "  err2:", err2)
 			break
 		}
-		if ftmShow {
+		if fmtShow {
 			fmt.Println(line)
 		}
 		//belogs.Debug("execCommand(): line:", line)
@@ -46,4 +62,9 @@ func ExecCommand(commandName string, params []string, ftmShow bool) (contentArra
 
 	cmd.Wait()
 	return contentArray, nil
+}
+
+// Deprecated: using ExecCommandStdoutPipe
+func ExecCommand(commandName string, params []string, fmtShow bool) (contentArray []string, err error) {
+	return ExecCommandStdoutPipe(commandName, params, fmtShow)
 }
