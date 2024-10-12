@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/jsonutil"
 )
 
 func ExecCommandCombinedOutput(commandName string, params []string) (out string, err error) {
@@ -16,12 +17,12 @@ func ExecCommandCombinedOutput(commandName string, params []string) (out string,
 	b, err := result.CombinedOutput()
 	if err != nil {
 		belogs.Error("ExecCommandCombinedOutput(): CombinedOutput fail, commandName:", commandName,
-			"   params:", params, "  out:", string(b), err)
+			"   params:", jsonutil.MarshalJson(params), "  out:", string(b), err)
 		return "", err
 	}
 	out = string(b)
 	belogs.Debug("ExecCommandCombinedOutput(): CombinedOutput , commandName:", commandName,
-		"   params:", params, "  out:", out)
+		"   params:", jsonutil.MarshalJson(params), "  out:", out)
 	return out, nil
 }
 

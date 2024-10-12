@@ -11,7 +11,7 @@ func TestExecCommand(t *testing.T) {
 	params := []string{"/C", "dir", "/a"}
 	fmtShow := true
 
-	ss, err := ExecCommandStdoutPipe("cmd", params, fmtShow)
+	ss, err := ExecCommandStdoutPipe("openssl", params, fmtShow)
 
 	fmt.Println(err)
 	for i := range ss {
