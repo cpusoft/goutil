@@ -4,6 +4,9 @@ import (
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/quad"
+
+	_ "github.com/cayleygraph/cayley/graph/kv/bolt"
+
 	"log"
 )
 
@@ -12,9 +15,21 @@ type CayleyStore struct {
 }
 
 // Initialize the store with BadgerDB backend
-func NewCayleyStore() *CayleyStore {
-	// Create a brand new graph
-	store, err := cayley.NewMemoryGraph()
+
+func NewCayleyStore(path string) *CayleyStore {
+
+	// Initialize the database
+	err := graph.InitQuadStore("bolt", path, nil)
+	if err != nil && err != graph.ErrDatabaseExists {
+		log.Fatalln(err)
+		return nil
+	}
+
+	// Open and use the database
+	store, err := cayley.NewGraph("bolt", path, nil)
+
+	//// Create a brand new graph
+	//store, err := cayley.NewMemoryGraph()
 	if err != nil {
 		log.Fatalln(err)
 	}
