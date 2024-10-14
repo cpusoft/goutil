@@ -9,7 +9,8 @@ import (
 )
 
 func TestCayleyStore_QuerySubject(t *testing.T) {
-	store := NewCayleyStore()
+	boltDbPath := "./boltdb"
+	store := NewCayleyStore(boltDbPath)
 
 	// 添加一些关系
 	store.AddQuad("Alice", "knows", "Bob", "")
@@ -21,7 +22,6 @@ func TestCayleyStore_QuerySubject(t *testing.T) {
 		fmt.Println(q)
 	}
 
-	// 遍历路径
 	path := store.BuildPath("Alice", "knows")
 	store.IteratePath(path, func(v quad.Value) {
 		fmt.Println("Alice knows:", quad.NativeOf(v))
