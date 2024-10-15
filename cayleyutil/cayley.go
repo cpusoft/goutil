@@ -126,3 +126,56 @@ func (cs *CayleyStore) BFS(startNode, relationship string) [][]string {
 
 	return result
 }
+
+func (cs *CayleyStore) BFSByLevelWithMap(startNode, relationship string) [][]map[string][]string {
+	// 使用队列进行层次遍历
+	queue := []string{startNode}
+	visited := make(map[string]bool)
+	visited[startNode] = true
+
+	var result [][]map[string][]string // 存储每一层的父子节点
+
+	// 层次遍历
+	for len(queue) > 0 {
+		// 获取当前层的所有节点
+		currentLevelSize := len(queue)
+		var currentLevel []map[string][]string // 当前层存储父节点及其子节点
+
+		// 遍历当前层的所有节点
+		for i := 0; i < currentLevelSize; i++ {
+			// 从队列中取出当前节点
+			currentNode := queue[0]
+			queue = queue[1:]
+
+			// 存储当前节点的子节点
+			children := []string{}
+
+			// 找到当前节点的所有后继节点（下一层）
+			path := cayley.StartPath(cs.store, quad.String(currentNode)).Out(quad.String(relationship))
+
+			// 将所有未访问的后继节点放入队列
+			_ = path.Iterate(nil).EachValue(nil, func(value quad.Value) {
+				nextNode := quad.NativeOf(value).(string)
+				if !visited[nextNode] {
+					visited[nextNode] = true
+					queue = append(queue, nextNode)
+					children = append(children, nextNode)
+				}
+			})
+
+			// 将父节点和其子节点组成的 map 放入当前层次
+			if len(children) > 0 {
+				currentLevel = append(currentLevel, map[string][]string{
+					currentNode: children,
+				})
+			}
+		}
+
+		// 如果当前层有数据，加入结果中
+		if len(currentLevel) > 0 {
+			result = append(result, currentLevel)
+		}
+	}
+
+	return result
+}

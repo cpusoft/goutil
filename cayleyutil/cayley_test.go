@@ -56,6 +56,8 @@ func TestCayleyStore_QuerySubject2(t *testing.T) {
 	assert.Nil(t, err)
 	err = store.AddQuad("李四", "knows", "王五", "")
 	assert.Nil(t, err)
+	err = store.AddQuad("李四", "knows", "bob", "")
+	assert.Nil(t, err)
 	err = store.AddQuad("王五", "knows", "马六", "")
 	assert.Nil(t, err)
 
@@ -68,6 +70,8 @@ func TestCayleyStore_QuerySubject2(t *testing.T) {
 	result := store.BFS("张三", "knows")
 	fmt.Println(result)
 
+	result2 := store.BFSByLevelWithMap("张三", "knows")
+	fmt.Println(result2)
 	fmt.Println("存储时长:", time.Since(start))
 	// 关闭存储
 	store.Close()
