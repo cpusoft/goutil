@@ -10,6 +10,7 @@ import (
 	"log"
 )
 
+// 需要加上读写锁
 type CayleyStore struct {
 	store *cayley.Handle
 }
@@ -66,8 +67,9 @@ func (cs *CayleyStore) BuildPath(subject, predicate string) *cayley.Path {
 	return cayley.StartPath(cs.store, quad.String(subject)).Out(quad.String(predicate))
 }
 
-func (cs *CayleyStore) BuildRecursivePath(subject, predicate string) *cayley.Path {
-	return cayley.StartPath(cs.store, quad.String(subject)).FollowRecursive(quad.String("knows"), 10, nil)
+func (cs *CayleyStore) BuildRecursivePath(subject, predicate string, maxDepth int) *cayley.Path {
+	return cayley.StartPath(cs.store, quad.String(subject)).FollowRecursive(quad.String(predicate), maxDepth, nil)
+
 }
 
 // IteratePath iterates over a path and applies a function to each result
