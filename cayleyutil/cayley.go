@@ -66,6 +66,10 @@ func (cs *CayleyStore) BuildPath(subject, predicate string) *cayley.Path {
 	return cayley.StartPath(cs.store, quad.String(subject)).Out(quad.String(predicate))
 }
 
+func (cs *CayleyStore) BuildRecursivePath(subject, predicate string) *cayley.Path {
+	return cayley.StartPath(cs.store, quad.String(subject)).FollowRecursive(quad.String("knows"), 10, nil)
+}
+
 // IteratePath iterates over a path and applies a function to each result
 func (cs *CayleyStore) IteratePath(path *cayley.Path, fn func(quad.Value)) {
 	path.Iterate(nil).EachValue(nil, func(v quad.Value) {

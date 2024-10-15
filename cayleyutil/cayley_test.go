@@ -43,6 +43,29 @@ func TestCayleyStore_QuerySubject(t *testing.T) {
 	})
 
 	fmt.Println("存储时长:", time.Since(start))
+
+	store.Close()
+}
+
+func TestCayleyStore_QuerySubject2(t *testing.T) {
+	boltDbPath := "./boltdb"
+	store := NewCayleyStore(true, boltDbPath)
+	start := time.Now()
+	// 添加一些关系
+	err := store.AddQuad("张三", "knows", "李四", "")
+	assert.Nil(t, err)
+	err = store.AddQuad("李四", "knows", "王五", "")
+	assert.Nil(t, err)
+	err = store.AddQuad("王五", "knows", "马六", "")
+	assert.Nil(t, err)
+
+	path := store.BuildRecursivePath("张三", "knows")
+
+	store.IteratePath(path, func(v quad.Value) {
+		fmt.Println("张三 knows:", quad.NativeOf(v))
+	})
+
+	fmt.Println("存储时长:", time.Since(start))
 	// 关闭存储
 	store.Close()
 }
