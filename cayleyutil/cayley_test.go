@@ -2,6 +2,7 @@ package cayleyutils
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	_ "github.com/cayleygraph/cayley/graph/kv/badger"
@@ -13,9 +14,10 @@ func TestCayleyStore_QuerySubject(t *testing.T) {
 	store := NewCayleyStore(boltDbPath)
 
 	// 添加一些关系
-	store.AddQuad("Alice", "knows", "Bob", "")
-	store.AddQuad("Bob", "knows", "Charlie", "")
-
+	err := store.AddQuad("Alice", "knows", "Bob", "")
+	assert.Nil(t, err)
+	err = store.AddQuad("Bob", "knows", "Charlie", "")
+	assert.Nil(t, err)
 	// 查询 Alice 的关系
 	results := store.QuerySubject("Alice")
 	for _, q := range results {

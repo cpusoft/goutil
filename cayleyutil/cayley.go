@@ -38,13 +38,13 @@ func NewCayleyStore(path string) *CayleyStore {
 }
 
 // AddQuad adds a quad (relation) to the graph
-func (cs *CayleyStore) AddQuad(subject, predicate, object, label string) {
-	cs.store.AddQuad(quad.Make(subject, predicate, object, label))
+func (cs *CayleyStore) AddQuad(subject, predicate, object, label string) error {
+	return cs.store.AddQuad(quad.Make(subject, predicate, object, label))
 }
 
 // RemoveQuad removes a quad (relation) from the graph
-func (cs *CayleyStore) RemoveQuad(subject, predicate, object, label string) {
-	cs.store.RemoveQuad(quad.Make(subject, predicate, object, label))
+func (cs *CayleyStore) RemoveQuad(subject, predicate, object, label string) error {
+	return cs.store.RemoveQuad(quad.Make(subject, predicate, object, label))
 }
 
 // QuerySubject performs a query for quads with the given subject
