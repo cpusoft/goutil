@@ -59,11 +59,14 @@ func TestCayleyStore_QuerySubject2(t *testing.T) {
 	err = store.AddQuad("王五", "knows", "马六", "")
 	assert.Nil(t, err)
 
-	path := store.BuildRecursivePath("张三", "knows")
+	path := store.BuildRecursivePath("张三", "knows", 10)
 
 	store.IteratePath(path, func(v quad.Value) {
 		fmt.Println("张三 knows:", quad.NativeOf(v))
 	})
+
+	result := store.BFS("张三", "knows")
+	fmt.Println(result)
 
 	fmt.Println("存储时长:", time.Since(start))
 	// 关闭存储
