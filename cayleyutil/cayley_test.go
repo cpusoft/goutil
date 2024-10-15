@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 
 	_ "github.com/cayleygraph/cayley/graph/kv/badger"
 	"github.com/cayleygraph/cayley/quad"
@@ -11,13 +12,25 @@ import (
 
 func TestCayleyStore_QuerySubject(t *testing.T) {
 	boltDbPath := "./boltdb"
-	store := NewCayleyStore(boltDbPath)
+	store := NewCayleyStore(true, boltDbPath)
 
-	// 添加一些关系
-	err := store.AddQuad("Alice", "knows", "Bob", "")
-	assert.Nil(t, err)
-	err = store.AddQuad("Bob", "knows", "Charlie", "")
-	assert.Nil(t, err)
+	start := time.Now()
+	i := 0
+	for {
+
+		if i > 3000 {
+			break
+		}
+
+		// 添加一些关系
+		err := store.AddQuad("Alice", "knows", "Bob", "")
+		assert.Nil(t, err)
+		err = store.AddQuad("Bob", "knows", "Charlie", "")
+		assert.Nil(t, err)
+
+		i += 1
+	}
+
 	// 查询 Alice 的关系
 	results := store.QuerySubject("Alice")
 	for _, q := range results {
@@ -29,6 +42,7 @@ func TestCayleyStore_QuerySubject(t *testing.T) {
 		fmt.Println("Alice knows:", quad.NativeOf(v))
 	})
 
+	fmt.Println("存储时长:", time.Since(start))
 	// 关闭存储
 	store.Close()
 }

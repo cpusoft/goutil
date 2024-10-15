@@ -16,20 +16,23 @@ type CayleyStore struct {
 
 // Initialize the store with BadgerDB backend
 
-func NewCayleyStore(path string) *CayleyStore {
+func NewCayleyStore(useMem bool, path string) *CayleyStore {
 
-	// Initialize the database
-	err := graph.InitQuadStore("bolt", path, nil)
-	if err != nil && err != graph.ErrDatabaseExists {
-		log.Fatalln(err)
-		return nil
+	if !useMem {
+		// Initialize the database
+		err := graph.InitQuadStore("bolt", path, nil)
+		if err != nil && err != graph.ErrDatabaseExists {
+			log.Fatalln(err)
+			return nil
+		}
+
+		// Open and use the database
+		store, err := cayley.NewGraph("bolt", path, nil)
+		return &CayleyStore{store: store}
 	}
 
-	// Open and use the database
-	store, err := cayley.NewGraph("bolt", path, nil)
-
 	//// Create a brand new graph
-	//store, err := cayley.NewMemoryGraph()
+	store, err := cayley.NewMemoryGraph()
 	if err != nil {
 		log.Fatalln(err)
 	}
