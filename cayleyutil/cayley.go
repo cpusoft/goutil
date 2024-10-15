@@ -127,19 +127,20 @@ func (cs *CayleyStore) BFS(startNode, relationship string) [][]string {
 	return result
 }
 
-func (cs *CayleyStore) BFSByLevelWithMap(startNode, relationship string) [][]map[string][]string {
+// BFSByLevelWithMap 返回 []map[string][]string，表示每一层的父节点和子节点
+func (cs *CayleyStore) BFSByLevelWithMap(startNode, relationship string) []map[string][]string {
 	// 使用队列进行层次遍历
 	queue := []string{startNode}
 	visited := make(map[string]bool)
 	visited[startNode] = true
 
-	var result [][]map[string][]string // 存储每一层的父子节点
+	var result []map[string][]string // 存储每一层的父子节点
 
 	// 层次遍历
 	for len(queue) > 0 {
 		// 获取当前层的所有节点
 		currentLevelSize := len(queue)
-		var currentLevel []map[string][]string // 当前层存储父节点及其子节点
+		currentLevelMap := make(map[string][]string) // 当前层存储父节点及其子节点
 
 		// 遍历当前层的所有节点
 		for i := 0; i < currentLevelSize; i++ {
@@ -163,17 +164,15 @@ func (cs *CayleyStore) BFSByLevelWithMap(startNode, relationship string) [][]map
 				}
 			})
 
-			// 将父节点和其子节点组成的 map 放入当前层次
+			// 如果当前节点有子节点，加入当前层的 map
 			if len(children) > 0 {
-				currentLevel = append(currentLevel, map[string][]string{
-					currentNode: children,
-				})
+				currentLevelMap[currentNode] = children
 			}
 		}
 
 		// 如果当前层有数据，加入结果中
-		if len(currentLevel) > 0 {
-			result = append(result, currentLevel)
+		if len(currentLevelMap) > 0 {
+			result = append(result, currentLevelMap)
 		}
 	}
 
