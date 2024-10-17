@@ -91,3 +91,38 @@ func (cs *CayleyStore) ApplyTransaction(txn *graph.Transaction) {
 func (cs *CayleyStore) Close() {
 	cs.store.Close()
 }
+
+// BFS
+func (cs *CayleyStore) BFS(startNode, relationship string) [][]string {
+	queue := []string{startNode}
+	visited := make(map[string]bool)
+	visited[startNode] = true
+
+	var result [][]string
+
+	// 层次遍历
+	for len(queue) > 0 {
+
+		currentLevelSize := len(queue)
+		var currentLevel []string // 当前层的节点
+
+		for i := 0; i < currentLevelSize; i++ {
+			node := queue[0]
+			queue = queue[1:]
+			currentLevel = append(currentLevel, node)
+			path := cayley.StartPath(cs.store, quad.String(node)).Out(quad.String(relationship))
+
+			_ = path.Iterate(nil).EachValue(nil, func(value quad.Value) {
+				nextNode := quad.NativeOf(value).(string)
+				if !visited[nextNode] {
+					visited[nextNode] = true
+					queue = append(queue, nextNode)
+				}
+			})
+		}
+
+		result = append(result, currentLevel)
+	}
+
+	return result
+}
