@@ -438,9 +438,54 @@ func FillAddressWithZero(address string, ipType int) (addressFill string, err er
 
 }
 
+// ip to string not fill zero: ip: 192.168--> c0.a8
+func IpStrIncompleteToHexString(ip string) (string, error) {
+	var buffer bytes.Buffer
+	ipType := GetIpType(ip)
+	if ipType == Ipv4Type {
+		split := strings.Split(ip, ".")
+		for i := range split {
+			if len(split[i]) == 0 {
+				continue
+			}
+			label, err := strconv.Atoi(split[i])
+			if err != nil {
+				return "", err
+			}
+			if i < len(split)-1 {
+				buffer.WriteString(fmt.Sprintf("%02x.", label))
+			} else {
+				buffer.WriteString(fmt.Sprintf("%02x", label))
+			}
+		}
+		return buffer.String(), nil
+	} else if ipType == Ipv6Type {
+		split := strings.Split(ip, ":")
+		for i := range split {
+			var s string
+			if len(split[i]) == 0 || len(split[i]) > 4 {
+				continue
+			} else if len(split[i]) == 1 {
+				s = "000" + split[i]
+			} else if len(split[i]) == 2 {
+				s = "00" + split[i]
+			} else if len(split[i]) == 3 {
+				s = "0" + split[i]
+			} else if len(split[i]) == 4 {
+				s = split[i]
+			}
+			belogs.Debug("IpStrIncompleteToHexString(): split[i]:", split[i], " s:", s)
+			buffer.WriteString(s + ":")
+		}
+		b := buffer.String()
+		return string(b[:len(b)-1]), nil
+	}
+	return "", errors.New("ip type or ip length is illegal")
+}
+
 // ip to string with fill zero: ip: 192.168.5.2 --> c0.a8.05.02
 func IpStrToHexString(ip string, ipType int) (string, error) {
-	ipp := net.IP{}
+	var ipp net.IP
 	if ipType == Ipv4Type {
 		ipp = net.ParseIP(ip).To4()
 	} else if ipType == Ipv6Type {

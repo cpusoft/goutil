@@ -165,15 +165,27 @@ func TestFillAddressPrefixWithZero(t *testing.T) {
 
 func TestIpStrToHexString(t *testing.T) {
 
-	ips := []string{"19.99.91.3"}
+	ips := []string{"19.99.91.3", "192.168.0.0", "192.168"}
 	for _, ip := range ips {
 		str, err := IpStrToHexString(ip, Ipv4Type)
 		fmt.Println(ip, " --> ", str, err)
-
 	}
 	ips = []string{"2803:d380::", "2803:d380::5512"}
 	for _, ip := range ips {
 		str, err := IpStrToHexString(ip, Ipv6Type)
+		fmt.Println(ip, " --> ", str, err)
+	}
+}
+func TestIpStrIncompleteToHexString(t *testing.T) {
+
+	ips := []string{"19.99.91.3", "192.168.0.0", "192.168"}
+	for _, ip := range ips {
+		str, err := IpStrIncompleteToHexString(ip)
+		fmt.Println(ip, " --> ", str, err)
+	}
+	ips = []string{"2803:d380::", "2803:d380::5512", "03:d380::12"}
+	for _, ip := range ips {
+		str, err := IpStrIncompleteToHexString(ip)
 		fmt.Println(ip, " --> ", str, err)
 	}
 }
