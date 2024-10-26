@@ -14,8 +14,14 @@ func GetResultsByOpensslX509(certFile string) (results []string, err error) {
 	cmd := exec.Command("openssl", "x509", "-noout", "-text", "-in", certFile, "-inform", "der")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Error("GetResultsByOpensslX509(): exec.Command: certFile:", certFile, "   err: ", err, "   output: "+string(output))
-		return nil, errors.New("Fail to parse by openssl, it may be not a valid x509 certificate. Error is `" + string(output) + "`. " + err.Error())
+		belogs.Debug("GetResultsByOpensslX509(): exec.Command fail, try again inform pem: certFile:", certFile, "   err: ", err, "   output: "+string(output))
+
+		cmd = exec.Command("openssl", "x509", "-noout", "-text", "-in", certFile, "-inform", "pem")
+		output, err = cmd.CombinedOutput()
+		if err != nil {
+			belogs.Error("GetResultsByOpensslX509(): exec.Command fail both inform cer and pem: certFile:", certFile, "   err: ", err, "   output: "+string(output))
+			return nil, errors.New("Fail to parse by openssl, it may be not a valid x509 certificate. Error is `" + string(output) + "`. " + err.Error())
+		}
 	}
 	result := string(output)
 	tmps := strings.Split(result, osutil.GetNewLineSep())
@@ -35,8 +41,14 @@ func GetResultsByOpensslAns1(certFile string) (results []string, err error) {
 	cmd := exec.Command("openssl", "asn1parse", "-in", certFile, "-inform", "der")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Error("GetResultsByOpensslAns1(): exec.Command: certFile:", certFile, "   err: ", err, ": "+string(output))
-		return nil, errors.New("Fail to parse by openssl, it may be not a valid asn1 format. Error is `" + string(output) + ". " + err.Error())
+		belogs.Debug("GetResultsByOpensslAns1(): exec.Command, try again inform pem: certFile:", certFile, "   err: ", err, ": "+string(output))
+
+		cmd = exec.Command("openssl", "asn1parse", "-in", certFile, "-inform", "pem")
+		output, err = cmd.CombinedOutput()
+		if err != nil {
+			belogs.Error("GetResultsByOpensslAns1(): exec.Command fail both inform cer and pem: certFile:", certFile, "   err: ", err, ": "+string(output))
+			return nil, errors.New("Fail to parse by openssl, it may be not a valid asn1 format. Error is `" + string(output) + ". " + err.Error())
+		}
 	}
 	result := string(output)
 	tmps := strings.Split(result, osutil.GetNewLineSep())
