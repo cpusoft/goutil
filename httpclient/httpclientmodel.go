@@ -16,7 +16,8 @@ type HttpClientConfig struct {
 	// all/ipv4/ipv6
 	IpType string `json:"ipType"`
 	// range
-	RangeLength uint64
+	RangeLength uint64 `json:"rangeLength"`
+	VerifyHttps bool   `json:"verifyHttps"`
 }
 
 // Minutes
@@ -30,12 +31,13 @@ func ResetTimeout() {
 }
 
 func NewHttpClientConfigWithParam(timeoutMins uint64,
-	retryCount uint64, ipType string) *HttpClientConfig {
+	retryCount uint64, ipType string, verifyHttps bool) *HttpClientConfig {
 	c := &HttpClientConfig{
 		TimeoutMins: timeoutMins,
 		RetryCount:  retryCount,
 		IpType:      ipType,
 		RangeLength: DefaultRangeLength,
+		VerifyHttps: verifyHttps,
 	}
 	return c
 }

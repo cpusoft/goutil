@@ -205,7 +205,7 @@ func TestGetHttpsVerifySupportRangeWithConfig(t *testing.T) {
 		"https://x-0100000000000011.p.u9sv.com/notification.xml",
 		"https://x-8011.p.u9sv.com/notification.xml",
 	}
-	h := httpclient.NewHttpClientConfigWithParam(5, 3, "all")
+	h := httpclient.NewHttpClientConfigWithParam(5, 3, "all", true)
 	supportUrls := make([]string, 0, len(urls))
 	for _, url := range urls {
 		n, err := GetRrdpNotificationWithConfig(url, h)

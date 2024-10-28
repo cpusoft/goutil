@@ -18,7 +18,7 @@ func TestRepoConnect(repoUrl string, timeoutMins uint64) (state string, Duration
 		belogs.Debug("TestRepoConnect(): rrdp repoUrl:", repoUrl, " timeoutMins:", timeoutMins)
 		start := time.Now()
 		err := rrdputil.RrdpNotificationTestConnectWithConfig(repoUrl,
-			httpclient.NewHttpClientConfigWithParam(uint64(timeoutMins), 1, "all"))
+			httpclient.NewHttpClientConfigWithParam(uint64(timeoutMins), 1, "all", true))
 		if err != nil {
 			belogs.Error("TestRepoConnect(): RrdpNotificationTestConnectWithConfig fail, repoUrl:", repoUrl, err)
 			return "invalid", time.Since(start), err
