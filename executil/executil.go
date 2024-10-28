@@ -12,6 +12,7 @@ import (
 	"github.com/cpusoft/goutil/jsonutil"
 )
 
+// cannot set env, not use for openssl
 func ExecCommandCombinedOutput(commandName string, params []string) (out string, err error) {
 	result := exec.Command(commandName, params...)
 	b, err := result.CombinedOutput()

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/osutil"
 )
@@ -250,6 +251,13 @@ func VerifyRootCerByOpenssl(rootFile string) (result string, err error) {
 	// cer --> pem
 	belogs.Debug("VerifyRootCerByOpenssl(): cmd: openssl", "x509", "-inform", "der", "-in", rootFile, "-out", pemFile)
 	cmd := exec.Command("openssl", "x509", "-inform", "der", "-in", rootFile, "-out", pemFile.Name())
+	ldLibraryPath := conf.String("openssl::ldLibraryPath")
+	path := conf.String("openssl::path")
+	if len(ldLibraryPath) > 0 && len(path) > 0 {
+		cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+ldLibraryPath)
+		cmd.Env = append(os.Environ(), "PATH="+path)
+		belogs.Debug("VerifyRootCerByOpenssl(): ldLibraryPath:", ldLibraryPath, "  path:", path)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("VerifyRootCerByOpenssl(): exec x509: err: ", err, ": "+string(output), rootFile)
@@ -263,6 +271,11 @@ func VerifyRootCerByOpenssl(rootFile string) (result string, err error) {
 	// verify
 	belogs.Debug("VerifyRootCerByOpenssl(): cmd: openssl", "verify", "-check_ss_sig", "-CAfile", pemFile.Name(), pemFile.Name())
 	cmd = exec.Command("openssl", "verify", "-check_ss_sig", "-CAfile", pemFile.Name(), pemFile.Name())
+	if len(ldLibraryPath) > 0 && len(path) > 0 {
+		cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+ldLibraryPath)
+		cmd.Env = append(os.Environ(), "PATH="+path)
+		belogs.Debug("VerifyRootCerByOpenssl(): ldLibraryPath:", ldLibraryPath, "  path:", path)
+	}
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("VerifyRootCerByOpenssl(): exec verify: err: ", err, ": "+string(output), rootFile)
