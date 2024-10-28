@@ -48,5 +48,6 @@ func NewHttpClientConfig() *HttpClientConfig {
 	httpClientConfig.RetryCount = RetryCount
 	httpClientConfig.IpType = DefaultIpType
 	httpClientConfig.RangeLength = DefaultRangeLength
+	httpClientConfig.VerifyHttps = true
 	return httpClientConfig
 }

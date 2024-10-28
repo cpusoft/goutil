@@ -21,12 +21,15 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
+/*
+// deprecated:
 func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error) {
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
 	belogs.Info("GetRrdpSnapshot():will get snapshotUrl:", snapshotUrl)
 	return GetRrdpSnapshotWithConfig(snapshotUrl, nil)
 }
+*/
 
 func GetRrdpSnapshotWithConfig(snapshotUrl string, httpClientConfig *httpclient.HttpClientConfig) (snapshotModel SnapshotModel, err error) {
 	start := time.Now()
@@ -64,7 +67,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 	ipAddrs := netutil.LookupIpByUrl(snapshotUrl)
 
 	// 1. test support range
-	_, supportRange, contentLength, err = httpclient.GetHttpsVerifySupportRangeWithConfig(snapshotUrl, true, httpClientConfig)
+	_, supportRange, contentLength, err = httpclient.GetHttpsVerifySupportRangeWithConfig(snapshotUrl, httpClientConfig)
 	if err == nil && supportRange && contentLength > 2*httpClientConfig.RangeLength {
 		belogs.Debug("getRrdpSnapshotImplWithConfig(): support range, will download use range, snapshotUrl:", snapshotUrl,
 			"    ipAddrs:", ipAddrs, " 2*httpClientConfig.RangeLength:", 2*httpClientConfig.RangeLength,
@@ -72,7 +75,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 		start = time.Now()
 		// 2. if support range, will call range download
 		resp, body, err = httpclient.GetHttpsVerifyRangeWithConfig(snapshotUrl, contentLength,
-			httpClientConfig.RangeLength, true, httpClientConfig)
+			httpClientConfig.RangeLength, httpClientConfig)
 		if err == nil {
 			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusOK ||
@@ -91,7 +94,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 	/*
 		// if not support range, or download fail, will call normal download
 		//start = time.Now()
-		//resp, body, err = httpclient.GetHttpsVerifyWithConfig(snapshotUrl, true, httpClientConfig)
+		//resp, body, err = httpclient.GetHttpsVerifyWithConfig(snapshotUrl, httpClientConfig)
 		//belogs.Debug("getRrdpSnapshotImplWithConfig(): nouse range, GetHttpsVerifyWithConfig, snapshotUrl:", snapshotUrl, "   ipAddrs:", ipAddrs,
 		//	" statusCode:", httpclient.GetStatusCode(resp), "    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
 	*/

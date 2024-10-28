@@ -17,14 +17,16 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
-func Get(urlStr string, verifyHttps bool) (resp gorequest.Response, body string, err error) {
-	return GetWithConfig(urlStr, verifyHttps, nil)
-}
-func GetWithConfig(urlStr string, verifyHttps bool, httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
+/*
+	func Get(urlStr string, verifyHttps bool) (resp gorequest.Response, body string, err error) {
+		return GetWithConfig(urlStr, nil)
+	}
+*/
+func GetWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
 	if strings.HasPrefix(urlStr, "http://") {
 		return GetHttpWithConfig(urlStr, httpClientConfig)
 	} else if strings.HasPrefix(urlStr, "https://") {
-		return GetHttpsVerifyWithConfig(urlStr, verifyHttps, httpClientConfig)
+		return GetHttpsVerifyWithConfig(urlStr, httpClientConfig)
 	} else {
 		return nil, "", errors.New("unknown protocol")
 	}
@@ -55,19 +57,23 @@ func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp 
 
 }
 
+/*
 // Https Get Method, complete url
 func GetHttps(urlStr string) (resp gorequest.Response, body string, err error) {
 	return GetHttpsVerify(urlStr, false)
 }
+*/
 
 // Https Get Method, complete url
 // verify: check https or not
-func GetHttpsVerify(urlStr string, verify bool) (resp gorequest.Response, body string, err error) {
-	belogs.Debug("GetHttpsVerify():url:", urlStr, "    verify:", verify)
-	return GetHttpsVerifyWithConfig(urlStr, verify, nil)
+func GetHttpsVerify(urlStr string, verifyHttps bool) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("GetHttpsVerify():url:", urlStr, "    verifyHttps:", verifyHttps)
+	httpClientConfig := NewHttpClientConfig()
+	httpClientConfig.VerifyHttps = verifyHttps
+	return GetHttpsVerifyWithConfig(urlStr, httpClientConfig)
 }
-func GetHttpsVerifyWithConfig(urlStr string, verify bool, httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
-	belogs.Debug("GetHttpsVerifyWithConfig():url:", urlStr, "    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+func GetHttpsVerifyWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
+	belogs.Debug("GetHttpsVerifyWithConfig():url:", urlStr, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		belogs.Error("GetHttpsVerifyWithConfig(): Parse fail, urlStr:", urlStr, err)
@@ -77,7 +83,7 @@ func GetHttpsVerifyWithConfig(urlStr string, verify bool, httpClientConfig *Http
 		httpClientConfig = globalHttpClientConfig
 	}
 
-	config := &tls.Config{InsecureSkipVerify: !verify}
+	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
 	return errorsToerror(gorequest.New().Get(urlStr).
 		TLSClientConfig(config).
 		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
@@ -89,8 +95,8 @@ func GetHttpsVerifyWithConfig(urlStr string, verify bool, httpClientConfig *Http
 
 }
 
-func GetHttpsVerifyResponseWithConfig(urlStr string, verify bool, httpClientConfig *HttpClientConfig) (resp gorequest.Response, err error) {
-	belogs.Debug("GetHttpsVerifyResponseWithConfig():url:", urlStr, "    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+func GetHttpsVerifyResponseWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp gorequest.Response, err error) {
+	belogs.Debug("GetHttpsVerifyResponseWithConfig():url:", urlStr, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		belogs.Error("GetHttpsVerifyResponseWithConfig(): Parse fail, urlStr:", urlStr, err)
@@ -100,7 +106,7 @@ func GetHttpsVerifyResponseWithConfig(urlStr string, verify bool, httpClientConf
 		httpClientConfig = globalHttpClientConfig
 	}
 
-	config := &tls.Config{InsecureSkipVerify: !verify}
+	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
 	resp, _, err = errorsToerror(gorequest.New().Head(urlStr).
 		TLSClientConfig(config).
 		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
@@ -111,10 +117,10 @@ func GetHttpsVerifyResponseWithConfig(urlStr string, verify bool, httpClientConf
 		End())
 	return resp, err
 }
-func GetHttpsVerifySupportRangeWithConfig(urlStr string, verify bool, httpClientConfig *HttpClientConfig) (resp gorequest.Response,
+func GetHttpsVerifySupportRangeWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp gorequest.Response,
 	supportRange bool, contentLength uint64, err error) {
-	belogs.Debug("GetHttpsVerifySupportRangeWithConfig():url:", urlStr, "    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
-	resp, err = GetHttpsVerifyResponseWithConfig(urlStr, verify, httpClientConfig)
+	belogs.Debug("GetHttpsVerifySupportRangeWithConfig():url:", urlStr, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	resp, err = GetHttpsVerifyResponseWithConfig(urlStr, httpClientConfig)
 	if err != nil {
 		belogs.Error("GetHttpsVerifySupportRangeWithConfig(): GetHttpsVerifyResponseWithConfig fail, urlStr:", urlStr, err)
 		return nil, false, 0, err
@@ -163,12 +169,11 @@ func (v rangeBodySort) Less(i, j int) bool {
 // contentLength: all bytes len
 // oneRangeLength: one range download bytes len
 func GetHttpsVerifyRangeWithConfig(urlStr string, contentLength uint64,
-	oneRangeLength uint64, verify bool,
-	httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
+	oneRangeLength uint64, httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
 	start := time.Now()
 	belogs.Debug("GetHttpsVerifyResponseWithConfig():url:", urlStr,
-		"    contentLength:", contentLength, "  oneRangeLength:", oneRangeLength,
-		"    verify:", verify, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+		"  contentLength:", contentLength, "  oneRangeLength:", oneRangeLength,
+		"  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		belogs.Error("GetHttpsVerifyRangeWithConfig(): Parse fail, urlStr:", urlStr, err)
@@ -178,7 +183,7 @@ func GetHttpsVerifyRangeWithConfig(urlStr string, contentLength uint64,
 		httpClientConfig = globalHttpClientConfig
 	}
 
-	config := &tls.Config{InsecureSkipVerify: !verify}
+	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
 	count := contentLength / oneRangeLength
 	if contentLength%oneRangeLength != 0 {
 		count++

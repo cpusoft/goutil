@@ -15,11 +15,14 @@ import (
 	"github.com/cpusoft/goutil/xmlutil"
 )
 
-func GetRrdpNotification(notificationUrl string) (notificationModel NotificationModel, err error) {
-	belogs.Debug("GetRrdpNotification(): will notificationUrl:", notificationUrl)
-	return GetRrdpNotificationWithConfig(notificationUrl, nil)
-}
+/*
+// deprecated: please use GetRrdpNotificationWithConfig
 
+	func GetRrdpNotification(notificationUrl string) (notificationModel NotificationModel, err error) {
+		belogs.Debug("GetRrdpNotification(): will notificationUrl:", notificationUrl)
+		return GetRrdpNotificationWithConfig(notificationUrl, nil)
+	}
+*/
 func GetRrdpNotificationWithConfig(notificationUrl string, httpClientConfig *httpclient.HttpClientConfig) (notificationModel NotificationModel, err error) {
 	start := time.Now()
 	// get notification.xml
@@ -61,7 +64,7 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 	belogs.Debug("getRrdpNotificationImplWithConfig(): notificationUrl:", notificationUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	start := time.Now()
 	notificationUrl = strings.TrimSpace(notificationUrl)
-	resp, body, err := httpclient.GetHttpsVerifyWithConfig(notificationUrl, true, httpClientConfig)
+	resp, body, err := httpclient.GetHttpsVerifyWithConfig(notificationUrl, httpClientConfig)
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
@@ -128,7 +131,7 @@ func RrdpNotificationTestConnectWithConfig(notificationUrl string, httpClientCon
 	belogs.Debug("RrdpNotificationTestConnectWithConfig(): notificationUrl:", notificationUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 
 	// test http connect
-	resp, body, err := httpclient.GetHttpsVerifyWithConfig(notificationUrl, true, httpClientConfig)
+	resp, body, err := httpclient.GetHttpsVerifyWithConfig(notificationUrl, httpClientConfig)
 	if err != nil {
 		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsVerify fail, notificationUrl:", notificationUrl, err, "  time(s):", time.Since(start))
 		return errors.New("http error of " + notificationUrl + " is " + err.Error())

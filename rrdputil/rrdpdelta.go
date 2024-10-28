@@ -23,10 +23,14 @@ import (
 	"github.com/cpusoft/goutil/xmlutil"
 )
 
-func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (deltaModels []DeltaModel, err error) {
-	belogs.Info("GetRrdpDeltas(): len(notificationModel.Deltas):", len(notificationModel.Deltas), "  lastSerial:", lastSerial)
-	return GetRrdpDeltasWithConfig(notificationModel, lastSerial, nil)
-}
+/*
+// deprecated: please use GetRrdpDeltasWithConfig
+
+	func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (deltaModels []DeltaModel, err error) {
+		belogs.Info("GetRrdpDeltas(): len(notificationModel.Deltas):", len(notificationModel.Deltas), "  lastSerial:", lastSerial)
+		return GetRrdpDeltasWithConfig(notificationModel, lastSerial, nil)
+	}
+*/
 func GetRrdpDeltasWithConfig(notificationModel *NotificationModel, lastSerial uint64, httpClientConfig *httpclient.HttpClientConfig) (deltaModels []DeltaModel, err error) {
 	start := time.Now()
 	if httpClientConfig == nil {
@@ -112,6 +116,8 @@ func getRrdpDeltasImplWithConfig(notificationModel *NotificationModel, i int, ht
 	deltaModelCh <- deltaModel
 	return
 }
+
+// deprecated: please use GetRrdpDeltaWithConfig
 func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 	belogs.Debug("GetRrdpDelta(): deltaUrl:", deltaUrl)
 	return GetRrdpDeltaWithConfig(deltaUrl, nil)
@@ -142,7 +148,7 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 	belogs.Debug("getRrdpDeltaImplWithConfig(): deltaUrl:", deltaUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	deltaUrl = strings.TrimSpace(deltaUrl)
 	start := time.Now()
-	resp, body, err := httpclient.GetHttpsVerifyWithConfig(deltaUrl, true, httpClientConfig)
+	resp, body, err := httpclient.GetHttpsVerifyWithConfig(deltaUrl, httpClientConfig)
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {

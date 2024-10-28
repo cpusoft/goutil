@@ -43,7 +43,7 @@ func TestGetRrdpDelta(t *testing.T) {
 }
 
 func TestGetRrdpNotification(t *testing.T) {
-	notificationModel, err := GetRrdpNotification("https://rpki.idnic.net/rrdp/notify.xml")
+	notificationModel, err := GetRrdpNotificationWithConfig("https://rpki.idnic.net/rrdp/notify.xml", httpclient.NewHttpClientConfig())
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -59,7 +59,7 @@ func TestGetRrdpNotification(t *testing.T) {
 func TestGetRrdpSnapshot(t *testing.T) {
 	url := `https://rpki-repo.registro.br/rrdp/49582cf3-79ba-4cba-a1a9-14e966177268/147100/65979eb2b415672b/snapshot.xml`
 	fmt.Println("will get snapshot:", url)
-	snapshotModel, err := GetRrdpSnapshot(url)
+	snapshotModel, err := GetRrdpSnapshotWithConfig(url, httpclient.NewHttpClientConfig())
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -214,7 +214,7 @@ func TestGetHttpsVerifySupportRangeWithConfig(t *testing.T) {
 			continue
 		}
 		snapshotUrl := n.Snapshot.Uri
-		_, supportRange, contentLength, err := httpclient.GetHttpsVerifySupportRangeWithConfig(snapshotUrl, true, h)
+		_, supportRange, contentLength, err := httpclient.GetHttpsVerifySupportRangeWithConfig(snapshotUrl, h)
 		if err != nil {
 			fmt.Println("fail, url:", url, snapshotUrl, err)
 			continue

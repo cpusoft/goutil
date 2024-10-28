@@ -14,10 +14,11 @@ import (
 	"github.com/cpusoft/goutil/netutil"
 )
 
+/*
 func GetByCurl(url string) (result string, err error) {
 	return GetByCurlWithConfig(url, nil)
 }
-
+*/
 // get by Curl
 func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result string, err error) {
 	belogs.Debug("GetByCurlWithConfig(): url:", url, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
@@ -45,6 +46,7 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 	} else if httpClientConfig.IpType == "ipv6" {
 		ipType = "-6"
 	}
+
 	belogs.Info("GetByCurlWithConfig():will curl, url:", url, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig),
 		"  httpClientConfig.TimeoutMins(m):", int64(httpClientConfig.TimeoutMins), "  timeout as seconds:", timeout,
 		"  retryCount:", retryCount, "  ipType:", ipType, "   tmpFile:", tmpFile.Name())
@@ -59,15 +61,22 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 	// --keepalive-time: <seconds> Interval time for keepalive probes
 	// -m: --max-time SECONDS  Maximum time allowed for the transfer
 	// -v, --verbose       Make the operation more talkative
+	// -k, --insecure      Allow connections to SSL sites without certs (H)
 	/*
 		cmd := exec.Command("curl", "-4",  "-o", tmpFile, url)
 	*/
 	// minute-->second
-
+	var output []byte
 	start := time.Now()
-	cmd := exec.Command("curl", "--connect-timeout", timeout, "--keepalive-time", timeout,
-		"-m", timeout, ipType, "--retry", retryCount, "--compressed", "-o", tmpFile.Name(), url)
-	output, err := cmd.CombinedOutput()
+	if httpClientConfig.VerifyHttps {
+		cmd := exec.Command("curl", "--connect-timeout", timeout, "--keepalive-time", timeout,
+			"-m", timeout, ipType, "--retry", retryCount, "--compressed", "-o", tmpFile.Name(), url)
+		output, err = cmd.CombinedOutput()
+	} else {
+		cmd := exec.Command("curl", "--connect-timeout", timeout, "--keepalive-time", timeout,
+			"-m", timeout, ipType, "--insecure", "--retry", retryCount, "--compressed", "-o", tmpFile.Name(), url)
+		output, err = cmd.CombinedOutput()
+	}
 	outputStr := GetOutputStr(output)
 	if err != nil {
 		belogs.Error("GetByCurlWithConfig(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
