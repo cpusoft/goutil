@@ -2,7 +2,6 @@ package opensslutil
 
 import (
 	"errors"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -13,26 +12,18 @@ import (
 
 func GetResultsByOpensslX509(certFile string) (results []string, err error) {
 	belogs.Debug("GetResultsByOpensslX509(): cmd:  openssl", "x509", "-noout", "-text", "-in", certFile, "-inform", "der")
-	cmd := exec.Command("openssl", "x509", "-noout", "-text", "-in", certFile, "-inform", "der")
-	ldLibraryPath := conf.String("openssl::ldLibraryPath")
+	opensslCmd := "openssl"
 	path := conf.String("openssl::path")
-	if len(ldLibraryPath) > 0 && len(path) > 0 {
-		cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+ldLibraryPath)
-		cmd.Env = append(os.Environ(), "PATH="+path)
-		belogs.Debug("GetResultsByOpensslX509(): ldLibraryPath:", ldLibraryPath, "  path:", path)
+	if len(path) > 0 {
+		opensslCmd = osutil.JoinPathFile(path, opensslCmd)
 	}
+	belogs.Debug("GetResultsByOpensslX509(): cmd:  opensslCmd", opensslCmd, "x509", "-noout", "-text", "-in", certFile, "-inform", "der")
+	cmd := exec.Command(opensslCmd, "x509", "-noout", "-text", "-in", certFile, "-inform", "der")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Debug("GetResultsByOpensslX509(): exec.Command fail, try again inform pem: certFile:", certFile, "   err: ", err, "   output: "+string(output))
-
-		cmd = exec.Command("openssl", "x509", "-noout", "-text", "-in", certFile, "-inform", "pem")
-		ldLibraryPath := conf.String("openssl::ldLibraryPath")
-		path := conf.String("openssl::path")
-		if len(ldLibraryPath) > 0 && len(path) > 0 {
-			cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+ldLibraryPath)
-			cmd.Env = append(os.Environ(), "PATH="+path)
-			belogs.Debug("GetResultsByOpensslX509(): ldLibraryPath:", ldLibraryPath, "  path:", path)
-		}
+		belogs.Debug("GetResultsByOpensslX509(): exec.Command fail, try again inform pem:opensslCmd", opensslCmd,
+			"  certFile:", certFile, "   err: ", err, "   output: "+string(output))
+		cmd = exec.Command(opensslCmd, "x509", "-noout", "-text", "-in", certFile, "-inform", "pem")
 		output, err = cmd.CombinedOutput()
 		if err != nil {
 			belogs.Error("GetResultsByOpensslX509(): exec.Command fail both inform cer and pem: certFile:", certFile, "   err: ", err, "   output: "+string(output))
@@ -54,26 +45,18 @@ func GetResultsByOpensslAns1(certFile string) (results []string, err error) {
 	//https://blog.csdn.net/Zhymax/article/details/7683925
 	//openssl asn1parse -in -ard.mft -inform DER
 	belogs.Debug("GetResultsByOpensslAns1():cmd: openssl", "asn1parse", "-in", certFile, "-inform", "der", " GetResultsByOpensslAns1_bao")
-	cmd := exec.Command("openssl", "asn1parse", "-in", certFile, "-inform", "der")
-	ldLibraryPath := conf.String("openssl::ldLibraryPath")
+	opensslCmd := "openssl"
 	path := conf.String("openssl::path")
-	if len(ldLibraryPath) > 0 && len(path) > 0 {
-		cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+ldLibraryPath)
-		cmd.Env = append(os.Environ(), "PATH="+path)
-		belogs.Debug("GetResultsByOpensslAns1(): ldLibraryPath:", ldLibraryPath, "  path:", path)
+	if len(path) > 0 {
+		opensslCmd = osutil.JoinPathFile(path, opensslCmd)
 	}
+	belogs.Debug("GetResultsByOpensslAns1():cmd: opensslCmd", opensslCmd, "asn1parse", "-in", certFile, "-inform", "der", " GetResultsByOpensslAns1_bao")
+	cmd := exec.Command(opensslCmd, "asn1parse", "-in", certFile, "-inform", "der")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Debug("GetResultsByOpensslAns1(): exec.Command, try again inform pem: certFile:", certFile, "   err: ", err, ": "+string(output))
-
-		cmd = exec.Command("openssl", "asn1parse", "-in", certFile, "-inform", "pem")
-		ldLibraryPath := conf.String("openssl::ldLibraryPath")
-		path := conf.String("openssl::path")
-		if len(ldLibraryPath) > 0 && len(path) > 0 {
-			cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+ldLibraryPath)
-			cmd.Env = append(os.Environ(), "PATH="+path)
-			belogs.Debug("GetResultsByOpensslAns1(): ldLibraryPath:", ldLibraryPath, "  path:", path)
-		}
+		belogs.Debug("GetResultsByOpensslAns1(): exec.Command, try again inform pem: opensslCmd:", opensslCmd,
+			"  certFile:", certFile, "   err: ", err, ": "+string(output))
+		cmd = exec.Command(opensslCmd, "asn1parse", "-in", certFile, "-inform", "pem")
 		output, err = cmd.CombinedOutput()
 		if err != nil {
 			belogs.Error("GetResultsByOpensslAns1(): exec.Command fail both inform cer and pem: certFile:", certFile, "   err: ", err, ": "+string(output))
