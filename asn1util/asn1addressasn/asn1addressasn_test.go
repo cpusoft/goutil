@@ -235,8 +235,8 @@ func TestASN1(t *testing.T) {
 	var err error
 	for _, ip := range ipInfos {
 		ipBytes, err = ip.ASN1()
-		fmt.Println("ip, bytes:", ip, hex.Dump(ipBytes))
-		fmt.Println("ip, hex:", convert.PrintBytesOneLine(ipBytes), err)
+		fmt.Println("ip, Dump:", ip, hex.Dump(ipBytes))
+		fmt.Println("ip, PrintBytesOneLine:", convert.PrintBytesOneLine(ipBytes), err)
 	}
 
 	_, net8, _ := net.ParseCIDR("2a0f:c1c0::/32") // 03 05 00 2A 0F C1 C0
@@ -245,5 +245,6 @@ func TestASN1(t *testing.T) {
 	}
 
 	ipBytes, err = ipNet8.ASN1()
-	fmt.Println("ipNet8:", ipBytes, convert.PrintBytesOneLine(ipBytes), err)
+	fmt.Println("ipNet8 PrintBytesOneLine:", ipBytes, convert.PrintBytesOneLine(ipBytes), err)
+	fmt.Println("hex EncodeToString:", hex.EncodeToString(ipBytes))
 }
