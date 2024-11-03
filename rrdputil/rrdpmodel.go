@@ -2,6 +2,7 @@ package rrdputil
 
 import (
 	xml "encoding/xml"
+
 	"github.com/cpusoft/goutil/jsonutil"
 )
 
@@ -34,6 +35,7 @@ type NotificationDelta struct {
 }
 
 // support sort: from  bigger to smaller: from newer to older
+//
 //	v := []NotificationDelta{{Serial: 10, Uri: "3", Hash: "333"},{Serial: 9, Uri: "6", Hash: "666"},{Serial: 8, Uri: "2", Hash: "2222"},{Serial: 7, Uri: "7", Hash: "7777"}}
 //	sort.Sort(NotificationDeltasSort(v))
 type NotificationDeltasSort []NotificationDelta
@@ -74,6 +76,7 @@ func (c SnapshotModel) String() string {
 
 type SnapshotPublish struct {
 	XMLName xml.Name `xml:"publish" json:"publish"`
+	Xmlns   string   `xml:"xmlns,attr" json:"xmlns"`
 	Uri     string   `xml:"uri,attr" json:"uri"`
 	Base64  string   `xml:",chardata" json:"-"`
 }
@@ -103,6 +106,7 @@ func (c DeltaModel) String() string {
 }
 
 // support sort: from  bigger to smaller
+//
 //	v := []NotificationDelta{{Serial: 10, Uri: "3", Hash: "333"},{Serial: 9, Uri: "6", Hash: "666"},{Serial: 8, Uri: "2", Hash: "2222"},{Serial: 7, Uri: "7", Hash: "7777"}}
 //	sort.Sort(DeltaModelsSort(v))
 type DeltaModelsSort []DeltaModel

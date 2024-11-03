@@ -91,3 +91,9 @@ func TestExtNoDot(t *testing.T) {
 	ex := ExtNoDot(f)
 	fmt.Println(ex)
 }
+
+func TestBase(t *testing.T) {
+	f := "sync://aaa.com/bbb/ccc.cer"
+	ex := Base(f)
+	fmt.Println(ex)
+}
