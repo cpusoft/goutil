@@ -2,13 +2,16 @@ package xormdb
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/stringutil"
+	"github.com/cpusoft/goutil/urlutil"
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
@@ -119,6 +122,80 @@ func InitSqliteParameter(filepath string, maxidleconns, maxopenconns int) (engin
 	engine.SetMaxOpenConns(maxopenconns)
 	// show sql
 	//engine.ShowSQL(true)
+	engine.SetTableMapper(names.SnakeMapper{})
+
+	return engine, nil
+
+}
+
+func InitPostgreSQL() (err error) {
+	user := conf.String("postgresql::user")
+	password := conf.String("postgresql::password")
+	server := conf.String("postgresql::server")
+	database := conf.String("postgresql::database")
+	maxidleconns := conf.Int("postgresql::maxidleconns")
+	maxopenconns := conf.Int("postgresql::maxopenconns")
+	XormEngine, err = InitPostgreSQLParameter(user, password, server, database, maxidleconns, maxopenconns)
+	if err != nil {
+		belogs.Error("InitPostgreSQL(): fail: ", err)
+		return err
+	}
+	return nil
+}
+
+func InitPostgreSQLParameter(user, password, server, database string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
+	// db, err := xorm.NewPostgreSQL("postgres://postgres:123@localhost:5432/test?sslmode=disable")
+	host, port, err := urlutil.HostAndPort(server)
+	if err != nil {
+		belogs.Error("InitPostgreSQLParameter")
+		return nil, err
+	}
+	str := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, database)
+	logName := filepath.Base(os.Args[0])
+	belogs.Info("InitPostgreSQLParameter(): server is: ", server, database, logName)
+
+	//连接数据库
+	engine, err = xorm.NewEngine("postgres", str)
+	if err != nil {
+		belogs.Error("InitPostgreSQLParameter(): NewEngine failed, err:", err)
+		return engine, err
+	}
+	//连接测试
+	if err := engine.Ping(); err != nil {
+		belogs.Error("InitPostgreSQLParameter(): Ping failed, err:", err)
+		return engine, err
+	}
+
+	//设置连接池的空闲数大小
+	engine.SetMaxIdleConns(maxidleconns)
+	//设置最大打开连接数
+	engine.SetMaxOpenConns(maxopenconns)
+	// show sql
+	//engine.ShowSQL(true)
+	/*
+		http://blog.xorm.io/2016/1/4/1-about-mapper.html
+		SnakeMapper
+		SnakeMapper是默认的映射机制，他支持数据库表采用匈牙利命名法，而程序中采用驼峰式命名法。下面是一些常见的映射：
+		表中名称		程序名称
+		user_info	UserInfo
+		id			Id
+
+		SameMapper
+		SameMapper就是数据库中的命名法和程序中是相同的。那么鉴于在Go中，基本上要求首字母必须大写。所以一般都是表中和程序中均采用驼峰式命名。下面是一些常见的映射：
+		表中名称	程序名称
+		UserInfo	UserInfo
+		Id	Id
+
+
+		GonicMapper
+		GonicMapper是在SnakeMapper的基础上增加了特例，对于常见的缩写不新增下划线处理。这个同时也符合golint的规则。下面是一些常见的映射：
+		表中名称	程序名称
+		user_info	UserInfo
+		id	ID
+		url	URL
+
+	*/
 	engine.SetTableMapper(names.SnakeMapper{})
 
 	return engine, nil
