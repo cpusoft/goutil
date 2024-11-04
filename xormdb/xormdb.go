@@ -3,13 +3,13 @@ package xormdb
 import (
 	"database/sql"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/stringutil"
-	"github.com/cpusoft/goutil/urlutil"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -145,7 +145,7 @@ func InitPostgreSQL() (err error) {
 
 func InitPostgreSQLParameter(user, password, server, database string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
 	// db, err := xorm.NewPostgreSQL("postgres://postgres:123@localhost:5432/test?sslmode=disable")
-	host, port, err := urlutil.HostAndPort(server)
+	host, port, err := net.SplitHostPort(server)
 	if err != nil {
 		belogs.Error("InitPostgreSQLParameter")
 		return nil, err
