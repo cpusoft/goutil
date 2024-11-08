@@ -156,3 +156,27 @@ func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) 
 	}
 	return filePathName, nil
 }
+
+func Copy(srcFilePathName, dstFilePathName string) error {
+	belogs.Debug("Copy(): srcFilePathName:", srcFilePathName, "  dstFilePathName:", dstFilePathName)
+	srcFile, err := os.Open(srcFilePathName)
+	if err != nil {
+		belogs.Error("Copy(): Open fail, srcFilePathName:", srcFilePathName)
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dstFilePathName)
+	if err != nil {
+		belogs.Error("Copy(): Create fail, dstFilePathName:", dstFilePathName)
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		belogs.Error("Copy(): Copy fail, dstFile:", dstFile, "  dstFile:", dstFile)
+		return err
+	}
+	return nil
+}

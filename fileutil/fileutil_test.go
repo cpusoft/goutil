@@ -16,3 +16,10 @@ func TestWriteBase64ToFile(t *testing.T) {
 	err = CreateAndWriteBase64ToFile(f, s)
 	fmt.Println(err)
 }
+
+func TestCopy(t *testing.T) {
+	src := `D:\Download\1.txt`
+	dst := `D:\Download\1_copy.txt`
+	err := Copy(src, dst)
+	fmt.Println(err)
+}
