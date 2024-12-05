@@ -107,7 +107,7 @@ func InitSqliteParameter(filepath string, maxidleconns, maxopenconns int) (engin
 	//连接数据库
 	engine, err = xorm.NewEngine("sqlite3", filepath)
 	if err != nil {
-		belogs.Error("InitSqliteParameter(): NewEngine failed, err:", err)
+		belogs.Error("InitSqliteParameter(): NewEngine failed, filepath:", filepath, err)
 		return engine, err
 	}
 	//连接测试
@@ -147,13 +147,14 @@ func InitPostgreSQLParameter(user, password, server, database string, maxidlecon
 	// db, err := xorm.NewPostgreSQL("postgres://postgres:123@localhost:5432/test?sslmode=disable")
 	host, port, err := net.SplitHostPort(server)
 	if err != nil {
-		belogs.Error("InitPostgreSQLParameter")
+		belogs.Error("InitPostgreSQLParameter(): SplitHostPort fail, server:", server, err)
 		return nil, err
 	}
 	str := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, database)
 	logName := filepath.Base(os.Args[0])
-	belogs.Info("InitPostgreSQLParameter(): server is: ", server, database, logName)
+	belogs.Info("InitPostgreSQLParameter(): server:", server,
+		"  database:", database, "  logName:", logName)
 
 	//连接数据库
 	engine, err = xorm.NewEngine("postgres", str)
