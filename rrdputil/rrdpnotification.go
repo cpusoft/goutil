@@ -133,16 +133,16 @@ func RrdpNotificationTestConnectWithConfig(notificationUrl string, httpClientCon
 	// test http connect
 	resp, body, err := httpclient.GetHttpsVerifyWithConfig(notificationUrl, httpClientConfig)
 	if err != nil {
-		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsVerify fail, notificationUrl:", notificationUrl, err, "  time(s):", time.Since(start))
+		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsVerifyWithConfig fail, notificationUrl:", notificationUrl, err, "  time(s):", time.Since(start))
 		return errors.New("http error of " + notificationUrl + " is " + err.Error())
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsVerify notificationUrl, is not StatusOK:", notificationUrl,
+		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsVerifyWithConfig notificationUrl, is not StatusOK:", notificationUrl,
 			"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body, "   time(s):", time.Since(start))
 		return errors.New("http status code of " + notificationUrl + " is " + resp.Status)
 	}
-	belogs.Debug("RrdpNotificationTestConnectWithConfig(): GetHttpsVerify ok, notificationUrl:", notificationUrl,
+	belogs.Debug("RrdpNotificationTestConnectWithConfig(): GetHttpsVerifyWithConfig ok, notificationUrl:", notificationUrl,
 		"  time(s):", time.Since(start))
 
 	// test is legal

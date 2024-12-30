@@ -26,13 +26,7 @@ func TestRrdpDelta(t *testing.T) {
 func TestGetRrdpDelta(t *testing.T) {
 	url := `https://rpki.luys.cloud/rrdp/b14bf9f4-2d4f-418f-8f47-819710b78724/3024/delta.xml`
 	deltaModel, err := GetRrdpDelta(url)
-	/*
-		_, body, err := httpclient.GetHttpsVerify(url, false)
-		fmt.Println(body)
 
-		deltaModel := DeltaModel{}
-		err = xmlutil.UnmarshalXml(body, &deltaModel)
-	*/
 	fmt.Println(deltaModel, err)
 
 	for i := range deltaModel.DeltaPublishs {
