@@ -32,11 +32,14 @@ func GetWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp gore
 	}
 }
 
+/*
 // Http Get Method, complete url
-func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
-	belogs.Debug("GetHttp():url:", urlStr)
-	return GetHttpWithConfig(urlStr, nil)
-}
+
+	func GetHttp(urlStr string) (resp gorequest.Response, body string, err error) {
+		belogs.Debug("GetHttp():url:", urlStr)
+		return GetHttpWithConfig(urlStr, nil)
+	}
+*/
 func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
 	belogs.Debug("GetHttpWithConfig():url:", urlStr, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)
@@ -64,14 +67,17 @@ func GetHttps(urlStr string) (resp gorequest.Response, body string, err error) {
 }
 */
 
+/*
 // Https Get Method, complete url
 // verify: check https or not
-func GetHttpsVerify(urlStr string, verifyHttps bool) (resp gorequest.Response, body string, err error) {
-	belogs.Debug("GetHttpsVerify():url:", urlStr, "    verifyHttps:", verifyHttps)
-	httpClientConfig := NewHttpClientConfig()
-	httpClientConfig.VerifyHttps = verifyHttps
-	return GetHttpsVerifyWithConfig(urlStr, httpClientConfig)
-}
+
+	func GetHttpsVerify(urlStr string, verifyHttps bool) (resp gorequest.Response, body string, err error) {
+		belogs.Debug("GetHttpsVerify():url:", urlStr, "    verifyHttps:", verifyHttps)
+		httpClientConfig := NewHttpClientConfig()
+		httpClientConfig.VerifyHttps = verifyHttps
+		return GetHttpsVerifyWithConfig(urlStr, httpClientConfig)
+	}
+*/
 func GetHttpsVerifyWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
 	belogs.Debug("GetHttpsVerifyWithConfig():url:", urlStr, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)

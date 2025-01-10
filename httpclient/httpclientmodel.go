@@ -20,16 +20,19 @@ type HttpClientConfig struct {
 	VerifyHttps bool   `json:"verifyHttps"`
 }
 
+/*
 // Minutes
-func SetTimeout(timeoutMins uint64) {
-	if timeoutMins > 0 {
-		globalHttpClientConfig.TimeoutMins = timeoutMins
-	}
-}
-func ResetTimeout() {
-	globalHttpClientConfig.TimeoutMins = uint64(DefaultTimeoutMins)
-}
 
+	func SetTimeout(timeoutMins uint64) {
+		if timeoutMins > 0 {
+			globalHttpClientConfig.TimeoutMins = timeoutMins
+		}
+	}
+
+	func ResetTimeout() {
+		globalHttpClientConfig.TimeoutMins = uint64(DefaultTimeoutMins)
+	}
+*/
 func NewHttpClientConfigWithParam(timeoutMins uint64,
 	retryCount uint64, ipType string, verifyHttps bool) *HttpClientConfig {
 	c := &HttpClientConfig{
