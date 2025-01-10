@@ -148,21 +148,21 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 	belogs.Debug("getRrdpDeltaImplWithConfig(): deltaUrl:", deltaUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	deltaUrl = strings.TrimSpace(deltaUrl)
 	start := time.Now()
-	resp, body, err := httpclient.GetHttpsVerifyWithConfig(deltaUrl, httpClientConfig)
+	resp, body, err := httpclient.GetHttpsWithConfig(deltaUrl, httpClientConfig)
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			belogs.Error("getRrdpDeltaImplWithConfig(): GetHttpsVerifyWithConfig deltaUrl, is not StatusOK:", deltaUrl,
+			belogs.Error("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl, is not StatusOK:", deltaUrl,
 				"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body)
 			return deltaModel, errors.New("http status code of " + deltaUrl + " is " + resp.Status)
 		} else {
-			belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsVerifyWithConfig deltaUrl ok:", deltaUrl,
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl ok:", deltaUrl,
 				"   statusCode:", httpclient.GetStatusCode(resp),
 				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 				"   len(body):", len(body), "  time(s):", time.Since(start))
 		}
 	} else {
-		belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsVerifyWithConfig deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
+		belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 			"   resp:", resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl

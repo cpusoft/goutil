@@ -208,7 +208,7 @@ func TestGetHttpsVerifySupportRangeWithConfig(t *testing.T) {
 			continue
 		}
 		snapshotUrl := n.Snapshot.Uri
-		_, supportRange, contentLength, err := httpclient.GetHttpsVerifySupportRangeWithConfig(snapshotUrl, h)
+		_, supportRange, contentLength, err := httpclient.GetHttpsSupportRangeWithConfig(snapshotUrl, h)
 		if err != nil {
 			fmt.Println("fail, url:", url, snapshotUrl, err)
 			continue

@@ -67,26 +67,26 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 	ipAddrs := netutil.LookupIpByUrl(snapshotUrl)
 
 	// 1. test support range
-	_, supportRange, contentLength, err = httpclient.GetHttpsVerifySupportRangeWithConfig(snapshotUrl, httpClientConfig)
+	_, supportRange, contentLength, err = httpclient.GetHttpsSupportRangeWithConfig(snapshotUrl, httpClientConfig)
 	if err == nil && supportRange && contentLength > 2*httpClientConfig.RangeLength {
 		belogs.Debug("getRrdpSnapshotImplWithConfig(): support range, will download use range, snapshotUrl:", snapshotUrl,
 			"    ipAddrs:", ipAddrs, " 2*httpClientConfig.RangeLength:", 2*httpClientConfig.RangeLength,
 			"    contentLength:", contentLength)
 		start = time.Now()
 		// 2. if support range, will call range download
-		resp, body, err = httpclient.GetHttpsVerifyRangeWithConfig(snapshotUrl, contentLength,
+		resp, body, err = httpclient.GetHttpsRangeWithConfig(snapshotUrl, contentLength,
 			httpClientConfig.RangeLength, httpClientConfig)
 		if err == nil {
 			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusOK ||
 				resp.StatusCode == http.StatusPartialContent {
 				downloadOk = true
-				belogs.Info("getRrdpSnapshotImplWithConfig():use range, GetHttpsVerifyWithConfig ok, snapshotUrl:", snapshotUrl,
+				belogs.Info("getRrdpSnapshotImplWithConfig():use range, GetHttpsWithConfig ok, snapshotUrl:", snapshotUrl,
 					"   statusCode:", httpclient.GetStatusCode(resp), " supportRange:", supportRange, "   ipAddrs:", ipAddrs,
 					"   len(body):", len(body), "  downloadOk:", downloadOk, "  time(s):", time.Since(start))
 			}
 		}
-		belogs.Debug("getRrdpSnapshotImplWithConfig(): use range, GetHttpsVerifyRangeWithConfig fail, snapshotUrl:", snapshotUrl,
+		belogs.Debug("getRrdpSnapshotImplWithConfig(): use range, GetHttpsRangeWithConfig fail, snapshotUrl:", snapshotUrl,
 			"   statusCode:", httpclient.GetStatusCode(resp), " supportRange:", supportRange, "   ipAddrs:", ipAddrs,
 			"   len(body):", len(body), "    body:", stringutil.OmitString(body, 100), "  downloadOk:", downloadOk,
 			err, "  time(s):", time.Since(start))
@@ -94,8 +94,8 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 	/*
 		// if not support range, or download fail, will call normal download
 		//start = time.Now()
-		//resp, body, err = httpclient.GetHttpsVerifyWithConfig(snapshotUrl, httpClientConfig)
-		//belogs.Debug("getRrdpSnapshotImplWithConfig(): nouse range, GetHttpsVerifyWithConfig, snapshotUrl:", snapshotUrl, "   ipAddrs:", ipAddrs,
+		//resp, body, err = httpclient.GetHttpsWithConfig(snapshotUrl, httpClientConfig)
+		//belogs.Debug("getRrdpSnapshotImplWithConfig(): nouse range, GetHttpsWithConfig, snapshotUrl:", snapshotUrl, "   ipAddrs:", ipAddrs,
 		//	" statusCode:", httpclient.GetStatusCode(resp), "    len(body):", len(body), "  time(s):", time.Since(start), "   err:", err)
 	*/
 

@@ -15,7 +15,7 @@ var RetryHttpStatus = []int{http.StatusBadRequest, http.StatusInternalServerErro
 
 // convert many erros to on error
 func errorsToerror(resps gorequest.Response, bodys string, errs []error) (resp gorequest.Response, body string, err error) {
-	if errs != nil && len(errs) > 0 {
+	if len(errs) > 0 {
 		buffer := bytes.NewBufferString("")
 		for _, er := range errs {
 			buffer.WriteString(er.Error())

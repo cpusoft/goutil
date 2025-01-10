@@ -15,7 +15,8 @@ import (
 
 // http or https
 func Post(urlStr string, postJson string, verifyHttps bool) (gorequest.Response, string, error) {
-	return PostWithConfig(urlStr, postJson, NewHttpClientConfig())
+	return PostWithConfig(urlStr, postJson,
+		NewHttpClientConfigWithParam(5, 3, "all", verifyHttps))
 }
 func PostWithConfig(urlStr string, postJson string, httpClientConfig *HttpClientConfig) (gorequest.Response, string, error) {
 	if strings.HasPrefix(urlStr, "http://") {

@@ -64,22 +64,22 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 	belogs.Debug("getRrdpNotificationImplWithConfig(): notificationUrl:", notificationUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	start := time.Now()
 	notificationUrl = strings.TrimSpace(notificationUrl)
-	resp, body, err := httpclient.GetHttpsVerifyWithConfig(notificationUrl, httpClientConfig)
+	resp, body, err := httpclient.GetHttpsWithConfig(notificationUrl, httpClientConfig)
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			belogs.Error("getRrdpNotificationImplWithConfig(): GetHttpsVerifyWithConfig notificationUrl, is not StatusOK:", notificationUrl,
+			belogs.Error("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
 				"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body)
 			return notificationModel, errors.New("http status code of " + notificationUrl + " is " + resp.Status)
 		} else {
-			belogs.Debug("getRrdpNotificationImplWithConfig(): GetHttpsVerifyWithConfig notificationUrl:", notificationUrl,
+			belogs.Debug("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl:", notificationUrl,
 				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   statusCode:", httpclient.GetStatusCode(resp),
 				"   len(body):", len(body),
 				"   time(s):", time.Since(start))
 		}
 
 	} else {
-		belogs.Debug("getRrdpNotificationImplWithConfig(): GetHttpsVerifyWithConfig notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
+		belogs.Debug("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
 
 		// then try using curl
@@ -131,18 +131,18 @@ func RrdpNotificationTestConnectWithConfig(notificationUrl string, httpClientCon
 	belogs.Debug("RrdpNotificationTestConnectWithConfig(): notificationUrl:", notificationUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 
 	// test http connect
-	resp, body, err := httpclient.GetHttpsVerifyWithConfig(notificationUrl, httpClientConfig)
+	resp, body, err := httpclient.GetHttpsWithConfig(notificationUrl, httpClientConfig)
 	if err != nil {
-		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsVerifyWithConfig fail, notificationUrl:", notificationUrl, err, "  time(s):", time.Since(start))
+		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig fail, notificationUrl:", notificationUrl, err, "  time(s):", time.Since(start))
 		return errors.New("http error of " + notificationUrl + " is " + err.Error())
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsVerifyWithConfig notificationUrl, is not StatusOK:", notificationUrl,
+		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
 			"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body, "   time(s):", time.Since(start))
 		return errors.New("http status code of " + notificationUrl + " is " + resp.Status)
 	}
-	belogs.Debug("RrdpNotificationTestConnectWithConfig(): GetHttpsVerifyWithConfig ok, notificationUrl:", notificationUrl,
+	belogs.Debug("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig ok, notificationUrl:", notificationUrl,
 		"  time(s):", time.Since(start))
 
 	// test is legal
