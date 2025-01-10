@@ -27,7 +27,7 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 		return "", errors.New("url is emtpy")
 	}
 	if httpClientConfig == nil {
-		httpClientConfig = globalHttpClientConfig
+		httpClientConfig = NewHttpClientConfig()
 	}
 	// mins --> seconds
 	timeout := convert.ToString(httpClientConfig.TimeoutMins * 60)

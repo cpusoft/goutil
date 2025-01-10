@@ -43,7 +43,7 @@ func PostHttpWithConfig(urlStr string, postJson string, httpClientConfig *HttpCl
 		return nil, "", err
 	}
 	if httpClientConfig == nil {
-		httpClientConfig = globalHttpClientConfig
+		httpClientConfig = NewHttpClientConfig()
 	}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
@@ -74,7 +74,7 @@ func PostHttpsWithConfig(urlStr string, postJson string,
 		return nil, "", err
 	}
 	if httpClientConfig == nil {
-		httpClientConfig = globalHttpClientConfig
+		httpClientConfig = NewHttpClientConfig()
 	}
 
 	timeOut := time.Duration(httpClientConfig.TimeoutMins) * time.Minute

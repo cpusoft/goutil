@@ -9,7 +9,7 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
-var globalHttpClientConfig = NewHttpClientConfig()
+// var globalHttpClientConfig = NewHttpClientConfig()
 var RetryHttpStatus = []int{http.StatusBadRequest, http.StatusInternalServerError,
 	http.StatusRequestTimeout, http.StatusBadGateway, http.StatusGatewayTimeout}
 
@@ -26,17 +26,18 @@ func errorsToerror(resps gorequest.Response, bodys string, errs []error) (resp g
 	return resps, bodys, nil
 }
 
-func CloneGLobalHttpClient() *HttpClientConfig {
-	c := &HttpClientConfig{
-		TimeoutMins: globalHttpClientConfig.TimeoutMins,
-		RetryCount:  globalHttpClientConfig.RetryCount,
-		IpType:      globalHttpClientConfig.IpType,
-		RangeLength: globalHttpClientConfig.RangeLength,
-		VerifyHttps: globalHttpClientConfig.VerifyHttps,
+/*
+	func CloneGLobalHttpClient() *HttpClientConfig {
+		c := &HttpClientConfig{
+			TimeoutMins: globalHttpClientConfig.TimeoutMins,
+			RetryCount:  globalHttpClientConfig.RetryCount,
+			IpType:      globalHttpClientConfig.IpType,
+			RangeLength: globalHttpClientConfig.RangeLength,
+			VerifyHttps: globalHttpClientConfig.VerifyHttps,
+		}
+		return c
 	}
-	return c
-}
-
+*/
 func GetStatusCode(resp gorequest.Response) int {
 	if resp == nil {
 		return 0

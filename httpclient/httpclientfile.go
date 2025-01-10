@@ -74,7 +74,7 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 	fileNameStr := osutil.Base(fileName)
 	belogs.Debug("PostFileHttps():fileNameStr:", fileNameStr)
 	return errorsToerror(gorequest.New().Post(urlStr).
-		Timeout(time.Duration(globalHttpClientConfig.TimeoutMins)*time.Minute).
+		Timeout(time.Duration(DefaultTimeoutMins)*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
@@ -103,7 +103,7 @@ func PostFileHttps(urlStr string, fileName string, formName string, verify bool)
 	config := &tls.Config{InsecureSkipVerify: !verify}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
-		Timeout(time.Duration(globalHttpClientConfig.TimeoutMins)*time.Minute).
+		Timeout(time.Duration(DefaultTimeoutMins)*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").

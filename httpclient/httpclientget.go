@@ -48,7 +48,7 @@ func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp 
 		return nil, "", err
 	}
 	if httpClientConfig == nil {
-		httpClientConfig = globalHttpClientConfig
+		httpClientConfig = NewHttpClientConfig()
 	}
 	return errorsToerror(gorequest.New().Get(urlStr).
 		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
@@ -86,7 +86,7 @@ func GetHttpsVerifyWithConfig(urlStr string, httpClientConfig *HttpClientConfig)
 		return nil, "", err
 	}
 	if httpClientConfig == nil {
-		httpClientConfig = globalHttpClientConfig
+		httpClientConfig = NewHttpClientConfig()
 	}
 
 	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
@@ -109,7 +109,7 @@ func GetHttpsVerifyResponseWithConfig(urlStr string, httpClientConfig *HttpClien
 		return nil, err
 	}
 	if httpClientConfig == nil {
-		httpClientConfig = globalHttpClientConfig
+		httpClientConfig = NewHttpClientConfig()
 	}
 
 	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
@@ -186,7 +186,7 @@ func GetHttpsVerifyRangeWithConfig(urlStr string, contentLength uint64,
 		return nil, "", err
 	}
 	if httpClientConfig == nil {
-		httpClientConfig = globalHttpClientConfig
+		httpClientConfig = NewHttpClientConfig()
 	}
 
 	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}

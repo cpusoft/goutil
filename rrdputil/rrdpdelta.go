@@ -34,7 +34,7 @@ import (
 func GetRrdpDeltasWithConfig(notificationModel *NotificationModel, lastSerial uint64, httpClientConfig *httpclient.HttpClientConfig) (deltaModels []DeltaModel, err error) {
 	start := time.Now()
 	if httpClientConfig == nil {
-		httpClientConfig = httpclient.CloneGLobalHttpClient()
+		httpClientConfig = httpclient.NewHttpClientConfig()
 	}
 	belogs.Info("GetRrdpDeltasWithConfig(): len(notificationModel.Deltas):", len(notificationModel.Deltas),
 		"  lastSerial:", lastSerial, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
@@ -126,7 +126,7 @@ func GetRrdpDeltaWithConfig(deltaUrl string, httpClientConfig *httpclient.HttpCl
 
 	start := time.Now()
 	if httpClientConfig == nil {
-		httpClientConfig = httpclient.CloneGLobalHttpClient()
+		httpClientConfig = httpclient.NewHttpClientConfig()
 	}
 	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"

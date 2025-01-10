@@ -36,7 +36,7 @@ func GetRrdpSnapshotWithConfig(snapshotUrl string, httpClientConfig *httpclient.
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
 	if httpClientConfig == nil {
-		httpClientConfig = httpclient.CloneGLobalHttpClient()
+		httpClientConfig = httpclient.NewHttpClientConfig()
 	}
 	belogs.Info("GetRrdpSnapshotWithConfig():will get snapshotUrl:", snapshotUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 
