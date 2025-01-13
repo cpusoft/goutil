@@ -40,7 +40,7 @@ func ForceTestHashPassword(hashPassword, salt string, dictFilePathName string) (
 			}()
 
 			testPassword := strings.TrimSpace(line)
-			belogs.Debug("ForceTestHashPassword(): test pasword:", testPassword)
+			//belogs.Debug("ForceTestHashPassword(): test pasword:", testPassword)
 			isPass := VerifyHashPassword(testPassword, salt, hashPassword)
 			if isPass {
 				password = testPassword

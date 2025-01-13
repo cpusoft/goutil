@@ -33,3 +33,11 @@ func TestExecCommandCombinedOutput(t *testing.T) {
 	fmt.Println(err)
 
 }
+func TestExecCommandStdoutPipe(t *testing.T) {
+	p := `10.1.135.22 -p 1-50000`
+	params := strings.Split(p, " ")
+	out, err := ExecCommandStdoutPipe("nmap", params, true)
+	fmt.Println("out", out)
+	fmt.Println(err)
+
+}
