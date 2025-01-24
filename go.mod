@@ -9,7 +9,7 @@ require (
 	github.com/beevik/ntp v1.4.3
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/cayleygraph/cayley v0.7.7
-	github.com/cayleygraph/quad v1.3.0
+	github.com/cayleygraph/quad v1.1.0
 	github.com/cpusoft/gin-contrib-sessions v0.0.0-20240909025410-814616650739
 	github.com/dgraph-io/badger/v4 v4.5.1
 	github.com/gin-gonic/gin v1.10.0
