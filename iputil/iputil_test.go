@@ -302,3 +302,10 @@ func TestIsAddressPrefixRangeContains(t *testing.T) {
 	is, err = IsAddressPrefixRangeContains(p, c)
 	fmt.Println(is, err)
 }
+
+func TestAddressPrefixToAsn1HexFormat(t *testing.T) {
+	addressPrefix := `2001:0:200:3::/64` //`203.0.113.0/27` //`10.1.0.0/16`
+	hex, err := AddressPrefixToAsn1HexFormat(addressPrefix)
+	fmt.Println(hex, err)
+
+}

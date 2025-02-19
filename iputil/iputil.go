@@ -2,6 +2,7 @@ package iputil
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cpusoft/goutil/asn1util/asn1addressasn"
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/stringutil"
@@ -708,4 +710,29 @@ func IpNetToBinaryString(ip net.IP, ipType int) (string, error) {
 	}
 	return "", errors.New("ip type or ip length is illegal")
 
+}
+
+// "10.1.0.0/16" --> 0a 01 (all is 03 03 00 0a 01)
+func AddressPrefixToAsn1HexFormat(addressPrefix string) (Asn1HexFormat string, err error) {
+	belogs.Debug("AddressPrefixToAsn1HexFormat(): addressPrefix:", addressPrefix)
+	_, netCIDR, err := net.ParseCIDR(addressPrefix)
+	if err != nil {
+		belogs.Error("AddressPrefixToAsn1HexFormat(): ParseCIDR fail, addressPrefix:", addressPrefix, err)
+		return "", err
+	}
+
+	ipNet := &asn1addressasn.IPNet{
+		IPNet: netCIDR,
+	}
+	ipBytesAll, err := ipNet.ASN1()
+	if err != nil {
+		belogs.Error("AddressPrefixToAsn1HexFormat(): ASN1 fail, addressPrefix:", addressPrefix, "  ipNet:", ipNet, err)
+		return "", err
+	}
+	belogs.Debug("AddressPrefixToAsn1HexFormat(): ipNet:", ipNet, "  ipBytesAll:", convert.PrintBytesOneLine(ipBytesAll))
+	ipBytes := ipBytesAll[3:] // just ipaddress, no 0x00
+	hexAddress := hex.EncodeToString(ipBytes)
+	belogs.Debug("AddressPrefixToAsn1HexFormat(): ok, ipBytesAll:", convert.PrintBytesOneLine(ipBytesAll),
+		"  addressPrefix:", addressPrefix, "  hexAddress:", hexAddress)
+	return hexAddress, nil
 }
