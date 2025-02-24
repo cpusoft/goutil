@@ -267,13 +267,15 @@ func saveToTmpFile(fileHeader *multipart.FileHeader) (tmpFile *os.File, tmpDir s
 	return tmpFile, tmpDir, nil
 }
 
-func GetClientIpPort(c *gin.Context) (address string, err error) {
-	clientIp := c.ClientIP()
-	_, remotePort, err := net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr))
+// address:=net.JoinHostPort(clientIp, clientPort)
+func GetClientIpPort(c *gin.Context) (clientIp, clientPort string, err error) {
+	clientIp = c.ClientIP()
+	_, clientPort, err = net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr))
 	if err != nil {
 		belogs.Error("GetClientIpPort): get RemoteAddr fail,", err)
-		return "", err
+		return "", "", err
 	}
-	belogs.Debug("GetClientIpPort): clientIp:", clientIp, "  remotePort:", remotePort)
-	return net.JoinHostPort(clientIp, remotePort), nil
+	belogs.Debug("GetClientIpPort): clientIp:", clientIp, "  clientPort:", clientPort)
+	//return net.JoinHostPort(clientIp, remotePort), nil
+	return clientIp, clientPort, nil
 }
