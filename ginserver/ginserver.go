@@ -270,12 +270,30 @@ func saveToTmpFile(fileHeader *multipart.FileHeader) (tmpFile *os.File, tmpDir s
 // address:=net.JoinHostPort(clientIp, clientPort)
 func GetClientIpPort(c *gin.Context) (clientIp, clientPort string, err error) {
 	clientIp = c.ClientIP()
+	if len(clientIp) == 0 {
+		belogs.Error("getRemoteAddr(): ClientIP fail, remoteAddr is empty:",
+			c.ClientIP())
+		return "", "", errors.New("clientIp is empty")
+	}
 	_, clientPort, err = net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr))
 	if err != nil {
-		belogs.Error("GetClientIpPort): get RemoteAddr fail,", err)
+		belogs.Error("GetClientIpPort): SplitHostPort fail, c.Request.RemoteAddr:", c.Request.RemoteAddr, err)
 		return "", "", err
 	}
 	belogs.Debug("GetClientIpPort): clientIp:", clientIp, "  clientPort:", clientPort)
 	//return net.JoinHostPort(clientIp, remotePort), nil
 	return clientIp, clientPort, nil
 }
+
+/*
+func getRemoteAddr(c *gin.Context) (remoteAddr string, err error) {
+	belogs.Info("getRemoteAddr(): RemoteAddr:", c.ClientIP())
+	remoteAddr = c.ClientIP()
+	if len(remoteAddr) == 0 {
+		belogs.Error("getRemoteAddr(): ClientIP fail, remoteAddr is empty:",
+			c.ClientIP())
+		return "", errors.New("remoteAddr is empty")
+	}
+	return remoteAddr, nil
+}
+*/
