@@ -5,93 +5,100 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"sync"
+	"sync/atomic"
+	"unsafe"
 
 	"github.com/dgraph-io/badger/v4"
 )
 
 var (
-	globalDB BadgeDB
-	once     sync.Once
-	mu       sync.RWMutex
+	instance unsafe.Pointer //
 )
 
 var ErrDBNotInitialized = errors.New("database not initialized")
 
-// InitDB initializes the database
+type DBManager struct {
+	db BadgeDB
+}
+
+func NewDBManager(options badger.Options) (*DBManager, error) {
+	db := NewBadgeDB()
+	if err := db.Init(options); err != nil {
+		return nil, err
+	}
+	return &DBManager{db: db}, nil
+}
+
+func GetDB() BadgeDB {
+	return (*DBManager)(atomic.LoadPointer(&instance)).db
+}
+
 func InitDB(options badger.Options) error {
-	var err error
-	once.Do(func() {
-		globalDB = NewBadgeDB()
-		err = globalDB.Init(options)
-	})
-	return err
+	manager, err := NewDBManager(options)
+	if err != nil {
+		return err
+	}
+
+	if !atomic.CompareAndSwapPointer(&instance, nil, unsafe.Pointer(manager)) {
+
+		_ = manager.db.Close()
+		return errors.New("database already initialized")
+	}
+
+	return nil
 }
 
-// CloseDB closes the database connection
 func CloseDB() error {
-	mu.Lock()
-	defer mu.Unlock()
-	if globalDB == nil {
+	manager := (*DBManager)(atomic.LoadPointer(&instance))
+	if manager == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.Close()
-}
 
-// RunWithTxn runs a function within a transaction
-func RunWithTxn(txnFunc func(txn *badger.Txn) error) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
-		return ErrDBNotInitialized
+	err := manager.db.Close()
+	if err == nil {
+		atomic.StorePointer(&instance, nil)
 	}
-	return globalDB.RunWithTxn(txnFunc)
+	return err
 }
 
 // Insert inserts a key-value pair into the database
 func Insert[T any](key string, value T) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-
-	return globalDB.Insert(key, value)
+	return db.Insert(key, value)
 }
 
 func InsertWithTxn[T any](txn *badger.Txn, key string, value T) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.InsertWithTxn(txn, key, value)
+	return db.InsertWithTxn(txn, key, value)
 }
 
 // Delete deletes a key-value pair from the database
 func Delete(key string) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.Delete(key)
+	return db.Delete(key)
 }
 
 func DeleteWithTxn(txn *badger.Txn, key string) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.DeleteWithTxn(txn, key)
+	return db.DeleteWithTxn(txn, key)
 }
 
 // BatchInsert inserts multiple key-value pairs into the database
 func BatchInsert[T any](data map[string]T) map[string]error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return map[string]error{"error": ErrDBNotInitialized}
 	}
 
@@ -99,18 +106,18 @@ func BatchInsert[T any](data map[string]T) map[string]error {
 	for k, v := range data {
 		convertedData[k] = v
 	}
-	return globalDB.BatchInsert(convertedData)
+	return db.BatchInsert(convertedData)
 }
 
 // Get retrieves a value from the database by key
 func Get[T any](key string) (T, bool, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		var zero T
 		return zero, false, ErrDBNotInitialized
 	}
-	value, exists, err := globalDB.Get(key)
+
+	value, exists, err := db.Get(key)
 	if err != nil {
 		var zero T
 		return zero, false, err
@@ -123,7 +130,6 @@ func Get[T any](key string) (T, bool, error) {
 
 	var typedValue T
 	err = unmarshalValue[T](value, &typedValue)
-
 	if err != nil {
 		var zero T
 		return zero, false, fmt.Errorf("type assertion to %T failed", typedValue)
@@ -133,13 +139,12 @@ func Get[T any](key string) (T, bool, error) {
 }
 
 func GetWithTxn[T any](txn *badger.Txn, key string) (T, bool, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		var zero T
 		return zero, false, ErrDBNotInitialized
 	}
-	value, exists, err := globalDB.GetWithTxn(txn, key)
+	value, exists, err := db.GetWithTxn(txn, key)
 	if err != nil {
 		var zero T
 		return zero, false, err
@@ -162,17 +167,19 @@ func GetWithTxn[T any](txn *badger.Txn, key string) (T, bool, error) {
 
 // MGet retrieves multiple values from the database by keys
 func MGet[T any](keys []string) (map[string]T, map[string]error, error) {
-	results, errors, err := globalDB.MGet(keys)
+	db := GetDB()
+	if db == nil {
+		return nil, nil, ErrDBNotInitialized
+	}
+	results, errors, err := db.MGet(keys)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	typedResults := make(map[string]T)
 	for key, value := range results {
-
 		var typedValue T
 		err = unmarshalValue[T](value, &typedValue)
-
 		if err != nil {
 			return nil, nil, fmt.Errorf("type assertion to %T failed for key %s", typedValue, key)
 		}
@@ -183,17 +190,19 @@ func MGet[T any](keys []string) (map[string]T, map[string]error, error) {
 }
 
 func MGetWithTxn[T any](txn *badger.Txn, keys []string) (map[string]T, map[string]error, error) {
-	results, errors, err := globalDB.MGetWithTxn(txn, keys)
+	db := GetDB()
+	if db == nil {
+		return nil, nil, ErrDBNotInitialized
+	}
+	results, errors, err := db.MGetWithTxn(txn, keys)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	typedResults := make(map[string]T)
 	for key, value := range results {
-
 		var typedValue T
 		err = unmarshalValue[T](value, &typedValue)
-
 		if err != nil {
 			return nil, nil, fmt.Errorf("type assertion to %T failed for key %s", typedValue, key)
 		}
@@ -204,34 +213,30 @@ func MGetWithTxn[T any](txn *badger.Txn, keys []string) (map[string]T, map[strin
 }
 
 // Append appends a value to a list stored at key
-
 func Append[T any](key string, value T) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.Append(key, value)
+	return db.Append(key, value)
 }
 
 func AppendWithTxn[T any](txn *badger.Txn, key string, value T) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.AppendWithTxn(txn, key, value)
+	return db.AppendWithTxn(txn, key, value)
 }
 
 // GetList retrieves a list stored at key
 func GetList[T any](key string) ([]T, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return nil, ErrDBNotInitialized
 	}
 
-	anyList, err := globalDB.GetList(key)
+	anyList, err := db.GetList(key)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +245,6 @@ func GetList[T any](key string) ([]T, error) {
 	for i, v := range anyList {
 		var typedValue T
 		err = unmarshalValue[T](v, &typedValue)
-
 		if err != nil {
 			return nil, fmt.Errorf("type assertion to %T failed for element at index %d", typedValue, i)
 		}
@@ -251,13 +255,12 @@ func GetList[T any](key string) ([]T, error) {
 }
 
 func GetListWithTxn[T any](txn *badger.Txn, key string) ([]T, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return nil, ErrDBNotInitialized
 	}
 
-	anyList, err := globalDB.GetListWithTxn(txn, key)
+	anyList, err := db.GetListWithTxn(txn, key)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +269,6 @@ func GetListWithTxn[T any](txn *badger.Txn, key string) ([]T, error) {
 	for i, v := range anyList {
 		var typedValue T
 		err = unmarshalValue[T](v, &typedValue)
-
 		if err != nil {
 			return nil, fmt.Errorf("type assertion to %T failed for element at index %d", typedValue, i)
 		}
@@ -278,75 +280,71 @@ func GetListWithTxn[T any](txn *badger.Txn, key string) ([]T, error) {
 
 // StoreWithCompositeKey stores data with a composite key
 func StoreWithCompositeKey(entity string, id string, columns map[string]string) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.StoreWithCompositeKey(entity, id, columns)
+	return db.StoreWithCompositeKey(entity, id, columns)
 }
+
 func StoreWithCompositeKeyWithTxn(txn *badger.Txn, entity string, id string, columns map[string]string) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.StoreWithCompositeKeyWithTxn(txn, entity, id, columns)
+	return db.StoreWithCompositeKeyWithTxn(txn, entity, id, columns)
 }
 
 // QueryByCompositeKey queries data by composite key
 func QueryByCompositeKey[T any](entity string, columns map[string]string) (T, bool, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
-		var zeroV T
-		return zeroV, false, ErrDBNotInitialized
+	db := GetDB()
+	if db == nil {
+		var zero T
+		return zero, false, ErrDBNotInitialized
 	}
-	var typedValue T
-	value, exist, err := globalDB.QueryByCompositeKey(entity, columns)
-	if err != nil {
-		return typedValue, exist, err
-	}
-
-	err = unmarshalValue[T](value, &typedValue)
-
+	value, exists, err := db.QueryByCompositeKey(entity, columns)
 	if err != nil {
 		var zero T
-		return zero, exist, fmt.Errorf("type assertion to %T failed", typedValue)
+		return zero, exists, err
 	}
-	return typedValue, exist, nil
+
+	var typedValue T
+	err = unmarshalValue[T](value, &typedValue)
+	if err != nil {
+		var zero T
+		return zero, exists, fmt.Errorf("type assertion to %T failed", typedValue)
+	}
+	return typedValue, exists, nil
 }
 
 func QueryByCompositeKeyWithTxn[T any](txn *badger.Txn, entity string, columns map[string]string) (T, bool, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
-		var zeroV T
-		return zeroV, false, ErrDBNotInitialized
+	db := GetDB()
+	if db == nil {
+		var zero T
+		return zero, false, ErrDBNotInitialized
 	}
-	var typedValue T
-	value, exist, err := globalDB.QueryByCompositeKeyWithTxn(txn, entity, columns)
-	if err != nil {
-		return typedValue, exist, err
-	}
-
-	err = unmarshalValue[T](value, &typedValue)
-
+	value, exists, err := db.QueryByCompositeKeyWithTxn(txn, entity, columns)
 	if err != nil {
 		var zero T
-		return zero, exist, fmt.Errorf("type assertion to %T failed", typedValue)
+		return zero, exists, err
 	}
-	return typedValue, exist, nil
+
+	var typedValue T
+	err = unmarshalValue[T](value, &typedValue)
+	if err != nil {
+		var zero T
+		return zero, exists, fmt.Errorf("type assertion to %T failed", typedValue)
+	}
+	return typedValue, exists, nil
 }
 
 // BatchQueryByPrefix queries multiple items by prefix
 func BatchQueryByPrefix[T any](prefix string) (map[string]T, map[string]error, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return nil, nil, ErrDBNotInitialized
 	}
-	anyMap, errMap, err := globalDB.BatchQueryByPrefix(prefix)
+	anyMap, errMap, err := db.BatchQueryByPrefix(prefix)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -355,7 +353,6 @@ func BatchQueryByPrefix[T any](prefix string) (map[string]T, map[string]error, e
 	for key, v := range anyMap {
 		var typedValue T
 		err = unmarshalValue[T](v, &typedValue)
-
 		if err != nil {
 			return nil, nil, fmt.Errorf("type assertion to %T failed for element at index %s", typedValue, key)
 		}
@@ -365,12 +362,11 @@ func BatchQueryByPrefix[T any](prefix string) (map[string]T, map[string]error, e
 }
 
 func BatchQueryByPrefixWithTxn[T any](txn *badger.Txn, prefix string) (map[string]T, map[string]error, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return nil, nil, ErrDBNotInitialized
 	}
-	anyMap, errMap, err := globalDB.BatchQueryByPrefixWithTxn(txn, prefix)
+	anyMap, errMap, err := db.BatchQueryByPrefixWithTxn(txn, prefix)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -379,7 +375,6 @@ func BatchQueryByPrefixWithTxn[T any](txn *badger.Txn, prefix string) (map[strin
 	for key, v := range anyMap {
 		var typedValue T
 		err = unmarshalValue[T](v, &typedValue)
-
 		if err != nil {
 			return nil, nil, fmt.Errorf("type assertion to %T failed for element at index %s", typedValue, key)
 		}
@@ -390,28 +385,25 @@ func BatchQueryByPrefixWithTxn[T any](txn *badger.Txn, prefix string) (map[strin
 
 // HSet sets a field in a hash stored at key
 func HSet[T any](key, field string, value T) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.HSet(key, field, value)
+	return db.HSet(key, field, value)
 }
 
 // HGet retrieves a field from a hash stored at key
 func HGet[T any](key, field string) (T, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		var zero T
 		return zero, ErrDBNotInitialized
 	}
 
-	value, err := globalDB.HGet(key, field)
+	value, err := db.HGet(key, field)
 	if err != nil {
 		var zero T
 		return zero, nil
-
 	}
 
 	var typedValue T
@@ -427,45 +419,38 @@ func HGet[T any](key, field string) (T, error) {
 
 // HDel deletes a field from a hash stored at key
 func HDel(key, field string) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.HDel(key, field)
+	return db.HDel(key, field)
 }
 
 func marshalValue(v any) ([]byte, error) {
-	// Use JSON serialization to preserve type information
 	return json.Marshal(v)
 }
 
 func unmarshalValue[T any](data []byte, v *T) error {
 	switch any(v).(type) {
 	case *string:
-		*v = any(string(data)).(T) // 处理为字符串
+		*v = any(string(data)).(T)
 	case *int:
-		// 尝试将字节数据转换为整数
 		i, err := strconv.Atoi(string(data))
 		if err != nil {
 			return err
 		}
 		*v = any(i).(T)
 	case *float64:
-		// 尝试将字节数据转换为浮点数
 		f, err := strconv.ParseFloat(string(data), 64)
 		if err != nil {
 			return err
 		}
 		*v = any(f).(T)
 	default:
-		// 先检查数据是否是有效的 JSON
 		if json.Valid(data) {
 			return json.Unmarshal(data, v)
-		} else {
-			// 如果数据不是 JSON 格式，返回错误
-			return fmt.Errorf("invalid data format: %s", string(data))
 		}
+		return fmt.Errorf("invalid data format: %s", string(data))
 	}
 	return nil
 }
@@ -473,31 +458,28 @@ func unmarshalValue[T any](data []byte, v *T) error {
 //
 
 func AddToSet[T any](key string, value T) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.AddToSet(key, value)
+	return db.AddToSet(key, value)
 }
 
 func AddToSetWithTxn[T any](txn *badger.Txn, key string, value T) error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return ErrDBNotInitialized
 	}
-	return globalDB.AddToSetWithTxn(txn, key, value)
+	return db.AddToSetWithTxn(txn, key, value)
 }
 
 func GetSet[T any](key string) ([]T, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return nil, ErrDBNotInitialized
 	}
 
-	anyList, err := globalDB.GetSet(key)
+	anyList, err := db.GetSet(key)
 	if err != nil {
 		return nil, err
 	}
@@ -506,7 +488,6 @@ func GetSet[T any](key string) ([]T, error) {
 	for i, v := range anyList {
 		var typedValue T
 		err = unmarshalValue[T](v, &typedValue)
-
 		if err != nil {
 			return nil, fmt.Errorf("type assertion to %T failed for element at index %d", typedValue, i)
 		}
@@ -517,13 +498,12 @@ func GetSet[T any](key string) ([]T, error) {
 }
 
 func GetSetWithTxn[T any](txn *badger.Txn, key string) ([]T, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if globalDB == nil {
+	db := GetDB()
+	if db == nil {
 		return nil, ErrDBNotInitialized
 	}
 
-	anyList, err := globalDB.GetSetWithTxn(txn, key)
+	anyList, err := db.GetSetWithTxn(txn, key)
 	if err != nil {
 		return nil, err
 	}
@@ -532,7 +512,6 @@ func GetSetWithTxn[T any](txn *badger.Txn, key string) ([]T, error) {
 	for i, v := range anyList {
 		var typedValue T
 		err = unmarshalValue[T](v, &typedValue)
-
 		if err != nil {
 			return nil, fmt.Errorf("type assertion to %T failed for element at index %d", typedValue, i)
 		}
