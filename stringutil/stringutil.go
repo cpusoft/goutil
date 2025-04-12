@@ -2,7 +2,6 @@ package stringutil
 
 import (
 	"bytes"
-	"errors"
 	"strings"
 
 	"github.com/cpusoft/goutil/convert"
@@ -106,9 +105,10 @@ func StringsToInString(s []string) string {
 	buffer.WriteString(")")
 	return buffer.String()
 }
-func StringsToInSqlString(s []string) (string, error) {
+
+func StringsToInSqlString(s []string) string {
 	if len(s) == 0 {
-		return "", errors.New("string is empty")
+		return ""
 	}
 	var buffer bytes.Buffer
 	buffer.WriteString("(")
@@ -119,5 +119,5 @@ func StringsToInSqlString(s []string) (string, error) {
 		}
 	}
 	buffer.WriteString(")")
-	return buffer.String(), nil
+	return buffer.String()
 }
