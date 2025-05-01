@@ -12,23 +12,13 @@ func TestSha256(t *testing.T) {
 	fmt.Println(sh)
 }
 
-/*
-	func TestSha256File(t *testing.T) {
-		s := `G:\Download\hwuc0uQdqwW9VSfJFQ6UiVlxZpY.crl`
-		sh, err := Sha256File(s)
-		fmt.Println(sh, err)
+func TestSha256File(t *testing.T) {
+	s := `G:\Download\undefined.txt`
+	sh, err := Sha256File(s)
+	fmt.Println(sh, err)
 
-		b, err := fileutil.ReadFileToBytes(s)
-		fmt.Println(len(b), err)
-		sh = Sha256(b)
-		fmt.Println(sh)
+}
 
-		base := base64util.EncodeBase64(b)
-		fmt.Println(base)
-		sh = Sha256([]byte(base))
-		fmt.Println(sh)
-	}
-*/
 func TestSha256Password(t *testing.T) {
 	p := Sha256([]byte("2e869b49-50c8-487b-ab1a-67c87c77ccc0" + "abc123!@#"))
 	fmt.Println(p)
