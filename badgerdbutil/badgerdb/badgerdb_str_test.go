@@ -1,10 +1,12 @@
-package badgedb
+package badgerdb
 
 import (
-	"github.com/dgraph-io/badger/v4"
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/dgraph-io/badger/v4"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBadgeDBImpl_Insert(t *testing.T) {
@@ -23,6 +25,7 @@ func TestBadgeDBImpl_Insert(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, true, exist)
 	assert.Equal(t, "张三", strings.Trim(string(name), "\""))
+	fmt.Println("名字：", string(name))
 
 	err = bDB.Delete("name")
 	assert.Nil(t, err)

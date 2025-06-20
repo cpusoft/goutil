@@ -1,8 +1,7 @@
-package badgedb
+package badgerdb
 
 import (
 	"errors"
-	"github.com/goccy/go-json"
 	"log"
 	"sort"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/dgraph-io/badger/v4"
+	"github.com/goccy/go-json"
 )
 
 func (b *BadgeDBImpl) Get(key string) ([]byte, bool, error) {
@@ -129,7 +129,7 @@ func (b *BadgeDBImpl) MGetWithTxn(txn *badger.Txn, keys []string) (map[string][]
 // Insert generic function to insert key-value pairs into the database
 func (b *BadgeDBImpl) Insert(key string, value any) error {
 	// Convert value to byte slice
-	valueBytes, err := marshalValue(value)
+	valueBytes, err := MarshalValue(value)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (b *BadgeDBImpl) Insert(key string, value any) error {
 
 func (b *BadgeDBImpl) InsertWithTxn(txn *badger.Txn, key string, value any) error {
 	// Convert value to byte slice
-	valueBytes, err := marshalValue(value)
+	valueBytes, err := MarshalValue(value)
 	if err != nil {
 		return err
 	}
@@ -186,10 +186,10 @@ func (b *BadgeDBImpl) BatchInsert(data map[string]any) map[string]error {
 
 	for key, value := range data {
 		// Convert value to byte slice
-		valueBytes, err := marshalValue(value)
+		valueBytes, err := MarshalValue(value)
 		if err != nil {
 			errs[key] = err
-			belogs.Error("BatchInsert, marshalValue failed, but continue, key:", key)
+			belogs.Error("BatchInsert, MarshalValue failed, but continue, key:", key)
 			continue
 		}
 		err = wb.Set([]byte(key), valueBytes) // Add key-value to be written
@@ -225,9 +225,9 @@ func (b *BadgeDBImpl) BatchInsertWithTxn(txn *badger.Txn, data map[string]any) e
 	for i := 0; i < len(keys); i += defaultBatchSize {
 		for j := i; j < i+defaultBatchSize && j < len(keys); j++ {
 			key := keys[j]
-			valueBytes, err := marshalValue(data[key])
+			valueBytes, err := MarshalValue(data[key])
 			if err != nil {
-				belogs.Error("marshalValue failed, err", err)
+				belogs.Error("MarshalValue failed, err", err)
 				return err
 			}
 			if err := txn.Set([]byte(key), valueBytes); err != nil {

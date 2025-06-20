@@ -1,10 +1,11 @@
-package badgedb
+package badgerdb
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/dgraph-io/badger/v4"
 	"strconv"
+
+	"github.com/dgraph-io/badger/v4"
 )
 
 func (b *BadgeDBImpl) Append(key string, value any) error {

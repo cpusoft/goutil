@@ -1,9 +1,10 @@
-package badgedb
+package badgerdb
 
 import (
+	"testing"
+
 	"github.com/dgraph-io/badger/v4"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestBadgeDBImpl_Append(t *testing.T) {

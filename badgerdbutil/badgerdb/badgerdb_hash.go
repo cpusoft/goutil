@@ -1,4 +1,4 @@
-package badgedb
+package badgerdb
 
 import "github.com/dgraph-io/badger/v4"
 
@@ -7,7 +7,7 @@ func (b *BadgeDBImpl) HSet(key, field string, value any) error {
 	hashKey := key + ":" + field
 
 	// Serialize value to bytes
-	valueBytes, err := marshalValue(value)
+	valueBytes, err := MarshalValue(value)
 	if err != nil {
 		return err
 	}
@@ -23,7 +23,7 @@ func (b *BadgeDBImpl) HSetWithTxn(txn *badger.Txn, key, field string, value any)
 	hashKey := key + ":" + field
 
 	// Serialize value to bytes
-	valueBytes, err := marshalValue(value)
+	valueBytes, err := MarshalValue(value)
 	if err != nil {
 		return err
 	}

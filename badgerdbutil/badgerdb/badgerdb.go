@@ -1,26 +1,28 @@
-package badgedb
+package badgerdb
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"github.com/dgraph-io/badger/v4"
 )
 
-// Init initializes the database connection
-func (b *BadgeDBImpl) Init(options badger.Options) error {
-	db, err := badger.Open(options)
-	if err != nil {
-		return err
-	}
-	b.db = db
-	return nil
+// QueryOptions 查询选项
+type QueryOptions struct {
+	PrefetchValues bool // 是否预取值
+	PrefetchSize   int  // 预取的数量
+	Reverse        bool // 是否反向遍历
 }
 
-// Close closes the database connection
-func (b *BadgeDBImpl) Close() error {
-	if b.db != nil {
-		return b.db.Close()
-	}
-	return nil
+// Iterator 迭代器接口
+type Iterator interface {
+	Next() bool
+	Key() []byte
+	Value() ([]byte, error)
+	Close() error
+	Valid() bool
 }
 
 // BadgeDB interface defines all available database operations
@@ -61,6 +63,19 @@ type BadgeDB interface {
 	ClearSet(key string) error
 	ClearSetWithTxn(txn *badger.Txn, key string) error
 
+	// New batch set operations
+	BatchAddToSet(key string, values []any) error
+	BatchAddToSetWithTxn(txn *badger.Txn, key string, values []any) error
+	BatchRemoveFromSet(key string, values []any) error
+	BatchRemoveFromSetWithTxn(txn *badger.Txn, key string, values []any) error
+	GetSetWithPrefix(prefix string) (map[string][][]byte, error)
+	GetSetWithPrefixTxn(txn *badger.Txn, prefix string) (map[string][][]byte, error)
+	//ClearSetWithPrefix(prefix string) error
+	//ClearSetWithPrefixTxn(txn *badger.Txn, prefix string) error
+	ClearSetWithPrefixBatched(prefix string, batchSize int) error
+
+	ClearSetWithPrefixFast(prefix string) error
+
 	// Index operations
 	BuildColumnIndex(txn *badger.Txn, entityKey string, column string, value any) error
 	BuildMultipleColumnIndexes(txn *badger.Txn, entityKey string, columns map[string]interface{}) error
@@ -80,14 +95,71 @@ type BadgeDB interface {
 	HDelWithTxn(txn *badger.Txn, key, field string) error
 
 	RunWithTxn(txnFunc func(txn *badger.Txn) error) error
+
+	// 新增的方法
+	BatchQueryByPrefixWithOptions(prefix string, opts QueryOptions) (Iterator, error)
+	BatchQueryByPrefixWithTxnAndOptions(txn *badger.Txn, prefix string, opts QueryOptions) (Iterator, error)
 }
 
+// BadgeDBImpl 是 BadgeDB 接口的实现
 type BadgeDBImpl struct {
 	db *badger.DB
 }
 
+// badgerIterator 是 Iterator 接口的实现
+type badgerIterator struct {
+	iterator *badger.Iterator
+	prefix   []byte
+}
+
+func (it *badgerIterator) Next() bool {
+	it.iterator.Next()
+	return it.iterator.Valid()
+}
+
+func (it *badgerIterator) Key() []byte {
+	return it.iterator.Item().KeyCopy(nil)
+}
+
+func (it *badgerIterator) Value() ([]byte, error) {
+	return it.iterator.Item().ValueCopy(nil)
+}
+
+func (it *badgerIterator) Close() error {
+	it.iterator.Close()
+	return nil
+}
+
+func (it *badgerIterator) Valid() bool {
+	if !it.iterator.Valid() {
+		return false
+	}
+
+	// 检查当前键是否以指定前缀开头
+	key := it.iterator.Item().Key()
+	return bytes.HasPrefix(key, it.prefix)
+}
+
+// Init initializes the database connection
+func (b *BadgeDBImpl) Init(options badger.Options) error {
+	db, err := badger.Open(options)
+	if err != nil {
+		return err
+	}
+	b.db = db
+	return nil
+}
+
+// Close closes the database connection
+func (b *BadgeDBImpl) Close() error {
+	if b.db != nil {
+		return b.db.Close()
+	}
+	return nil
+}
+
 func (b *BadgeDBImpl) BuildColumnIndex(txn *badger.Txn, entityKey string, column string, value any) error {
-	valueStr, err := marshalValue(value)
+	valueStr, err := MarshalValue(value)
 	if err != nil {
 		return err
 	}
@@ -103,7 +175,7 @@ func (b *BadgeDBImpl) BuildColumnIndex(txn *badger.Txn, entityKey string, column
 
 func (b *BadgeDBImpl) BuildMultipleColumnIndexes(txn *badger.Txn, entityKey string, columns map[string]interface{}) error {
 	for column, value := range columns {
-		valueStr, err := marshalValue(value)
+		valueStr, err := MarshalValue(value)
 		if err != nil {
 			return err
 		}
@@ -182,4 +254,67 @@ func (b *BadgeDBImpl) RunWithTxn(txnFunc func(txn *badger.Txn) error) error {
 	return b.db.Update(func(txn *badger.Txn) error {
 		return txnFunc(txn)
 	})
+}
+
+func (b *BadgeDBImpl) BatchQueryByPrefixWithOptions(prefix string, opts QueryOptions) (Iterator, error) {
+	iterOpts := badger.DefaultIteratorOptions
+	iterOpts.PrefetchValues = opts.PrefetchValues
+	iterOpts.PrefetchSize = opts.PrefetchSize
+	iterOpts.Reverse = opts.Reverse
+
+	txn := b.db.NewTransaction(false)
+	it := txn.NewIterator(iterOpts)
+
+	it.Seek([]byte(prefix))
+	iterator := &badgerIterator{
+		iterator: it,
+		prefix:   []byte(prefix),
+	}
+
+	return iterator, nil
+}
+
+func (b *BadgeDBImpl) BatchQueryByPrefixWithTxnAndOptions(txn *badger.Txn, prefix string, opts QueryOptions) (Iterator, error) {
+	iterOpts := badger.DefaultIteratorOptions
+	iterOpts.PrefetchValues = opts.PrefetchValues
+	iterOpts.PrefetchSize = opts.PrefetchSize
+	iterOpts.Reverse = opts.Reverse
+
+	it := txn.NewIterator(iterOpts)
+	it.Seek([]byte(prefix))
+	iterator := &badgerIterator{
+		iterator: it,
+		prefix:   []byte(prefix),
+	}
+
+	return iterator, nil
+}
+
+func MarshalValue(v any) ([]byte, error) {
+	return json.Marshal(v)
+}
+
+func UnMarshalValue[T any](data []byte, v *T) error {
+	switch any(v).(type) {
+	case *string:
+		*v = any(string(data)).(T)
+	case *int:
+		i, err := strconv.Atoi(string(data))
+		if err != nil {
+			return err
+		}
+		*v = any(i).(T)
+	case *float64:
+		f, err := strconv.ParseFloat(string(data), 64)
+		if err != nil {
+			return err
+		}
+		*v = any(f).(T)
+	default:
+		if json.Valid(data) {
+			return json.Unmarshal(data, v)
+		}
+		return fmt.Errorf("invalid data format: %s", string(data))
+	}
+	return nil
 }

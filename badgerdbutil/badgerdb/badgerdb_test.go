@@ -1,4 +1,4 @@
-package badgedb
+package badgerdb
 
 import "testing"
 
