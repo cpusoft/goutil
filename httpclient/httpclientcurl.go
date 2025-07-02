@@ -66,17 +66,21 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 		cmd := exec.Command("curl", "-4",  "-o", tmpFile, url)
 	*/
 	// minute-->second
-	var output []byte
-	start := time.Now()
-	if httpClientConfig.VerifyHttps {
-		cmd := exec.Command("curl", "--connect-timeout", timeout, "--keepalive-time", timeout,
-			"-m", timeout, ipType, "--retry", retryCount, "--compressed", "-o", tmpFile.Name(), url)
-		output, err = cmd.CombinedOutput()
-	} else {
-		cmd := exec.Command("curl", "--connect-timeout", timeout, "--keepalive-time", timeout,
-			"-m", timeout, ipType, "--insecure", "--retry", retryCount, "--compressed", "-o", tmpFile.Name(), url)
-		output, err = cmd.CombinedOutput()
+	var args []string
+	args = append(args, "--connect-timeout", timeout, "--keepalive-time", timeout, "-m", timeout)
+
+	// curl high version warning:  should  filter ipType null
+	if ipType != "" {
+		args = append(args, ipType)
 	}
+	if !httpClientConfig.VerifyHttps {
+		args = append(args, "--insecure")
+	}
+	args = append(args, "--retry", retryCount, "--compressed", "-o", tmpFile.Name(), url)
+
+	start := time.Now()
+	cmd := exec.Command("curl", args...)
+	output, err := cmd.CombinedOutput()
 	outputStr := GetOutputStr(output)
 	if err != nil {
 		belogs.Error("GetByCurlWithConfig(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
