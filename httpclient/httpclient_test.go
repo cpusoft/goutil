@@ -102,6 +102,14 @@ func TestGetHttpsRrdp(t *testing.T) {
 	}
 	fmt.Println("resp:", resutl)
 
+	resutl, err = GetByCurlWithConfig(url, NewHttpClientConfigWithParam(5, 3, "all", true))
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("iptype is all, resp:", resutl)
+
 }
 
 func TestPostFile(t *testing.T) {
