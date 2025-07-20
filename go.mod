@@ -9,7 +9,7 @@ require (
 	github.com/beevik/ntp v1.4.3
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/cpusoft/gin-contrib-sessions v0.0.0-20240909025410-814616650739
-	github.com/dgraph-io/badger/v4 v4.7.0
+	github.com/dgraph-io/badger/v4 v4.8.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/goccy/go-json v0.10.5
