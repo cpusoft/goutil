@@ -18,6 +18,9 @@ type HttpClientConfig struct {
 	// range
 	RangeLength uint64 `json:"rangeLength"`
 	VerifyHttps bool   `json:"verifyHttps"`
+
+	// key-values
+	ContentType string `json:"contentType"`
 }
 
 /*
@@ -53,4 +56,9 @@ func NewHttpClientConfig() *HttpClientConfig {
 	httpClientConfig.RangeLength = DefaultRangeLength
 	httpClientConfig.VerifyHttps = true
 	return httpClientConfig
+}
+
+func (c *HttpClientConfig) SetContentType(contentType string) *HttpClientConfig {
+	c.ContentType = contentType
+	return c
 }

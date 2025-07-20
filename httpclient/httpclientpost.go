@@ -46,15 +46,20 @@ func PostHttpWithConfig(urlStr string, postJson string, httpClientConfig *HttpCl
 	if httpClientConfig == nil {
 		httpClientConfig = NewHttpClientConfig()
 	}
-	return errorsToerror(gorequest.New().Post(urlStr).
-		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
+	timeOut := time.Duration(httpClientConfig.TimeoutMins) * time.Minute
+	if httpClientConfig.TimeoutMillis > 0 {
+		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
+	}
+	superAgent := gorequest.New().Post(urlStr).
+		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
-		Send(postJson).
-		End())
-
+		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
+	if httpClientConfig.ContentType != "" {
+		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
+	}
+	return errorsToerror(superAgent.Send(postJson).End())
 }
 
 /*
@@ -79,21 +84,22 @@ func PostHttpsWithConfig(urlStr string, postJson string,
 	}
 
 	timeOut := time.Duration(httpClientConfig.TimeoutMins) * time.Minute
-
 	if httpClientConfig.TimeoutMillis > 0 {
 		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
 	}
 
 	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
-	return errorsToerror(gorequest.New().Post(urlStr).
+	superAgent := gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
 		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
-		Send(postJson).
-		End())
+		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
+	if httpClientConfig.ContentType != "" {
+		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
+	}
+	return errorsToerror(superAgent.Send(postJson).End())
 }
 
 // v is ResponseModel.Data

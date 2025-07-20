@@ -50,13 +50,20 @@ func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp 
 	if httpClientConfig == nil {
 		httpClientConfig = NewHttpClientConfig()
 	}
-	return errorsToerror(gorequest.New().Get(urlStr).
-		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
+	timeOut := time.Duration(httpClientConfig.TimeoutMins) * time.Minute
+	if httpClientConfig.TimeoutMillis > 0 {
+		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
+	}
+	superAgent := gorequest.New().Get(urlStr).
+		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
-		End())
+		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
+	if httpClientConfig.ContentType != "" {
+		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
+	}
+	return errorsToerror(superAgent.End())
 
 }
 
@@ -90,14 +97,21 @@ func GetHttpsWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp
 	}
 
 	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
-	return errorsToerror(gorequest.New().Get(urlStr).
+	timeOut := time.Duration(httpClientConfig.TimeoutMins) * time.Minute
+	if httpClientConfig.TimeoutMillis > 0 {
+		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
+	}
+	superAgent := gorequest.New().Get(urlStr).
 		TLSClientConfig(config).
-		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
+		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
-		End())
+		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
+	if httpClientConfig.ContentType != "" {
+		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
+	}
+	return errorsToerror(superAgent.End())
 
 }
 
