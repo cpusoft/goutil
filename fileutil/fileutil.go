@@ -2,6 +2,8 @@ package fileutil
 
 import (
 	"bufio"
+	"bytes"
+	"crypto/sha256"
 	"errors"
 	"io"
 	"os"
@@ -138,6 +140,39 @@ func CreateAndWriteBase64ToFile(filePathName, base64 string) (err error) {
 		return err
 	}
 	return WriteBase64ToFile(filePathName, base64)
+}
+
+func IsFileDiffWithBase64(filePathName, base64 string) (bool, error) {
+	fileHash, err := hashFile(filePathName)
+	if err != nil {
+		return false, err
+	}
+
+	decodedBytes, err := base64util.DecodeBase64(strings.TrimSpace(base64))
+	if err != nil {
+		return false, err
+	}
+
+	dataHash := sha256.Sum256(decodedBytes)
+
+	return !bytes.Equal(fileHash[:], dataHash[:]), nil
+}
+
+func hashFile(filePathName string) ([32]byte, error) {
+	file, err := os.Open(filePathName)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return [32]byte{}, err
+	}
+
+	var result [32]byte
+	copy(result[:], hash.Sum(nil))
+	return result, nil
 }
 
 func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) (filePathName string, err error) {
