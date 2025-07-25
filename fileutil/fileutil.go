@@ -11,6 +11,7 @@ import (
 
 	"github.com/cpusoft/goutil/base64util"
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/hashutil"
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/cpusoft/goutil/urlutil"
 )
@@ -143,7 +144,7 @@ func CreateAndWriteBase64ToFile(filePathName, base64 string) (err error) {
 }
 
 func IsFileDiffWithBase64(filePathName, base64 string) (bool, error) {
-	fileHash, err := hashFile(filePathName)
+	fileHash, err := hashutil.HashFileByte(filePathName)
 	if err != nil {
 		return false, err
 	}
@@ -156,23 +157,6 @@ func IsFileDiffWithBase64(filePathName, base64 string) (bool, error) {
 	dataHash := sha256.Sum256(decodedBytes)
 
 	return !bytes.Equal(fileHash[:], dataHash[:]), nil
-}
-
-func hashFile(filePathName string) ([32]byte, error) {
-	file, err := os.Open(filePathName)
-	if err != nil {
-		return [32]byte{}, err
-	}
-	defer file.Close()
-
-	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return [32]byte{}, err
-	}
-
-	var result [32]byte
-	copy(result[:], hash.Sum(nil))
-	return result, nil
 }
 
 func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) (filePathName string, err error) {

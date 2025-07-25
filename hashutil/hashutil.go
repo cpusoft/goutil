@@ -52,3 +52,19 @@ func Sha256File(fileName string) (string, error) {
 	}
 	return hex.EncodeToString(sha256.Sum(nil)), nil
 }
+func HashFileByte(filePathName string) ([32]byte, error) {
+	file, err := os.Open(filePathName)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return [32]byte{}, err
+	}
+
+	var result [32]byte
+	copy(result[:], hash.Sum(nil))
+	return result, nil
+}
