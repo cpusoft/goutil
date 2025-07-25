@@ -1,7 +1,10 @@
 package fileutil
 
 import (
+	"encoding/base64"
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
 )
 
@@ -22,4 +25,28 @@ func TestCopy(t *testing.T) {
 	dst := `D:\Download\1_copy.txt`
 	err := Copy(src, dst)
 	fmt.Println(err)
+}
+
+func TestIsFileDiffWithBase64(t *testing.T) {
+	tmpFile := "/tmp/test_fileutil_diff.txt"
+	defer os.Remove(tmpFile)
+
+	testContent := "Hello, World! Tesrt  "
+	testContentBase64 := base64.StdEncoding.EncodeToString([]byte(testContent))
+	differentContentBase64 := base64.StdEncoding.EncodeToString([]byte("different conten"))
+
+	// Write test content to file
+	err := WriteBytesToFile(tmpFile, []byte(testContent))
+	assert.NoError(t, err)
+
+	// no diff
+	hasDiff, err := IsFileDiffWithBase64(tmpFile, testContentBase64)
+	assert.NoError(t, err)
+	assert.False(t, hasDiff, " same")
+
+	// has diff
+	hasDiff, err = IsFileDiffWithBase64(tmpFile, differentContentBase64)
+	assert.NoError(t, err)
+	assert.True(t, hasDiff, " different content")
+
 }
