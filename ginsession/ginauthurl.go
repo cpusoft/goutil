@@ -95,7 +95,7 @@ func skipAuthUrlsOrRoleHasAuthUrls(skipUrls []string, roleHasUrls map[uint64][]s
 		// check if role has urls
 		ginUserModel := GinUserModel{}
 		err := GetUserFromSession(c, &ginUserModel)
-		//belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls():GetUserFromSession reqPath:", reqPath, "  ginUserModel:", jsonutil.MarshalJson(ginUserModel))
+		belogs.Debug("skipAuthUrlsOrRoleHasAuthUrls():GetUserFromSession reqPath:", reqPath, "  ginUserModel:", jsonutil.MarshalJson(ginUserModel))
 		if err != nil || ginUserModel.Id == 0 {
 			belogs.Error("skipAuthUrlsOrRoleHasAuthUrls():get ginUserModel fail or ginUserModel.Id==0, reqPath:", reqPath, " , err:", err)
 			result.Result = false
