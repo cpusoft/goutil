@@ -1,10 +1,10 @@
 package ginsession
 
 import (
-	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/jsonutil"
 	sessions "github.com/cpusoft/gin-contrib-sessions"
 	"github.com/cpusoft/gin-contrib-sessions/cookie"
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-gonic/gin"
 )
 
@@ -48,17 +48,20 @@ func SaveUserToSession(c *gin.Context, ginUserModel *GinUserModel) error {
 }
 func GetFromSession(c *gin.Context, key string, value interface{}) error {
 	if len(key) == 0 {
+		belogs.Debug("GetFromSession(): key is empty, do nothing")
 		return nil
 	}
 
 	s := sessions.Default(c)
 	//belogs.Debug("GetFromSession(): key:", key, "   c:", c, " s:", jsonutil.MarshalJson(&s))
 	if s == nil {
+		belogs.Debug("GetFromSession(): session is nil, do nothing")
 		return nil
 	}
 	v := s.Get(key)
 	//belogs.Debug("GetFromSession(): key:", key, "   c:", c, " s:", jsonutil.MarshalJson(&s), " v:", v)
 	if v == nil {
+		belogs.Debug("GetFromSession(): key:", key, " not found in session, do nothing")
 		return nil
 	}
 	return jsonutil.UnmarshalJson(v.(string), &value)
@@ -68,6 +71,7 @@ func GetUserFromSession(c *gin.Context, ginUserModel *GinUserModel) error {
 }
 func DeleteInSession(c *gin.Context, key string) error {
 	if len(key) == 0 {
+		belogs.Debug("DeleteInSession(): key is empty, do nothing")
 		return nil
 	}
 
