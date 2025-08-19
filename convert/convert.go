@@ -238,9 +238,15 @@ func ToString(a interface{}) string {
 	if v, p := a.(time.Duration); p {
 		return fmt.Sprintf("%v", v)
 	}
-	return ""
+	return fmt.Sprintf("%v", a)
 }
-
+func Interfaces2String(args ...interface{}) string {
+	var buf strings.Builder
+	for _, arg := range args {
+		buf.WriteString(fmt.Sprintf("%v", arg) + " ")
+	}
+	return buf.String()
+}
 func Interface2String(v interface{}) (string, error) {
 	if str, ok := v.(string); ok {
 		return str, nil

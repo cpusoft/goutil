@@ -13,14 +13,14 @@ import (
 )
 
 /*
-	LevelEmergency = iota
-	LevelAlert
-	LevelCritical
-	LevelError
-	LevelWarning
-	LevelNotice
-	LevelInformational
-	LevelDebug
+LevelEmergency = iota
+LevelAlert
+LevelCritical
+LevelError
+LevelWarning
+LevelNotice
+LevelInformational
+LevelDebug
 */
 func init() {
 
