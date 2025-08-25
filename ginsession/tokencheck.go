@@ -1,17 +1,6 @@
 package ginsession
 
-import (
-	"errors"
-	"strconv"
-	"time"
-
-	sessions "github.com/cpusoft/gin-contrib-sessions"
-	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/ginserver"
-	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/gin-gonic/gin"
-)
-
+/*
 const (
 	TOKEN_KEY     = "X-Token"  //Page token key name
 	USER_ID_Key   = "X-USERID" //Page user ID key name
@@ -120,3 +109,4 @@ func UserAuthMiddleware(skipper ...SkipperFunc) gin.HandlerFunc {
 		c.Next()
 	}
 }
+*/

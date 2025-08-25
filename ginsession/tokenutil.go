@@ -1,11 +1,6 @@
 package ginsession
 
-import (
-	"fmt"
-
-	jwt "github.com/golang-jwt/jwt/v4"
-)
-
+/*
 const jwtKey = "adtkls"
 
 func CreateToken(m map[string]string, keys ...string) string {
@@ -44,3 +39,4 @@ func ParseToken(tokenString string, keys ...string) (map[string]string, bool) {
 		return nil, false
 	}
 }
+*/
