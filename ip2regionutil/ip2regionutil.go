@@ -18,13 +18,17 @@ type Ip2RegionModel struct {
 	Isp      string `json:"isp"`
 }
 
-func SearchIp2Region(dataFilePathName, ip string) (Ip2RegionModel, error) {
+/*
+Now: only search Ipv4 address from ip2region_v4.xdb file
+*/
+func SearchIp2Region(ipv4DataFilePathName, ip string) (Ip2RegionModel, error) {
 	//var dbPath = `./ip2region.xdb`
 	start := time.Now()
-	belogs.Debug("SearchIp2Region(): dataFilePathName:", dataFilePathName, "  ip:", ip)
-	searcher, err := xdb.NewWithFileOnly(dataFilePathName)
+	belogs.Debug("SearchIp2Region(): ipv4DataFilePathName:", ipv4DataFilePathName, "  ip:", ip)
+	version := xdb.IPv4
+	searcher, err := xdb.NewWithFileOnly(version, ipv4DataFilePathName)
 	if err != nil {
-		belogs.Error("SearchIp2Region(): NewWithFileOnly fail, dataFilePathName:", dataFilePathName, err, "  time(s):", time.Since(start))
+		belogs.Error("SearchIp2Region(): NewWithFileOnly fail, ipv4DataFilePathName:", ipv4DataFilePathName, err, "  time(s):", time.Since(start))
 		return Ip2RegionModel{}, err
 	}
 	defer searcher.Close()

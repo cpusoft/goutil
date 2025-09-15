@@ -7,13 +7,14 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
+// same as in zaplogs.go
 type CustomClaims struct {
-	// 可根据需要自行添加字段
-	UserName             string `json:"userName"`
-	UserId               uint64 `json:"userId"`
-	TraceId              string `json:"traceId"`
-	LogId                uint64 `json:"LogId"`
-	jwt.RegisteredClaims        // 内嵌标准的声明
+	// [usrId]=***,[userName]=***,[ownerId]=***
+	UserInfos map[string]string `json:"userInfos"`
+	// [opLogId]=***
+	OpInfos              map[string]string `json:"opInfos"`
+	TraceId              string            `json:"traceId"`
+	jwt.RegisteredClaims                   // 内嵌标准的声明
 }
 
 /*
