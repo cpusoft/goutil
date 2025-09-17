@@ -7,36 +7,34 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
+/*
+Example:
+
+	 m:=make(map[string]string)
+	 m["ownerId"]="1001"
+	 m["ownerName"]="beijing-user1"
+	 m["opUserId"]="2002"
+	 m["opUserName"]="beijing-user2"
+	 m["traceId"]="550e8400-e29b-41d4-a716-446655440000"
+	 m["opLogId"]="3003"
+
+		claims := CustomJwtClaims{
+				Infos:   m,
+				RegisteredClaims: jwt.RegisteredClaims{
+					ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)), //过期时间
+					NotBefore: jwt.NewNumericDate(time.Now()),//生效时间（立即生效）
+					IssuedAt:  jwt.NewNumericDate(time.Now()),//签发时间
+				},
+			}
+*/
 // same as in zaplogs.go
 type CustomClaims struct {
-	// [usrId]=***,[userName]=***,[ownerId]=***
-	UserInfos map[string]string `json:"userInfos"`
-	// [opLogId]=***
-	OpInfos              map[string]string `json:"opInfos"`
-	TraceId              string            `json:"traceId"`
+	Infos                map[string]string `json:"infos,omitempty"` // 自定义信息
 	jwt.RegisteredClaims                   // 内嵌标准的声明
 }
 
-/*
-claims := CustomJwtClaims{
-		UserID:   1001,
-		Username: "alice_smith",
-		Role:     "editor",
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "my_application",       // 签发者
-			Subject:   "user_authentication",  // 主题
-			Audience:  jwt.ClaimStrings{"app"}, // 受众
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)), // 过期时间
-			NotBefore: jwt.NewNumericDate(time.Now()),      // 生效时间（立即生效）
-			IssuedAt:  jwt.NewNumericDate(time.Now()),      // 签发时间
-			ID:        "unique-token-id-12345",             // 令牌ID
-		},
-	}
-
-*/
-// GenToken
+// password: 签名密码
 func GenToken(customClaims *CustomClaims, password string) (string, error) {
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, customClaims)
 	return token.SignedString([]byte(password))
 }

@@ -146,19 +146,41 @@ func initLogger(lCfg logConfig) (err error) {
 
 type Field = zap.Field
 
+/*
+Example:
+
+	 m:=make(map[string]string)
+	 m["ownerId"]="1001"
+	 m["ownerName"]="beijing-user1"
+	 m["opUserId"]="2002"
+	 m["opUserName"]="beijing-user2"
+	 m["traceId"]="550e8400-e29b-41d4-a716-446655440000"
+	 m["opLogId"]="3003"
+
+		claims := CustomJwtClaims{
+				Infos:   m,
+				RegisteredClaims: jwt.RegisteredClaims{
+					ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)), //过期时间
+					NotBefore: jwt.NewNumericDate(time.Now()),//生效时间（立即生效）
+					IssuedAt:  jwt.NewNumericDate(time.Now()),//签发时间
+				},
+			}
+*/
 // same as in jwtutil.go
+// same as in zaplogs.go
 type CustomClaims struct {
-	// [usrId]=***,[userName]=***,[ownerId]=***
-	UserInfos map[string]string `json:"userInfos"`
-	// [opLogId]=***
-	OpInfos              map[string]string `json:"opInfos"`
-	TraceId              string            `json:"traceId"`
+	Infos                map[string]string `json:"infos,omitempty"` // 自定义信息
 	jwt.RegisteredClaims                   // 内嵌标准的声明
 }
 
+const JWT_CTX_CustomClaims = "CustomClaims"
+
 func appendZap(cxt context.Context) (fields []Field) {
 	fields = make([]Field, 0)
-	cc := cxt.Value("CustomClaims")
+	if cxt == nil {
+		return fields
+	}
+	cc := cxt.Value(JWT_CTX_CustomClaims)
 	if cc == nil {
 		return fields
 	}
@@ -166,19 +188,19 @@ func appendZap(cxt context.Context) (fields []Field) {
 	if !ok {
 		return fields
 	}
-	fields = append(fields, zap.String("traceId", customClaims.TraceId))
-	for key, value := range customClaims.UserInfos {
+	for key, value := range customClaims.Infos {
 		fields = append(fields, zap.String(key, value))
 	}
-	for key, value := range customClaims.OpInfos {
-		fields = append(fields, zap.String(key, value))
-	}
+
 	return fields
 }
 
 func appendInterface(cxt context.Context) (args []interface{}) {
 	args = make([]interface{}, 0)
-	cc := cxt.Value("CustomClaims")
+	if cxt == nil {
+		return args
+	}
+	cc := cxt.Value(JWT_CTX_CustomClaims)
 	if cc == nil {
 		return args
 	}
@@ -186,11 +208,7 @@ func appendInterface(cxt context.Context) (args []interface{}) {
 	if !ok {
 		return args
 	}
-	args = append(args, "traceId", customClaims.TraceId)
-	for key, value := range customClaims.UserInfos {
-		args = append(args, key, value)
-	}
-	for key, value := range customClaims.OpInfos {
+	for key, value := range customClaims.Infos {
 		args = append(args, key, value)
 	}
 	return args
