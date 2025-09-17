@@ -1,6 +1,7 @@
 package ginsession
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -19,8 +20,11 @@ const (
 )
 
 // ginsession.RegisterJwt(engine)
-func RegisterJwt(engine *gin.Engine) {
+func EngineRegisterJwt(engine *gin.Engine) {
 	engine.Use(jwtAuthMiddleware())
+}
+func RouterGroupRegisterJwt(group *gin.RouterGroup) {
+	group.Use(jwtAuthMiddleware())
 }
 
 // JWT中间件：验证令牌并将用户信息存入上下文
@@ -57,4 +61,13 @@ func jwtAuthMiddleware() gin.HandlerFunc {
 		c.Set(JWT_CTX_CustomClaims, customClaims)
 		c.Next()
 	}
+}
+
+func SetToContextWithValue(c *gin.Context) (context.Context, error) {
+	cc, exists := c.Get(JWT_CTX_CustomClaims)
+	if !exists {
+		belogs.Error("f(): get JWT_CTX_CustomClaims from gin.Context fail, JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims)
+		return nil, errors.New("JWT_CTX_CustomClaims not exists in gin.Context")
+	}
+	return context.WithValue(context.Background(), JWT_CTX_CustomClaims, cc), nil
 }
