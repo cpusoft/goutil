@@ -214,51 +214,56 @@ func appendInterface(cxt context.Context) (args []interface{}) {
 	return args
 }
 
-// Debug in Json:DebugJ("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
-func DebugJ(cxt context.Context, msg string, fields ...Field) {
+// Debug in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
+func DebugFields(cxt context.Context, msg string, fields ...Field) {
 	fields = append(fields, appendZap(cxt)...)
 	logger.Debug(msg, fields...)
 }
 
-// Debug with Json: DebugJw("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
-func DebugJw(cxt context.Context, msg string, args ...interface{}) {
+// Debug in Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
+func DebugArgs(cxt context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(cxt)...)
 	sugaredLogger.Debugw(msg, args...)
 }
 
-// Debug in Line: DebugL("msg","aaa","bbb", "id",33) -> msg aaa bbb id  33
-func DebugL(cxt context.Context, msg string, args ...interface{}) {
+// Debug in Line("msg","aaa","bbb", "id",33) -> msg aaa bbb id  33
+func DebugLine(cxt context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(cxt)...)
 	sugaredLogger.Debugw(msg + " " + convert.Interfaces2String(args))
 }
 
-// Info in Json:DebugJ("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
-func InfoJ(cxt context.Context, msg string, fields ...Field) {
+// Info in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
+func InfoFields(cxt context.Context, msg string, fields ...Field) {
 	fields = append(fields, appendZap(cxt)...)
 	logger.Info(msg, fields...)
 }
 
-// Info wit Json: DebugJw("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
-func InfoJw(cxt context.Context, msg string, args ...interface{}) {
+// Info wit Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
+func InfoArgs(cxt context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(cxt)...)
 	sugaredLogger.Infow(msg, args...)
 }
 
-// Info in Line: DebugL("msg","aaa","bbb", "id",33) -> msg aaa bbb id 33
-func InfoL(cxt context.Context, msg string, args ...interface{}) {
+// Info in Line("msg","aaa","bbb", "id",33) -> msg aaa bbb id 33
+func InfoLine(cxt context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(cxt)...)
 	sugaredLogger.Infow(msg + " " + convert.Interfaces2String(args))
 }
 
-func ErrorJ(cxt context.Context, msg string, fields ...Field) {
+// Error in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
+func ErrorFields(cxt context.Context, msg string, fields ...Field) {
 	fields = append(fields, appendZap(cxt)...)
 	logger.Error(msg, fields...)
 }
-func ErrorJw(cxt context.Context, msg string, args ...interface{}) {
+
+// Error wit Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
+func ErrorArgs(cxt context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(cxt)...)
 	sugaredLogger.Errorw(msg, args...)
 }
-func ErrorL(cxt context.Context, msg string, args ...interface{}) {
+
+// Error in Line("msg","aaa","bbb", "id",33) -> msg aaa bbb id  33
+func ErrorLine(cxt context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(cxt)...)
 	sugaredLogger.Errorw(msg + " " + convert.Interfaces2String(args))
 }

@@ -36,12 +36,12 @@ func simpleHttpGet(url string) {
 
 	cxt := context.WithValue(context.Background(), JWT_CTX_CustomClaims, cc)
 
-	DebugJw(cxt, "Trying to hit GET request for", "url", url)
+	DebugArgs(cxt, "Trying to hit GET request for", "url", url)
 	resp, err := http.Get(url)
 	if err != nil {
-		ErrorJw(cxt, "Error fetching URL:", zap.String("url", url), zap.Errors("err", []error{err}))
+		ErrorFields(cxt, "Error fetching URL:", zap.String("url", url), zap.Errors("err", []error{err}))
 	} else {
-		InfoJw(cxt, "Success! statusCode", "status", resp.Status, "url", url)
+		InfoArgs(cxt, "Success! statusCode", "status", resp.Status, "url", url)
 		resp.Body.Close()
 	}
 }
