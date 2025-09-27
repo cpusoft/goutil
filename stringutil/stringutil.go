@@ -7,7 +7,7 @@ import (
 	"github.com/cpusoft/goutil/convert"
 )
 
-func ContainInSlice(slice []string, one string) bool {
+func l(slice []string, one string) bool {
 	if len(slice) == 0 || len(one) == 0 {
 		return false
 	}

@@ -82,13 +82,6 @@ func Login(c *gin.Context) {
 
 // will use jwt token in header, and will pass jwt check
 func Work(c *gin.Context) {
-	cxt, err := SetToContextWithValue(c)
-	if err != nil {
-		zaplogs.ErrorArgs(nil, "work(): SetToContextWithValue fail", "err", err.Error())
-		ginserver.ResponseFail(c, err, nil)
-		c.Abort()
-		return
-	}
-	zaplogs.InfoArgs(cxt, "Work(): ", "start")
+	zaplogs.InfoArgs(SetToContextWithValue(c), "Work(): ", "start")
 	ginserver.String(c, "work ok")
 }

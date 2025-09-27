@@ -63,11 +63,11 @@ func jwtAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-func SetToContextWithValue(c *gin.Context) (context.Context, error) {
+func SetToContextWithValue(c *gin.Context) context.Context {
 	cc, exists := c.Get(JWT_CTX_CustomClaims)
 	if !exists {
 		belogs.Error("f(): get JWT_CTX_CustomClaims from gin.Context fail, JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims)
-		return nil, errors.New("JWT_CTX_CustomClaims not exists in gin.Context")
+		return nil
 	}
-	return context.WithValue(context.Background(), JWT_CTX_CustomClaims, cc), nil
+	return context.WithValue(context.Background(), JWT_CTX_CustomClaims, cc)
 }
