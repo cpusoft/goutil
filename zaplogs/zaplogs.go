@@ -52,7 +52,7 @@ func init() {
 	// get process file name as log name
 	logName := filepath.Base(os.Args[0])
 	if logName != "" {
-		logName = strings.Split(logName, ".")[0] + ".log"
+		logName = strings.Split(logName, ".")[0] + ".json"
 	} else {
 		logName = conf.String("logs::name")
 	}
