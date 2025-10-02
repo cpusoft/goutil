@@ -98,7 +98,8 @@ func getEncoder() zapcore.Encoder {
 	// 将Level序列化为全大写字符串。例如，将info level序列化为INFO。
 	encodeConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 	// 以 package/file:行 的格式 序列化调用程序，从完整路径中删除除最后一个目录外的所有目录。
-	encodeConfig.EncodeCaller = zapcore.ShortCallerEncoder
+	// no use caller, just call zaplog.go ** line
+	//encodeConfig.EncodeCaller = zapcore.ShortCallerEncoder
 	return zapcore.NewJSONEncoder(encodeConfig)
 }
 
