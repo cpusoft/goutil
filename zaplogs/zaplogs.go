@@ -99,7 +99,7 @@ func getEncoder() zapcore.Encoder {
 	encodeConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 	// 以 package/file:行 的格式 序列化调用程序，从完整路径中删除除最后一个目录外的所有目录。
 	// no use caller, just call zaplog.go ** line
-	//encodeConfig.EncodeCaller = zapcore.ShortCallerEncoder
+	encodeConfig.EncodeCaller = zapcore.ShortCallerEncoder
 	return zapcore.NewJSONEncoder(encodeConfig)
 }
 
@@ -137,7 +137,7 @@ func initLogger(lCfg logConfig) (err error) {
 	// 创建一个将日志写入 WriteSyncer 的核心。
 	core := zapcore.NewCore(encoder, writeSyncer, l)
 	logger = zap.New(core,
-		zap.AddCaller(),
+		//	zap.AddCaller(),
 		zap.AddStacktrace(zap.ErrorLevel))
 
 	// 替换zap包中全局的logger实例，后续在其他包中只需使用zap.L()调用即可
