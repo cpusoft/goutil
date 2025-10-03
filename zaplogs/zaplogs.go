@@ -204,6 +204,7 @@ func appendZap(cxt context.Context) (fields []Field) {
 func appendInterface(cxt context.Context) (args []interface{}) {
 	args = make([]interface{}, 0)
 	if cxt == nil {
+		belogs.Debug("appendInterface(): ctx is nil")
 		return args
 	}
 	cc := cxt.Value(JWT_CTX_CustomClaims)

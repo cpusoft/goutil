@@ -69,6 +69,7 @@ func SetToContextWithValue(c *gin.Context) context.Context {
 		belogs.Error("SetToContextWithValue(): get JWT_CTX_CustomClaims from gin.Context fail, JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims)
 		return nil
 	}
+	belogs.Debug("SetToContextWithValue(): get JWT_CTX_CustomClaims", "cc", jsonutil.MarshalJson(cc))
 	return context.WithValue(context.Background(), JWT_CTX_CustomClaims, cc)
 }
 
