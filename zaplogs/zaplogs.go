@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
+	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
@@ -183,6 +185,8 @@ func appendZap(cxt context.Context) (fields []Field) {
 	}
 	cc := cxt.Value(JWT_CTX_CustomClaims)
 	if cc == nil {
+		belogs.Debug("appendZap(): Value JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims,
+			"   cc:", jsonutil.MarshalJson(cc))
 		return fields
 	}
 	customClaims, ok := cc.(CustomClaims)
@@ -192,7 +196,8 @@ func appendZap(cxt context.Context) (fields []Field) {
 	for key, value := range customClaims.Infos {
 		fields = append(fields, zap.String(key, value))
 	}
-
+	belogs.Debug("appendZap(): get fields:", jsonutil.MarshalJson(fields),
+		"  len(customClaims.Infos):", len(customClaims.Infos))
 	return fields
 }
 
@@ -203,6 +208,8 @@ func appendInterface(cxt context.Context) (args []interface{}) {
 	}
 	cc := cxt.Value(JWT_CTX_CustomClaims)
 	if cc == nil {
+		belogs.Debug("appendInterface(): Value JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims,
+			"   cc:", jsonutil.MarshalJson(cc))
 		return args
 	}
 	customClaims, ok := cc.(CustomClaims)
@@ -212,6 +219,8 @@ func appendInterface(cxt context.Context) (args []interface{}) {
 	for key, value := range customClaims.Infos {
 		args = append(args, key, value)
 	}
+	belogs.Debug("appendZap(): get args:", jsonutil.MarshalJson(args),
+		"  len(customClaims.Infos):", len(customClaims.Infos))
 	return args
 }
 
