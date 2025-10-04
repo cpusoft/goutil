@@ -176,16 +176,16 @@ type CustomClaims struct {
 	jwt.RegisteredClaims                   // 内嵌标准的声明
 }
 
-const JWT_CTX_CustomClaims = "CustomClaims"
+const JWT_CTX_CustomClaims_Infos = "CustomClaims"
 
 func appendZap(ctx context.Context) (fields []Field) {
 	fields = make([]Field, 0)
 	if ctx == nil {
 		return fields
 	}
-	cc := ctx.Value(JWT_CTX_CustomClaims)
+	cc := ctx.Value(JWT_CTX_CustomClaims_Infos)
 	if cc == nil {
-		belogs.Debug("appendZap(): Value JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims,
+		belogs.Debug("appendZap(): Value JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos,
 			"   cc:", jsonutil.MarshalJson(cc))
 		return fields
 	}
@@ -209,9 +209,9 @@ func appendInterface(ctx context.Context) (args []interface{}) {
 	}
 	belogs.Debug("appendInterface(): get ctx:", ctx)
 
-	cc := ctx.Value(JWT_CTX_CustomClaims)
+	cc := ctx.Value(JWT_CTX_CustomClaims_Infos)
 	if cc == nil {
-		belogs.Debug("appendInterface(): Value JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims,
+		belogs.Debug("appendInterface(): Value JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos,
 			"   cc:", jsonutil.MarshalJson(cc))
 		return args
 	}

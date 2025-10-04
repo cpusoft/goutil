@@ -34,7 +34,7 @@ func simpleHttpGet(url string) {
 		},
 	}
 
-	ctx := context.WithValue(context.Background(), JWT_CTX_CustomClaims, cc)
+	ctx := context.WithValue(context.Background(), JWT_CTX_CustomClaims_Infos, cc)
 
 	DebugArgs(ctx, "Trying to hit GET request for", "url", url)
 	resp, err := http.Get(url)

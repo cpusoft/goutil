@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	JWT_HEADER_AUTHORIZATION = "Authorization"
-	JWT_HEADER_PREFIX_BEARER = "Bearer"
-	JWT_CTX_CustomClaims     = "CustomClaims"
+	JWT_HEADER_AUTHORIZATION   = "Authorization"
+	JWT_HEADER_PREFIX_BEARER   = "Bearer"
+	JWT_CTX_CustomClaims_Infos = "CustomClaims.Infos"
 )
 
 // ginsession.RegisterJwt(engine)
@@ -58,31 +58,31 @@ func jwtAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 		belogs.Debug("jwtAuthMiddleware(): customClaims:", jsonutil.MarshalJson(customClaims))
-		c.Set(JWT_CTX_CustomClaims, customClaims)
+		c.Set(JWT_CTX_CustomClaims_Infos, customClaims.Infos)
 		c.Next()
 	}
 }
 
 func SetToContextWithValue(c *gin.Context) context.Context {
-	cc, exists := c.Get(JWT_CTX_CustomClaims)
+	m, exists := c.Get(JWT_CTX_CustomClaims_Infos)
 	if !exists {
-		belogs.Error("SetToContextWithValue(): get JWT_CTX_CustomClaims from gin.Context fail, JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims)
+		belogs.Error("SetToContextWithValue(): get JWT_CTX_CustomClaims_Infos from gin.Context fail, JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos)
 		return nil
 	}
-	belogs.Debug("SetToContextWithValue(): get JWT_CTX_CustomClaims", "cc", jsonutil.MarshalJson(cc))
-	return context.WithValue(context.Background(), JWT_CTX_CustomClaims, cc)
+	belogs.Debug("SetToContextWithValue(): get JWT_CTX_CustomClaims_Infos", "m", jsonutil.MarshalJson(m))
+	return context.WithValue(context.Background(), JWT_CTX_CustomClaims_Infos, m)
 }
 
-func GetCustomClaims(ctx context.Context) *jwtutil.CustomClaims {
-	cc := ctx.Value(JWT_CTX_CustomClaims)
+func GetCustomClaims(ctx context.Context) map[string]string {
+	cc := ctx.Value(JWT_CTX_CustomClaims_Infos)
 	if cc == nil {
-		belogs.Error("GetCustomClaims(): get JWT_CTX_CustomClaims from gin.Context fail, JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims)
-		return &jwtutil.CustomClaims{}
+		belogs.Error("GetCustomClaims(): get JWT_CTX_CustomClaims_Infos from gin.Context fail, JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos)
+		return make(map[string]string)
 	}
-	customClaims, ok := cc.(*jwtutil.CustomClaims)
+	m, ok := cc.(map[string]string)
 	if !ok {
 		belogs.Error("GetCustomClaims(): assert to CustomClaims fail, cc:", jsonutil.MarshalJson(cc))
-		return &jwtutil.CustomClaims{}
+		return make(map[string]string)
 	}
-	return customClaims
+	return m
 }
