@@ -189,7 +189,7 @@ func appendZap(ctx context.Context) (fields []Field) {
 			"   cc:", jsonutil.MarshalJson(cc))
 		return fields
 	}
-	customClaims, ok := cc.(CustomClaims)
+	customClaims, ok := cc.(*CustomClaims)
 	if !ok {
 		return fields
 	}
@@ -217,8 +217,9 @@ func appendInterface(ctx context.Context) (args []interface{}) {
 	}
 	belogs.Debug("appendInterface(): get cc:", cc)
 
-	customClaims, ok := cc.(CustomClaims)
+	customClaims, ok := cc.(*CustomClaims)
 	if !ok {
+		belogs.Debug("appendInterface(): get CustomClaims is not ok, cc:", jsonutil.MarshalJson(cc))
 		return args
 	}
 	for key, value := range customClaims.Infos {
