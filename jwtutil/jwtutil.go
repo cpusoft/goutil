@@ -29,8 +29,8 @@ Example:
 */
 // same as in zaplogs.go
 type CustomClaims struct {
-	Infos                map[string]string `json:"infos,omitempty"` // 自定义信息
-	jwt.RegisteredClaims                   // 内嵌标准的声明
+	Infos                map[string]interface{} `json:"infos,omitempty"` // 自定义信息
+	jwt.RegisteredClaims                        // 内嵌标准的声明
 }
 
 // password: 签名密码

@@ -18,7 +18,7 @@ func TestZapLogs(t *testing.T) {
 
 func simpleHttpGet(url string) {
 	defer DeferSync()
-	infos := make(map[string]string)
+	infos := make(map[string]interface{})
 	infos["userId"] = "1"
 	infos["userName"] = "userName1"
 	infos["ownerId"] = "ownerId1"

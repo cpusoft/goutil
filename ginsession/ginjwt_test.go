@@ -59,7 +59,7 @@ func Hello(c *gin.Context) {
 // will generate and return jwt token
 func Login(c *gin.Context) {
 	zaplogs.InfoArgs(nil, "Login(): start")
-	m := make(map[string]string)
+	m := make(map[string]interface{})
 	m["ownerId"] = "1001"
 	m["ownerName"] = "beijing-user1"
 	m["opUserId"] = "2002"

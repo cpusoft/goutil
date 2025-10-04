@@ -73,16 +73,17 @@ func SetToContextWithValue(c *gin.Context) context.Context {
 	return context.WithValue(context.Background(), JWT_CTX_CustomClaims_Infos, m)
 }
 
-func GetCustomClaims(ctx context.Context) map[string]string {
+func GetCustomClaims(ctx context.Context) map[string]interface{} {
 	cc := ctx.Value(JWT_CTX_CustomClaims_Infos)
 	if cc == nil {
-		belogs.Error("GetCustomClaims(): get JWT_CTX_CustomClaims_Infos from gin.Context fail, JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos)
-		return make(map[string]string)
+		belogs.Error("GetCustomClaims(): get JWT_CTX_CustomClaims_Infos from gin.Context fail",
+			"JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos)
+		return make(map[string]interface{})
 	}
-	m, ok := cc.(map[string]string)
+	m, ok := cc.(map[string]interface{})
 	if !ok {
 		belogs.Error("GetCustomClaims(): assert to CustomClaims fail, cc:", jsonutil.MarshalJson(cc))
-		return make(map[string]string)
+		return make(map[string]interface{})
 	}
 	return m
 }

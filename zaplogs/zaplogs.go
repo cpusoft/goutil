@@ -172,8 +172,8 @@ Example:
 // same as in jwtutil.go
 // same as in zaplogs.go
 type CustomClaims struct {
-	Infos                map[string]string `json:"infos,omitempty"` // 自定义信息
-	jwt.RegisteredClaims                   // 内嵌标准的声明
+	Infos                map[string]interface{} `json:"infos,omitempty"` // 自定义信息
+	jwt.RegisteredClaims                        // 内嵌标准的声明
 }
 
 const JWT_CTX_CustomClaims_Infos = "CustomClaims.Infos"
@@ -189,13 +189,13 @@ func appendZap(ctx context.Context) (fields []Field) {
 			"   cc:", jsonutil.MarshalJson(cc))
 		return fields
 	}
-	m, ok := cc.(map[string]string)
+	m, ok := cc.(map[string]interface{})
 	if !ok {
 		belogs.Error("appendZap(): get map is nil, cc:", cc)
 		return fields
 	}
 	for key, value := range m {
-		fields = append(fields, zap.String(key, value))
+		fields = append(fields, zap.String(key, convert.ToString(value)))
 	}
 	belogs.Debug("appendZap(): get fields:", jsonutil.MarshalJson(fields),
 		"  m:", m)
@@ -218,7 +218,7 @@ func appendInterface(ctx context.Context) (args []interface{}) {
 	}
 	belogs.Debug("appendInterface(): get cc:", cc)
 
-	m, ok := cc.(map[string]string)
+	m, ok := cc.(map[string]interface{})
 	if !ok {
 		belogs.Debug("appendInterface(): get CustomClaims is not ok, cc:", jsonutil.MarshalJson(cc))
 		return args
