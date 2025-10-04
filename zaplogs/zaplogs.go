@@ -178,12 +178,12 @@ type CustomClaims struct {
 
 const JWT_CTX_CustomClaims = "CustomClaims"
 
-func appendZap(cxt context.Context) (fields []Field) {
+func appendZap(ctx context.Context) (fields []Field) {
 	fields = make([]Field, 0)
-	if cxt == nil {
+	if ctx == nil {
 		return fields
 	}
-	cc := cxt.Value(JWT_CTX_CustomClaims)
+	cc := ctx.Value(JWT_CTX_CustomClaims)
 	if cc == nil {
 		belogs.Debug("appendZap(): Value JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims,
 			"   cc:", jsonutil.MarshalJson(cc))
@@ -201,18 +201,22 @@ func appendZap(cxt context.Context) (fields []Field) {
 	return fields
 }
 
-func appendInterface(cxt context.Context) (args []interface{}) {
+func appendInterface(ctx context.Context) (args []interface{}) {
 	args = make([]interface{}, 0)
-	if cxt == nil {
+	if ctx == nil {
 		belogs.Debug("appendInterface(): ctx is nil")
 		return args
 	}
-	cc := cxt.Value(JWT_CTX_CustomClaims)
+	belogs.Debug("appendInterface(): get ctx:", ctx)
+
+	cc := ctx.Value(JWT_CTX_CustomClaims)
 	if cc == nil {
 		belogs.Debug("appendInterface(): Value JWT_CTX_CustomClaims:", JWT_CTX_CustomClaims,
 			"   cc:", jsonutil.MarshalJson(cc))
 		return args
 	}
+	belogs.Debug("appendInterface(): get cc:", cc)
+
 	customClaims, ok := cc.(CustomClaims)
 	if !ok {
 		return args
@@ -220,62 +224,63 @@ func appendInterface(cxt context.Context) (args []interface{}) {
 	for key, value := range customClaims.Infos {
 		args = append(args, key, value)
 	}
-	belogs.Debug("appendZap(): get args:", jsonutil.MarshalJson(args),
+	belogs.Debug("appendInterface(): get args:", jsonutil.MarshalJson(args),
 		"  len(customClaims.Infos):", len(customClaims.Infos))
 	return args
 }
 
 // Debug in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
-func DebugFields(cxt context.Context, msg string, fields ...Field) {
-	fields = append(fields, appendZap(cxt)...)
+func DebugFields(ctx context.Context, msg string, fields ...Field) {
+	fields = append(fields, appendZap(ctx)...)
 	logger.Debug(msg, fields...)
 }
 
 // Debug in Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
-func DebugArgs(cxt context.Context, msg string, args ...interface{}) {
-	args = append(args, appendInterface(cxt)...)
+func DebugArgs(ctx context.Context, msg string, args ...interface{}) {
+	belogs.Debug("DebugArgs(): in ctx", "ctx", ctx, "args", args)
+	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Debugw(msg, args...)
 }
 
 // Debug in Line("msg","aaa","bbb", "id",33) -> msg aaa bbb id  33
-func DebugLine(cxt context.Context, msg string, args ...interface{}) {
-	args = append(args, appendInterface(cxt)...)
+func DebugLine(ctx context.Context, msg string, args ...interface{}) {
+	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Debugw(msg + " " + convert.Interfaces2String(args))
 }
 
 // Info in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
-func InfoFields(cxt context.Context, msg string, fields ...Field) {
-	fields = append(fields, appendZap(cxt)...)
+func InfoFields(ctx context.Context, msg string, fields ...Field) {
+	fields = append(fields, appendZap(ctx)...)
 	logger.Info(msg, fields...)
 }
 
 // Info wit Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
-func InfoArgs(cxt context.Context, msg string, args ...interface{}) {
-	args = append(args, appendInterface(cxt)...)
+func InfoArgs(ctx context.Context, msg string, args ...interface{}) {
+	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Infow(msg, args...)
 }
 
 // Info in Line("msg","aaa","bbb", "id",33) -> msg aaa bbb id 33
-func InfoLine(cxt context.Context, msg string, args ...interface{}) {
-	args = append(args, appendInterface(cxt)...)
+func InfoLine(ctx context.Context, msg string, args ...interface{}) {
+	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Infow(msg + " " + convert.Interfaces2String(args))
 }
 
 // Error in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
-func ErrorFields(cxt context.Context, msg string, fields ...Field) {
-	fields = append(fields, appendZap(cxt)...)
+func ErrorFields(ctx context.Context, msg string, fields ...Field) {
+	fields = append(fields, appendZap(ctx)...)
 	logger.Error(msg, fields...)
 }
 
 // Error wit Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
-func ErrorArgs(cxt context.Context, msg string, args ...interface{}) {
-	args = append(args, appendInterface(cxt)...)
+func ErrorArgs(ctx context.Context, msg string, args ...interface{}) {
+	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Errorw(msg, args...)
 }
 
 // Error in Line("msg","aaa","bbb", "id",33) -> msg aaa bbb id  33
-func ErrorLine(cxt context.Context, msg string, args ...interface{}) {
-	args = append(args, appendInterface(cxt)...)
+func ErrorLine(ctx context.Context, msg string, args ...interface{}) {
+	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Errorw(msg + " " + convert.Interfaces2String(args))
 }
 

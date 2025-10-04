@@ -34,14 +34,14 @@ func simpleHttpGet(url string) {
 		},
 	}
 
-	cxt := context.WithValue(context.Background(), JWT_CTX_CustomClaims, cc)
+	ctx := context.WithValue(context.Background(), JWT_CTX_CustomClaims, cc)
 
-	DebugArgs(cxt, "Trying to hit GET request for", "url", url)
+	DebugArgs(ctx, "Trying to hit GET request for", "url", url)
 	resp, err := http.Get(url)
 	if err != nil {
-		ErrorFields(cxt, "Error fetching URL:", zap.String("url", url), zap.Errors("err", []error{err}))
+		ErrorFields(ctx, "Error fetching URL:", zap.String("url", url), zap.Errors("err", []error{err}))
 	} else {
-		InfoArgs(cxt, "Success! statusCode", "status", resp.Status, "url", url)
+		InfoArgs(ctx, "Success! statusCode", "status", resp.Status, "url", url)
 		resp.Body.Close()
 	}
 }
