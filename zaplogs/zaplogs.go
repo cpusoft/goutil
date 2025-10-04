@@ -176,7 +176,7 @@ type CustomClaims struct {
 	jwt.RegisteredClaims                   // 内嵌标准的声明
 }
 
-const JWT_CTX_CustomClaims_Infos = "CustomClaims"
+const JWT_CTX_CustomClaims_Infos = "CustomClaims.Infos"
 
 func appendZap(ctx context.Context) (fields []Field) {
 	fields = make([]Field, 0)
