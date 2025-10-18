@@ -41,6 +41,8 @@ func PostHttpWithConfig(urlStr string, postJson string, httpClientConfig *HttpCl
 		"  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)
 	if err != nil {
+		belogs.Error("PostHttpWithConfig(): Parse fail, url:", urlStr, "   postJson:", postJson,
+			"   err:", err)
 		return nil, "", err
 	}
 	if httpClientConfig == nil {
@@ -78,6 +80,8 @@ func PostHttpsWithConfig(urlStr string, postJson string,
 		"  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	url, err := url.Parse(urlStr)
 	if err != nil {
+		belogs.Error("PostHttpsWithConfig(): Parse fail, url:", urlStr, "   postJson:", postJson,
+			"   err:", err)
 		return nil, "", err
 	}
 	if httpClientConfig == nil {

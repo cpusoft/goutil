@@ -47,38 +47,51 @@ func DownloadUrlFile(urlFile string, localFile string) (int64, error) {
 }
 
 // fileName: file name ; FormName:id in form
-func PostFile(urlStr string, fileName string, formName string, verifyHttps bool) (gorequest.Response, string, error) {
+func PostFileWithConfig(urlStr string, fileName string, formName string, httpClientConfig *HttpClientConfig) (gorequest.Response, string, error) {
 	if strings.HasPrefix(urlStr, "http://") {
-		return PostFileHttp(urlStr, fileName, formName)
+		return PostFileHttpWithConfig(urlStr, fileName, formName, httpClientConfig)
 	} else if strings.HasPrefix(urlStr, "https://") {
-		return PostFileHttps(urlStr, fileName, formName, verifyHttps)
+		return PostFileHttpsWithConfig(urlStr, fileName, formName, httpClientConfig)
 	} else {
 		return nil, "", errors.New("unknown protocol")
 	}
 }
 
 // fileName: file name ; FormName:id in form
-func PostFileHttp(urlStr string, fileName string, formName string) (resp gorequest.Response, body string, err error) {
+func PostFileHttpWithConfig(urlStr string, fileName string, formName string, httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
 
-	belogs.Debug("PostFileHttp():url:", urlStr, "   fileName:", fileName, "   formName:", formName)
+	belogs.Debug("PostFileHttp():url:", urlStr, "   fileName:", fileName,
+		"   formName:", formName, " httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	b, err := os.ReadFile(fileName)
 	if err != nil {
-		belogs.Error("PostFileHttp():url:", urlStr, "   fileName:", fileName, "   err:", err)
+		belogs.Error("PostFileHttp(): ReadFile fail, url:", urlStr, "   fileName:", fileName,
+			"   err:", err)
 		return nil, "", err
 	}
 
 	url, err := url.Parse(urlStr)
 	if err != nil {
+		belogs.Error("PostFileHttp(): Parse fail, url:", urlStr, "   fileName:", fileName, "   err:", err)
 		return nil, "", err
 	}
+
+	if httpClientConfig == nil {
+		httpClientConfig = NewHttpClientConfig()
+	}
+	timeOut := time.Duration(httpClientConfig.TimeoutMins) * time.Minute
+	if httpClientConfig.TimeoutMillis > 0 {
+		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
+	}
+
 	fileNameStr := osutil.Base(fileName)
 	belogs.Debug("PostFileHttps():fileNameStr:", fileNameStr)
 	return errorsToerror(gorequest.New().Post(urlStr).
-		Timeout(time.Duration(DefaultTimeoutMins)*time.Minute).
+		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
+		Set("Authorization", httpClientConfig.Authorization).
+		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
 		SendFile(b, fileNameStr, formName, true).
 		End())
@@ -86,28 +99,44 @@ func PostFileHttp(urlStr string, fileName string, formName string) (resp goreque
 }
 
 // fileName: file name ; FormName:id in form
-func PostFileHttps(urlStr string, fileName string, formName string, verify bool) (resp gorequest.Response, body string, err error) {
+func PostFileHttpsWithConfig(urlStr string, fileName string, formName string,
+	httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
 
-	belogs.Debug("PostFileHttps():url:", urlStr, "   fileName:", fileName, "   formName:", formName, "  verify:", verify)
+	belogs.Debug("PostFileHttps():url:", urlStr, "   fileName:", fileName,
+		"   formName:", formName, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	b, err := os.ReadFile(fileName)
 	if err != nil {
+		belogs.Error("PostFileHttp(): ReadFile fail, url:", urlStr, "   fileName:", fileName,
+			"   err:", err)
 		return nil, "", err
 	}
 
 	url, err := url.Parse(urlStr)
 	if err != nil {
+		belogs.Error("PostFileHttp(): Parse fail, url:", urlStr, "   fileName:", fileName,
+			"   err:", err)
 		return nil, "", err
 	}
+
+	if httpClientConfig == nil {
+		httpClientConfig = NewHttpClientConfig()
+	}
+	timeOut := time.Duration(httpClientConfig.TimeoutMins) * time.Minute
+	if httpClientConfig.TimeoutMillis > 0 {
+		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
+	}
+
 	fileNameStr := osutil.Base(fileName)
 	belogs.Debug("PostFileHttps():fileNameStr:", fileNameStr)
-	config := &tls.Config{InsecureSkipVerify: !verify}
+	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
 	return errorsToerror(gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
-		Timeout(time.Duration(DefaultTimeoutMins)*time.Minute).
+		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Retry(RetryCount, RetryIntervalSeconds*time.Second, RetryHttpStatus...).
+		Set("Authorization", httpClientConfig.Authorization).
+		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
 		SendFile(b, fileNameStr, formName, true).
 		End())
@@ -118,11 +147,12 @@ func PostFileHttps(urlStr string, fileName string, formName string, verify bool)
 // fileName: file name ; FormName:id in form
 // v is ResponseModel.Data
 func PostFileAndUnmarshalResponseModel(urlStr string, fileName string,
-	formName string, verifyHttps bool, v interface{}) (err error) {
-	resp, body, err := PostFile(urlStr, fileName, formName, verifyHttps)
+	formName string, v interface{}, httpClientConfig *HttpClientConfig) (err error) {
+	resp, body, err := PostFileWithConfig(urlStr, fileName, formName, httpClientConfig)
 	if err != nil {
 		belogs.Error("PostFileAndUnmarshalResponseModel():PostFile failed, urlStr:", urlStr,
-			"   fileName:", fileName, "   formName:", formName, "   verifyHttps:", verifyHttps, err)
+			"   fileName:", fileName, "   formName:", formName,
+			"   httpClientConfig:", jsonutil.MarshalJson(httpClientConfig), err)
 		return err
 	}
 	if resp != nil {
