@@ -70,7 +70,10 @@ func SetToContextWithValue(c *gin.Context) context.Context {
 		return nil
 	}
 	belogs.Debug("SetToContextWithValue(): get JWT_CTX_CustomClaims_Infos", "m", jsonutil.MarshalJson(m))
-	return context.WithValue(context.Background(), JWT_CTX_CustomClaims_Infos, m)
+	authHeader := c.GetHeader(JWT_HEADER_AUTHORIZATION)
+	ctx := context.WithValue(context.Background(), JWT_CTX_CustomClaims_Infos, m)
+	ctx = context.WithValue(ctx, JWT_HEADER_AUTHORIZATION, authHeader)
+	return ctx
 }
 
 func GetCustomClaims(ctx context.Context) map[string]interface{} {
@@ -86,4 +89,19 @@ func GetCustomClaims(ctx context.Context) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 	return m
+}
+
+func GetAuthHeader(ctx context.Context) string {
+	authHeader := ctx.Value(JWT_HEADER_AUTHORIZATION)
+	if authHeader == nil {
+		belogs.Error("GetAuthHeader(): get JWT_HEADER_AUTHORIZATION from gin.Context fail",
+			"JWT_HEADER_AUTHORIZATION", JWT_HEADER_AUTHORIZATION)
+		return ""
+	}
+	authHeaderStr, ok := authHeader.(string)
+	if !ok {
+		belogs.Error("GetAuthHeader(): assert to string fail", "authHeader", jsonutil.MarshalJson(authHeader))
+		return ""
+	}
+	return authHeaderStr
 }

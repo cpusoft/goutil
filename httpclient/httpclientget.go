@@ -59,6 +59,7 @@ func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp 
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Set("Authorization", httpClientConfig.Authorization).
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
 	if httpClientConfig.ContentType != "" {
 		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
@@ -107,6 +108,7 @@ func GetHttpsWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Set("Authorization", httpClientConfig.Authorization).
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
 	if httpClientConfig.ContentType != "" {
 		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
@@ -133,6 +135,7 @@ func GetHttpsResponseWithConfig(urlStr string, httpClientConfig *HttpClientConfi
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Set("Authorization", httpClientConfig.Authorization).
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		End())
 	return resp, err
@@ -229,6 +232,7 @@ func GetHttpsRangeWithConfig(urlStr string, contentLength uint64,
 				Set("User-Agent", DefaultUserAgent).
 				Set("Referrer", url.Host).
 				Set("Connection", "keep-alive").
+				Set("Authorization", httpClientConfig.Authorization).
 				Set("Range", rangeStrTmp).
 				Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 				End())

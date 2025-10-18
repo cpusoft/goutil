@@ -7,6 +7,8 @@ const (
 	DefaultRangeLength   = uint64(10000000)
 	RetryCount           = 3
 	RetryIntervalSeconds = 5
+	// need same in ginjwt.go
+	JWT_HEADER_AUTHORIZATION = "Authorization"
 )
 
 type HttpClientConfig struct {
@@ -21,6 +23,9 @@ type HttpClientConfig struct {
 
 	// key-values
 	ContentType string `json:"contentType"`
+
+	// jwt Authorization
+	Authorization string `json:"Authorization"`
 }
 
 /*
@@ -60,5 +65,10 @@ func NewHttpClientConfig() *HttpClientConfig {
 
 func (c *HttpClientConfig) SetContentType(contentType string) *HttpClientConfig {
 	c.ContentType = contentType
+	return c
+}
+
+func (c *HttpClientConfig) SetAuhthorization(authorization string) *HttpClientConfig {
+	c.Authorization = authorization
 	return c
 }

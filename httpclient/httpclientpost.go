@@ -55,6 +55,7 @@ func PostHttpWithConfig(urlStr string, postJson string, httpClientConfig *HttpCl
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Set("Authorization", httpClientConfig.Authorization).
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
 	if httpClientConfig.ContentType != "" {
 		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
@@ -95,6 +96,7 @@ func PostHttpsWithConfig(urlStr string, postJson string,
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
+		Set("Authorization", httpClientConfig.Authorization).
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
 	if httpClientConfig.ContentType != "" {
 		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
