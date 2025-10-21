@@ -17,6 +17,7 @@ func TestZapLogs(t *testing.T) {
 }
 
 func simpleHttpGet(url string) {
+	start := time.Now()
 	defer DeferSync()
 	infos := make(map[string]interface{})
 	infos["userId"] = "1"
@@ -36,12 +37,12 @@ func simpleHttpGet(url string) {
 
 	ctx := context.WithValue(context.Background(), JWT_CTX_CustomClaims_Infos, cc)
 
-	DebugArgs(ctx, "Trying to hit GET request for", "url", url)
+	DebugArgs(ctx, "Trying to hit GET request for", "url", url, "NOW")
 	resp, err := http.Get(url)
 	if err != nil {
 		ErrorFields(ctx, "Error fetching URL:", zap.String("url", url), zap.Errors("err", []error{err}))
 	} else {
-		InfoArgs(ctx, "Success! statusCode", "status", resp.Status, "url", url)
+		InfoArgs(ctx, "Success! statusCode", "status", resp.Status, "url", url, "time", time.Since(start))
 		resp.Body.Close()
 	}
 }

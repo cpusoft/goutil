@@ -234,12 +234,18 @@ func appendInterface(ctx context.Context) (args []interface{}) {
 // Debug in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
 func DebugFields(ctx context.Context, msg string, fields ...Field) {
 	fields = append(fields, appendZap(ctx)...)
+
 	logger.Debug(msg, fields...)
 }
 
 // Debug in Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
 func DebugArgs(ctx context.Context, msg string, args ...interface{}) {
 	belogs.Debug("DebugArgs(): in ctx", "ctx", ctx, "args", args)
+	len := len(args) % 2
+	if len != 0 {
+		args = append(args, " ")
+		belogs.Debug("DebugArgs(): add _args_, new args", args)
+	}
 	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Debugw(msg, args...)
 }
@@ -259,6 +265,11 @@ func InfoFields(ctx context.Context, msg string, fields ...Field) {
 // Info wit Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
 func InfoArgs(ctx context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(ctx)...)
+	len := len(args) % 2
+	if len != 0 {
+		args := append(args, " ")
+		belogs.Debug("InfoArgs(): add _args_, new args", args)
+	}
 	sugaredLogger.Infow(msg, args...)
 }
 
@@ -277,6 +288,11 @@ func ErrorFields(ctx context.Context, msg string, fields ...Field) {
 // Error wit Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
 func ErrorArgs(ctx context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(ctx)...)
+	len := len(args) % 2
+	if len != 0 {
+		args := append(args, " ")
+		belogs.Debug("ErrorArgs(): add _args_, new args", args)
+	}
 	sugaredLogger.Errorw(msg, args...)
 }
 
