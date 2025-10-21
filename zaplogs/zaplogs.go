@@ -234,7 +234,6 @@ func appendInterface(ctx context.Context) (args []interface{}) {
 // Debug in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
 func DebugFields(ctx context.Context, msg string, fields ...Field) {
 	fields = append(fields, appendZap(ctx)...)
-
 	logger.Debug(msg, fields...)
 }
 
@@ -244,7 +243,7 @@ func DebugArgs(ctx context.Context, msg string, args ...interface{}) {
 	len := len(args) % 2
 	if len != 0 {
 		args = append(args, " ")
-		belogs.Debug("DebugArgs(): add _args_, new args", args)
+		belogs.Error("DebugArgs(): args are odd numbers, new args:", args)
 	}
 	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Debugw(msg, args...)
@@ -268,7 +267,7 @@ func InfoArgs(ctx context.Context, msg string, args ...interface{}) {
 	len := len(args) % 2
 	if len != 0 {
 		args := append(args, " ")
-		belogs.Debug("InfoArgs(): add _args_, new args", args)
+		belogs.Error("InfoArgs(): args are odd numbers, new args:", args)
 	}
 	sugaredLogger.Infow(msg, args...)
 }
@@ -291,7 +290,7 @@ func ErrorArgs(ctx context.Context, msg string, args ...interface{}) {
 	len := len(args) % 2
 	if len != 0 {
 		args := append(args, " ")
-		belogs.Debug("ErrorArgs(): add _args_, new args", args)
+		belogs.Error("ErrorArgs(): args are odd numbers, new args:", args)
 	}
 	sugaredLogger.Errorw(msg, args...)
 }
