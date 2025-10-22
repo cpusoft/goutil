@@ -26,3 +26,4 @@
 /badgedb/badgerdb/MANIFEST
 /badgedb/badgerdb/*.sst
 /badgedb/badgerdb/*.vlog
+/ginsession/log/*.log
