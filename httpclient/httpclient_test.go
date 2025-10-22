@@ -114,7 +114,7 @@ func TestGetHttpsRrdp(t *testing.T) {
 
 func TestPostFile(t *testing.T) {
 	/*
-		resp, body, err := PostFile("http", "localhost", 8080, "/parse/start",
+		resp, body, err := PostFileWithConfig("http", "localhost", 8080, "/parse/start",
 			`G:/Download/cert/cache/trustanchors/rpki.apnic.net/repository/apnic-rpki-root-iana-origin.cer`, `file`)
 		if err != nil {
 			fmt.Println(err)

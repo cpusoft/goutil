@@ -197,6 +197,7 @@ func ReceiveFileAndUnmarshalJson(c *gin.Context, dir string, f interface{}) (rec
 func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 
 	belogs.Debug("ReceiveFileAndPostNewUrl(): newUrl:", newUrl)
+	ctx := SetToContextWithValue(c)
 	fileHeader, err := c.FormFile("file")
 	tmpFile, tmpDir, err := saveToTmpFile(fileHeader)
 	defer func() {
@@ -209,7 +210,9 @@ func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 	}
 	belogs.Info("ReceiveFileAndPostNewUrl():saveToTmpFile tmpFile:", tmpFile.Name(), "  newUrl:", newUrl)
 
-	resp, body, err := httpclient.PostFile(newUrl, tmpFile.Name(), "file", false)
+	hcc := httpclient.NewHttpClientConfigWithParam(5, 3, "all", false).
+		SetAuhthorization(GetAuthHeader(ctx))
+	resp, body, err := httpclient.PostFileWithConfig(newUrl, tmpFile.Name(), "file", hcc)
 	if err != nil {
 		belogs.Error("ReceiveFileAndPostNewUrl(): upload PostFileHttps failed, err:", newUrl, err)
 		return err

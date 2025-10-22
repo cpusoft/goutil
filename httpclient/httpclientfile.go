@@ -150,7 +150,7 @@ func PostFileAndUnmarshalResponseModel(urlStr string, fileName string,
 	formName string, v interface{}, httpClientConfig *HttpClientConfig) (err error) {
 	resp, body, err := PostFileWithConfig(urlStr, fileName, formName, httpClientConfig)
 	if err != nil {
-		belogs.Error("PostFileAndUnmarshalResponseModel():PostFile failed, urlStr:", urlStr,
+		belogs.Error("PostFileAndUnmarshalResponseModel():PostFileWithConfig failed, urlStr:", urlStr,
 			"   fileName:", fileName, "   formName:", formName,
 			"   httpClientConfig:", jsonutil.MarshalJson(httpClientConfig), err)
 		return err
