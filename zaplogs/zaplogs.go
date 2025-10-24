@@ -176,6 +176,8 @@ type CustomClaims struct {
 	jwt.RegisteredClaims                        // 内嵌标准的声明
 }
 
+// same as in jwtutil.go
+// same as in zaplogs.go
 const JWT_CTX_CustomClaims_Infos = "CustomClaims.Infos"
 
 func appendZap(ctx context.Context) (fields []Field) {

@@ -1,11 +1,18 @@
 package jwtutil
 
 import (
+	"context"
 	"errors"
+	"time"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/idutil"
 	jwt "github.com/golang-jwt/jwt/v5"
 )
+
+// same as in jwtutil.go
+// same as in zaplogs.go
+const JWT_CTX_CustomClaims_Infos = "CustomClaims.Infos"
 
 /*
 Example:
@@ -65,4 +72,17 @@ func ParseToken(token string, password string) (*CustomClaims, error) {
 		return nil, errors.New("token is invalid")
 	}
 	return claims, nil
+}
+
+// m := make(map[string]interface{})
+// m["traceId"] = "ginserver-background-traceId"
+// m["opLogId"] = "ginserver-background-opLogId"
+func NewCtxWithValue(m map[string]interface{}) context.Context {
+	return context.WithValue(context.Background(), JWT_CTX_CustomClaims_Infos, m)
+}
+func NewCtxWithValueDefault() context.Context {
+	m := make(map[string]interface{})
+	m["traceId"], _ = idutil.GenerateSnowflakeString(time.Now().UnixNano())
+	m["opLogId"], _ = idutil.GenerateSnowflakeString(time.Now().UnixNano())
+	return context.WithValue(context.Background(), JWT_CTX_CustomClaims_Infos, m)
 }

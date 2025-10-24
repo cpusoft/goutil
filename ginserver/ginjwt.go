@@ -13,8 +13,10 @@ import (
 )
 
 const (
-	JWT_HEADER_AUTHORIZATION   = "Authorization"
-	JWT_HEADER_PREFIX_BEARER   = "Bearer"
+	JWT_HEADER_AUTHORIZATION = "Authorization"
+	JWT_HEADER_PREFIX_BEARER = "Bearer"
+	// same as in jwtutil.go
+	// same as in zaplogs.go
 	JWT_CTX_CustomClaims_Infos = "CustomClaims.Infos"
 )
 
