@@ -130,8 +130,8 @@ func WhoisAsnAddressPrefixByCymru(query string,
 			whoisCymruResult.Asn, _ = convert.String2Uint64(strings.TrimSpace(split[0]))
 			whoisCymruResult.CountryCode = strings.TrimSpace(split[1])
 			whoisCymruResult.Registry = strings.TrimSpace(split[2])
-			whoisCymruResult.Allocated = strings.TrimSpace(split[3])
-			whoisCymruResult.Owner = strings.TrimSpace(split[4])
+			whoisCymruResult.AllocatedTime = strings.TrimSpace(split[3])
+			whoisCymruResult.OwnerName = strings.TrimSpace(split[4])
 		} else {
 			if len(split) != 7 {
 				belogs.Error("WhoisAsnAddressPrefixByCymru(): isQueryIpPrefix but len(slite)!=3, query:", query,
@@ -145,8 +145,8 @@ func WhoisAsnAddressPrefixByCymru(query string,
 			whoisCymruResult.AddressPrefix = strings.TrimSpace(split[2])
 			whoisCymruResult.CountryCode = strings.TrimSpace(split[3])
 			whoisCymruResult.Registry = strings.TrimSpace(split[4])
-			whoisCymruResult.Allocated = strings.TrimSpace(split[5])
-			whoisCymruResult.Owner = strings.TrimSpace(split[6])
+			whoisCymruResult.AllocatedTime = strings.TrimSpace(split[5])
+			whoisCymruResult.OwnerName = strings.TrimSpace(split[6])
 		}
 		belogs.Debug("WhoisAsnAddressPrefixByCymru(): whoisCymruResult:", jsonutil.MarshalJson(whoisCymruResult))
 		break
