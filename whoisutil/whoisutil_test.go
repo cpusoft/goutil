@@ -31,3 +31,13 @@ func TestGetWhoisResult(t *testing.T) {
 	v = GetValueInWhoisResult(r, "as-name", "aut-num")
 	fmt.Println("as-name:", v)
 }
+func TestWhiosCymru(t *testing.T) {
+	host := `whois.cymru.com`
+	q := `AS266087`
+	whoisConfig := &WhoisConfig{
+		Host: host,
+	}
+	r, e := GetWhoisResultWithConfig(q, whoisConfig)
+	fmt.Println(jsonutil.MarshalJson(r), e)
+
+}
