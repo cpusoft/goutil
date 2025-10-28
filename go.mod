@@ -15,7 +15,7 @@ require (
 	github.com/goccy/go-json v0.10.5
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/lib/pq v1.10.9
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251024044900-572aa7b76af4
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251027134825-bbf5df560120
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/panjf2000/ants/v2 v2.11.3
@@ -35,8 +35,8 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
-	github.com/bytedance/sonic v1.14.1 // indirect
-	github.com/bytedance/sonic/loader v0.3.0 // indirect
+	github.com/bytedance/sonic v1.14.2 // indirect
+	github.com/bytedance/sonic/loader v0.4.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -83,7 +83,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/ugorji/go/codec v1.3.0 // indirect
+	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
