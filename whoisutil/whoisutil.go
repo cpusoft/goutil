@@ -78,11 +78,11 @@ func WhoisAsnAddressPrefixByCymru(query string,
 	var isQueryAsn bool
 	if convert.StringIsDigit(query) {
 		// asn
-		query = `"-v AS` + query + `"`
+		query = `-v AS` + query
 		isQueryAsn = true
 	} else if strings.Contains(query, ".") || strings.Contains(query, ":") {
 		// ip address or prefix
-		query = `"-v ` + query + `"`
+		query = `-v ` + query
 		isQueryAsn = false
 	}
 	belogs.Debug("WhoisAsnAddressPrefixByCymru(): new query:", query, "   isQueryAsn:", isQueryAsn)
