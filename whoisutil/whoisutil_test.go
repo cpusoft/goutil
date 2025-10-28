@@ -33,7 +33,7 @@ func TestGetWhoisResult(t *testing.T) {
 }
 func TestWhiosCymru(t *testing.T) {
 	host := `whois.cymru.com`
-	q := `AS266087`
+	q := `266087`
 	whoisConfig := &WhoisConfig{
 		Host: host,
 		Port: "43",
