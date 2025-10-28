@@ -36,6 +36,7 @@ func TestWhiosCymru(t *testing.T) {
 	q := `AS266087`
 	whoisConfig := &WhoisConfig{
 		Host: host,
+		Port: "43",
 	}
 	r, e := GetWhoisResultWithConfig(q, whoisConfig)
 	fmt.Println(jsonutil.MarshalJson(r), e)
