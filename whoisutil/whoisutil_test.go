@@ -38,7 +38,35 @@ func TestWhiosCymru(t *testing.T) {
 		Host: host,
 		Port: "43",
 	}
-	r, e := GetWhoisResultWithConfig(q, whoisConfig)
+	r, e := WhoisAsnAddressPrefixByCymru(q, whoisConfig)
 	fmt.Println(jsonutil.MarshalJson(r), e)
+	/*
+		whois -h  whois.cymru.com AS266087
+		AS Name
+		Orbitel Telecomunicacoes e Informatica Ltda, BR
+
+		whois -h  whois.cymru.com 216.90.108.31
+		AS      | IP               | AS Name
+		3561    | 216.90.108.31    | CENTURYLINK-LEGACY-SAVVIS, US
+
+		whois -h  whois.cymru.com 8.0.0.0/12
+		AS      | IP               | AS Name
+		3356    | 8.0.0.0          | LEVEL3, US
+
+	*/
+	/*
+		whois -h  whois.cymru.com "-v AS23028"
+		Warning: RIPE flags used with a traditional server.
+		AS      | CC | Registry | Allocated  | AS Name
+		23028   | US | arin     | 2002-01-04 | TEAM-CYMRU, US
+		whois -h  whois.cymru.com "-v 68.22.187.0/24"
+		Warning: RIPE flags used with a traditional server.
+		AS      | IP               | BGP Prefix          | CC | Registry | Allocated  | AS Name
+		23028   | 68.22.187.0      | 68.22.187.0/24      | US | arin     | 2002-03-15 | TEAM-CYMRU, US
+		whois -h  whois.cymru.com "-v 8.8.8.8"
+		Warning: RIPE flags used with a traditional server.
+		AS      | IP               | BGP Prefix          | CC | Registry | Allocated  | AS Name
+		15169   | 8.8.8.8          | 8.8.8.0/24          | US | arin     | 2023-12-28 | GOOGLE, US
+	*/
 
 }

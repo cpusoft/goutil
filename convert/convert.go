@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -285,6 +286,20 @@ func Interface2Time(v interface{}) (time.Time, error) {
 	return time.Now(), errors.New("an interface{} cannot convert to time.Time")
 }
 
+func String2Int(s string) (int, error) {
+	if s == "" {
+		return 0, errors.New("string is empty")
+	}
+	return strconv.Atoi(s)
+}
+
+func String2Uint64(s string) (uint64, error) {
+	if s == "" {
+		return 0, errors.New("string is empty")
+	}
+	return strconv.ParseUint(s, 10, 64)
+}
+
 func Time2String(t time.Time) string {
 	if t.IsZero() {
 		return ""
@@ -321,6 +336,11 @@ func Struct2Map(obj interface{}) map[string]interface{} {
 		data[t.Field(i).Name] = v.Field(i).Interface()
 	}
 	return data
+}
+
+func StringIsDigit(s string) bool {
+	reg := regexp.MustCompile("^[0-9]+$")
+	return reg.MatchString(s)
 }
 
 func ByteIsDigit(b byte) bool {

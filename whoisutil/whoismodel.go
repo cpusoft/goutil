@@ -63,3 +63,28 @@ func newWhoisResult(line string) *WhoisOneResult {
 	belogs.Debug("GetWhoisResult(): line, tmp:", tmp, "   whoisResult:", jsonutil.MarshalJson(c))
 	return c
 }
+
+/*
+whois -h  whois.cymru.com "-v AS23028"
+AS      | CC | Registry | Allocated  | AS Name
+23028   | US | arin     | 2002-01-04 | TEAM-CYMRU, US
+*/
+
+/*
+whois -h  whois.cymru.com "-v 68.22.187.0/24"
+Warning: RIPE flags used with a traditional server.
+AS      | IP               | BGP Prefix          | CC | Registry | Allocated  | AS Name
+23028   | 68.22.187.0      | 68.22.187.0/24      | US | arin     | 2002-03-15 | TEAM-CYMRU, US
+*/
+type WhoisCymruResult struct {
+	QueryType   string `json:"queryType"` // asn, addressprefix
+	Asn         uint64 `json:"asn"`
+	CountryCode string `json:"countryCode"` //cc
+	Registry    string `json:"registry"`
+	Allocated   string `json:"allocated"`
+	Owner       string `json:"owner"` // AsName
+
+	Ip            string `json:"ip,omitempty"`
+	AddressPrefix string `json:"addressPrefix,omitempty"` // BGP Prefix
+
+}
