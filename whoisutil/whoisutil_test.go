@@ -45,7 +45,7 @@ func TestWhiosCymru(t *testing.T) {
 	r, e = WhoisAsnAddressPrefixByCymru(q, whoisConfig)
 	fmt.Println(jsonutil.MarshalJson(r), e)
 
-	q = `216.90/16`
+	q = `216.90.0.0/16`
 	r, e = WhoisAsnAddressPrefixByCymru(q, whoisConfig)
 	fmt.Println(jsonutil.MarshalJson(r), e)
 	/*
