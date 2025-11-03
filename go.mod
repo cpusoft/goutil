@@ -15,7 +15,7 @@ require (
 	github.com/goccy/go-json v0.10.5
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/lib/pq v1.10.9
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251027134825-bbf5df560120
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251102150307-dc64c27abd63
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/panjf2000/ants/v2 v2.11.3
@@ -45,7 +45,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elazarl/goproxy v1.7.2 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.11 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
