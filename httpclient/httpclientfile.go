@@ -85,17 +85,18 @@ func PostFileHttpWithConfig(urlStr string, fileName string, formName string, htt
 
 	fileNameStr := osutil.Base(fileName)
 	belogs.Debug("PostFileHttps():fileNameStr:", fileNameStr)
-	return errorsToerror(gorequest.New().Post(urlStr).
+	superAgent := gorequest.New().Post(urlStr).
 		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Set("Authorization", httpClientConfig.Authorization).
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(b, fileNameStr, formName, true).
-		End())
-
+		SendFile(b, fileNameStr, formName, true)
+	if httpClientConfig.Authorization != "" {
+		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
+	}
+	return errorsToerror(superAgent.End())
 }
 
 // fileName: file name ; FormName:id in form
@@ -129,17 +130,19 @@ func PostFileHttpsWithConfig(urlStr string, fileName string, formName string,
 	fileNameStr := osutil.Base(fileName)
 	belogs.Debug("PostFileHttps():fileNameStr:", fileNameStr)
 	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
-	return errorsToerror(gorequest.New().Post(urlStr).
+	superAgent := gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
 		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Set("Authorization", httpClientConfig.Authorization).
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(b, fileNameStr, formName, true).
-		End())
+		SendFile(b, fileNameStr, formName, true)
+	if httpClientConfig.Authorization != "" {
+		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
+	}
+	return errorsToerror(superAgent.End())
 
 }
 

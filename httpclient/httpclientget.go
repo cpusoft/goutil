@@ -59,10 +59,12 @@ func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp 
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Set("Authorization", httpClientConfig.Authorization).
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
 	if httpClientConfig.ContentType != "" {
 		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
+	}
+	if httpClientConfig.Authorization != "" {
+		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
 	}
 	return errorsToerror(superAgent.End())
 
@@ -108,10 +110,12 @@ func GetHttpsWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Set("Authorization", httpClientConfig.Authorization).
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
 	if httpClientConfig.ContentType != "" {
 		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
+	}
+	if httpClientConfig.Authorization != "" {
+		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
 	}
 	return errorsToerror(superAgent.End())
 
@@ -129,15 +133,20 @@ func GetHttpsResponseWithConfig(urlStr string, httpClientConfig *HttpClientConfi
 	}
 
 	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
-	resp, _, err = errorsToerror(gorequest.New().Head(urlStr).
+	superAgent := gorequest.New().Head(urlStr).
 		TLSClientConfig(config).
 		Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
 		Set("User-Agent", DefaultUserAgent).
 		Set("Referrer", url.Host).
 		Set("Connection", "keep-alive").
-		Set("Authorization", httpClientConfig.Authorization).
-		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
-		End())
+		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
+	if httpClientConfig.ContentType != "" {
+		superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
+	}
+	if httpClientConfig.Authorization != "" {
+		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
+	}
+	resp, _, err = errorsToerror(superAgent.End())
 	return resp, err
 }
 func GetHttpsSupportRangeWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp gorequest.Response,
@@ -226,16 +235,21 @@ func GetHttpsRangeWithConfig(urlStr string, contentLength uint64,
 		wg.Add(1)
 		go func(rangeStrTmp string, iTmp uint64, rangeBodyCh chan rangeBody, wg *sync.WaitGroup) {
 			defer wg.Done()
-			resp, body, err = errorsToerror(gorequest.New().Get(urlStr).
+			superAgent := gorequest.New().Get(urlStr).
 				TLSClientConfig(config).
 				Timeout(time.Duration(httpClientConfig.TimeoutMins)*time.Minute).
 				Set("User-Agent", DefaultUserAgent).
 				Set("Referrer", url.Host).
 				Set("Connection", "keep-alive").
-				Set("Authorization", httpClientConfig.Authorization).
 				Set("Range", rangeStrTmp).
-				Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
-				End())
+				Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...)
+			if httpClientConfig.ContentType != "" {
+				superAgent = superAgent.Set("Content-Type", httpClientConfig.ContentType)
+			}
+			if httpClientConfig.Authorization != "" {
+				superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
+			}
+			resp, body, err := errorsToerror(superAgent.End())
 			if err != nil {
 				belogs.Error("GetHttpsRangeWithConfig(): go Get range fail, iTmp:", iTmp,
 					"  urlStr:", urlStr, "  rangeStrTmp:", rangeStrTmp,
