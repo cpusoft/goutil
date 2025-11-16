@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	sessions "github.com/cpusoft/goutil/gincontribsessions"
 	"github.com/gin-gonic/gin"
 )
 
