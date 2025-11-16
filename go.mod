@@ -1,25 +1,25 @@
 module github.com/cpusoft/goutil
 
-go 1.24.0
-
-toolchain go1.24.7
+go 1.25.0
 
 require (
 	github.com/Andrew-M-C/go.timeconv v0.4.0
 	github.com/beevik/ntp v1.5.0
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/cpusoft/gin-contrib-sessions v0.0.0-20240909025410-814616650739
 	github.com/dgraph-io/badger/v4 v4.8.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/goccy/go-json v0.10.5
 	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/gorilla/context v1.1.2
+	github.com/gorilla/sessions v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251113013923-bd30b77d5468
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/parnurzeal/gorequest v0.2.17-0.20200918112808-3a0cb377f571
+	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b
 	github.com/redis/go-redis/v9 v9.16.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02
@@ -56,9 +56,7 @@ require (
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/flatbuffers v25.9.23+incompatible // indirect
-	github.com/gorilla/context v1.1.2 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
-	github.com/gorilla/sessions v1.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect

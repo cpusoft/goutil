@@ -1,9 +1,9 @@
 package ginsession
 
 import (
-	sessions "github.com/cpusoft/gin-contrib-sessions"
-	"github.com/cpusoft/gin-contrib-sessions/cookie"
 	"github.com/cpusoft/goutil/belogs"
+	sessions "github.com/cpusoft/goutil/gincontribsessions"
+	"github.com/cpusoft/goutil/gincontribsessions/cookie"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/gin-gonic/gin"
 )
