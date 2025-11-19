@@ -78,16 +78,17 @@ func WhoisAsnAddressPrefixByCymru(query string,
 		return nil, nil
 	}
 	var isQueryAsn bool
+	var queryV string
 	if convert.StringIsDigit(query) {
 		// asn
-		query = `-v AS` + query
+		queryV = `-v AS` + query
 		isQueryAsn = true
 	} else if strings.Contains(query, ".") || strings.Contains(query, ":") {
 		// ip address or prefix
-		query = `-v ` + query
+		queryV = `-v ` + query
 		isQueryAsn = false
 	}
-	belogs.Debug("WhoisAsnAddressPrefixByCymru(): new query:", query, "   isQueryAsn:", isQueryAsn)
+	belogs.Debug("WhoisAsnAddressPrefixByCymru(): new queryV:", queryV, "   isQueryAsn:", isQueryAsn)
 
 	if whoisConfig == nil {
 		whoisConfig = &WhoisConfig{
@@ -97,13 +98,13 @@ func WhoisAsnAddressPrefixByCymru(query string,
 	}
 	var cmd *exec.Cmd
 	if whoisConfig == nil {
-		cmd = exec.Command("whois", query)
+		cmd = exec.Command("whois", queryV)
 	} else {
-		cmd = exec.Command("whois", whoisConfig.getParamsWithQuery(query)...)
+		cmd = exec.Command("whois", whoisConfig.getParamsWithQuery(queryV)...)
 	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		belogs.Error("WhoisAsnAddressPrefixByCymru(): exec.Command fail, query:", query,
+		belogs.Error("WhoisAsnAddressPrefixByCymru(): exec.Command fail, queryV:", queryV,
 			"   output: "+string(output), err)
 		return nil, err
 	}
@@ -140,7 +141,10 @@ func WhoisAsnAddressPrefixByCymru(query string,
 			whoisCymruResult.CountryCode = strings.TrimSpace(split[1])
 			whoisCymruResult.Registry = strings.TrimSpace(split[2])
 			whoisCymruResult.AllocatedTime = strings.TrimSpace(split[3])
-			whoisCymruResult.OwnerName = strings.TrimSpace(split[4])
+			if strings.TrimSpace(split[4]) != "NO_NAME" {
+				whoisCymruResult.OwnerName = strings.TrimSpace(split[4])
+			}
+
 		} else {
 			if len(split) != 7 {
 				belogs.Error("WhoisAsnAddressPrefixByCymru(): isQueryIpPrefix but len(slite)!=3, query:", query,
@@ -157,11 +161,16 @@ func WhoisAsnAddressPrefixByCymru(query string,
 			}
 			whoisCymruResult.Asn = asn
 			whoisCymruResult.Ip = strings.TrimSpace(split[1])
-			whoisCymruResult.AddressPrefix = strings.TrimSpace(split[2])
+			if strings.TrimSpace(split[2]) != "NA" {
+				whoisCymruResult.AddressPrefixAssigned = strings.TrimSpace(split[2])
+			}
+			whoisCymruResult.AddressPrefix = queryV
 			whoisCymruResult.CountryCode = strings.TrimSpace(split[3])
 			whoisCymruResult.Registry = strings.TrimSpace(split[4])
 			whoisCymruResult.AllocatedTime = strings.TrimSpace(split[5])
-			whoisCymruResult.OwnerName = strings.TrimSpace(split[6])
+			if strings.TrimSpace(split[6]) != "NO_NAME" {
+				whoisCymruResult.OwnerName = strings.TrimSpace(split[6])
+			}
 		}
 		belogs.Debug("WhoisAsnAddressPrefixByCymru(): whoisCymruResult:", jsonutil.MarshalJson(whoisCymruResult))
 		break
