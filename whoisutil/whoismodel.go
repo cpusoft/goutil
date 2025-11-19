@@ -5,6 +5,7 @@ import (
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/guregu/null/v6"
 )
 
 type WhoisConfig struct {
@@ -77,12 +78,12 @@ AS      | IP               | BGP Prefix          | CC | Registry | Allocated  | 
 23028   | 68.22.187.0      | 68.22.187.0/24      | US | arin     | 2002-03-15 | TEAM-CYMRU, US
 */
 type WhoisCymruResult struct {
-	QueryType     string `json:"queryType"` // asn, addressprefix
-	Asn           uint64 `json:"asn"`
-	CountryCode   string `json:"countryCode"`   //cc
-	Registry      string `json:"registry"`      //rir
-	AllocatedTime string `json:"allocatedTime"` //Allocated
-	OwnerName     string `json:"ownerName"`     // AsName
+	QueryType     string   `json:"queryType"` // asn, addressprefix
+	Asn           null.Int `json:"asn"`
+	CountryCode   string   `json:"countryCode"`   //cc
+	Registry      string   `json:"registry"`      //rir
+	AllocatedTime string   `json:"allocatedTime"` //Allocated
+	OwnerName     string   `json:"ownerName"`     // AsName
 
 	Ip            string `json:"ip,omitempty"`
 	AddressPrefix string `json:"addressPrefix,omitempty"` // BGP Prefix

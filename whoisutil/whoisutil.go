@@ -2,12 +2,14 @@ package whoisutil
 
 import (
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
+	"github.com/guregu/null/v6"
 )
 
 func GetWhoisResult(q string) (whoisResult *WhoisResult, err error) {
@@ -126,8 +128,15 @@ func WhoisAsnAddressPrefixByCymru(query string,
 					"   line:", line, "   split:", jsonutil.MarshalJson(split))
 				continue
 			}
+
 			whoisCymruResult.QueryType = "asn"
-			whoisCymruResult.Asn, _ = convert.String2Uint64(strings.TrimSpace(split[0]))
+			asn, err := asnStrToNullInt(split[0])
+			if err != nil {
+				belogs.Error("WhoisAsnAddressPrefixByCymru(): in asn, asnStrToNullInt fail, query:", query,
+					"   line:", line, "   split[0]:", split[0])
+				continue
+			}
+			whoisCymruResult.Asn = asn
 			whoisCymruResult.CountryCode = strings.TrimSpace(split[1])
 			whoisCymruResult.Registry = strings.TrimSpace(split[2])
 			whoisCymruResult.AllocatedTime = strings.TrimSpace(split[3])
@@ -140,7 +149,13 @@ func WhoisAsnAddressPrefixByCymru(query string,
 			}
 
 			whoisCymruResult.QueryType = "addressPrefix"
-			whoisCymruResult.Asn, _ = convert.String2Uint64(strings.TrimSpace(split[0]))
+			asn, err := asnStrToNullInt(split[0])
+			if err != nil {
+				belogs.Error("WhoisAsnAddressPrefixByCymru(): in addressPrefix, asnStrToNullInt fail, query:", query,
+					"   line:", line, "   split[0]:", split[0])
+				continue
+			}
+			whoisCymruResult.Asn = asn
 			whoisCymruResult.Ip = strings.TrimSpace(split[1])
 			whoisCymruResult.AddressPrefix = strings.TrimSpace(split[2])
 			whoisCymruResult.CountryCode = strings.TrimSpace(split[3])
@@ -155,4 +170,20 @@ func WhoisAsnAddressPrefixByCymru(query string,
 		"   whoisConfig:", jsonutil.MarshalJson(whoisConfig),
 		"   whoisCymruResult:", jsonutil.MarshalJson(whoisCymruResult))
 	return whoisCymruResult, nil
+}
+
+func asnStrToNullInt(asnTmp string) (null.Int, error) {
+	belogs.Debug("asnStrToNullInt(): asnTmp:", asnTmp)
+	asnStr := strings.TrimSpace(asnTmp)
+	if asnStr == "" || asnStr == "NA" {
+		return null.NewInt(0, false), nil
+	} else {
+		asn, err := strconv.Atoi(asnStr)
+		if err != nil {
+			belogs.Error("AsnStrToNullInt(): Atoi fail, asnTmp:", asnTmp,
+				"   asnStr:", asnStr)
+			return null.NewInt(0, false), err
+		}
+		return null.IntFrom(int64(asn)), nil
+	}
 }
