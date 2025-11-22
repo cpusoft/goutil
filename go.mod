@@ -15,19 +15,19 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
 	github.com/lib/pq v1.10.9
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251113013923-bd30b77d5468
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251121144738-613501fc0093
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/parnurzeal/gorequest v0.2.17-0.20200918112808-3a0cb377f571
 	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b
-	github.com/redis/go-redis/v9 v9.16.0
+	github.com/redis/go-redis/v9 v9.17.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
 	github.com/wenzhenxi/gorsa v0.0.0-20230530123828-0320cce15d81
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 	golang.org/x/sync v0.18.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	xorm.io/xorm v1.3.11
@@ -73,8 +73,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/quic-go/quic-go v0.54.0 // indirect
+	github.com/quic-go/qpack v0.6.0 // indirect
+	github.com/quic-go/quic-go v0.57.0 // indirect
 	github.com/shoenig/go-m1cpu v0.1.7 // indirect
 	github.com/smarty/assertions v1.16.0 // indirect
 	github.com/smartystreets/goconvey v1.8.1 // indirect
@@ -91,8 +91,7 @@ require (
 	go.uber.org/mock v0.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/crypto v0.44.0 // indirect
-	golang.org/x/mod v0.30.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect

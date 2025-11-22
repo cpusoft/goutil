@@ -164,7 +164,7 @@ func WhoisAsnAddressPrefixByCymru(query string,
 			if strings.TrimSpace(split[2]) != "NA" {
 				whoisCymruResult.AddressPrefixAssigned = strings.TrimSpace(split[2])
 			}
-			whoisCymruResult.AddressPrefix = queryV
+			whoisCymruResult.AddressPrefix = query
 			whoisCymruResult.CountryCode = strings.TrimSpace(split[3])
 			whoisCymruResult.Registry = strings.TrimSpace(split[4])
 			whoisCymruResult.AllocatedTime = strings.TrimSpace(split[5])
