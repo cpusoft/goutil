@@ -168,7 +168,7 @@ func WhoisAsnAddressPrefixByCymru(query string,
 			whoisCymruResult.CountryCode = strings.TrimSpace(split[3])
 			whoisCymruResult.Registry = strings.TrimSpace(split[4])
 			whoisCymruResult.AllocatedTime = strings.TrimSpace(split[5])
-			if strings.TrimSpace(split[6]) != "NO_NAME" {
+			if strings.TrimSpace(split[6]) != "NO_NAME" && strings.TrimSpace(split[6]) != "NA" {
 				whoisCymruResult.OwnerName = strings.TrimSpace(split[6])
 			}
 		}
