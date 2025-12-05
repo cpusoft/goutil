@@ -127,8 +127,8 @@ func TestPostFile(t *testing.T) {
 
 func TestHttpsPostFile(t *testing.T) {
 
-	resp, body, err := PostFileHttpWithConfig("http://202.173.14.105:8070/parsevalidate/parsefilesimple",
-		`G:\Download\cert\oWhEB7GUTj5ZqlXo7X2VbNrJ9xw.cer`, `file`, nil)
+	resp, body, err := PostFileHttpWithConfig("http://10.1.135.22:8070/parsevalidate/parsefilesimple",
+		`G:\Download\cert\VZPMkzM9chHxN7wfzRxXcSWoWyo.cer`, `file`, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
