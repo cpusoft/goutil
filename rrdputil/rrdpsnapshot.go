@@ -76,8 +76,8 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 		// 2. if support range, will call range download
 		resp, body, err = httpclient.GetHttpsRangeWithConfig(snapshotUrl, contentLength,
 			httpClientConfig.RangeLength, httpClientConfig)
+		defer httpclient.CloseResponseBody(resp)
 		if err == nil {
-			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusOK ||
 				resp.StatusCode == http.StatusPartialContent {
 				downloadOk = true

@@ -92,7 +92,7 @@ func PostFileHttpWithConfig(urlStr string, fileName string, formName string, htt
 		Set("Connection", "keep-alive").
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(b, fileNameStr, formName, true)
+		SendFile(b, fileNameStr, formName)
 	if httpClientConfig.Authorization != "" {
 		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
 	}
@@ -138,7 +138,7 @@ func PostFileHttpsWithConfig(urlStr string, fileName string, formName string,
 		Set("Connection", "keep-alive").
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(b, fileNameStr, formName, true)
+		SendFile(b, fileNameStr, formName)
 	if httpClientConfig.Authorization != "" {
 		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
 	}
@@ -159,14 +159,12 @@ func PostFileAndUnmarshalResponseModel(urlStr string, fileName string,
 func PostFileAndUnmarshalModelWithConfig(urlStr string, fileName string,
 	formName string, v interface{}, httpClientConfig *HttpClientConfig) (err error) {
 	resp, body, err := PostFileWithConfig(urlStr, fileName, formName, httpClientConfig)
+	defer CloseResponseBody(resp)
 	if err != nil {
 		belogs.Error("PostFileAndUnmarshalModelWithConfig():PostFileWithConfig failed, urlStr:", urlStr,
 			"   fileName:", fileName, "   formName:", formName,
 			"   httpClientConfig:", jsonutil.MarshalJson(httpClientConfig), err)
 		return err
-	}
-	if resp != nil {
-		resp.Body.Close()
 	}
 
 	var responseModel ResponseModel

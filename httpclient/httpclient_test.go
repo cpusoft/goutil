@@ -146,7 +146,8 @@ func TestHttpUnMarshalJson(t *testing.T) {
 		fmt.Println(httpResponse, err)
 
 		resp, body, err := Post(url, "", false)
-		resp.Body.Close()
+		defer CloseResponseBody(resp)
+
 		var httpResponse1 HttpResponse
 		err = jsonutil.UnmarshalJson(body, &httpResponse1)
 		fmt.Println(httpResponse1, err)

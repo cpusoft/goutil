@@ -131,13 +131,11 @@ func PostAndUnmarshalResponseModelWithConfig(urlStr, postJson string, v interfac
 		"   httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 
 	resp, body, err := PostWithConfig(urlStr, postJson, httpClientConfig)
+	defer CloseResponseBody(resp)
 	if err != nil {
 		belogs.Error("PostAndUnmarshalResponseModelWithConfig():PostWithConfig failed, urlStr:", urlStr,
 			"   postJson:", postJson, err)
 		return err
-	}
-	if resp != nil {
-		resp.Body.Close()
 	}
 	belogs.Debug("PostAndUnmarshalResponseModelWithConfig(): len(body):", len(body))
 	belogs.Debug("PostAndUnmarshalResponseModelWithConfig(): body:", body)
@@ -173,11 +171,11 @@ func PostAndUnmarshalStructWithConfig(urlStr, postJson string, response interfac
 	belogs.Debug("PostAndUnmarshalStructWithConfig(): urlStr:", urlStr, "   postJson:", postJson,
 		"    response:", reflect.TypeOf(response).Name(), "   httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	resp, body, err := PostWithConfig(urlStr, postJson, httpClientConfig)
+	defer CloseResponseBody(resp)
 	if err != nil {
 		belogs.Error("PostAndUnmarshalStructWithConfig():Post failed, urlStr:", urlStr, "   postJson:", postJson, err)
 		return err
 	}
-	resp.Body.Close()
 
 	// UnmarshalJson to get actual ***Response
 	err = jsonutil.UnmarshalJson(body, response)
@@ -195,11 +193,11 @@ func PostAndUnmarshalResponse(urlStr, postJson string, verifyHttps bool, respons
 	belogs.Debug("PostAndUnmarshalResponse(): urlStr:", urlStr, "   postJson:", postJson,
 		"   verifyHttps:", verifyHttps, "    response:", reflect.TypeOf(response).Name())
 	resp, body, err := Post(urlStr, postJson, verifyHttps)
+	defer CloseResponseBody(resp)
 	if err != nil {
 		belogs.Error("PostAndUnmarshalResponse():Post failed, urlStr:", urlStr, "   postJson:", postJson, err)
 		return err
 	}
-	resp.Body.Close()
 
 	// try UnmarshalJson using HttpResponse to get Result
 	var httpResponse httpserver.HttpResponse

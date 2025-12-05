@@ -295,3 +295,9 @@ func GetHttpsRangeWithConfig(urlStr string, contentLength uint64,
 		"  len(body):", len(body), "  time(s):", time.Since(start))
 	return resp, body, err
 }
+
+func CloseResponseBody(resp gorequest.Response) {
+	if resp != nil && resp.Body != nil {
+		resp.Body.Close()
+	}
+}

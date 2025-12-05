@@ -213,11 +213,11 @@ func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 	hcc := httpclient.NewHttpClientConfigWithParam(5, 3, "all", false).
 		SetAuhthorization(GetAuthHeader(ctx))
 	resp, body, err := httpclient.PostFileWithConfig(newUrl, tmpFile.Name(), "file", hcc)
+	defer httpclient.CloseResponseBody(resp)
 	if err != nil {
 		belogs.Error("ReceiveFileAndPostNewUrl(): upload PostFileHttps failed, err:", newUrl, err)
 		return err
 	}
-	resp.Body.Close()
 	belogs.Debug("ReceiveFileAndPostNewUrl():upload body:", body)
 
 	httpResponse := HttpResponse{}

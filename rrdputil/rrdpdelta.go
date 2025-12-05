@@ -149,8 +149,8 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 	deltaUrl = strings.TrimSpace(deltaUrl)
 	start := time.Now()
 	resp, body, err := httpclient.GetHttpsWithConfig(deltaUrl, httpClientConfig)
+	defer httpclient.CloseResponseBody(resp)
 	if err == nil {
-		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
 			belogs.Error("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl, is not StatusOK:", deltaUrl,
 				"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body)
