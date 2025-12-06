@@ -12,7 +12,6 @@ import (
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/cpusoft/goutil/osutil"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -62,12 +61,12 @@ func PostFileHttpWithConfig(urlStr string, fileName string, formName string, htt
 
 	belogs.Debug("PostFileHttp():url:", urlStr, "   fileName:", fileName,
 		"   formName:", formName, " httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
-	b, err := os.ReadFile(fileName)
-	if err != nil {
-		belogs.Error("PostFileHttp(): ReadFile fail, url:", urlStr, "   fileName:", fileName,
-			"   err:", err)
-		return nil, "", err
-	}
+	//	b, err := os.ReadFile(fileName)
+	//	if err != nil {
+	//		belogs.Error("PostFileHttp(): ReadFile fail, url:", urlStr, "   fileName:", fileName,
+	//			"   err:", err)
+	//		return nil, "", err
+	//	}
 
 	url, err := url.Parse(urlStr)
 	if err != nil {
@@ -83,9 +82,8 @@ func PostFileHttpWithConfig(urlStr string, fileName string, formName string, htt
 		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
 	}
 
-	fileNameStr := osutil.Base(fileName)
-	belogs.Debug("PostFileHttps(): fileName:", fileName, "  fileNameStr:", fileNameStr,
-		"  len(b):", len(b))
+	//	fileNameStr := osutil.Base(fileName)
+	//	belogs.Debug("PostFileHttps(): fileName:", fileName, "  fileNameStr:", fileNameStr) //		"  len(b):", len(b))
 	superAgent := gorequest.New().Post(urlStr).
 		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
@@ -93,7 +91,7 @@ func PostFileHttpWithConfig(urlStr string, fileName string, formName string, htt
 		Set("Connection", "keep-alive").
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(b, fileNameStr, formName) //, true)
+		SendFile(fileName, formName) //, true)
 	if httpClientConfig.Authorization != "" {
 		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
 	}
@@ -106,12 +104,12 @@ func PostFileHttpsWithConfig(urlStr string, fileName string, formName string,
 
 	belogs.Debug("PostFileHttps():url:", urlStr, "   fileName:", fileName,
 		"   formName:", formName, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
-	b, err := os.ReadFile(fileName)
-	if err != nil {
-		belogs.Error("PostFileHttp(): ReadFile fail, url:", urlStr, "   fileName:", fileName,
-			"   err:", err)
-		return nil, "", err
-	}
+	//	b, err := os.ReadFile(fileName)
+	//	if err != nil {
+	//		belogs.Error("PostFileHttp(): ReadFile fail, url:", urlStr, "   fileName:", fileName,
+	//			"   err:", err)
+	//		return nil, "", err
+	//	}
 
 	url, err := url.Parse(urlStr)
 	if err != nil {
@@ -128,9 +126,8 @@ func PostFileHttpsWithConfig(urlStr string, fileName string, formName string,
 		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
 	}
 
-	fileNameStr := osutil.Base(fileName)
-	belogs.Debug("PostFileHttps(): fileName:", fileName, "  fileNameStr:", fileNameStr,
-		" len(b):", len(b))
+	//	fileNameStr := osutil.Base(fileName)
+	//belogs.Debug("PostFileHttps(): fileName:", fileName, "  fileNameStr:", fileNameStr) //,		" len(b):", len(b))
 	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
 	superAgent := gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
@@ -140,7 +137,7 @@ func PostFileHttpsWithConfig(urlStr string, fileName string, formName string,
 		Set("Connection", "keep-alive").
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(b, fileNameStr, formName) //, true)
+		SendFile(fileName, formName) //, true)
 	if httpClientConfig.Authorization != "" {
 		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
 	}
