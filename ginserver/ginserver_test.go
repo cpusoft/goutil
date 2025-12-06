@@ -37,6 +37,8 @@ func TestUploadFile(t *testing.T) {
 	// 动态处理任何文件字段
 	r.POST("/upload", flexibleUploadHandler)
 
+	r.POST("/uploadfile", uploadFile)
+
 	fmt.Println("服务器启动在 :8080")
 	r.Run(":8070")
 	select {}
@@ -145,4 +147,11 @@ func getAvailableFields(form *multipart.Form) []string {
 		fields = append(fields, fieldName)
 	}
 	return fields
+}
+
+func uploadFile(c *gin.Context) {
+
+	receiveFile, err := ReceiveFile(c, "/tmp")
+	fmt.Println("ParseValidateFile(): ReceiveFile, receiveFile:", receiveFile, err)
+
 }
