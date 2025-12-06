@@ -55,12 +55,14 @@ func debugUploadHandler(c *gin.Context) {
 	// 打印所有文件字段
 	fileFields := make(map[string]interface{})
 	for fieldName, files := range form.File {
+		fmt.Println("fieldName:", fieldName, "  files:", files)
 		fileInfo := make([]gin.H, 0)
 		for _, file := range files {
 			fileInfo = append(fileInfo, gin.H{
 				"filename": file.Filename,
 				"size":     file.Size,
 			})
+			fmt.Println("file.Filename:", file.Filename, "  file.Size:", file.Size)
 		}
 		fileFields[fieldName] = fileInfo
 	}
@@ -68,6 +70,7 @@ func debugUploadHandler(c *gin.Context) {
 	// 打印所有普通表单字段
 	textFields := make(map[string]interface{})
 	for key, values := range form.Value {
+		fmt.Println("key:", key, "  values:", values)
 		if len(values) > 0 {
 			textFields[key] = values
 		}
