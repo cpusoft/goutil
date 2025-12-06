@@ -93,7 +93,7 @@ func PostFileHttpWithConfig(urlStr string, fileName string, formName string, htt
 		Set("Connection", "keep-alive").
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(fileName, formName)
+		SendFile(b, fileName, formName, true)
 	if httpClientConfig.Authorization != "" {
 		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
 	}
@@ -140,7 +140,7 @@ func PostFileHttpsWithConfig(urlStr string, fileName string, formName string,
 		Set("Connection", "keep-alive").
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(fileName, formName)
+		SendFile(b, fileName, formName, true)
 	if httpClientConfig.Authorization != "" {
 		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
 	}
