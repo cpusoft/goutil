@@ -110,9 +110,9 @@ func responseJSON(c *gin.Context, status int, v interface{}) {
 func ReceiveFile(c *gin.Context, dir string) (receiveFile string, err error) {
 
 	postForm := c.PostForm("name")
-	file, err := c.FormFile("file")
+	file, err := getFormFile(c)
 	if err != nil {
-		belogs.Error("ReceiveFile(): FormFile fail:", err)
+		belogs.Error("ReceiveFile(): getFormFile fail:", err)
 		return "", err
 	}
 	belogs.Debug("ReceiveFile():dir:", dir, "  postForm:", postForm, "   file.Filename:", file.Filename)
@@ -198,8 +198,13 @@ func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 
 	belogs.Debug("ReceiveFileAndPostNewUrl(): newUrl:", newUrl)
 	ctx := SetToContextWithValue(c)
-	fileHeader, err := c.FormFile("file")
-	tmpFile, tmpDir, err := saveToTmpFile(fileHeader)
+	file, err := getFormFile(c)
+	if err != nil {
+		belogs.Error("ReceiveFileAndPostNewUrl(): getFormFile fail:", err)
+		return err
+	}
+
+	tmpFile, tmpDir, err := saveToTmpFile(file)
 	defer func() {
 		osutil.CloseAndRemoveFile(tmpFile)
 		os.Remove(tmpDir)
@@ -208,6 +213,7 @@ func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 		belogs.Error("ReceiveFileAndPostNewUrl(): saveToTmpFile fail:", err)
 		return err
 	}
+
 	belogs.Info("ReceiveFileAndPostNewUrl():saveToTmpFile tmpFile:", tmpFile.Name(), "  newUrl:", newUrl)
 
 	hcc := httpclient.NewHttpClientConfigWithParam(5, 3, "all", false).
@@ -228,7 +234,7 @@ func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 		return errors.New(httpResponse.Msg)
 
 	}
-	belogs.Info("ReceiveFileAndPostNewUrl(): upload ok ", fileHeader.Filename, jsonutil.MarshalJson(httpResponse))
+	belogs.Info("ReceiveFileAndPostNewUrl(): upload ok ", file.Filename, jsonutil.MarshalJson(httpResponse))
 	return nil
 }
 
@@ -300,3 +306,17 @@ func getRemoteAddr(c *gin.Context) (remoteAddr string, err error) {
 	return remoteAddr, nil
 }
 */
+
+func getFormFile(c *gin.Context) (*multipart.FileHeader, error) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		belogs.Debug("getFormFile(): FormFile file fail, will get file1, fail:", err)
+		file, err = c.FormFile("file1")
+		if err != nil {
+			belogs.Error("getFormFile(): FormFile file1 fail:", err)
+			return nil, err
+		}
+	}
+	belogs.Debug("getFormFile(): file.Filename:", file.Filename)
+	return file, nil
+}
