@@ -12,6 +12,7 @@ import (
 
 	"github.com/cpusoft/goutil/base64util"
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/hashutil"
 	"github.com/cpusoft/goutil/httpclient"
@@ -151,10 +152,10 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 	resp, body, err := httpclient.GetHttpsWithConfig(deltaUrl, httpClientConfig)
 	defer httpclient.CloseResponseBody(resp)
 	if err == nil {
-		if resp.StatusCode != http.StatusOK {
+		if resp == nil || resp.StatusCode != http.StatusOK {
 			belogs.Error("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl, is not StatusOK:", deltaUrl,
 				"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body)
-			return deltaModel, errors.New("http status code of " + deltaUrl + " is " + resp.Status)
+			return deltaModel, errors.New("http status code of " + deltaUrl + " is " + convert.ToString(httpclient.GetStatusCode(resp)))
 		} else {
 			belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl ok:", deltaUrl,
 				"   statusCode:", httpclient.GetStatusCode(resp),

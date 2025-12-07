@@ -78,8 +78,8 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpcli
 			httpClientConfig.RangeLength, httpClientConfig)
 		defer httpclient.CloseResponseBody(resp)
 		if err == nil {
-			if resp.StatusCode == http.StatusOK ||
-				resp.StatusCode == http.StatusPartialContent {
+			if resp != nil && (resp.StatusCode == http.StatusOK ||
+				resp.StatusCode == http.StatusPartialContent) {
 				downloadOk = true
 				belogs.Info("getRrdpSnapshotImplWithConfig():use range, GetHttpsWithConfig ok, snapshotUrl:", snapshotUrl,
 					"   statusCode:", httpclient.GetStatusCode(resp), " supportRange:", supportRange, "   ipAddrs:", ipAddrs,

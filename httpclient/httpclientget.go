@@ -157,7 +157,7 @@ func GetHttpsSupportRangeWithConfig(urlStr string, httpClientConfig *HttpClientC
 		belogs.Error("GetHttpsSupportRangeWithConfig(): GetHttpsResponseWithConfig fail, urlStr:", urlStr, err)
 		return nil, false, 0, err
 	}
-	if resp.StatusCode != http.StatusOK {
+	if resp == nil || resp.StatusCode != http.StatusOK {
 		belogs.Error("GetHttpsSupportRangeWithConfig(): StatusCode is not 200, urlStr:", urlStr,
 			"  statusCode:", GetStatusCode(resp))
 		return nil, false, 0, errors.New("StatusCode is not 200")

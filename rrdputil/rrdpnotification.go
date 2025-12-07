@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/httpclient"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/netutil"
@@ -67,10 +68,10 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 	resp, body, err := httpclient.GetHttpsWithConfig(notificationUrl, httpClientConfig)
 	defer httpclient.CloseResponseBody(resp)
 	if err == nil {
-		if resp.StatusCode != http.StatusOK {
+		if resp == nil || resp.StatusCode != http.StatusOK {
 			belogs.Error("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
 				"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body)
-			return notificationModel, errors.New("http status code of " + notificationUrl + " is " + resp.Status)
+			return notificationModel, errors.New("http status code of " + notificationUrl + " is " + convert.ToString(httpclient.GetStatusCode(resp)))
 		} else {
 			belogs.Debug("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl:", notificationUrl,
 				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   statusCode:", httpclient.GetStatusCode(resp),
@@ -137,7 +138,7 @@ func RrdpNotificationTestConnectWithConfig(notificationUrl string, httpClientCon
 		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig fail, notificationUrl:", notificationUrl, err, "  time(s):", time.Since(start))
 		return errors.New("http error of " + notificationUrl + " is " + err.Error())
 	}
-	if resp.StatusCode != http.StatusOK {
+	if resp == nil || resp.StatusCode != http.StatusOK {
 		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
 			"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body, "   time(s):", time.Since(start))
 		return errors.New("http status code of " + notificationUrl + " is " + resp.Status)
