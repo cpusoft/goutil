@@ -46,7 +46,8 @@ func DownloadUrlFile(urlFile string, localFile string) (int64, error) {
 
 }
 
-// fileName: file name ; FormName:id in form
+// fileName: file name   ;
+// FormName:id in form, Deprecated: will not use
 func PostFileWithConfig(urlStr string, fileName string, formName string, httpClientConfig *HttpClientConfig) (gorequest.Response, string, error) {
 	if strings.HasPrefix(urlStr, "http://") {
 		return PostFileHttpWithConfig(urlStr, fileName, formName, httpClientConfig)
