@@ -12,6 +12,7 @@ import (
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/osutil"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -56,7 +57,8 @@ func PostFileWithConfig(urlStr string, fileName string, formName string, httpCli
 	}
 }
 
-// fileName: file name ; FormName:id in form
+// fileName: file name ;
+// FormName:id in form, Deprecated: will not use
 func PostFileHttpWithConfig(urlStr string, fileName string, formName string, httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
 
 	belogs.Debug("PostFileHttp():url:", urlStr, "   fileName:", fileName,
@@ -82,8 +84,8 @@ func PostFileHttpWithConfig(urlStr string, fileName string, formName string, htt
 		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
 	}
 
-	//	fileNameStr := osutil.Base(fileName)
-	//	belogs.Debug("PostFileHttps(): fileName:", fileName, "  fileNameStr:", fileNameStr) //		"  len(b):", len(b))
+	fileNameStr := osutil.Base(fileName)
+	belogs.Debug("PostFileHttps(): fileName:", fileName, "  fileNameStr:", fileNameStr) //		"  len(b):", len(b))
 	superAgent := gorequest.New().Post(urlStr).
 		Timeout(timeOut).
 		Set("User-Agent", DefaultUserAgent).
@@ -91,14 +93,15 @@ func PostFileHttpWithConfig(urlStr string, fileName string, formName string, htt
 		Set("Connection", "keep-alive").
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(fileName, formName) //, true)
+		SendFile(fileName, fileNameStr) //, true)
 	if httpClientConfig.Authorization != "" {
 		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
 	}
 	return errorsToerror(superAgent.End())
 }
 
-// fileName: file name ; FormName:id in form
+// fileName: file name ;
+// FormName:id in form, Deprecated: will not use
 func PostFileHttpsWithConfig(urlStr string, fileName string, formName string,
 	httpClientConfig *HttpClientConfig) (resp gorequest.Response, body string, err error) {
 
@@ -126,8 +129,8 @@ func PostFileHttpsWithConfig(urlStr string, fileName string, formName string,
 		timeOut = time.Duration(httpClientConfig.TimeoutMillis) * time.Millisecond
 	}
 
-	//	fileNameStr := osutil.Base(fileName)
-	//belogs.Debug("PostFileHttps(): fileName:", fileName, "  fileNameStr:", fileNameStr) //,		" len(b):", len(b))
+	fileNameStr := osutil.Base(fileName)
+	belogs.Debug("PostFileHttps(): fileName:", fileName, "  fileNameStr:", fileNameStr) //,		" len(b):", len(b))
 	config := &tls.Config{InsecureSkipVerify: !httpClientConfig.VerifyHttps}
 	superAgent := gorequest.New().Post(urlStr).
 		TLSClientConfig(config).
@@ -137,7 +140,7 @@ func PostFileHttpsWithConfig(urlStr string, fileName string, formName string,
 		Set("Connection", "keep-alive").
 		Retry(int(httpClientConfig.RetryCount), RetryIntervalSeconds*time.Second, RetryHttpStatus...).
 		Type("multipart").
-		SendFile(fileName, formName) //, true)
+		SendFile(fileName, fileNameStr) //, true)
 	if httpClientConfig.Authorization != "" {
 		superAgent = superAgent.Set("Authorization", httpClientConfig.Authorization)
 	}
