@@ -1,7 +1,6 @@
 package xormdb
 
 import (
-	"database/sql"
 	"fmt"
 	"net"
 	"os"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
-	"github.com/cpusoft/goutil/stringutil"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -19,6 +17,8 @@ import (
 
 var XormEngine = &xorm.Engine{}
 
+// ////////////////////////////////////////////
+// MySQL
 func InitMySql() (err error) {
 	user := conf.String("mysql::user")
 	password := conf.String("mysql::password")
@@ -88,6 +88,8 @@ func InitMySqlParameter(user, password, server, database string, maxidleconns, m
 
 }
 
+// ///////////////////////////////////////////
+// SQLite
 func InitSqlite() (err error) {
 	filepath := conf.String("sqlite::filepath")
 	maxidleconns := conf.Int("sqlite::maxidleconns")
@@ -128,6 +130,8 @@ func InitSqliteParameter(filepath string, maxidleconns, maxopenconns int) (engin
 
 }
 
+// ////////////////////////////////////////////
+// PostgreSQL
 func InitPostgreSQL() (err error) {
 	user := conf.String("postgresql::user")
 	password := conf.String("postgresql::password")
@@ -203,6 +207,8 @@ func InitPostgreSQLParameter(user, password, server, database string, maxidlecon
 
 }
 
+// //////////////////////////////////
+// Session utils
 // get new session, and begin session
 func NewSession() (*xorm.Session, error) {
 	// open mysql session
@@ -234,29 +240,4 @@ func RollbackAndLogError(session *xorm.Session, msg string, err error) error {
 		return err
 	}
 	return nil
-}
-
-func SqlNullString(s string) sql.NullString {
-	if len(s) == 0 {
-		return sql.NullString{}
-	}
-	return sql.NullString{
-		String: s,
-		Valid:  true,
-	}
-}
-
-func SqlNullInt(s int64) sql.NullInt64 {
-	if s < 0 {
-		return sql.NullInt64{}
-	}
-	return sql.NullInt64{
-		Int64: s,
-		Valid: true,
-	}
-}
-
-// Deprecated: should using stringutil.Int64sToInString
-func Int64sToInString(s []int64) string {
-	return stringutil.Int64sToInString(s)
 }
