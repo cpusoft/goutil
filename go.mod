@@ -6,7 +6,7 @@ require (
 	github.com/Andrew-M-C/go.timeconv v0.4.0
 	github.com/beevik/ntp v1.5.0
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/dgraph-io/badger/v4 v4.8.0
+	github.com/dgraph-io/badger/v4 v4.9.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/goccy/go-json v0.10.5
@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
 	github.com/lib/pq v1.10.9
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251212071458-897af4532ed3
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251215094000-f12b9765b373
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/panjf2000/ants/v2 v2.11.3
