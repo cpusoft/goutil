@@ -15,10 +15,10 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
 	github.com/lib/pq v1.10.9
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251226041927-56606de2f6aa
-	github.com/mattn/go-sqlite3 v1.14.32
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251231140407-f302c68012c5
+	github.com/mattn/go-sqlite3 v1.14.33
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/panjf2000/ants/v2 v2.11.3
+	github.com/panjf2000/ants/v2 v2.11.4
 	github.com/parnurzeal/gorequest v0.2.17
 	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b
 	github.com/redis/go-redis/v9 v9.17.2
