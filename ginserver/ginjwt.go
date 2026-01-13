@@ -68,7 +68,7 @@ func SetToContextWithValue(c *gin.Context) context.Context {
 	m, exists := c.Get(JWT_CTX_CustomClaims_Infos)
 	if !exists {
 		belogs.Error("SetToContextWithValue(): get JWT_CTX_CustomClaims_Infos from gin.Context fail, JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos)
-		return nil
+		return context.Background()
 	}
 	belogs.Debug("SetToContextWithValue(): get JWT_CTX_CustomClaims_Infos", "m", jsonutil.MarshalJson(m))
 	authHeader := c.GetHeader(JWT_HEADER_AUTHORIZATION)
