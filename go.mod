@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
 	github.com/lib/pq v1.10.9
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260107035002-7839a335edb5
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260109033043-398149f17e54
 	github.com/mattn/go-sqlite3 v1.14.33
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/panjf2000/ants/v2 v2.11.4
@@ -54,7 +54,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.1 // indirect
-	github.com/goccy/go-yaml v1.19.1 // indirect
+	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
@@ -68,13 +68,13 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.38.3 // indirect
+	github.com/onsi/gomega v1.39.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.58.0 // indirect
+	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/shoenig/go-m1cpu v0.1.7 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
@@ -89,10 +89,10 @@ require (
 	go.uber.org/mock v0.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
-	golang.org/x/net v0.48.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	moul.io/http2curl/v2 v2.3.0 // indirect
