@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/bytedance/sonic"
 )
 
 type Tt struct {
@@ -116,18 +118,18 @@ func TestJson(t *testing.T) {
 	body1 := MarshalJson(user)
 	fmt.Println(body1)
 
-	body1a := MarshallJsonIndent(user)
+	body1a := MarshalJsonIndent(user)
 	fmt.Println(body1a)
 
 	ll := list.New()
 	ll.PushBack(user)
 
-	bodylist := MarshallJsonIndent(&ll)
+	bodylist := MarshalJsonIndent(&ll)
 	fmt.Println(bodylist)
 
 	users := make([]User, 0)
 	users = append(users, user)
-	bodys := MarshallJsonIndent(users)
+	bodys := MarshalJsonIndent(users)
 	fmt.Println(bodys)
 
 	var user1 = User{}
@@ -182,4 +184,18 @@ func TestJsonSyncMap(t *testing.T) {
 	}
 	fmt.Println(failUrls)
 	fmt.Println(MarshalJson(failUrls))
+}
+
+func TestSonicJson(t *testing.T) {
+	user := User{
+		Id:    1,
+		Name:  "wang",
+		Age:   22,
+		Class: "class1",
+	}
+	output, err := sonic.Marshal(&user)
+	fmt.Println("sonic json: ", output, err)
+	var user1 = User{}
+	err = sonic.Unmarshal(output, &user1)
+	fmt.Println("after Unmarshal sonic json: ", user1)
 }
