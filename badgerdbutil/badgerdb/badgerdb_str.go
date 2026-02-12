@@ -263,6 +263,7 @@ func (b *BadgeDBImpl) QueryByCompositeKeyWithTxn(txn *badger.Txn, entity string,
 	}
 	if !exists {
 		return result, false, nil
+		
 	}
 	return result, true, nil
 }

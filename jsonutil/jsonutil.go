@@ -6,12 +6,20 @@ import (
 
 // str := MarshalJson(user)
 func MarshalJson(f interface{}) string {
-	body, err := sonic.Marshal(f)
-	if err != nil {
+	body := MarshalJsonBytes(f)
+	if body == nil {
 		return ""
 	}
 	return string(body)
 }
+func MarshalJsonBytes(f interface{}) []byte {
+	body, err := sonic.Marshal(f)
+	if err != nil {
+		return nil
+	}
+	return body
+}
+
 func MarshalJsonIndent(f interface{}) string {
 	// - 第1个参数：要序列化的对象
 	// - 第2个参数：前缀字符串（每行开头添加的字符串，通常为空）
@@ -28,6 +36,8 @@ var user1 = User{}
 UnmarshalJson(body1, &user1)
 */
 func UnmarshalJson(str string, f interface{}) error {
-
-	return sonic.Unmarshal([]byte(str), &f)
+	return UnmarshalJsonBytes([]byte(str), &f)
+}
+func UnmarshalJsonBytes(data []byte, f interface{}) error {
+	return sonic.Unmarshal(data, &f)
 }
