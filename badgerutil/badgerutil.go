@@ -113,9 +113,11 @@ func BatchUpdateMap[T any](datas map[string]T, expire time.Duration) error {
 		// 达到批次大小，提交Batch
 		if (i+1)%batchSize == 0 {
 			if err := batch.Flush(); err != nil {
-				belogs.Error("BatchUpdateMap(): Flush every batchSize fail, entry:", jsonutil.MarshalJson(entry), err)
+				belogs.Error("BatchUpdateMap(): Flush every batchSize fail, entry:", entry, err)
 				return err
 			}
+			batch.Cancel()                   // 释放当前批次资源
+			batch = badgerDB.NewWriteBatch() // 创建新批次
 		}
 		i++
 	}
@@ -156,6 +158,9 @@ func BatchUpdateKeyFunc[T any](datas []T, expire time.Duration, keyFunc func(T) 
 				belogs.Error("BatchUpdateKeyFunc(): Flush every batchSize fail, entry:", jsonutil.MarshalJson(entry), err)
 				return err
 			}
+			batch.Cancel()                   // 释放当前批次资源
+			batch = badgerDB.NewWriteBatch() // 创建新批次
+
 		}
 	}
 	// 刷新批量写入
