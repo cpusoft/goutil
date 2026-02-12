@@ -232,13 +232,13 @@ func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
 				return err
 			}
 
-			var result T
+			result := make([]T, 0)
 			err = jsonutil.UnmarshalJsonBytes(val, &result)
 			if err != nil {
 				belogs.Error("PrefixView(): UnmarshalJsonBytes fail, value:", string(val), err)
 				return err
 			}
-			results = append(results, result)
+			results = append(results, result...)
 			count++
 		}
 		return nil
