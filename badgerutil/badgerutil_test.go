@@ -65,7 +65,7 @@ func TestInit(t *testing.T) {
 	// 场景3：初始化失败（无效路径）
 	atomic.StoreUint32(&initialized, 0) // 重置状态
 	badgerDB = nil
-	err = Init("/invalid/path/for/badger/test") // 无效路径
+	err = Init("/dev/null/test_badger") // 无效路径
 	assert.Error(t, err)
 	// 验证状态回滚
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&initialized))
