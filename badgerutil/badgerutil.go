@@ -160,7 +160,6 @@ func BatchUpdateKeyFunc[T any](datas []T, expire time.Duration, keyFunc func(T) 
 			}
 			batch.Cancel()                   // 释放当前批次资源
 			batch = badgerDB.NewWriteBatch() // 创建新批次
-
 		}
 	}
 	// 刷新批量写入
