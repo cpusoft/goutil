@@ -107,7 +107,7 @@ func BatchUpdateMap[T any](datas map[string]T, expire time.Duration) error {
 			ExpiresAt: expireAt,
 		}
 		if err := batch.SetEntry(entry); err != nil {
-			belogs.Error("BatchUpdateMap(): SetEntry fail, entry:", jsonutil.MarshalJson(entry), err)
+			belogs.Error("BatchUpdateMap(): SetEntry fail, entry:", entry, err)
 			return err
 		}
 		// 达到批次大小，提交Batch
