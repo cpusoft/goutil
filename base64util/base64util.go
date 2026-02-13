@@ -42,12 +42,17 @@ func TrimBase64(str string) string {
 
 // rm 'BEGIN CERTIFICATE' and 'END CERTIFICATE' and newline
 func DecodeCertBase64(oldBytes []byte) ([]byte, error) {
+
+	if len(oldBytes) == 0 {
+		return []byte{}, nil
+	}
 	isBinary := false
-
 	for _, b := range oldBytes {
-		t := int(b)
-
-		if t < 32 && t != 9 && t != 10 && t != 13 {
+		//	if t < 32 && t != 9 && t != 10 && t != 13 {
+		//		isBinary = true
+		//		break
+		//	}
+		if !((b >= 32 && b <= 126) || b == 9 || b == 10 || b == 13) {
 			isBinary = true
 			break
 		}
@@ -60,9 +65,9 @@ func DecodeCertBase64(oldBytes []byte) ([]byte, error) {
 	txt := string(oldBytes)
 	txt = strings.Replace(txt, "-----BEGIN CERTIFICATE-----", "", -1)
 	txt = strings.Replace(txt, "-----END CERTIFICATE-----", "", -1)
-	txt = strings.Replace(txt, "-", "", -1)
-	txt = strings.Replace(txt, " ", "", -1)
 	txt = stringutil.TrimNewLine(txt)
+	txt = strings.Replace(txt, "\t", "", -1)
+	txt = strings.Replace(txt, " ", "", -1)
 	belogs.Debug("DecodeCertBase64(): txt after Replace: %s", txt)
 	newBytes, err := DecodeBase64(txt)
 	return newBytes, err

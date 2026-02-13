@@ -1,9 +1,167 @@
 package base64util
 
 import (
+	"encoding/base64"
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
+
+// -------------------------- 核心测试用例 --------------------------
+
+// TestEncodeBase64 测试标准Base64编码
+func TestEncodeBase64(t *testing.T) {
+	// 场景1：正常字符串编码
+	src := []byte("hello world")
+	expected := "aGVsbG8gd29ybGQ="
+	result := EncodeBase64(src)
+	assert.Equal(t, expected, result)
+
+	// 场景2：空输入编码
+	srcEmpty := []byte("")
+	expectedEmpty := ""
+	resultEmpty := EncodeBase64(srcEmpty)
+	assert.Equal(t, expectedEmpty, resultEmpty)
+
+	// 场景3：含特殊字符的输入编码
+	srcSpecial := []byte("test!@#$%^&*()")
+	resultSpecial := EncodeBase64(srcSpecial)
+	decoded, err := base64.StdEncoding.DecodeString(resultSpecial)
+	assert.NoError(t, err)
+	assert.Equal(t, srcSpecial, decoded)
+}
+
+// TestDecodeBase64 测试多格式Base64解码
+func TestDecodeBase64(t *testing.T) {
+	rawData := []byte("test base64 decode")
+
+	// 场景1：标准Base64解码
+	stdEncoded := base64.StdEncoding.EncodeToString(rawData)
+	decodedStd, err := DecodeBase64(stdEncoded)
+	assert.NoError(t, err)
+	assert.Equal(t, rawData, decodedStd)
+
+	// 场景2：RawStd编码（无填充）解码
+	rawStdEncoded := base64.RawStdEncoding.EncodeToString(rawData)
+	decodedRawStd, err := DecodeBase64(rawStdEncoded)
+	assert.NoError(t, err)
+	assert.Equal(t, rawData, decodedRawStd)
+
+	// 场景3：URL安全编码解码
+	urlEncoded := base64.URLEncoding.EncodeToString(rawData)
+	decodedURL, err := DecodeBase64(urlEncoded)
+	assert.NoError(t, err)
+	assert.Equal(t, rawData, decodedURL)
+
+	// 场景4：RawURL编码解码
+	rawURLEncoded := base64.RawURLEncoding.EncodeToString(rawData)
+	decodedRawURL, err := DecodeBase64(rawURLEncoded)
+	assert.NoError(t, err)
+	assert.Equal(t, rawData, decodedRawURL)
+
+	// 场景5：无效Base64解码（返回错误）
+	invalidBase64 := "invalid_123_###"
+	decodedInvalid, err := DecodeBase64(invalidBase64)
+	assert.Error(t, err)
+	assert.Nil(t, decodedInvalid)
+
+	// 场景6：空字符串解码
+	decodedEmpty, err := DecodeBase64("")
+	assert.NoError(t, err)
+	assert.Equal(t, []byte(""), decodedEmpty)
+}
+
+// TestTrimBase64 测试Base64文本清理
+func TestTrimBase641(t *testing.T) {
+	// 场景1：含换行、空格、制表符的文本
+	dirtyStr := "  aGVsbG8\n\r\td29ybGQ=  "
+	cleanStr := TrimBase64(dirtyStr)
+	assert.Equal(t, "aGVsbG8d29ybGQ=", cleanStr)
+
+	// 场景2：纯空白文本
+	blankStr := " \n\r\t "
+	trimmedBlank := TrimBase64(blankStr)
+	assert.Equal(t, "", trimmedBlank)
+
+	// 场景3：无需要清理的文本
+	normalStr := "test123+/=-" // 含合法的-
+	trimmedNormal := TrimBase64(normalStr)
+	assert.Equal(t, normalStr, trimmedNormal)
+}
+
+// TestDecodeCertBase64 测试修复后的证书Base64解码（核心场景）
+func TestDecodeCertBase64(t *testing.T) {
+	// 原始证书内容对应的Base64
+	validCertRaw := []byte("test certificate base64 decode")
+	validCertStdBase64 := base64.StdEncoding.EncodeToString(validCertRaw)
+	validCertURLBase64 := base64.URLEncoding.EncodeToString(validCertRaw) // 含-
+
+	// 场景1：合法PEM证书（含BEGIN/END）解码
+	validCertPEM := `-----BEGIN CERTIFICATE-----
+` + validCertStdBase64 + `
+-----END CERTIFICATE-----`
+	decoded1, err := DecodeCertBase64([]byte(validCertPEM))
+	assert.NoError(t, err)
+	assert.Equal(t, validCertRaw, decoded1)
+
+	// 场景2：URL安全的证书Base64（含-）解码（修复过度替换-的问题）
+	validURLCertPEM := `-----BEGIN CERTIFICATE-----
+` + validCertURLBase64 + `
+-----END CERTIFICATE-----`
+	decoded2, err := DecodeCertBase64([]byte(validURLCertPEM))
+	assert.NoError(t, err)
+	assert.Equal(t, validCertRaw, decoded2)
+
+	// 场景3：二进制输入（直接返回原字节）
+	binaryData := []byte{0x00, 0x01, 0x02, 0x7F} // 含<32的二进制字符
+	decoded3, err := DecodeCertBase64(binaryData)
+	assert.NoError(t, err)
+	assert.Equal(t, binaryData, decoded3)
+
+	// 场景4：修复后的二进制判断（全空格不再误判）
+	fakeBinary := []byte("   ") // 全是空格（打印字符），判定为文本
+	decoded4, err := DecodeCertBase64(fakeBinary)
+	assert.NoError(t, err)
+	assert.Equal(t, []byte(""), decoded4) // 空文本解码返回空
+
+	// 场景5：空输入解码（修复后返回空字节）
+	decoded5, err := DecodeCertBase64([]byte(""))
+	assert.NoError(t, err)
+	assert.Equal(t, []byte(""), decoded5)
+
+	// 场景6：无BEGIN/END的纯证书Base64解码
+	plainCertBase64 := []byte(validCertStdBase64)
+	decoded6, err := DecodeCertBase64(plainCertBase64)
+	assert.NoError(t, err)
+	assert.Equal(t, validCertRaw, decoded6)
+
+	// 场景7：二进制+文本混合（含<32字符）
+	mixedData := []byte{0x00, 'a', 0x01, 'b'} // 含二进制字符，判定为二进制
+	decoded7, err := DecodeCertBase64(mixedData)
+	assert.NoError(t, err)
+	assert.Equal(t, mixedData, decoded7)
+}
+
+// TestDecodeCertBase64_EdgeCases 测试边缘场景
+func TestDecodeCertBase64_EdgeCases(t *testing.T) {
+	// 场景1：含制表符/换行的PEM证书
+	tabCertPEM := `-----BEGIN CERTIFICATE-----
+	` + base64.StdEncoding.EncodeToString([]byte("test edge case")) + `
+-----END CERTIFICATE-----`
+	decoded1, err := DecodeCertBase64([]byte(tabCertPEM))
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("test edge case"), decoded1)
+
+	// 场景2：含多余空格和-的证书（保留合法-）
+	dirtyCertPEM := `-----BEGIN CERTIFICATE-----
+  dGVzdC1lZGdlLWNhc2UtLS0=  -
+-----END CERTIFICATE-----`
+	decoded2, err := DecodeCertBase64([]byte(dirtyCertPEM))
+	assert.NoError(t, err)
+	// 解码验证：dGVzdC1lZGdlLWNhc2UtLS0= → test-edge-case--
+	assert.Equal(t, []byte("test-edge-case--"), decoded2)
+}
 
 /*
 	func TestASA(t *testing.T) {
