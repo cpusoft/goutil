@@ -1,6 +1,8 @@
 package jsonutil
 
 import (
+	"errors"
+
 	"github.com/bytedance/sonic"
 )
 
@@ -36,8 +38,14 @@ var user1 = User{}
 UnmarshalJson(body1, &user1)
 */
 func UnmarshalJson(str string, f interface{}) error {
-	return UnmarshalJsonBytes([]byte(str), &f)
+	return UnmarshalJsonBytes([]byte(str), f)
 }
 func UnmarshalJsonBytes(data []byte, f interface{}) error {
-	return sonic.Unmarshal(data, &f)
+	if f == nil {
+		return errors.New("UnmarshalJsonBytes(): target object is nil")
+	}
+	if len(data) == 0 {
+		return errors.New("UnmarshalJsonBytes(): input data is empty")
+	}
+	return sonic.Unmarshal(data, f)
 }
