@@ -235,10 +235,17 @@ func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
 			result := make([]T, 0)
 			err = jsonutil.UnmarshalJsonBytes(val, &result)
 			if err != nil {
-				belogs.Error("PrefixView(): UnmarshalJsonBytes fail, value:", string(val), err)
-				return err
+				belogs.Debug("PrefixView(): UnmarshalJsonBytes list fail, will try single model again, value:", string(val), err)
+				var resultOne T
+				err = jsonutil.UnmarshalJsonBytes(val, &resultOne)
+				if err != nil {
+					belogs.Error("PrefixView(): UnmarshalJsonBytes single and list both fail, value:", string(val), err)
+					return err
+				}
+				results = append(results, resultOne)
+			} else {
+				results = append(results, result...)
 			}
-			results = append(results, result...)
 			count++
 		}
 		return nil
