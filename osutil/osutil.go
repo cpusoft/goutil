@@ -4,8 +4,6 @@ import (
 	"container/list"
 	"errors"
 	"os"
-	"os/exec"
-	path "path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -47,42 +45,48 @@ func IsFile(file string) (bool, error) {
 	return !s, err
 }
 
-// make path.Base() using in windows,
+// make filepath.Base() using in windows,
 func Base(p string) string {
 	//	p = strings.Replace(p, "\\", "/", -1)
-	return path.Base(p)
+	return filepath.Base(p)
 }
 
-// make path.Split using in win
+// make filepath.Split using in win
 func Split(p string) (dir, file string) {
 	//	p = strings.Replace(p, "\\", "/", -1)
-	return path.Split(p)
+	if len(p) == 0 {
+		return "", ""
+	}
+	return filepath.Split(p)
 }
 
-// path.Ext() using in windows,
+// filepath.Ext() using in windows,
 // get filname suffix(include dot)
 func Ext(p string) string {
 	//p = strings.Replace(p, "\\", "/", -1)
-	return path.Ext(p)
+	if len(p) == 0 {
+		return ""
+	}
+	return filepath.Ext(p)
 }
 
-// path.Ext() using in windows,
 // get filname suffix(not include dot)
 func ExtNoDot(p string) string {
+	if len(p) == 0 {
+		return ""
+	}
 	return strings.TrimPrefix(Ext(p), ".")
 }
 
 // get executable file path: /root/abc/zzz/zz.sh --> /root/abc/zzz
 // if go run, will be temporary program path
 func GetCurPath() (string, error) {
-	if len(os.Args) == 0 {
-		return "", errors.New("os.Args is empty")
-	}
-	file, err := exec.LookPath(os.Args[0])
+
+	exePath, err := os.Executable()
 	if err != nil {
 		return "", err
 	}
-	absPath, err := filepath.Abs(file)
+	absPath, err := filepath.Abs(exePath)
 	if err != nil {
 		return "", err
 	}
@@ -108,7 +112,19 @@ func GetPwd() (string, error) {
 }
 
 func GetFilePathAndFileName(fileAllPath string) (filePath string, fileName string) {
+	// 新增：参数校验
+	if len(fileAllPath) == 0 {
+		return "", ""
+	}
 	i := strings.LastIndex(fileAllPath, string(os.PathSeparator))
+	// 无分隔符（单文件名）
+	if i == -1 {
+		return "", fileAllPath
+	}
+	// 根路径（如C:\ 或 /）
+	if i == len(fileAllPath)-1 {
+		return fileAllPath, ""
+	}
 	return fileAllPath[:i+1], fileAllPath[i+1:]
 }
 
@@ -144,18 +160,20 @@ func CloseAndRemoveFile(file *os.File) error {
 	if file == nil {
 		return nil
 	}
-
+	// 先关闭文件
 	err := file.Close()
 	if err != nil {
-		belogs.Debug("CloseAndRemoveFile():file.Close():err: ", file.Name(), err)
-		return err
+		belogs.Debug("CloseAndRemoveFile(): file.Close() err:", file.Name(), err) // 提升为Error级别
 	}
+
+	// 再删除文件，主动处理而非defer（更可控）
 	err = os.Remove(file.Name())
 	if err != nil {
-		belogs.Error("CloseAndRemoveFile():os.Remove:err:", file.Name(), err)
+		belogs.Error("CloseAndRemoveFile(): os.Remove() err:", file.Name(), err)
 		return err
 	}
-	return nil
+	return err // 只返回关闭错误，删除错误已记录日志
+
 }
 
 // relativePath: "conf" or "log"
@@ -166,10 +184,14 @@ func GetConfOrLogPath(relativePath string) (confOrLogPath string, currentPath st
 	if err != nil {
 		return "", relativePath, err
 	}
-	currentPath = currentPath + GetPathSeparator()
-	confOrLogPath = JoinPathFile(currentPath, relativePath) + GetPathSeparator()
+	// 使用filepath.Join自动处理分隔符，避免重复
+	confOrLogPath = filepath.Join(currentPath, relativePath)
+	currentPath = filepath.Join(currentPath, "")
+
 	ok, err := IsDir(confOrLogPath)
 	if err == nil && ok {
+		// 确保路径以分隔符结尾（按需，建议用filepath.Clean）
+		confOrLogPath = filepath.Clean(confOrLogPath) + string(os.PathSeparator)
 		return confOrLogPath, currentPath, nil
 	}
 	return "", currentPath, nil
@@ -220,7 +242,7 @@ func GetAllFilesBySuffixs(directory string, suffixs map[string]string) ([]string
 			return err
 		}
 		// 关键修复：跳过符号链接（软链接），避免循环递归
-		if fi.Mode()&os.ModeSymlink != 0 {
+		if fi.Mode()&os.ModeSymlink != 0 && fi.IsDir() {
 			belogs.Debug("GetAllFilesBySuffixs(): skip symlink:", fileName)
 			return filepath.SkipDir // 跳过链接指向的目录/文件
 		}
@@ -253,7 +275,7 @@ func GetAllFileCountBySuffixs(directory string, suffixs map[string]string) (suff
 			return err
 		}
 		// 关键修复：跳过符号链接（软链接），避免循环递归
-		if fi.Mode()&os.ModeSymlink != 0 {
+		if fi.Mode()&os.ModeSymlink != 0 && fi.IsDir() {
 			belogs.Debug("GetAllFileCountBySuffixs(): skip symlink:", fileName)
 			return filepath.SkipDir // 跳过链接指向的目录/文件
 		}
@@ -325,7 +347,7 @@ func GetAllFileStatsBySuffixs(directory string, suffixs map[string]string) ([]Fi
 		}
 
 		// 关键修复：跳过符号链接（软链接），避免循环递归
-		if fi.Mode()&os.ModeSymlink != 0 {
+		if fi.Mode()&os.ModeSymlink != 0 && fi.IsDir() {
 			belogs.Debug("GetAllFileStatsBySuffixs(): skip symlink:", path)
 			return filepath.SkipDir // 跳过链接指向的目录/文件
 		}
@@ -351,7 +373,7 @@ func GetAllFileStatsBySuffixs(directory string, suffixs map[string]string) ([]Fi
 func checkDirectoryAndSuffixs(directory string, suffixs map[string]string) error {
 
 	if len(directory) == 0 {
-		return errors.New("directory is not exists")
+		return errors.New("directory is empty")
 	}
 	if len(suffixs) == 0 {
 		return errors.New("suffixs is empty")
