@@ -57,12 +57,17 @@ func init() {
 	} else {
 		logName = conf.String("logs::name")
 	}
-	path, err := osutil.GetCurrentOrParentAbsolutePath("log")
+	var filePath string
+	logPath, currentPath, err := osutil.GetConfOrLogPath("log")
 	if err != nil {
-		fmt.Println("found " + path + " failed, " + err.Error())
-		return
+		fmt.Println("zaplogs():GetConfOrLogPath conf failed, " + err.Error())
 	}
-	filePath := path + string(os.PathSeparator) + logName
+	if logPath == "" {
+		fmt.Println("zaplogs():found logpath failed, use currentPath:", currentPath)
+		filePath = currentPath + logName
+	} else {
+		filePath = logPath + logName
+	}
 	fmt.Println(filePath)
 	lc := logConfig{
 		Level:    logLevelStr, // DEBUG<INFO<WARN<ERROR<FATAL

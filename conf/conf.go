@@ -38,14 +38,18 @@ func init() {
 
 	// decide by "conf" directory
 	if conf == "" {
-		path, err := osutil.GetCurrentOrParentAbsolutePath("conf")
+		confPath, currentPath, err := osutil.GetConfOrLogPath("conf")
 		if err != nil {
-			fmt.Println("found " + path + " failed, " + err.Error())
-			return
+			fmt.Println("conf():GetConfOrLogPath conf failed, " + err.Error())
 		}
-		conf = path + string(os.PathSeparator) + "project.conf"
+		if confPath == "" {
+			fmt.Println("conf():found confPath failed, use currentPath:", currentPath)
+			conf = currentPath + "project.conf"
+		} else {
+			conf = confPath + "project.conf"
+		}
 	}
-	//fmt.Println("conf file is ", conf)
+	fmt.Println("conf file is ", conf)
 	configure, err = config.NewConfig("ini", conf)
 	if err != nil {
 		fmt.Println("Loaded configuration file " + conf + " is not in ini format. " + err.Error())

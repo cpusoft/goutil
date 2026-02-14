@@ -57,12 +57,18 @@ func init() {
 	//ts := time.Now().Format("2006-01-02")
 
 	//
-	path, err := osutil.GetCurrentOrParentAbsolutePath("log")
+	var filePath string
+	logPath, currentPath, err := osutil.GetConfOrLogPath("log")
 	if err != nil {
-		fmt.Println("found " + path + " failed, " + err.Error())
+		fmt.Println(filePath + " GetConfOrLogPath log failed, " + err.Error())
 	}
-	filePath := path + string(os.PathSeparator) + logName
-	//fmt.Println("log file is ", filePath)
+	if logPath == "" {
+		fmt.Println("belogs():found logpath failed, use currentPath:", currentPath)
+		filePath = currentPath + logName
+	} else {
+		filePath = logPath + logName
+	}
+	fmt.Println("belogs():log file is ", filePath)
 
 	logConfig := make(map[string]interface{})
 	logConfig["daily"] = true

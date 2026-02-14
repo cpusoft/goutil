@@ -17,6 +17,9 @@ import (
 
 // judge file is or not exists.
 func IsExists(file string) (bool, error) {
+	if len(file) == 0 {
+		return false, errors.New("file is empty")
+	}
 	_, err := os.Stat(file)
 	if err == nil {
 		return true, nil
@@ -29,6 +32,9 @@ func IsExists(file string) (bool, error) {
 
 // judge file is dir or not.
 func IsDir(file string) (bool, error) {
+	if len(file) == 0 {
+		return false, errors.New("file is empty")
+	}
 	s, err := os.Stat(file)
 	if err != nil {
 		return false, err
@@ -43,65 +49,76 @@ func IsFile(file string) (bool, error) {
 
 // make path.Base() using in windows,
 func Base(p string) string {
-	p = strings.Replace(p, "\\", "/", -1)
+	//	p = strings.Replace(p, "\\", "/", -1)
 	return path.Base(p)
 }
 
 // make path.Split using in win
 func Split(p string) (dir, file string) {
-	p = strings.Replace(p, "\\", "/", -1)
+	//	p = strings.Replace(p, "\\", "/", -1)
 	return path.Split(p)
 }
 
 // path.Ext() using in windows,
 // get filname suffix(include dot)
 func Ext(p string) string {
-	p = strings.Replace(p, "\\", "/", -1)
+	//p = strings.Replace(p, "\\", "/", -1)
 	return path.Ext(p)
 }
 
 // path.Ext() using in windows,
 // get filname suffix(not include dot)
 func ExtNoDot(p string) string {
-	return strings.Replace(Ext(p), ".", "", -1)
-}
-
-// get executable file's parent path: /root/abc/zzz/zz.sh --> /root/abc
-// if go run, will be temporary program's parent path
-func GetParentPath() string {
-	file, _ := exec.LookPath(os.Args[0])
-	path, _ := filepath.Abs(file)
-	dirs := strings.Split(path, string(os.PathSeparator))
-	index := len(dirs)
-	if len(dirs) > 2 {
-		index = len(dirs) - 2
-	}
-	ret := strings.Join(dirs[:index], string(os.PathSeparator))
-	return ret
+	return strings.TrimPrefix(Ext(p), ".")
 }
 
 // get executable file path: /root/abc/zzz/zz.sh --> /root/abc/zzz
 // if go run, will be temporary program path
-func GetCurPath() string {
-	file, _ := exec.LookPath(os.Args[0])
-	path, _ := filepath.Abs(file)
-	return path
+func GetCurPath() (string, error) {
+	if len(os.Args) == 0 {
+		return "", errors.New("os.Args is empty")
+	}
+	file, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		return "", err
+	}
+	absPath, err := filepath.Abs(file)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(absPath), nil
+}
+
+// get executable file's parent path: /root/abc/zzz/zz.sh --> /root/abc
+// if go run, will be temporary program's parent path
+func GetParentPath() (string, error) {
+	execDir, err := GetCurPath()
+	if err != nil {
+		return "", err
+	}
+	// 再获取目录的父目录（/root/abc）
+	parentDir := filepath.Dir(execDir)
+	return parentDir, nil
 }
 
 // get current working directory: /root/abc/zzz/zz.exe --> /root/abc/zzz
 // if go run, will current path
-func GetPwd() string {
-	pwd, _ := os.Getwd()
-	return pwd
+func GetPwd() (string, error) {
+	return os.Getwd()
 }
 
 // Deprecated, will use GetAllFilesBySuffixs()
 func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string) *list.List {
 
-	absolutePath, _ := filepath.Abs(directory)
+	absolutePath, err := filepath.Abs(directory)
+	if err != nil {
+		belogs.Error("GetAllFilesInDirectoryBySuffixs(): abs fail, directory:", directory, err)
+		return nil
+	}
 	listStr := list.New()
 	filepath.Walk(absolutePath, func(filename string, fi os.FileInfo, err error) error {
 		if err != nil || len(filename) == 0 || nil == fi {
+			belogs.Error("GetAllFilesInDirectoryBySuffixs(): Walk fail, filename:", filename, "  fi:", fi, err)
 			return err
 		}
 		if !fi.IsDir() {
@@ -117,11 +134,15 @@ func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string
 }
 func GetAllFilesBySuffixs(directory string, suffixs map[string]string) ([]string, error) {
 
-	absolutePath, _ := filepath.Abs(directory)
+	absolutePath, err := filepath.Abs(directory)
+	if err != nil {
+		belogs.Error("GetAllFilesBySuffixs(): abs fail, directory:", directory, err)
+		return nil, err
+	}
 	files := make([]string, 0)
 	filepath.Walk(absolutePath, func(fileName string, fi os.FileInfo, err error) error {
 		if err != nil || len(fileName) == 0 || nil == fi {
-			belogs.Debug("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
+			belogs.Error("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
 			return err
 		}
 		if !fi.IsDir() {
@@ -138,10 +159,14 @@ func GetAllFilesBySuffixs(directory string, suffixs map[string]string) ([]string
 func GetAllFileCountBySuffixs(directory string, suffixs map[string]string) (suffixCount map[string]uint64, err error) {
 
 	suffixCount = make(map[string]uint64, 0)
-	absolutePath, _ := filepath.Abs(directory)
+	absolutePath, err := filepath.Abs(directory)
+	if err != nil {
+		belogs.Error("GetAllFileCountBySuffixs(): abs fail, directory:", directory, err)
+		return nil, err
+	}
 	filepath.Walk(absolutePath, func(fileName string, fi os.FileInfo, err error) error {
 		if err != nil || len(fileName) == 0 || nil == fi {
-			belogs.Debug("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
+			belogs.Error("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
 			return err
 		}
 		if !fi.IsDir() {
@@ -161,6 +186,9 @@ func GetAllFileCountBySuffixs(directory string, suffixs map[string]string) (suff
 }
 
 func GetFilesInDir(directory string, suffixs map[string]string) ([]string, error) {
+	if len(directory) == 0 {
+		return nil, errors.New("directory is empty")
+	}
 	files := make([]string, 0, 10)
 	dir, err := os.ReadDir(directory)
 	if err != nil {
@@ -189,7 +217,12 @@ type FileStat struct {
 
 func GetAllFileStatsBySuffixs(directory string, suffixs map[string]string) ([]FileStat, error) {
 
-	absolutePath, _ := filepath.Abs(directory)
+	absolutePath, err := filepath.Abs(directory)
+	if err != nil {
+		belogs.Error("GetAllFileStatsBySuffixs(): abs fail, directory:", directory, err)
+		return nil, err
+	}
+
 	fileStats := make([]FileStat, 0)
 	filepath.Walk(absolutePath, func(path string, fi os.FileInfo, err error) error {
 		if err != nil || len(path) == 0 || nil == fi {
@@ -224,7 +257,7 @@ func GetNewLineSep() string {
 	switch runtime.GOOS {
 	case "windows":
 		return "\r\n"
-	case "linux":
+	case "linux", "darwin":
 		return "\n"
 	default:
 		return "\n"
@@ -237,30 +270,23 @@ func GetPathSeparator() string {
 }
 
 func JoinPathFile(pathName, fileName string) string {
-	fileName = strings.Replace(fileName, `/`, string(os.PathSeparator), -1)
-	fileName = strings.Replace(fileName, `\`, string(os.PathSeparator), -1)
-	pathName = strings.Replace(pathName, `/`, string(os.PathSeparator), -1)
-	pathName = strings.Replace(pathName, `\`, string(os.PathSeparator), -1)
-	if !strings.HasSuffix(pathName, string(os.PathSeparator)) && !strings.HasPrefix(fileName, string(os.PathSeparator)) {
-		pathName = pathName + string(os.PathSeparator)
-	}
-	return pathName + fileName
+	//	fileName = strings.Replace(fileName, `/`, string(os.PathSeparator), -1)
+	//	fileName = strings.Replace(fileName, `\`, string(os.PathSeparator), -1)
+	//	pathName = strings.Replace(pathName, `/`, string(os.PathSeparator), -1)
+	//	pathName = strings.Replace(pathName, `\`, string(os.PathSeparator), -1)
+	//	if !strings.HasSuffix(pathName, string(os.PathSeparator)) && !strings.HasPrefix(fileName, string(os.PathSeparator)) {
+	//		pathName = pathName + string(os.PathSeparator)
+	//	}
+	//	return pathName + fileName
+	return filepath.Join(pathName, fileName)
 }
 
 func CloseAndRemoveFile(file *os.File) error {
 	if file == nil {
 		return nil
 	}
-	s, err := IsExists(file.Name())
-	if err != nil {
-		belogs.Debug("CloseAndRemoveFile():IsExists:err: ", file.Name(), err)
-		return err
-	}
-	if !s {
-		return nil
-	}
 
-	err = file.Close()
+	err := file.Close()
 	if err != nil {
 		belogs.Debug("CloseAndRemoveFile():file.Close():err: ", file.Name(), err)
 		return err
@@ -268,27 +294,24 @@ func CloseAndRemoveFile(file *os.File) error {
 	err = os.Remove(file.Name())
 	if err != nil {
 		belogs.Error("CloseAndRemoveFile():os.Remove:err:", file.Name(), err)
-		return nil
+		return err
 	}
 	return nil
 }
 
-// only use in goutil/conf and goutil/log.    .
 // relativePath: "conf" or "log"
-// dont use in others.
-func GetCurrentOrParentAbsolutePath(relativePath string) (absolutePath string, err error) {
-	path := GetPwd()
-	absolutePath = path + GetPathSeparator() + relativePath
-	ok, err := IsDir(absolutePath)
-	if err == nil && ok {
-		return absolutePath, nil
+// if not exist conf or log, confOrLogPath is "", can use currentPath
+// only use in goutil/conf and goutil/log.  dont use in others.
+func GetConfOrLogPath(relativePath string) (confOrLogPath string, currentPath string, err error) {
+	currentPath, err = GetPwd()
+	if err != nil {
+		return "", relativePath, err
 	}
-	pos := strings.LastIndex(path, GetPathSeparator())
-	path = string([]byte(path)[:pos])
-	absolutePath = path + GetPathSeparator() + relativePath
-	ok, err = IsDir(absolutePath)
+	currentPath = currentPath + GetPathSeparator()
+	confOrLogPath = JoinPathFile(currentPath, relativePath) + GetPathSeparator()
+	ok, err := IsDir(confOrLogPath)
 	if err == nil && ok {
-		return absolutePath, nil
+		return confOrLogPath, currentPath, nil
 	}
-	return "", errors.New("cannot found absolutePath of relativePath " + relativePath)
+	return "", currentPath, nil
 }
