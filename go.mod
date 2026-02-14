@@ -15,11 +15,11 @@ require (
 	github.com/gorilla/context v1.1.2
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
-	github.com/lib/pq v1.11.1
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260202110255-d427b4dcd879
-	github.com/mattn/go-sqlite3 v1.14.33
+	github.com/lib/pq v1.11.2
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260212121150-44fd27f02786
+	github.com/mattn/go-sqlite3 v1.14.34
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/panjf2000/ants/v2 v2.11.4
+	github.com/panjf2000/ants/v2 v2.11.5
 	github.com/parnurzeal/gorequest v0.2.17
 	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b
 	github.com/redis/go-redis/v9 v9.17.3
@@ -44,7 +44,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.4.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/elazarl/goproxy v1.8.1 // indirect
+	github.com/elazarl/goproxy v1.8.2 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
@@ -59,7 +59,7 @@ require (
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.3 // indirect
+	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20251013123823-9fd1530e3ec3 // indirect
@@ -88,11 +88,11 @@ require (
 	go.opentelemetry.io/otel/trace v1.40.0 // indirect
 	go.uber.org/mock v0.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/crypto v0.47.0 // indirect
-	golang.org/x/net v0.49.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/arch v0.24.0 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	moul.io/http2curl/v2 v2.3.0 // indirect

@@ -9,7 +9,6 @@ import (
 
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
-	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
@@ -184,6 +183,7 @@ type CustomClaims struct {
 // same as in zaplogs.go
 const JWT_CTX_CustomClaims_Infos = "CustomClaims.Infos"
 
+// DONOT use DebugArgs() in appendZap() to avoid infinite loop, because DebugArgs() will call appendZap() again, and then DebugArgs() will call appendZap() again, and so on, which will cause stack overflow.
 func appendZap(ctx context.Context) (fields []Field) {
 	fields = make([]Field, 0)
 	if ctx == nil {
@@ -191,46 +191,37 @@ func appendZap(ctx context.Context) (fields []Field) {
 	}
 	cc := ctx.Value(JWT_CTX_CustomClaims_Infos)
 	if cc == nil {
-		DebugArgs(ctx, "appendZap(): get Value",
-			"JWT_CTX_CustomClaims_Infos", JWT_CTX_CustomClaims_Infos, "cc", jsonutil.MarshalJson(cc))
 		return fields
 	}
 	m, ok := cc.(map[string]interface{})
 	if !ok {
-		ErrorArgs(ctx, "appendZap(): get map is nil", "cc", cc)
 		return fields
 	}
 	for key, value := range m {
 		fields = append(fields, zap.String(key, convert.ToString(value)))
 	}
-	//	DebugArgs(ctx, "appendZap(): get fields", "fields", jsonutil.MarshalJson(fields), "m", m)
 	return fields
 }
 
+// DONOT use DebugArgs() in appendZap() to avoid infinite loop, because DebugArgs() will call appendZap() again, and then DebugArgs() will call appendZap() again, and so on, which will cause stack overflow.
 func appendInterface(ctx context.Context) (args []interface{}) {
 	args = make([]interface{}, 0)
 	if ctx == nil {
-		DebugArgs(ctx, "appendInterface(): ctx is nil")
 		return args
 	}
-	//	DebugArgs(ctx, "appendInterface(): get ctx", "ctx", ctx)
 
 	cc := ctx.Value(JWT_CTX_CustomClaims_Infos)
 	if cc == nil {
-		DebugArgs(ctx, "appendInterface(): Value JWT_CTX_CustomClaims_Infos", "JWT_CTX_CustomClaims_Infos", JWT_CTX_CustomClaims_Infos, "cc", jsonutil.MarshalJson(cc))
 		return args
 	}
-	//	DebugArgs(ctx, "appendInterface(): get cc", "cc", cc)
 
 	m, ok := cc.(map[string]interface{})
 	if !ok {
-		ErrorArgs(ctx, "appendInterface(): get CustomClaims is not ok", "cc", cc)
 		return args
 	}
 	for key, value := range m {
 		args = append(args, key, value)
 	}
-	//	DebugArgs(ctx, "appendInterface(): get args", "args", jsonutil.MarshalJson(args), "m", m)
 	return args
 }
 
@@ -242,11 +233,9 @@ func DebugFields(ctx context.Context, msg string, fields ...Field) {
 
 // Debug in Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
 func DebugArgs(ctx context.Context, msg string, args ...interface{}) {
-	//	DebugArgs(ctx, "DebugArgs(): in ctx", "ctx", ctx, "args", args)
 	len := len(args) % 2
 	if len != 0 {
 		args = append(args, " ")
-		//		ErrorArgs(ctx, "DebugArgs(): args are odd numbers, new args:", "args", args)
 	}
 	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Debugw(msg, args...)
@@ -270,7 +259,6 @@ func InfoArgs(ctx context.Context, msg string, args ...interface{}) {
 	len := len(args) % 2
 	if len != 0 {
 		args = append(args, " ")
-		//		DebugArgs(ctx, "InfoArgs(): args are odd numbers, new args:", "args", args)
 	}
 	sugaredLogger.Infow(msg, args...)
 }
@@ -293,7 +281,6 @@ func ErrorArgs(ctx context.Context, msg string, args ...interface{}) {
 	len := len(args) % 2
 	if len != 0 {
 		args = append(args, " ")
-		//	DebugArgs(ctx, "ErrorArgs(): args are odd numbers, new args:", "args", args)
 	}
 	sugaredLogger.Errorw(msg, args...)
 }
@@ -305,8 +292,6 @@ func ErrorLine(ctx context.Context, msg string, args ...interface{}) {
 }
 
 func DeferSync() {
-	// 调用内核的Sync方法，刷新所有缓冲的日志条目。
-	// 应用程序应该注意在退出之前调用Sync。
 	logger.Sync()
 	sugaredLogger.Sync()
 }
