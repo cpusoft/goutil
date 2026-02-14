@@ -24,7 +24,7 @@ var sugaredLogger *zap.SugaredLogger
 func init() {
 
 	var logLevelStr string
-	logLevel := conf.DefaultString("logs::level", "LevelInfo")
+	logLevel := conf.DefaultString("logs::level", "LevelDebug")
 
 	//DEBUG<INFO<WARN<ERROR<FATAL
 	switch logLevel {
@@ -45,9 +45,7 @@ func init() {
 	case "LevelDebug":
 		logLevelStr = "debug"
 	}
-	if logLevel == "" {
-		logLevel = "info" // default level
-	}
+
 	// get level
 	// get process file name as log name
 	logName := filepath.Base(os.Args[0])
