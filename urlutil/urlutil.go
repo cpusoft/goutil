@@ -4,181 +4,274 @@ import (
 	"errors"
 	"net"
 	"net/url"
+	"path/filepath"
 	"strings"
 
 	"github.com/cpusoft/goutil/osutil"
 )
 
+func GetHostWithoutPort(host string) string {
+	h, _, err := net.SplitHostPort(host)
+	if err != nil {
+		// 无端口时返回原host（如IPv6地址[2001:db8::1]）
+		return host
+	}
+	return h
+}
+
+func checkUrlHost(urlStr string) (*url.URL, error) {
+	// 修复1：处理空格字符串
+	trimmedUrl := strings.TrimSpace(urlStr)
+	if trimmedUrl == "" {
+		return nil, errors.New("URL is empty or only contains whitespace")
+	}
+
+	u, err := url.Parse(trimmedUrl)
+	if err != nil {
+		return nil, err
+	}
+	if len(u.Host) == 0 {
+		return nil, errors.New("URL host is empty")
+	}
+	return u, nil
+}
+
 // http://server:port/aa/bb/cc.html --> server port
 // http://server/aa/bb/cc.html --> server ""
 func HostAndPort(urlStr string) (host, port string, err error) {
-	u, err := url.Parse(urlStr)
+	u, err := checkUrlHost(urlStr)
 	if err != nil {
 		return "", "", err
 	}
-	if len(u.Host) == 0 {
-		return "", "", errors.New("it is not in a legal URL format")
+	host, port, err = net.SplitHostPort(u.Host)
+	if err != nil {
+		// 无端口时返回原host和空port
+		return u.Host, "", nil
 	}
-	if strings.Contains(u.Host, ":") {
-		return net.SplitHostPort(u.Host)
-	}
-	return u.Host, "", nil
+	return host, port, nil
 }
 
 // http://server:port/aa/bb/cc.html --> server/aa/bb/
 func HostAndPath(urlStr string) (string, error) {
 
-	u, err := url.Parse(urlStr)
+	u, err := checkUrlHost(urlStr)
 	if err != nil {
 		return "", err
 	}
-	if len(u.Host) == 0 {
-		return "", errors.New("it is not in a legal URL format")
+	host := GetHostWithoutPort(u.Host)
+	decodedHost, err := url.PathUnescape(host)
+	if err != nil {
+		return "", err
 	}
-	pos := strings.LastIndex(u.Path, "/")
-	host := u.Host
-	// if have port
-	if strings.Contains(host, ":") {
-		host = strings.Split(host, ":")[0]
+
+	// 处理空Path/无/的Path
+	path := u.Path
+	// 解码path中的URL编码字符
+	decodedPath, err := url.PathUnescape(path)
+	if err != nil {
+		return "", err
 	}
-	return (host + string(u.Path[:pos+1])), nil
+	if decodedPath == "" {
+		return decodedHost + "/", nil
+	}
+	pos := strings.LastIndex(decodedPath, "/")
+	if pos == -1 {
+		return decodedHost + "/" + decodedPath + "/", nil
+	}
+	return decodedHost + decodedPath[:pos+1], nil
 }
 
 // http://server:port/aa/bb/cc.html --> http://server/aa/bb/
 func SchemeAndHostAndPath(urlStr string) (string, error) {
-	u, err := url.Parse(urlStr)
+	u, err := checkUrlHost(urlStr)
 	if err != nil {
 		return "", err
 	}
-	if len(u.Host) == 0 {
-		return "", errors.New("it is not in a legal URL format")
+
+	scheme := u.Scheme
+	if scheme == "" {
+		scheme = "http" // 兜底：默认http
 	}
-	scheme := u.Scheme + "://"
-	pos := strings.LastIndex(u.Path, "/")
-	host := u.Host
-	// if have port
-	if strings.Contains(host, ":") {
-		host = strings.Split(host, ":")[0]
+	scheme += "://"
+
+	// 用公共函数获取无端口的host
+	host := GetHostWithoutPort(u.Host)
+
+	// 处理空Path/无/的Path
+	path := u.Path
+	if path == "" {
+		return scheme + host + "/", nil
 	}
-	return (scheme + host + string(u.Path[:pos+1])), nil
+	pos := strings.LastIndex(path, "/")
+	if pos == -1 {
+		return scheme + host + "/" + path + "/", nil
+	}
+	return scheme + host + path[:pos+1], nil
 }
 
 // rsync://aa.com:xxx/repo/defautl/xxxx --> rsync://aa.com/repo/
 func SchemeAndHostAndFirstPath(urlStr string) (string, error) {
-	u, err := url.Parse(urlStr)
+	u, err := checkUrlHost(urlStr)
 	if err != nil {
 		return "", err
 	}
-	if len(u.Host) == 0 {
-		return "", errors.New("it is not in a legal URL format")
+	scheme := u.Scheme
+	if scheme == "" {
+		scheme = "http" // 兜底：默认http
 	}
-	scheme := u.Scheme + "://"
-	host := u.Host
-	// if have port
-	if strings.Contains(host, ":") {
-		host = strings.Split(host, ":")[0]
-	}
+	scheme += "://"
 
+	// 用公共函数获取无端口的host
+	host := GetHostWithoutPort(u.Host)
+
+	// 路径拆分逻辑（处理开头/、空Path、多级空路径）
 	path := u.Path
-	split := strings.Split(path, `/`)
-	//belogs.Debug("SchemeAndHostAndFirstPath(): urlStr:", urlStr, " path:", path, "  split:", jsonutil.MarshalJson(split))
-	firstPath := split[0] + `/`
-	if len(split) > 1 {
-		firstPath = firstPath + split[1] + `/`
+	// 清理冗余分隔符，统一路径格式
+	cleanPath := filepath.Clean(strings.ReplaceAll(path, "\\", "/"))
+	if cleanPath == "." {
+		// 空Path，返回/
+		cleanPath = "/"
+	}
+	split := strings.FieldsFunc(cleanPath, func(r rune) bool { return r == '/' })
+
+	var firstPath string
+	if len(split) == 0 {
+		firstPath = "/"
+	} else {
+		// 拼接为首路径段（如repo → /repo/）
+		firstPath = "/" + split[0] + "/"
 	}
 
-	return (scheme + host + firstPath), nil
+	return scheme + host + firstPath, nil
 }
 
 // http://server:port/aa/bb/cc.html --> server
 func Host(urlStr string) (string, error) {
 
-	u, err := url.Parse(urlStr)
+	u, err := checkUrlHost(urlStr)
 	if err != nil {
 		return "", err
 	}
-	if len(u.Host) == 0 {
-		return "", errors.New("it is not in a legal URL format")
-	}
-	host := u.Host
-	// if have port
-	if strings.Contains(host, ":") {
-		host = strings.Split(host, ":")[0]
-	}
-	return host, nil
+	return GetHostWithoutPort(u.Host), nil
 }
 
 // http://server:port/aa/bb/cc.html --> /aa/bb/cc.html
 func Path(urlStr string) (string, error) {
-	u, err := url.Parse(urlStr)
+	u, err := checkUrlHost(urlStr)
 	if err != nil {
 		return "", err
 	}
-	if len(u.Host) == 0 {
-		return "", errors.New("it is not in a legal URL format")
-	}
 	path := u.Path
+	if path == "" {
+		return "/", nil // 兜底：空Path返回/
+	}
 	return path, nil
 }
 
 // http://server:port/aa/bb/cc.html --> server/aa/bb/cc.html
 func HostAndPathFile(urlStr string) (string, error) {
-	u, err := url.Parse(urlStr)
+	u, err := checkUrlHost(urlStr)
 	if err != nil {
 		return "", err
 	}
-	if len(u.Host) == 0 {
-		return "", errors.New("it is not in a legal URL format")
+	host := GetHostWithoutPort(u.Host)
+	// 修复1：解码host中的URL编码字符
+	decodedHost, err := url.PathUnescape(host)
+	if err != nil {
+		return "", err
 	}
-	host := u.Host
-	// if have port
-	if strings.Contains(host, ":") {
-		host = strings.Split(host, ":")[0]
-	}
-	return (host + u.Path), nil
+	// 修复2：用filepath.Join拼接，自动处理分隔符
+	return filepath.Join(decodedHost, u.Path), nil
 }
 
 // http://server:port/aa/bb/cc.html --> server,  aa/bb, cc.html
 func HostAndPathAndFile(urlStr string) (host, path, file string, err error) {
-	u, err := url.Parse(urlStr)
+	u, err := checkUrlHost(urlStr)
 	if err != nil {
-		return
+		return "", "", "", err
 	}
-	if len(u.Host) == 0 {
-		return "", "", "", errors.New("it is not in a legal URL format")
+	// 用公共函数获取无端口的host
+	host = GetHostWithoutPort(u.Host)
+
+	// 空Path处理
+	pathStr := u.Path
+	if pathStr == "" {
+		pathStr = "/"
 	}
-	host = u.Host
-	// if have port
-	if strings.Contains(host, ":") {
-		host = strings.Split(host, ":")[0]
-	}
-	path, file = osutil.Split(u.Path)
+	path, file = osutil.Split(pathStr)
 	return host, path, file, nil
 }
 
 func IsUrl(urlStr string) bool {
-	_, err := url.Parse(urlStr)
-	return err == nil
+	trimmedUrl := strings.TrimSpace(urlStr)
+	if trimmedUrl == "" {
+		return false
+	}
+	u, err := url.Parse(trimmedUrl)
+	if err != nil {
+		return false
+	}
+	// 合法URL规则：
+	// 1. scheme非空；
+	// 2. 非file协议：host非空；
+	// 3. file协议：path非空（且不能仅为/）
+	if u.Scheme == "" {
+		return false
+	}
+	if u.Scheme != "file" {
+		return u.Host != ""
+	}
+	// file协议需满足path非空且不是仅为/
+	cleanPath := strings.TrimSpace(u.Path)
+	return cleanPath != "" && cleanPath != "/"
 }
 
-// url is http://www.server.com:8080/aa/bb/cc.html , and  preifxPath is /root/path ;
+// url is http://www.server.com:8080/aa/bb/cc.html , and  prefixPath is /root/path ;
 // combine to  /root/path/www.server.com/aa/bb/cc.html
-func JoinPrefixPathAndUrlFileName(prefixPath, url string) (filePathName string, err error) {
-	hostPathFile, err := HostAndPathFile(url)
+func JoinPrefixPathAndUrlFileName(prefixPath, urlStr string) (filePathName string, err error) {
+	trimmedPrefix := strings.TrimSpace(prefixPath)
+	if trimmedPrefix == "" {
+		return "", errors.New("prefixPath is empty or only contains whitespace")
+	}
+
+	hostPathFile, err := HostAndPathFile(urlStr)
 	if err != nil {
 		return "", err
 	}
-	return osutil.JoinPathFile(prefixPath, hostPathFile), nil
+	// 修复：先解码URL编码字符，再清理路径
+	decodedHostPathFile, err := url.PathUnescape(hostPathFile)
+	if err != nil {
+		return "", err
+	}
+	// 转义特殊字符，防止路径遍历
+	escapedHostPathFile := filepath.Clean(decodedHostPathFile)
+	filePathName = osutil.JoinPathFile(trimmedPrefix, escapedHostPathFile)
+	// 清理冗余分隔符
+	filePathName = filepath.Clean(filePathName)
+	return filePathName, nil
 }
 
-// url is http://www.server.com:8080/aa/bb/cc.html , and  preifxPath is /root/path ;
+// url is http://www.server.com:8080/aa/bb/cc.html , and  prefixPath is /root/path ;
 // combine to  /root/path/www.server.com
-func JoinPrefixPathAndUrlHost(prefixPath, url string) (path string, err error) {
-	host, err := Host(url)
+func JoinPrefixPathAndUrlHost(prefixPath, urlStr string) (path string, err error) {
+	// 新增：空值/空格校验
+	trimmedPrefix := strings.TrimSpace(prefixPath)
+	if trimmedPrefix == "" {
+		return "", errors.New("prefixPath is empty or only contains whitespace")
+	}
+	host, err := Host(urlStr)
 	if err != nil {
 		return "", err
 	}
-	return osutil.JoinPathFile(prefixPath, host), nil
+	decodedHostPathFile, err := url.PathUnescape(host)
+	if err != nil {
+		return "", err
+	}
+	// 转义特殊字符
+	escapedHost := filepath.Clean(decodedHostPathFile)
+	path = osutil.JoinPathFile(trimmedPrefix, escapedHost)
+	path = filepath.Clean(path)
+	return path, nil
 }
 
 // HostPort returns whether addr includes a port number (i.e.,
@@ -205,13 +298,21 @@ func HasPort(addr string) bool {
 // that string.  If it does not, it returns the server string with
 // the port appended.
 func TryJoinHostPort(server string, port string) string {
+	if server == "" || port == "" {
+		return server
+	}
 	if HasPort(server) {
 		return server
 	}
 
 	sanitized := server
-	if strings.HasSuffix(server, ":") && !strings.HasSuffix(server, "::") {
-		sanitized = server[:len(server)-1]
+	// 修正IPv4冒号截断逻辑（仅对IPv4且末尾单冒号的场景截断）
+	if strings.HasSuffix(server, ":") {
+		// 提取截断后的地址，判断是否为合法IPv4
+		trimmed := server[:len(server)-1]
+		if ip := net.ParseIP(trimmed); ip != nil && ip.To4() != nil {
+			sanitized = trimmed
+		}
 	}
 
 	return net.JoinHostPort(sanitized, port)
