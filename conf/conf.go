@@ -52,10 +52,11 @@ func init() {
 	fmt.Println("conf file is ", conf)
 	configure, err = config.NewConfig("ini", conf)
 	if err != nil {
-		fmt.Println("Loaded configuration file " + conf + " is not in ini format. " + err.Error())
+		fmt.Println("NewConfig fail, ", conf, " is not in ini format. "+err.Error())
+		configure = nil
 		return
 	}
-
+	fmt.Println("NewConfig conf file ", conf, " success")
 }
 
 func String(key string) string {
