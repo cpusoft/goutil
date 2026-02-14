@@ -340,6 +340,7 @@ func TestGetAllFilesBySuffixs(t *testing.T) {
 		}
 		_ = f.Close()
 	}
+	t.Log("测试文件创建完成: testDir:", testDir, " files:", files)
 
 	// 测试筛选txt文件
 	suffixs := map[string]string{".txt": ""}
@@ -347,6 +348,8 @@ func TestGetAllFilesBySuffixs(t *testing.T) {
 	if err != nil {
 		t.Fatal("GetAllFilesBySuffixs测试失败，错误: ", err)
 	}
+	t.Log("GetAllFilesBySuffixs结果: ", result)
+
 	// 预期3个txt文件（test1.txt, test3.txt, sub/test4.txt）
 	if len(result) != 3 {
 		t.Errorf("GetAllFilesBySuffixs筛选txt失败，预期3个文件，实际%v个", len(result))
@@ -359,6 +362,7 @@ func TestGetAllFilesBySuffixs(t *testing.T) {
 	if err != nil {
 		t.Fatal("GetAllFilesBySuffixs空目录测试失败，错误: ", err)
 	}
+	t.Log("GetAllFilesBySuffixs空目录测试结果: ", result)
 	if len(result) != 0 {
 		t.Error("GetAllFilesBySuffixs空目录测试失败，预期0个文件，实际非空")
 	}

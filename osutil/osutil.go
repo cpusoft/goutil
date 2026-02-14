@@ -107,166 +107,6 @@ func GetPwd() (string, error) {
 	return os.Getwd()
 }
 
-// Deprecated, will use GetAllFilesBySuffixs()
-func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string) *list.List {
-
-	absolutePath, err := filepath.Abs(directory)
-	if err != nil {
-		belogs.Error("GetAllFilesInDirectoryBySuffixs(): abs fail, directory:", directory, err)
-		return nil
-	}
-	listStr := list.New()
-	filepath.Walk(absolutePath, func(filename string, fi os.FileInfo, err error) error {
-		if err != nil || len(filename) == 0 || nil == fi {
-			belogs.Error("GetAllFilesInDirectoryBySuffixs(): Walk fail, filename:", filename, "  fi:", fi, err)
-			return err
-		}
-		if !fi.IsDir() {
-			suffix := Ext(filename)
-			//fmt.Println(suffix)
-			if _, ok := suffixs[suffix]; ok {
-				listStr.PushBack(filename)
-			}
-		}
-		return nil
-	})
-	return listStr
-}
-func GetAllFilesBySuffixs(directory string, suffixs map[string]string) ([]string, error) {
-
-	absolutePath, err := filepath.Abs(directory)
-	if err != nil {
-		belogs.Error("GetAllFilesBySuffixs(): abs fail, directory:", directory, err)
-		return nil, err
-	}
-	files := make([]string, 0)
-	filepath.Walk(absolutePath, func(fileName string, fi os.FileInfo, err error) error {
-		if err != nil || len(fileName) == 0 || nil == fi {
-			belogs.Error("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
-			return err
-		}
-		// 关键修复：跳过符号链接（软链接），避免循环递归
-		if fi.Mode()&os.ModeSymlink != 0 {
-			belogs.Debug("GetAllFilesBySuffixs(): skip symlink:", fileName)
-			return filepath.SkipDir // 跳过链接指向的目录/文件
-		}
-
-		if !fi.IsDir() {
-			suffix := Ext(fileName)
-			if _, ok := suffixs[suffix]; ok {
-				files = append(files, fileName)
-			}
-		}
-		return nil
-	})
-	return files, nil
-}
-
-func GetAllFileCountBySuffixs(directory string, suffixs map[string]string) (suffixCount map[string]uint64, err error) {
-
-	suffixCount = make(map[string]uint64, 0)
-	absolutePath, err := filepath.Abs(directory)
-	if err != nil {
-		belogs.Error("GetAllFileCountBySuffixs(): abs fail, directory:", directory, err)
-		return nil, err
-	}
-	filepath.Walk(absolutePath, func(fileName string, fi os.FileInfo, err error) error {
-		if err != nil || len(fileName) == 0 || nil == fi {
-			belogs.Error("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
-			return err
-		}
-		// 关键修复：跳过符号链接（软链接），避免循环递归
-		if fi.Mode()&os.ModeSymlink != 0 {
-			belogs.Debug("GetAllFileCountBySuffixs(): skip symlink:", fileName)
-			return filepath.SkipDir // 跳过链接指向的目录/文件
-		}
-
-		if !fi.IsDir() {
-			suffix := Ext(fileName)
-			if _, ok := suffixs[suffix]; ok {
-				suffixNotDot := ExtNoDot(fileName)
-				if c, ok := suffixCount[suffixNotDot]; ok {
-					suffixCount[suffixNotDot] = c + 1
-				} else {
-					suffixCount[suffixNotDot] = 1
-				}
-			}
-		}
-		return nil
-	})
-	return suffixCount, nil
-}
-
-func GetFilesInDir(directory string, suffixs map[string]string) ([]string, error) {
-	if len(directory) == 0 {
-		return nil, errors.New("directory is empty")
-	}
-	files := make([]string, 0, 10)
-	dir, err := os.ReadDir(directory)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, file := range dir {
-		if file.IsDir() { // 忽略目录
-			continue
-		}
-		suffix := Ext(file.Name())
-		if _, ok := suffixs[suffix]; ok {
-			files = append(files, file.Name())
-		}
-	}
-	return files, nil
-}
-
-type FileStat struct {
-	FilePath string    `json:"filePath"`
-	FileName string    `json:"fileName"`
-	ModeTime time.Time `json:"modeTime"`
-	Size     int64     `json:"size"`
-	Hash256  string    `json:"hash256"`
-}
-
-func GetAllFileStatsBySuffixs(directory string, suffixs map[string]string) ([]FileStat, error) {
-
-	absolutePath, err := filepath.Abs(directory)
-	if err != nil {
-		belogs.Error("GetAllFileStatsBySuffixs(): abs fail, directory:", directory, err)
-		return nil, err
-	}
-
-	fileStats := make([]FileStat, 0)
-	filepath.Walk(absolutePath, func(path string, fi os.FileInfo, err error) error {
-		if err != nil || len(path) == 0 || nil == fi {
-			belogs.Debug("GetAllFileStatsBySuffixs():filepath.Walk(): err:", err)
-			return err
-		}
-
-		// 关键修复：跳过符号链接（软链接），避免循环递归
-		if fi.Mode()&os.ModeSymlink != 0 {
-			belogs.Debug("GetAllFileStatsBySuffixs(): skip symlink:", path)
-			return filepath.SkipDir // 跳过链接指向的目录/文件
-		}
-
-		if !fi.IsDir() {
-
-			suffix := Ext(path)
-			if _, ok := suffixs[suffix]; ok {
-				fileStat := FileStat{}
-				fileStat.FilePath, _ = Split(path)
-				fileStat.FileName = fi.Name()
-				fileStat.ModeTime = fi.ModTime()
-				fileStat.Size = fi.Size()
-				fileStat.Hash256, _ = hashutil.Sha256File(JoinPathFile(fileStat.FilePath, fileStat.FileName))
-				fileStats = append(fileStats, fileStat)
-			}
-		}
-		return nil
-	})
-	return fileStats, nil
-
-}
-
 func GetFilePathAndFileName(fileAllPath string) (filePath string, fileName string) {
 	i := strings.LastIndex(fileAllPath, string(os.PathSeparator))
 	return fileAllPath[:i+1], fileAllPath[i+1:]
@@ -333,4 +173,193 @@ func GetConfOrLogPath(relativePath string) (confOrLogPath string, currentPath st
 		return confOrLogPath, currentPath, nil
 	}
 	return "", currentPath, nil
+}
+
+// Deprecated, will use GetAllFilesBySuffixs()
+func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string) *list.List {
+	if err := checkDirectoryAndSuffixs(directory, suffixs); err != nil {
+		return nil
+	}
+
+	absolutePath, err := filepath.Abs(directory)
+	if err != nil {
+		belogs.Error("GetAllFilesInDirectoryBySuffixs(): abs fail, directory:", directory, err)
+		return nil
+	}
+	listStr := list.New()
+	filepath.Walk(absolutePath, func(filename string, fi os.FileInfo, err error) error {
+		if err != nil || len(filename) == 0 || nil == fi {
+			belogs.Error("GetAllFilesInDirectoryBySuffixs(): Walk fail, filename:", filename, "  fi:", fi, err)
+			return err
+		}
+		if !fi.IsDir() {
+			suffix := Ext(filename)
+			//fmt.Println(suffix)
+			if _, ok := suffixs[suffix]; ok {
+				listStr.PushBack(filename)
+			}
+		}
+		return nil
+	})
+	return listStr
+}
+func GetAllFilesBySuffixs(directory string, suffixs map[string]string) ([]string, error) {
+	if err := checkDirectoryAndSuffixs(directory, suffixs); err != nil {
+		return nil, err
+	}
+
+	absolutePath, err := filepath.Abs(directory)
+	if err != nil {
+		belogs.Error("GetAllFilesBySuffixs(): abs fail, directory:", directory, err)
+		return nil, err
+	}
+	files := make([]string, 0)
+	filepath.Walk(absolutePath, func(fileName string, fi os.FileInfo, err error) error {
+		if err != nil || len(fileName) == 0 || nil == fi {
+			belogs.Error("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
+			return err
+		}
+		// 关键修复：跳过符号链接（软链接），避免循环递归
+		if fi.Mode()&os.ModeSymlink != 0 {
+			belogs.Debug("GetAllFilesBySuffixs(): skip symlink:", fileName)
+			return filepath.SkipDir // 跳过链接指向的目录/文件
+		}
+
+		if !fi.IsDir() {
+			suffix := Ext(fileName)
+			if _, ok := suffixs[suffix]; ok {
+				files = append(files, fileName)
+			}
+		}
+		return nil
+	})
+	return files, nil
+}
+
+func GetAllFileCountBySuffixs(directory string, suffixs map[string]string) (suffixCount map[string]uint64, err error) {
+	if err := checkDirectoryAndSuffixs(directory, suffixs); err != nil {
+		return nil, err
+	}
+
+	suffixCount = make(map[string]uint64, 0)
+	absolutePath, err := filepath.Abs(directory)
+	if err != nil {
+		belogs.Error("GetAllFileCountBySuffixs(): abs fail, directory:", directory, err)
+		return nil, err
+	}
+	filepath.Walk(absolutePath, func(fileName string, fi os.FileInfo, err error) error {
+		if err != nil || len(fileName) == 0 || nil == fi {
+			belogs.Error("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
+			return err
+		}
+		// 关键修复：跳过符号链接（软链接），避免循环递归
+		if fi.Mode()&os.ModeSymlink != 0 {
+			belogs.Debug("GetAllFileCountBySuffixs(): skip symlink:", fileName)
+			return filepath.SkipDir // 跳过链接指向的目录/文件
+		}
+
+		if !fi.IsDir() {
+			suffix := Ext(fileName)
+			if _, ok := suffixs[suffix]; ok {
+				suffixNotDot := ExtNoDot(fileName)
+				if c, ok := suffixCount[suffixNotDot]; ok {
+					suffixCount[suffixNotDot] = c + 1
+				} else {
+					suffixCount[suffixNotDot] = 1
+				}
+			}
+		}
+		return nil
+	})
+	return suffixCount, nil
+}
+
+func GetFilesInDir(directory string, suffixs map[string]string) ([]string, error) {
+
+	if err := checkDirectoryAndSuffixs(directory, suffixs); err != nil {
+		return nil, err
+	}
+
+	files := make([]string, 0, 10)
+	dir, err := os.ReadDir(directory)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range dir {
+		if file.IsDir() { // 忽略目录
+			continue
+		}
+		suffix := Ext(file.Name())
+		if _, ok := suffixs[suffix]; ok {
+			files = append(files, file.Name())
+		}
+	}
+	return files, nil
+}
+
+type FileStat struct {
+	FilePath string    `json:"filePath"`
+	FileName string    `json:"fileName"`
+	ModeTime time.Time `json:"modeTime"`
+	Size     int64     `json:"size"`
+	Hash256  string    `json:"hash256"`
+}
+
+func GetAllFileStatsBySuffixs(directory string, suffixs map[string]string) ([]FileStat, error) {
+	if err := checkDirectoryAndSuffixs(directory, suffixs); err != nil {
+		return nil, err
+	}
+
+	absolutePath, err := filepath.Abs(directory)
+	if err != nil {
+		belogs.Error("GetAllFileStatsBySuffixs(): abs fail, directory:", directory, err)
+		return nil, err
+	}
+
+	fileStats := make([]FileStat, 0)
+	filepath.Walk(absolutePath, func(path string, fi os.FileInfo, err error) error {
+		if err != nil || len(path) == 0 || nil == fi {
+			belogs.Debug("GetAllFileStatsBySuffixs():filepath.Walk(): err:", err)
+			return err
+		}
+
+		// 关键修复：跳过符号链接（软链接），避免循环递归
+		if fi.Mode()&os.ModeSymlink != 0 {
+			belogs.Debug("GetAllFileStatsBySuffixs(): skip symlink:", path)
+			return filepath.SkipDir // 跳过链接指向的目录/文件
+		}
+
+		if !fi.IsDir() {
+
+			suffix := Ext(path)
+			if _, ok := suffixs[suffix]; ok {
+				fileStat := FileStat{}
+				fileStat.FilePath, _ = Split(path)
+				fileStat.FileName = fi.Name()
+				fileStat.ModeTime = fi.ModTime()
+				fileStat.Size = fi.Size()
+				fileStat.Hash256, _ = hashutil.Sha256File(JoinPathFile(fileStat.FilePath, fileStat.FileName))
+				fileStats = append(fileStats, fileStat)
+			}
+		}
+		return nil
+	})
+	return fileStats, nil
+}
+
+func checkDirectoryAndSuffixs(directory string, suffixs map[string]string) error {
+
+	if len(directory) == 0 {
+		return errors.New("directory is not exists")
+	}
+	if len(suffixs) == 0 {
+		return errors.New("suffixs is empty")
+	}
+	if s, err := IsDir(directory); err != nil {
+		return err
+	} else if !s {
+		return errors.New("directory is not a directory")
+	}
+	return nil
 }
