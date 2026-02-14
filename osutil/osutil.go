@@ -145,6 +145,12 @@ func GetAllFilesBySuffixs(directory string, suffixs map[string]string) ([]string
 			belogs.Error("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
 			return err
 		}
+		// 关键修复：跳过符号链接（软链接），避免循环递归
+		if fi.Mode()&os.ModeSymlink != 0 {
+			belogs.Debug("GetAllFilesBySuffixs(): skip symlink:", fileName)
+			return filepath.SkipDir // 跳过链接指向的目录/文件
+		}
+
 		if !fi.IsDir() {
 			suffix := Ext(fileName)
 			if _, ok := suffixs[suffix]; ok {
@@ -169,6 +175,12 @@ func GetAllFileCountBySuffixs(directory string, suffixs map[string]string) (suff
 			belogs.Error("GetAllFilesBySuffixs():filepath.Walk(): err:", err)
 			return err
 		}
+		// 关键修复：跳过符号链接（软链接），避免循环递归
+		if fi.Mode()&os.ModeSymlink != 0 {
+			belogs.Debug("GetAllFileCountBySuffixs(): skip symlink:", fileName)
+			return filepath.SkipDir // 跳过链接指向的目录/文件
+		}
+
 		if !fi.IsDir() {
 			suffix := Ext(fileName)
 			if _, ok := suffixs[suffix]; ok {
@@ -229,6 +241,13 @@ func GetAllFileStatsBySuffixs(directory string, suffixs map[string]string) ([]Fi
 			belogs.Debug("GetAllFileStatsBySuffixs():filepath.Walk(): err:", err)
 			return err
 		}
+
+		// 关键修复：跳过符号链接（软链接），避免循环递归
+		if fi.Mode()&os.ModeSymlink != 0 {
+			belogs.Debug("GetAllFileStatsBySuffixs(): skip symlink:", path)
+			return filepath.SkipDir // 跳过链接指向的目录/文件
+		}
+
 		if !fi.IsDir() {
 
 			suffix := Ext(path)
