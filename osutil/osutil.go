@@ -185,9 +185,9 @@ func GetConfOrLogPath(relativePath string) (confOrLogPath string, currentPath st
 		return "", relativePath, err
 	}
 	// 使用filepath.Join自动处理分隔符，避免重复
-	confOrLogPath = filepath.Join(currentPath, relativePath)
-	currentPath = filepath.Join(currentPath, "")
+	currentPath = filepath.Clean(currentPath) + string(os.PathSeparator)
 
+	confOrLogPath = filepath.Join(currentPath, relativePath)
 	ok, err := IsDir(confOrLogPath)
 	if err == nil && ok {
 		// 确保路径以分隔符结尾（按需，建议用filepath.Clean）
