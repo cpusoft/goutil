@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/jsonutil"
@@ -26,7 +25,7 @@ var sugaredLogger *zap.SugaredLogger
 func init() {
 
 	var logLevelStr string
-	logLevel := conf.String("logs::level")
+	logLevel := conf.DefaultString("logs::level", "LevelInfo")
 
 	//DEBUG<INFO<WARN<ERROR<FATAL
 	switch logLevel {
@@ -187,49 +186,46 @@ func appendZap(ctx context.Context) (fields []Field) {
 	}
 	cc := ctx.Value(JWT_CTX_CustomClaims_Infos)
 	if cc == nil {
-		belogs.Debug("appendZap(): Value JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos,
-			"   cc:", jsonutil.MarshalJson(cc))
+		DebugArgs(ctx, "appendZap(): get Value",
+			"JWT_CTX_CustomClaims_Infos", JWT_CTX_CustomClaims_Infos, "cc", jsonutil.MarshalJson(cc))
 		return fields
 	}
 	m, ok := cc.(map[string]interface{})
 	if !ok {
-		belogs.Error("appendZap(): get map is nil, cc:", cc)
+		ErrorArgs(ctx, "appendZap(): get map is nil", "cc", cc)
 		return fields
 	}
 	for key, value := range m {
 		fields = append(fields, zap.String(key, convert.ToString(value)))
 	}
-	belogs.Debug("appendZap(): get fields:", jsonutil.MarshalJson(fields),
-		"  m:", m)
+	//	DebugArgs(ctx, "appendZap(): get fields", "fields", jsonutil.MarshalJson(fields), "m", m)
 	return fields
 }
 
 func appendInterface(ctx context.Context) (args []interface{}) {
 	args = make([]interface{}, 0)
 	if ctx == nil {
-		belogs.Debug("appendInterface(): ctx is nil")
+		DebugArgs(ctx, "appendInterface(): ctx is nil")
 		return args
 	}
-	belogs.Debug("appendInterface(): get ctx:", ctx)
+	//	DebugArgs(ctx, "appendInterface(): get ctx", "ctx", ctx)
 
 	cc := ctx.Value(JWT_CTX_CustomClaims_Infos)
 	if cc == nil {
-		belogs.Debug("appendInterface(): Value JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos,
-			"   cc:", jsonutil.MarshalJson(cc))
+		DebugArgs(ctx, "appendInterface(): Value JWT_CTX_CustomClaims_Infos", "JWT_CTX_CustomClaims_Infos", JWT_CTX_CustomClaims_Infos, "cc", jsonutil.MarshalJson(cc))
 		return args
 	}
-	belogs.Debug("appendInterface(): get cc:", cc)
+	//	DebugArgs(ctx, "appendInterface(): get cc", "cc", cc)
 
 	m, ok := cc.(map[string]interface{})
 	if !ok {
-		belogs.Debug("appendInterface(): get CustomClaims is not ok, cc:", jsonutil.MarshalJson(cc))
+		ErrorArgs(ctx, "appendInterface(): get CustomClaims is not ok", "cc", cc)
 		return args
 	}
 	for key, value := range m {
 		args = append(args, key, value)
 	}
-	belogs.Debug("appendInterface(): get args:", jsonutil.MarshalJson(args),
-		"  m:", m)
+	//	DebugArgs(ctx, "appendInterface(): get args", "args", jsonutil.MarshalJson(args), "m", m)
 	return args
 }
 
@@ -241,11 +237,11 @@ func DebugFields(ctx context.Context, msg string, fields ...Field) {
 
 // Debug in Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
 func DebugArgs(ctx context.Context, msg string, args ...interface{}) {
-	belogs.Debug("DebugArgs(): in ctx", "ctx", ctx, "args", args)
+	//	DebugArgs(ctx, "DebugArgs(): in ctx", "ctx", ctx, "args", args)
 	len := len(args) % 2
 	if len != 0 {
 		args = append(args, " ")
-		belogs.Error("DebugArgs(): args are odd numbers, new args:", args)
+		//		ErrorArgs(ctx, "DebugArgs(): args are odd numbers, new args:", "args", args)
 	}
 	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Debugw(msg, args...)
@@ -268,8 +264,8 @@ func InfoArgs(ctx context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(ctx)...)
 	len := len(args) % 2
 	if len != 0 {
-		args := append(args, " ")
-		belogs.Error("InfoArgs(): args are odd numbers, new args:", args)
+		args = append(args, " ")
+		//		DebugArgs(ctx, "InfoArgs(): args are odd numbers, new args:", "args", args)
 	}
 	sugaredLogger.Infow(msg, args...)
 }
@@ -291,8 +287,8 @@ func ErrorArgs(ctx context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(ctx)...)
 	len := len(args) % 2
 	if len != 0 {
-		args := append(args, " ")
-		belogs.Error("ErrorArgs(): args are odd numbers, new args:", args)
+		args = append(args, " ")
+		//	DebugArgs(ctx, "ErrorArgs(): args are odd numbers, new args:", "args", args)
 	}
 	sugaredLogger.Errorw(msg, args...)
 }

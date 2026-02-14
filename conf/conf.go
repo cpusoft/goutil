@@ -62,6 +62,13 @@ func String(key string) string {
 	return ""
 }
 
+func DefaultString(key string, defaultVal string) string {
+	if configure != nil {
+		return configure.DefaultString(key, defaultVal)
+	}
+	return defaultVal
+}
+
 func Int(key string) int {
 	if configure != nil {
 		i, _ := configure.Int(key)
@@ -70,12 +77,26 @@ func Int(key string) int {
 	return 0
 }
 
+func DefaultInt(key string, defaultVal int) int {
+	if configure != nil {
+		return configure.DefaultInt(key, defaultVal)
+	}
+	return defaultVal
+}
+
 func Strings(key string) []string {
 	if configure != nil {
 		s, _ := configure.Strings(key)
 		return s
 	}
 	return nil
+}
+
+func DefaultStrings(key string, defaultValues []string) []string {
+	if configure != nil {
+		return configure.DefaultStrings(key, defaultValues)
+	}
+	return defaultValues
 }
 
 func Bool(key string) bool {
@@ -90,7 +111,7 @@ func DefaultBool(key string, defaultVal bool) bool {
 	if configure != nil {
 		return configure.DefaultBool(key, defaultVal)
 	}
-	return false
+	return defaultVal
 }
 
 // destpath=${rpstir2::datadir}/rsyncrepo   --> replace ${rpstir2::datadir}
