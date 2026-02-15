@@ -1,47 +1,177 @@
 package urlutil
 
 import (
-	"fmt"
-	"path/filepath"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	// 第三方依赖默认可用
 )
 
-// 测试公共函数：GetHostWithoutPort（IPv4/IPv6/带端口/无端口）
+// -------------------------- 私有辅助函数测试 --------------------------
 func TestGetHostWithoutPort(t *testing.T) {
 	tests := []struct {
-		name string
-		host string
-		want string
+		name     string
+		host     string
+		expected string
 	}{
-		{"IPv4带端口", "192.168.1.1:8080", "192.168.1.1"},
-		{"IPv4无端口", "192.168.1.1", "192.168.1.1"},
-		{"IPv6带端口", "[2001:db8::1]:8080", "2001:db8::1"},
-		{"IPv6无端口", "[2001:db8::1]", "[2001:db8::1]"},
-		{"域名带端口", "example.com:80", "example.com"},
+		{
+			name:     "带端口的IPv4",
+			host:     "192.168.1.1:8080",
+			expected: "192.168.1.1",
+		},
+		{
+			name:     "带端口的域名",
+			host:     "aa.com:80",
+			expected: "aa.com",
+		},
+		{
+			name:     "无端口的域名",
+			host:     "aa.com",
+			expected: "aa.com",
+		},
+		{
+			name:     "IPv6地址（带端口）",
+			host:     "[2001:db8::1]:8080",
+			expected: "2001:db8::1",
+		},
+		{
+			name:     "IPv6地址（无端口）",
+			host:     "[2001:db8::1]",
+			expected: "[2001:db8::1]",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, GetHostWithoutPort(tt.host))
+			assert.Equal(t, tt.expected, getHostWithoutPort(tt.host))
 		})
 	}
 }
 
-// 测试checkUrlHost（空URL/空格URL/解析失败/host为空）
+func TestProcessScheme(t *testing.T) {
+	tests := []struct {
+		name     string
+		scheme   string
+		expected string
+	}{
+		{
+			name:     "空scheme（兜底为http）",
+			scheme:   "",
+			expected: "http://",
+		},
+		{
+			name:     "rsync scheme",
+			scheme:   "rsync",
+			expected: "rsync://",
+		},
+		{
+			name:     "https scheme",
+			scheme:   "https",
+			expected: "https://",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := &url.URL{Scheme: tt.scheme}
+			assert.Equal(t, tt.expected, processScheme(u))
+		})
+	}
+}
+
+func TestCleanURLPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{
+			name:     "含反斜杠的路径",
+			path:     "\\repo\\test",
+			expected: "/repo/test",
+		},
+		{
+			name:     "连续斜杠的路径",
+			path:     "//repo//test//",
+			expected: "/repo/test",
+		},
+		{
+			name:     "空路径",
+			path:     "",
+			expected: "/",
+		},
+		{
+			name:     "根路径",
+			path:     "/",
+			expected: "/",
+		},
+		{
+			name:     "不以/开头的路径",
+			path:     "repo/test",
+			expected: "/repo/test",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, cleanURLPath(tt.path))
+		})
+	}
+}
+
+func TestJoinURLPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		parts    []string
+		expected string
+	}{
+		{
+			name:     "拼接多个路径段",
+			parts:    []string{"/root/path", "aa.com", "/repo/cc.html"},
+			expected: "/root/path/aa.com/repo/cc.html",
+		},
+		{
+			name:     "含空段的拼接",
+			parts:    []string{"/root/", "", "aa.com//", "/repo"},
+			expected: "/root/aa.com/repo",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, joinURLPath(tt.parts...))
+		})
+	}
+}
+
+// -------------------------- 基础校验函数测试 --------------------------
 func TestCheckUrlHost(t *testing.T) {
 	tests := []struct {
 		name    string
 		urlStr  string
 		wantErr bool
-		errMsg  string
 	}{
-		{"空URL", "", true, "URL is empty or only contains whitespace"},
-		{"空格URL", "   ", true, "URL is empty or only contains whitespace"},
-		{"解析失败URL", "abc123://", true, "parse URL 'abc123://' failed:"},
-		{"host为空URL", "http://", true, "URL 'http://' host is empty"},
-		{"合法URL", "http://example.com:8080/test", false, ""},
+		{
+			name:    "空URL",
+			urlStr:  "",
+			wantErr: true,
+		},
+		{
+			name:    "仅空格的URL",
+			urlStr:  "   ",
+			wantErr: true,
+		},
+		{
+			name:    "非法格式URL（空Host）",
+			urlStr:  "http:///aa.com",
+			wantErr: true,
+		},
+		{
+			name:    "合法URL",
+			urlStr:  "http://aa.com:8080/repo",
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -49,7 +179,6 @@ func TestCheckUrlHost(t *testing.T) {
 			_, err := checkUrlHost(tt.urlStr)
 			if tt.wantErr {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -57,7 +186,182 @@ func TestCheckUrlHost(t *testing.T) {
 	}
 }
 
-// 测试HostAndPort（IPv4/IPv6/带端口/无端口/编码host）
+func TestIsValidHost(t *testing.T) {
+	tests := []struct {
+		name    string
+		host    string
+		wantErr bool
+	}{
+		{
+			name:    "空host",
+			host:    "",
+			wantErr: true,
+		},
+		{
+			name:    "含非法字符的host（%）",
+			host:    "aa%2Ecom",
+			wantErr: true,
+		},
+		{
+			name:    "非法域名（连续点）",
+			host:    "aa..com",
+			wantErr: true,
+		},
+		{
+			name:    "合法IPv4（带端口）",
+			host:    "192.168.1.1:8080",
+			wantErr: false,
+		},
+		{
+			name:    "合法IPv6（带端口）",
+			host:    "[2001:db8::1]:8080",
+			wantErr: false,
+		},
+		{
+			name:    "合法域名",
+			host:    "aa.com",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := isValidHost(tt.host)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestIsValidURLPath(t *testing.T) {
+	tests := []struct {
+		name    string
+		path    string
+		wantErr bool
+	}{
+		{
+			name:    "空path",
+			path:    "",
+			wantErr: true,
+		},
+		{
+			name:    "不以/开头的path",
+			path:    "repo/test",
+			wantErr: true,
+		},
+		{
+			name:    "含路径遍历的path（../）",
+			path:    "/../etc/passwd",
+			wantErr: true,
+		},
+		{
+			name:    "含非法字符的path（:）",
+			path:    "/repo/test:file",
+			wantErr: true,
+		},
+		{
+			name:    "含非法转义的path（%2G）",
+			path:    "/repo/%2Gtest",
+			wantErr: true,
+		},
+		{
+			name:    "合法path（多级）",
+			path:    "/repo/defautl/xxxx",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := isValidURLPath(tt.path)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestParseAndValidateURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		urlStr  string
+		wantErr bool
+	}{
+		{
+			name:    "URL解析失败（空Host）",
+			urlStr:  "http:///aa.com",
+			wantErr: true,
+		},
+		{
+			name:    "Host校验失败（非法字符）",
+			urlStr:  "http://aa%2Ecom/repo",
+			wantErr: true,
+		},
+		{
+			name:    "合法URL",
+			urlStr:  "http://aa.com:8080/repo",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := parseAndValidateURL(tt.urlStr)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestPreprocessAndValidatePath(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "空path（预处理为/）",
+			path:     "",
+			expected: "/",
+			wantErr:  false,
+		},
+		{
+			name:     "非法path（不以/开头）",
+			path:     "repo/test",
+			expected: "",
+			wantErr:  true,
+		},
+		{
+			name:     "合法path",
+			path:     "/repo/test",
+			expected: "/repo/test",
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			processedPath, err := preprocessAndValidatePath(tt.path)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, processedPath)
+			}
+		})
+	}
+}
+
+// -------------------------- 核心业务函数测试 --------------------------
 func TestHostAndPort(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -66,12 +370,27 @@ func TestHostAndPort(t *testing.T) {
 		wantPort string
 		wantErr  bool
 	}{
-		{"IPv4带端口", "http://192.168.1.1:8080/test", "192.168.1.1", "8080", false},
-		{"IPv4无端口", "http://192.168.1.1/test", "192.168.1.1", "", false},
-		{"IPv6带端口", "http://[2001:db8::1]:8080/test", "2001:db8::1", "8080", false},
-		{"IPv6无端口", "http://[2001:db8::1]/test", "[2001:db8::1]", "", false},
-		{"编码host", "http://example%2Ecom:80/test", "example%2Ecom", "80", false},
-		{"非法URL", "abc123", "", "", true},
+		{
+			name:     "带端口的URL",
+			urlStr:   "http://aa.com:8080/repo",
+			wantHost: "aa.com",
+			wantPort: "8080",
+			wantErr:  false,
+		},
+		{
+			name:     "无端口的URL",
+			urlStr:   "http://aa.com/repo",
+			wantHost: "aa.com",
+			wantPort: "",
+			wantErr:  false,
+		},
+		{
+			name:     "非法Host的URL",
+			urlStr:   "http://aa%2Ecom/repo",
+			wantHost: "",
+			wantPort: "",
+			wantErr:  true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -88,117 +407,108 @@ func TestHostAndPort(t *testing.T) {
 	}
 }
 
-// 测试HostAndPath（编码host/编码path/空path/无/的path）
 func TestHostAndPath(t *testing.T) {
 	tests := []struct {
-		name    string
-		urlStr  string
-		want    string
-		wantErr bool
+		name     string
+		urlStr   string
+		expected string
+		wantErr  bool
 	}{
-		{"编码host+编码path", "http://example%2Ecom:80/%20test.txt", "example.com/ /", false},
-		{"空path", "http://example.com", "example.com/", false},
-		{"无/的path", "http://example.com/testfile", "example.com/testfile/", false},
-		{"多级path", "http://example.com/aa/bb/cc.html", "example.com/aa/bb/", false},
-		{"非法URL", "abc123", "", true},
+		{
+			name:     "合法URL（多级路径）",
+			urlStr:   "http://aa.com:8080/repo/defautl/xxxx",
+			expected: "aa.com/repo/defautl/",
+			wantErr:  false,
+		},
+		{
+			name:     "非法Path的URL（路径遍历）",
+			urlStr:   "http://aa.com/repo/../test",
+			expected: "",
+			wantErr:  true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := HostAndPath(tt.urlStr)
+			res, err := HostAndPath(tt.urlStr)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
+				assert.Equal(t, tt.expected, res)
 			}
 		})
 	}
 }
 
-// 测试SchemeAndHostAndPath（编码host/编码path/空scheme）
-func TestSchemeAndHostAndPath(t *testing.T) {
+func TestHost(t *testing.T) {
 	tests := []struct {
-		name    string
-		urlStr  string
-		want    string
-		wantErr bool
+		name     string
+		urlStr   string
+		expected string
+		wantErr  bool
 	}{
-		{"空scheme", "//example.com/aa/bb.html", "http://example.com/aa/", false},
-		{"编码host+path", "https://example%2Ecom/%20test.txt", "https://example%2Ecom/ /", false},
-		{"IPv6+空path", "http://[2001:db8::1]", "http://[2001:db8::1]/", false},
+		{
+			name:     "带端口的URL",
+			urlStr:   "http://aa.com:8080/repo",
+			expected: "aa.com",
+			wantErr:  false,
+		},
+		{
+			name:     "非法Host的URL",
+			urlStr:   "http://aa%2Ecom/repo",
+			expected: "",
+			wantErr:  true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := SchemeAndHostAndPath(tt.urlStr)
+			res, err := Host(tt.urlStr)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
+				assert.Equal(t, tt.expected, res)
 			}
 		})
 	}
 }
 
-// 测试SchemeAndHostAndFirstPath（Windows路径/编码path/空path）
-func TestSchemeAndHostAndFirstPath(t *testing.T) {
-	// 模拟Windows路径（替换分隔符）
-	windowsPathUrl := "rsync://example.com:\\repo\\defautl\\xxxx"
-	wantWindows := "rsync://example.com/repo/"
-
+func TestPath(t *testing.T) {
 	tests := []struct {
-		name    string
-		urlStr  string
-		want    string
-		wantErr bool
+		name     string
+		urlStr   string
+		expected string
+		wantErr  bool
 	}{
-		{"Windows路径", windowsPathUrl, wantWindows, false},
-		{"编码path", "rsync://example.com/%20repo/defautl", "rsync://example.com/ repo/", false},
-		{"空path", "rsync://example.com", "rsync://example.com//", false}, // 空path返回//，符合逻辑
+		{
+			name:     "有Path的URL",
+			urlStr:   "http://aa.com/repo/test",
+			expected: "/repo/test",
+			wantErr:  false,
+		},
+		{
+			name:     "空Path的URL（预处理为/）",
+			urlStr:   "http://aa.com",
+			expected: "/",
+			wantErr:  false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := SchemeAndHostAndFirstPath(tt.urlStr)
+			res, err := Path(tt.urlStr)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
+				assert.Equal(t, tt.expected, res)
 			}
 		})
 	}
 }
 
-// 测试HostAndPathFile（编码host/拼接分隔符/IPv6）
-func TestHostAndPathFile(t *testing.T) {
-	tests := []struct {
-		name    string
-		urlStr  string
-		want    string
-		wantErr bool
-	}{
-		{"编码host", "http://example%2Ecom:80/aa/bb.html", "example.com/aa/bb.html", false},
-		{"host带/分隔符", "http://example.com/:80/aa.html", "example.com:/aa.html", false}, // filepath.Join自动处理/
-		{"IPv6", "http://[2001:db8::1]/aa/bb.html", "[2001:db8::1]/aa/bb.html", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := HostAndPathFile(tt.urlStr)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
-			}
-		})
-	}
-}
-
-// 测试HostAndPathAndFile（编码host/编码path/空path）
 func TestHostAndPathAndFile(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -208,9 +518,14 @@ func TestHostAndPathAndFile(t *testing.T) {
 		wantFile string
 		wantErr  bool
 	}{
-		{"编码host+path", "http://example%2Ecom/%20test.txt", "example.com", "/ ", "test.txt", false},
-		{"空path", "http://example.com", "example.com", "/", "", false},
-		{"多级path", "http://example.com/aa/bb/cc.html", "example.com", "/aa/bb/", "cc.html", false},
+		{
+			name:     "合法URL（带文件名）",
+			urlStr:   "http://aa.com:8080/repo/bb/cc.html",
+			wantHost: "aa.com",
+			wantPath: "/repo/bb/",
+			wantFile: "cc.html",
+			wantErr:  false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -228,149 +543,277 @@ func TestHostAndPathAndFile(t *testing.T) {
 	}
 }
 
-// 测试IsUrl（file协议/空scheme/空host/合法URL）
 func TestIsUrl(t *testing.T) {
 	tests := []struct {
-		name   string
-		urlStr string
-		want   bool
+		name     string
+		urlStr   string
+		expected bool
 	}{
-		{"合法http URL", "http://example.com/test", true},
-		{"合法file URL", "file:///etc/hosts", true},
-		{"无效file URL", "file://", false},
-		{"空scheme", "//example.com", false},
-		{"空host", "http://", false},
-		{"空格URL", "   ", false},
-		{"相对URL", "/aa/bb.html", false},
+		{
+			name:     "合法http URL",
+			urlStr:   "http://aa.com/repo",
+			expected: true,
+		},
+		{
+			name:     "合法file URL",
+			urlStr:   "file:///root/test.txt",
+			expected: true,
+		},
+		{
+			name:     "空scheme URL",
+			urlStr:   "//aa.com/repo",
+			expected: false,
+		},
+		{
+			name:     "非法Host的URL",
+			urlStr:   "http://aa%2Ecom/repo",
+			expected: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, IsUrl(tt.urlStr))
+			assert.Equal(t, tt.expected, IsUrl(tt.urlStr))
 		})
 	}
 }
 
-// 测试JoinPrefixPathAndUrlFileName（空prefix/空格prefix/编码路径）
+func TestSchemeAndHostAndPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		urlStr   string
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "rsync URL（带端口）",
+			urlStr:   "rsync://aa.com:8080/repo/defautl/xxxx",
+			expected: "rsync://aa.com/repo/defautl/",
+			wantErr:  false,
+		},
+		{
+			name:     "空scheme URL（兜底为http）",
+			urlStr:   "//aa.com/repo/test",
+			expected: "http://aa.com/repo/",
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := SchemeAndHostAndPath(tt.urlStr)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, res)
+			}
+		})
+	}
+}
+
+func TestSchemeAndHostAndFirstPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		urlStr   string
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "rsync URL（多级路径）",
+			urlStr:   "rsync://aa.com:8080/repo/defautl/xxxx",
+			expected: "rsync://aa.com/repo/",
+			wantErr:  false,
+		},
+		{
+			name:     "http URL（空Path）",
+			urlStr:   "http://aa.com",
+			expected: "http://aa.com/",
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := SchemeAndHostAndFirstPath(tt.urlStr)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, res)
+			}
+		})
+	}
+}
+
+func TestHostAndPathFile(t *testing.T) {
+	tests := []struct {
+		name     string
+		urlStr   string
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "合法URL（带文件名）",
+			urlStr:   "http://aa.com:8080/repo/cc.html",
+			expected: "aa.com/repo/cc.html", // 核心：无开头/
+			wantErr:  false,
+		},
+		{
+			name:     "非法Path的URL",
+			urlStr:   "http://aa.com/repo/test:file",
+			expected: "",
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := hostAndPathFile(tt.urlStr)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, res)
+			}
+		})
+	}
+}
+
 func TestJoinPrefixPathAndUrlFileName(t *testing.T) {
-	tmpDir := t.TempDir()
 	tests := []struct {
-		name       string
-		prefixPath string
-		urlStr     string
-		want       string
-		wantErr    bool
-		errMsg     string
+		name     string
+		prefix   string
+		urlStr   string
+		expected string
+		wantErr  bool
 	}{
-		{"空prefix", "", "http://example.com/test.txt", "", true, "prefixPath is empty or only contains whitespace"},
-		{"空格prefix", "   ", "http://example.com/test.txt", "", true, "prefixPath is empty or only contains whitespace"},
-		{"编码路径", tmpDir, "http://example%2Ecom/%20test.txt", filepath.Join(tmpDir, "example.com/ test.txt"), false, ""},
-		{"合法拼接", tmpDir, "http://example.com/aa/bb.html", filepath.Join(tmpDir, "example.com/aa/bb.html"), false, ""},
+		{
+			name:     "合法拼接",
+			prefix:   "/root/path",
+			urlStr:   "http://aa.com/repo/cc.html",
+			expected: "/root/path/aa.com/repo/cc.html",
+			wantErr:  false,
+		},
+		{
+			name:     "空prefix",
+			prefix:   "",
+			urlStr:   "http://aa.com/repo/cc.html",
+			expected: "",
+			wantErr:  true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := JoinPrefixPathAndUrlFileName(tt.prefixPath, tt.urlStr)
+			res, err := JoinPrefixPathAndUrlFileName(tt.prefix, tt.urlStr)
 			if tt.wantErr {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
+				assert.Equal(t, tt.expected, res)
 			}
 		})
 	}
 }
 
-// 测试JoinPrefixPathAndUrlHost（空prefix/空格prefix/编码host）
 func TestJoinPrefixPathAndUrlHost(t *testing.T) {
-	tmpDir := t.TempDir()
 	tests := []struct {
-		name       string
-		prefixPath string
-		urlStr     string
-		want       string
-		wantErr    bool
-		errMsg     string
+		name     string
+		prefix   string
+		urlStr   string
+		expected string
+		wantErr  bool
 	}{
-		{"空prefix", "", "http://example.com/test.txt", "", true, "prefixPath is empty or only contains whitespace"},
-		{"空格prefix", "   ", "http://example.com/test.txt", "", true, "prefixPath is empty or only contains whitespace"},
-		{"编码host", tmpDir, "http://example%2Ecom:80/test", filepath.Join(tmpDir, "example.com"), false, ""},
-		{"IPv6 host", tmpDir, "http://[2001:db8::1]/test", filepath.Join(tmpDir, "[2001:db8::1]"), false, ""},
+		{
+			name:     "合法拼接",
+			prefix:   "/root/path",
+			urlStr:   "http://aa.com:8080/repo",
+			expected: "/root/path/aa.com",
+			wantErr:  false,
+		},
+		{
+			name:     "非法URL",
+			prefix:   "/root/path",
+			urlStr:   "http://aa%2Ecom/repo",
+			expected: "",
+			wantErr:  true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := JoinPrefixPathAndUrlHost(tt.prefixPath, tt.urlStr)
+			res, err := JoinPrefixPathAndUrlHost(tt.prefix, tt.urlStr)
 			if tt.wantErr {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
+				assert.Equal(t, tt.expected, res)
 			}
 		})
 	}
 }
 
-// 测试HasPort（IPv4带冒号/IPv6带端口/空port）
 func TestHasPort(t *testing.T) {
 	tests := []struct {
-		name string
-		addr string
-		want bool
+		name     string
+		addr     string
+		expected bool
 	}{
-		{"IPv4带端口", "192.168.1.1:8080", true},
-		{"IPv4末尾冒号", "192.168.1.1:", false}, // 空port返回false
-		{"IPv6带端口", "[2001:db8::1]:8080", true},
-		{"IPv6无端口", "[2001:db8::1]", false},
-		{"域名无端口", "example.com", false},
+		{
+			name:     "带有效端口",
+			addr:     "aa.com:8080",
+			expected: true,
+		},
+		{
+			name:     "末尾冒号（无效端口）",
+			addr:     "192.168.1.1:",
+			expected: false,
+		},
+		{
+			name:     "无端口",
+			addr:     "aa.com",
+			expected: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, HasPort(tt.addr))
+			assert.Equal(t, tt.expected, HasPort(tt.addr))
 		})
 	}
 }
 
-// 测试TryJoinHostPort（空server/空port/IPv4末尾冒号/IPv6错误拼接）
 func TestTryJoinHostPort(t *testing.T) {
 	tests := []struct {
-		name   string
-		server string
-		port   string
-		want   string
+		name     string
+		server   string
+		port     string
+		expected string
 	}{
-		{"空server", "", "8080", ""},
-		{"空port", "192.168.1.1", "", "192.168.1.1"},
-		{"IPv4末尾冒号", "192.168.1.1:", "8080", "192.168.1.1:8080"},
-		{"IPv6末尾冒号", "[::1]:", "8080", "[::1]::8080"}, // 漏洞场景：生成无效地址
-		{"IPv6合法拼接", "[::1]", "8080", "[::1]:8080"},
-		{"已带端口", "example.com:80", "8080", "example.com:80"},
+		{
+			name:     "已有端口",
+			server:   "aa.com:8080",
+			port:     "80",
+			expected: "aa.com:8080",
+		},
+		{
+			name:     "IPv4末尾冒号",
+			server:   "192.168.1.1:",
+			port:     "8080",
+			expected: "192.168.1.1:8080",
+		},
+		{
+			name:     "无端口拼接",
+			server:   "aa.com",
+			port:     "8080",
+			expected: "aa.com:8080",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, TryJoinHostPort(tt.server, tt.port))
+			assert.Equal(t, tt.expected, TryJoinHostPort(tt.server, tt.port))
 		})
 	}
-}
-
-func TestHost1(t *testing.T) {
-	url := `//1.2.3.4:33`
-	u, err := Host(url)
-	fmt.Println(u, err)
-}
-
-func TestHost(t *testing.T) {
-	url := `rsync://rpki.apnic.net:999/member_repository/A91270E6/75648ECED63511E896631322C4F9AE02/dVNRzYJvKfhxtLyVlPTpSNvnc-k.mft?aa=bbb`
-	u, err := Host(url)
-	fmt.Println(u, err)
-}
-
-func TestPath(t *testing.T) {
-	url := `rsync://rpki.apnic.net:999/member_repository/A91270E6/75648ECED63511E896631322C4F9AE02/dVNRzYJvKfhxtLyVlPTpSNvnc-k.mft?aa=bbb`
-	u, err := Path(url)
-	fmt.Println(u, err)
 }

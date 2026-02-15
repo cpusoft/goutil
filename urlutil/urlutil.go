@@ -2,50 +2,26 @@ package urlutil
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"net/url"
-	"path/filepath"
+	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/cpusoft/goutil/osutil"
 )
 
-func GetHostWithoutPort(host string) string {
-	h, _, err := net.SplitHostPort(host)
-	if err != nil {
-		// 无端口时返回原host（如IPv6地址[2001:db8::1]）
-		return host
-	}
-	return h
-}
-
-func checkUrlHost(urlStr string) (*url.URL, error) {
-	// 修复1：处理空格字符串
-	trimmedUrl := strings.TrimSpace(urlStr)
-	if trimmedUrl == "" {
-		return nil, errors.New("URL is empty or only contains whitespace")
-	}
-
-	u, err := url.Parse(trimmedUrl)
-	if err != nil {
-		return nil, err
-	}
-	if len(u.Host) == 0 {
-		return nil, errors.New("URL host is empty")
-	}
-	return u, nil
-}
-
 // http://server:port/aa/bb/cc.html --> server port
 // http://server/aa/bb/cc.html --> server ""
 func HostAndPort(urlStr string) (host, port string, err error) {
-	u, err := checkUrlHost(urlStr)
+	u, err := parseAndValidateURL(urlStr)
 	if err != nil {
 		return "", "", err
 	}
+
 	host, port, err = net.SplitHostPort(u.Host)
 	if err != nil {
-		// 无端口时返回原host和空port
 		return u.Host, "", nil
 	}
 	return host, port, nil
@@ -53,27 +29,27 @@ func HostAndPort(urlStr string) (host, port string, err error) {
 
 // http://server:port/aa/bb/cc.html --> server/aa/bb/
 func HostAndPath(urlStr string) (string, error) {
-
-	u, err := checkUrlHost(urlStr)
+	u, err := parseAndValidateURL(urlStr)
 	if err != nil {
 		return "", err
 	}
-	host := GetHostWithoutPort(u.Host)
+
+	processedPath, err := preprocessAndValidatePath(u.Path)
+	if err != nil {
+		return "", err
+	}
+
+	host := getHostWithoutPort(u.Host)
 	decodedHost, err := url.PathUnescape(host)
 	if err != nil {
 		return "", err
 	}
 
-	// 处理空Path/无/的Path
-	path := u.Path
-	// 解码path中的URL编码字符
-	decodedPath, err := url.PathUnescape(path)
+	decodedPath, err := url.PathUnescape(processedPath)
 	if err != nil {
 		return "", err
 	}
-	if decodedPath == "" {
-		return decodedHost + "/", nil
-	}
+
 	pos := strings.LastIndex(decodedPath, "/")
 	if pos == -1 {
 		return decodedHost + "/" + decodedPath + "/", nil
@@ -81,124 +57,45 @@ func HostAndPath(urlStr string) (string, error) {
 	return decodedHost + decodedPath[:pos+1], nil
 }
 
-// http://server:port/aa/bb/cc.html --> http://server/aa/bb/
-func SchemeAndHostAndPath(urlStr string) (string, error) {
-	u, err := checkUrlHost(urlStr)
-	if err != nil {
-		return "", err
-	}
-
-	scheme := u.Scheme
-	if scheme == "" {
-		scheme = "http" // 兜底：默认http
-	}
-	scheme += "://"
-
-	// 用公共函数获取无端口的host
-	host := GetHostWithoutPort(u.Host)
-
-	// 处理空Path/无/的Path
-	path := u.Path
-	if path == "" {
-		return scheme + host + "/", nil
-	}
-	pos := strings.LastIndex(path, "/")
-	if pos == -1 {
-		return scheme + host + "/" + path + "/", nil
-	}
-	return scheme + host + path[:pos+1], nil
-}
-
-// rsync://aa.com:xxx/repo/defautl/xxxx --> rsync://aa.com/repo/
-func SchemeAndHostAndFirstPath(urlStr string) (string, error) {
-	u, err := checkUrlHost(urlStr)
-	if err != nil {
-		return "", err
-	}
-	scheme := u.Scheme
-	if scheme == "" {
-		scheme = "http" // 兜底：默认http
-	}
-	scheme += "://"
-
-	// 用公共函数获取无端口的host
-	host := GetHostWithoutPort(u.Host)
-
-	// 路径拆分逻辑（处理开头/、空Path、多级空路径）
-	path := u.Path
-	// 清理冗余分隔符，统一路径格式
-	cleanPath := filepath.Clean(strings.ReplaceAll(path, "\\", "/"))
-	if cleanPath == "." {
-		// 空Path，返回/
-		cleanPath = "/"
-	}
-	split := strings.FieldsFunc(cleanPath, func(r rune) bool { return r == '/' })
-
-	var firstPath string
-	if len(split) == 0 {
-		firstPath = "/"
-	} else {
-		// 拼接为首路径段（如repo → /repo/）
-		firstPath = "/" + split[0] + "/"
-	}
-
-	return scheme + host + firstPath, nil
-}
-
 // http://server:port/aa/bb/cc.html --> server
 func Host(urlStr string) (string, error) {
-
-	u, err := checkUrlHost(urlStr)
+	u, err := parseAndValidateURL(urlStr)
 	if err != nil {
 		return "", err
 	}
-	return GetHostWithoutPort(u.Host), nil
+
+	return getHostWithoutPort(u.Host), nil
 }
 
 // http://server:port/aa/bb/cc.html --> /aa/bb/cc.html
 func Path(urlStr string) (string, error) {
-	u, err := checkUrlHost(urlStr)
+	u, err := parseAndValidateURL(urlStr)
 	if err != nil {
 		return "", err
 	}
-	path := u.Path
-	if path == "" {
-		return "/", nil // 兜底：空Path返回/
+
+	processedPath, err := preprocessAndValidatePath(u.Path)
+	if err != nil {
+		return "", err
 	}
-	return path, nil
+
+	return processedPath, nil
 }
 
-// http://server:port/aa/bb/cc.html --> server/aa/bb/cc.html
-func HostAndPathFile(urlStr string) (string, error) {
-	u, err := checkUrlHost(urlStr)
-	if err != nil {
-		return "", err
-	}
-	host := GetHostWithoutPort(u.Host)
-	// 修复1：解码host中的URL编码字符
-	decodedHost, err := url.PathUnescape(host)
-	if err != nil {
-		return "", err
-	}
-	// 修复2：用filepath.Join拼接，自动处理分隔符
-	return filepath.Join(decodedHost, u.Path), nil
-}
-
-// http://server:port/aa/bb/cc.html --> server,  aa/bb, cc.html
+// http://server:port/aa/bb/cc.html --> server,  /aa/bb, cc.html
 func HostAndPathAndFile(urlStr string) (host, path, file string, err error) {
-	u, err := checkUrlHost(urlStr)
+	u, err := parseAndValidateURL(urlStr)
 	if err != nil {
 		return "", "", "", err
 	}
-	// 用公共函数获取无端口的host
-	host = GetHostWithoutPort(u.Host)
 
-	// 空Path处理
-	pathStr := u.Path
-	if pathStr == "" {
-		pathStr = "/"
+	processedPath, err := preprocessAndValidatePath(u.Path)
+	if err != nil {
+		return "", "", "", err
 	}
-	path, file = osutil.Split(pathStr)
+
+	host = getHostWithoutPort(u.Host)
+	path, file = osutil.Split(processedPath)
 	return host, path, file, nil
 }
 
@@ -207,71 +104,28 @@ func IsUrl(urlStr string) bool {
 	if trimmedUrl == "" {
 		return false
 	}
+
 	u, err := url.Parse(trimmedUrl)
 	if err != nil {
 		return false
 	}
-	// 合法URL规则：
-	// 1. scheme非空；
-	// 2. 非file协议：host非空；
-	// 3. file协议：path非空（且不能仅为/）
+
 	if u.Scheme == "" {
 		return false
 	}
+
 	if u.Scheme != "file" {
-		return u.Host != ""
+		if u.Host == "" || isValidHost(u.Host) != nil {
+			return false
+		}
+		return true
 	}
-	// file协议需满足path非空且不是仅为/
+
 	cleanPath := strings.TrimSpace(u.Path)
-	return cleanPath != "" && cleanPath != "/"
-}
-
-// url is http://www.server.com:8080/aa/bb/cc.html , and  prefixPath is /root/path ;
-// combine to  /root/path/www.server.com/aa/bb/cc.html
-func JoinPrefixPathAndUrlFileName(prefixPath, urlStr string) (filePathName string, err error) {
-	trimmedPrefix := strings.TrimSpace(prefixPath)
-	if trimmedPrefix == "" {
-		return "", errors.New("prefixPath is empty or only contains whitespace")
+	if cleanPath == "" || cleanPath == "/" || isValidURLPath(cleanPath) != nil {
+		return false
 	}
-
-	hostPathFile, err := HostAndPathFile(urlStr)
-	if err != nil {
-		return "", err
-	}
-	// 修复：先解码URL编码字符，再清理路径
-	decodedHostPathFile, err := url.PathUnescape(hostPathFile)
-	if err != nil {
-		return "", err
-	}
-	// 转义特殊字符，防止路径遍历
-	escapedHostPathFile := filepath.Clean(decodedHostPathFile)
-	filePathName = osutil.JoinPathFile(trimmedPrefix, escapedHostPathFile)
-	// 清理冗余分隔符
-	filePathName = filepath.Clean(filePathName)
-	return filePathName, nil
-}
-
-// url is http://www.server.com:8080/aa/bb/cc.html , and  prefixPath is /root/path ;
-// combine to  /root/path/www.server.com
-func JoinPrefixPathAndUrlHost(prefixPath, urlStr string) (path string, err error) {
-	// 新增：空值/空格校验
-	trimmedPrefix := strings.TrimSpace(prefixPath)
-	if trimmedPrefix == "" {
-		return "", errors.New("prefixPath is empty or only contains whitespace")
-	}
-	host, err := Host(urlStr)
-	if err != nil {
-		return "", err
-	}
-	decodedHostPathFile, err := url.PathUnescape(host)
-	if err != nil {
-		return "", err
-	}
-	// 转义特殊字符
-	escapedHost := filepath.Clean(decodedHostPathFile)
-	path = osutil.JoinPathFile(trimmedPrefix, escapedHost)
-	path = filepath.Clean(path)
-	return path, nil
+	return true
 }
 
 // HostPort returns whether addr includes a port number (i.e.,
@@ -283,14 +137,117 @@ func HasPort(addr string) bool {
 	if err != nil {
 		return false
 	}
-
-	// this deals with the corner-case of, e.g., "1.2.3.4:".  For
-	// addresses of this form, net.SplitHostAddr does not return an
-	// error, and returns an empty port string.
 	if port == "" {
 		return false
 	}
 	return true
+}
+
+// http://server:port/aa/bb/cc.html --> http://server/aa/bb/
+func SchemeAndHostAndPath(urlStr string) (string, error) {
+	u, err := parseAndValidateURL(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	processedPath, err := preprocessAndValidatePath(u.Path)
+	if err != nil {
+		return "", err
+	}
+
+	scheme := processScheme(u)
+	host := getHostWithoutPort(u.Host)
+
+	pos := strings.LastIndex(processedPath, "/")
+	if pos == -1 {
+		return scheme + host + "/" + processedPath + "/", nil
+	}
+	return scheme + host + processedPath[:pos+1], nil
+}
+
+// rsync://aa.com:xxx/repo/defautl/xxxx --> rsync://aa.com/repo/
+func SchemeAndHostAndFirstPath(urlStr string) (string, error) {
+	u, err := parseAndValidateURL(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	processedPath, err := preprocessAndValidatePath(u.Path)
+	if err != nil {
+		return "", err
+	}
+
+	scheme := processScheme(u)
+	host := getHostWithoutPort(u.Host)
+
+	// 修正：改用URL专用cleanURLPath，避免系统分隔符问题
+	cleanPath := cleanURLPath(processedPath)
+	// 按/拆分路径（纯字符串处理，无系统差异）
+	split := strings.Split(cleanPath, "/")
+	// 过滤空字符串（如/拆分后是["", ""]）
+	var validParts []string
+	for _, part := range split {
+		if part != "" {
+			validParts = append(validParts, part)
+		}
+	}
+
+	var firstPath string
+	if len(validParts) == 0 {
+		firstPath = "/" // 空Path返回/
+	} else {
+		firstPath = "/" + validParts[0] + "/" // 取第一个有效路径段
+	}
+
+	return scheme + host + firstPath, nil
+}
+
+// url is http://www.server.com:8080/aa/bb/cc.html , and  prefixPath is /root/path ;
+// combine to  /root/path/www.server.com/aa/bb/cc.html
+func JoinPrefixPathAndUrlFileName(prefixPath, urlStr string) (filePathName string, err error) {
+	trimmedPrefix := strings.TrimSpace(prefixPath)
+	if trimmedPrefix == "" {
+		return "", errors.New("prefixPath is empty or only contains whitespace")
+	}
+
+	hostPathFile, err := hostAndPathFile(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	decodedHostPathFile, err := url.PathUnescape(hostPathFile)
+	if err != nil {
+		return "", err
+	}
+	// 修正1：移除filepath.Clean，改用cleanURLPath
+	escapedHostPathFile := cleanURLPath(decodedHostPathFile)
+	// 修正2：替换osutil.JoinPathFile/filepath.Clean为joinURLPath
+	filePathName = joinURLPath(trimmedPrefix, escapedHostPathFile)
+	return filePathName, nil
+}
+
+// url is http://www.server.com:8080/aa/bb/cc.html , and  preifxPath is /root/path ;
+// combine to  /root/path/www.server.com
+func JoinPrefixPathAndUrlHost(prefixPath, urlStr string) (path string, err error) {
+	trimmedPrefix := strings.TrimSpace(prefixPath)
+	if trimmedPrefix == "" {
+		return "", errors.New("prefixPath is empty or only contains whitespace")
+	}
+
+	host, err := Host(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	decodedHostPathFile, err := url.PathUnescape(host)
+	if err != nil {
+		return "", err
+	}
+	// 修正1：移除filepath.Clean，改用cleanURLPath
+	escapedHost := cleanURLPath(decodedHostPathFile)
+	// 修正2：替换osutil.JoinPathFile/filepath.Clean为joinURLPath
+	path = joinURLPath(trimmedPrefix, escapedHost)
+	return path, nil
 }
 
 // TryJoinHostPort checks whether the server string already has a port (i.e.,
@@ -306,9 +263,7 @@ func TryJoinHostPort(server string, port string) string {
 	}
 
 	sanitized := server
-	// 修正IPv4冒号截断逻辑（仅对IPv4且末尾单冒号的场景截断）
 	if strings.HasSuffix(server, ":") {
-		// 提取截断后的地址，判断是否为合法IPv4
 		trimmed := server[:len(server)-1]
 		if ip := net.ParseIP(trimmed); ip != nil && ip.To4() != nil {
 			sanitized = trimmed
@@ -316,4 +271,200 @@ func TryJoinHostPort(server string, port string) string {
 	}
 
 	return net.JoinHostPort(sanitized, port)
+}
+
+// http://server:port/aa/bb/cc.html --> server/aa/bb/cc.html
+func hostAndPathFile(urlStr string) (string, error) {
+	u, err := parseAndValidateURL(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	processedPath, err := preprocessAndValidatePath(u.Path)
+	if err != nil {
+		return "", err
+	}
+
+	host := getHostWithoutPort(u.Host)
+	decodedHost, err := url.PathUnescape(host)
+	if err != nil {
+		return "", err
+	}
+	// 核心修正：手动拼接host和path，而非用joinURLPath（避免host前加/）
+	cleanPath := cleanURLPath(processedPath)
+	if strings.HasPrefix(cleanPath, "/") {
+		return decodedHost + cleanPath, nil
+	}
+	return decodedHost + "/" + cleanPath, nil
+}
+
+// filepath.clean在windows下有问题，改为cleanURLPath 清理URL路径，统一分隔符为/，移除连续/，符合URL规范
+func cleanURLPath(path string) string {
+	// 1. 统一反斜杠为正斜杠（消除系统差异）
+	path = strings.ReplaceAll(path, "\\", "/")
+	// 2. 清理连续的/（避免//、///等异常）
+	for strings.Contains(path, "//") {
+		path = strings.ReplaceAll(path, "//", "/")
+	}
+	// 3. 空路径返回/（URL根路径规范）
+	if path == "" {
+		return "/"
+	}
+	// 4. 确保路径以/开头（URL路径规范）
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	// 5. 移除末尾的/（除非是根路径）
+	if len(path) > 1 && strings.HasSuffix(path, "/") {
+		path = path[:len(path)-1]
+	}
+	return path
+}
+
+// joinURLPath 拼接URL路径段，统一用/分隔，避免系统差异
+func joinURLPath(parts ...string) string {
+	var result string
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		// 清理当前段的分隔符
+		part = cleanURLPath(part)
+		// 拼接逻辑：确保段之间只有一个/
+		if result == "" {
+			result = part
+		} else {
+			if strings.HasSuffix(result, "/") {
+				if strings.HasPrefix(part, "/") {
+					result += part[1:]
+				} else {
+					result += part
+				}
+			} else {
+				if strings.HasPrefix(part, "/") {
+					result += part
+				} else {
+					result += "/" + part
+				}
+			}
+		}
+	}
+	// 最终清理一次，确保规范
+	return cleanURLPath(result)
+}
+
+func getHostWithoutPort(host string) string {
+	h, _, err := net.SplitHostPort(host)
+	if err != nil {
+		// 无端口时返回原host（如IPv6地址[2001:db8::1]）
+		return host
+	}
+	return h
+}
+
+func parseAndValidateURL(urlStr string) (*url.URL, error) {
+	u, err := checkUrlHost(urlStr)
+	if err != nil {
+		return nil, fmt.Errorf("URL基础解析失败: %w", err)
+	}
+
+	if err := isValidHost(u.Host); err != nil {
+		return nil, fmt.Errorf("Host校验失败: %w", err)
+	}
+
+	return u, nil
+}
+
+func preprocessAndValidatePath(path string) (string, error) {
+	processedPath := path
+	if processedPath == "" {
+		processedPath = "/"
+	}
+
+	if err := isValidURLPath(processedPath); err != nil {
+		return "", fmt.Errorf("Path校验失败: %w", err)
+	}
+
+	return processedPath, nil
+}
+
+func processScheme(u *url.URL) string {
+	scheme := u.Scheme
+	if scheme == "" {
+		scheme = "http" // 兜底：默认http
+	}
+	return scheme + "://"
+}
+
+func checkUrlHost(urlStr string) (*url.URL, error) {
+	trimmedUrl := strings.TrimSpace(urlStr)
+	if trimmedUrl == "" {
+		return nil, errors.New("URL is empty or only contains whitespace")
+	}
+
+	u, err := url.Parse(trimmedUrl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse URL '%s': %w", trimmedUrl, err)
+	}
+	if len(u.Host) == 0 {
+		return nil, fmt.Errorf("URL '%s' host is empty", trimmedUrl)
+	}
+	return u, nil
+}
+
+func isValidHost(host string) error {
+	if strings.TrimSpace(host) == "" {
+		return errors.New("host is empty")
+	}
+
+	invalidChars := regexp.MustCompile(`[^\w\.\-:\[\]]`)
+	if invalidChars.MatchString(host) {
+		return fmt.Errorf("host '%s' contains illegal characters (only letters, digits, -, ., :, [, ] are allowed)", host)
+	}
+
+	hostOnly, _, err := net.SplitHostPort(host)
+	if err != nil {
+		hostOnly = host
+	}
+
+	if ip := net.ParseIP(hostOnly); ip != nil {
+		return nil
+	}
+
+	validDomainRegex := regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
+	if !validDomainRegex.MatchString(hostOnly) {
+		return fmt.Errorf("host '%s' is not a valid domain (RFC 1035)", host)
+	}
+
+	return nil
+}
+
+func isValidURLPath(path string) error {
+	if path == "" {
+		return errors.New("URL path is empty")
+	}
+
+	if !utf8.ValidString(path) {
+		return errors.New("URL path contains invalid UTF-8 characters")
+	}
+
+	if _, err := url.PathUnescape(path); err != nil {
+		return fmt.Errorf("URL path '%s' contains invalid escape sequences: %w", path, err)
+	}
+
+	decodedPath, _ := url.PathUnescape(path)
+	if strings.Contains(decodedPath, "../") || strings.Contains(decodedPath, "./") {
+		return fmt.Errorf("URL path '%s' contains path traversal sequences (../ or ./)", path)
+	}
+
+	invalidPathChars := regexp.MustCompile(`[\\:*?"<>|]`)
+	if invalidPathChars.MatchString(decodedPath) {
+		return fmt.Errorf("URL path '%s' contains illegal filename characters (\\ : * ? \" < > |)", path)
+	}
+
+	if !strings.HasPrefix(path, "/") {
+		return fmt.Errorf("URL path '%s' must start with /", path)
+	}
+
+	return nil
 }
