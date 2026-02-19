@@ -180,6 +180,7 @@ func CloseAndRemoveFile(file *os.File) error {
 // if not exist conf or log, confOrLogPath is "", can use currentPath
 // only use in goutil/conf and goutil/log.  dont use in others.
 func GetConfOrLogPath(relativePath string) (confOrLogPath string, currentPath string, err error) {
+	// find in ./conf or ./log
 	currentPath, err = GetPwd()
 	if err != nil {
 		return "", relativePath, err
@@ -189,6 +190,22 @@ func GetConfOrLogPath(relativePath string) (confOrLogPath string, currentPath st
 
 	confOrLogPath = filepath.Join(currentPath, relativePath)
 	ok, err := IsDir(confOrLogPath)
+	if err == nil && ok {
+		// 确保路径以分隔符结尾（按需，建议用filepath.Clean）
+		confOrLogPath = filepath.Clean(confOrLogPath) + string(os.PathSeparator)
+		return confOrLogPath, currentPath, nil
+	}
+
+	// find in ../conf or ../log
+	parentPath, err := GetParentPath()
+	if err != nil {
+		return "", currentPath, err
+	}
+	// 使用filepath.Join自动处理分隔符，避免重复
+	parentPath = filepath.Clean(parentPath) + string(os.PathSeparator)
+
+	confOrLogPath = filepath.Join(parentPath, relativePath)
+	ok, err = IsDir(confOrLogPath)
 	if err == nil && ok {
 		// 确保路径以分隔符结尾（按需，建议用filepath.Clean）
 		confOrLogPath = filepath.Clean(confOrLogPath) + string(os.PathSeparator)
