@@ -19,9 +19,14 @@ import (
 
 // Deprecated
 func Bytes2Uint64(bytes []byte) uint64 {
-	lens := 8 - len(bytes)
-	bb := make([]byte, lens)
-	bb = append(bb, bytes...)
+	// 修复：处理长度超过8的情况，截断（取最后8字节）；长度不足8时补0到前面
+	var bb []byte
+	if len(bytes) > 8 {
+		bb = bytes[len(bytes)-8:] // 超过8字节时取最后8个（符合uint64存储逻辑）
+	} else {
+		bb = make([]byte, 8-len(bytes)) // 补0到前面
+		bb = append(bb, bytes...)
+	}
 	return binary.BigEndian.Uint64(bb)
 }
 
@@ -78,71 +83,51 @@ func ByteToBigInt(b byte) *big.Int {
 // int/uint as int64/uint64
 // https://blog.csdn.net/whatday/article/details/97967180
 func IntToBytes(n interface{}) ([]byte, error) {
-	switch n.(type) {
-	case int8:
-		tmp := n.(int8)
-		belogs.Debug("IntToBytes():int8 tmp:", tmp)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
-		return bytesBuffer.Bytes(), nil
-	case uint8:
-		tmp := n.(uint8)
-		belogs.Debug("IntToBytes():uint8 tmp:", tmp)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
-		return bytesBuffer.Bytes(), nil
-	case int16:
-		tmp := n.(int16)
-		belogs.Debug("IntToBytes():int16 tmp:", tmp)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
-		return bytesBuffer.Bytes(), nil
-	case uint16:
-		tmp := n.(uint16)
-		belogs.Debug("IntToBytes():uint16 tmp:", tmp)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
-		return bytesBuffer.Bytes(), nil
-	case int32:
-		tmp := n.(int32)
-		belogs.Debug("IntToBytes():int32 tmp:", tmp)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
-		return bytesBuffer.Bytes(), nil
-	case uint32:
-		tmp := n.(uint32)
-		belogs.Debug("IntToBytes():uint32 tmp:", tmp)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
-		return bytesBuffer.Bytes(), nil
-	case int64:
-		tmp := n.(int64)
-		belogs.Debug("IntToBytes():int64 tmp:", tmp)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
-		return bytesBuffer.Bytes(), nil
-	case uint64:
-		tmp := n.(uint64)
-		belogs.Debug("IntToBytes():uint64 tmp:", tmp)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
-		return bytesBuffer.Bytes(), nil
-	case int:
-		tmp1 := n.(int)
-		tmp := int64(tmp1)
-		belogs.Debug("IntToBytes():int tmp:", tmp)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
-		return bytesBuffer.Bytes(), nil
-	case uint:
-		tmp1 := n.(uint)
-		tmp := uint64(tmp1)
-		belogs.Debug("IntToBytes():uint tmp:", tmp)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		binary.Write(bytesBuffer, binary.BigEndian, &tmp)
-		return bytesBuffer.Bytes(), nil
+	if n == nil {
+		return nil, errors.New("n is nil")
 	}
-	return nil, errors.New("n is not digital")
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	var err error
+	switch v := n.(type) {
+	case int8:
+		belogs.Debug("IntToBytes():int8 tmp:", v)
+		err = binary.Write(bytesBuffer, binary.BigEndian, v)
+	case uint8:
+		belogs.Debug("IntToBytes():uint8 tmp:", v)
+		err = binary.Write(bytesBuffer, binary.BigEndian, v)
+	case int16:
+		belogs.Debug("IntToBytes():int16 tmp:", v)
+		err = binary.Write(bytesBuffer, binary.BigEndian, v)
+	case uint16:
+		belogs.Debug("IntToBytes():uint16 tmp:", v)
+		err = binary.Write(bytesBuffer, binary.BigEndian, v)
+	case int32:
+		belogs.Debug("IntToBytes():int32 tmp:", v)
+		err = binary.Write(bytesBuffer, binary.BigEndian, v)
+	case uint32:
+		belogs.Debug("IntToBytes():uint32 tmp:", v)
+		err = binary.Write(bytesBuffer, binary.BigEndian, v)
+	case int64:
+		belogs.Debug("IntToBytes():int64 tmp:", v)
+		err = binary.Write(bytesBuffer, binary.BigEndian, v)
+	case uint64:
+		belogs.Debug("IntToBytes():uint64 tmp:", v)
+		err = binary.Write(bytesBuffer, binary.BigEndian, v)
+	case int:
+		tmp := int64(v)
+		belogs.Debug("IntToBytes():int tmp:", tmp)
+		err = binary.Write(bytesBuffer, binary.BigEndian, tmp)
+	case uint:
+		tmp := uint64(v)
+		belogs.Debug("IntToBytes():uint tmp:", tmp)
+		err = binary.Write(bytesBuffer, binary.BigEndian, tmp)
+	default:
+		return nil, errors.New("n is not digital")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return bytesBuffer.Bytes(), nil
 }
 
 // 0102abc1
@@ -157,6 +142,9 @@ func PrintBytes(data []byte, num int) (ret string) {
 
 // print bytes in section to show
 func Bytes2StringSection(data []byte, num int) (ret string) {
+	if data == nil {
+		return ""
+	}
 	var buffer bytes.Buffer
 	for i, b := range data {
 		buffer.WriteString(fmt.Sprintf("%02x ", b))
@@ -168,7 +156,9 @@ func Bytes2StringSection(data []byte, num int) (ret string) {
 }
 
 func GetInterfaceType(v interface{}) (string, error) {
-
+	if v == nil {
+		return "nil", nil
+	}
 	switch v.(type) {
 	case int:
 		return "int", nil
@@ -185,6 +175,9 @@ func GetInterfaceType(v interface{}) (string, error) {
 }
 
 func ToString(a interface{}) string {
+	if a == nil {
+		return ""
+	}
 	if v, p := a.(string); p {
 		return v
 	}
@@ -192,72 +185,69 @@ func ToString(a interface{}) string {
 		return string(v)
 	}
 
-	if v, p := a.(int); p {
+	// 修复：uint64 强转 int 溢出问题，改用 FormatUint
+	switch v := a.(type) {
+	case int:
 		return strconv.Itoa(v)
-	}
-	if v, p := a.(int8); p {
+	case int8:
 		return strconv.Itoa(int(v))
-	}
-	if v, p := a.(int16); p {
+	case int16:
 		return strconv.Itoa(int(v))
-	}
-	if v, p := a.(int32); p {
+	case int32:
 		return strconv.Itoa(int(v))
-	}
-	if v, p := a.(int64); p {
-		return strconv.Itoa(int(v))
-	}
-
-	if v, p := a.(uint); p {
-		return strconv.Itoa(int(v))
-	}
-	if v, p := a.(uint8); p {
-		return strconv.Itoa(int(v))
-	}
-	if v, p := a.(uint16); p {
-		return strconv.Itoa(int(v))
-	}
-	if v, p := a.(uint32); p {
-		return strconv.Itoa(int(v))
-	}
-	if v, p := a.(uint64); p {
-		return strconv.Itoa(int(v))
-	}
-
-	if v, p := a.(float32); p {
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case uint:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint32:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint64:
+		return strconv.FormatUint(v, 10)
+	case float32:
 		return strconv.FormatFloat(float64(v), 'f', -1, 32)
-	}
-	if v, p := a.(float64); p {
-		return strconv.FormatFloat(v, 'f', -1, 32)
-	}
-	if v, p := a.(bool); p {
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64) // 修复：float64 应使用 64 位精度
+	case bool:
 		return strconv.FormatBool(v)
-	}
-	if v, p := a.(time.Time); p {
+	case time.Time:
 		return v.Local().Format("2006-01-02 15:04:05")
-	}
-	if v, p := a.(time.Duration); p {
+	case time.Duration:
 		return fmt.Sprintf("%v", v)
+	default:
+		return fmt.Sprintf("%v", a)
 	}
-	return fmt.Sprintf("%v", a)
 }
+
+// when arg in args is nil, will ignore
 func Interfaces2String(args ...interface{}) string {
 	var buf strings.Builder
 	for _, arg := range args {
+		if arg == nil {
+			continue
+		}
 		buf.WriteString(fmt.Sprintf("%v", arg) + " ")
 	}
-	return buf.String()
+	return strings.TrimSpace(buf.String()) // 修复：去除末尾多余空格
 }
+
 func Interface2String(v interface{}) (string, error) {
 	if str, ok := v.(string); ok {
 		return str, nil
+	}
+	// 兼容 []byte 转 string（常见场景，不破坏原有返回值逻辑）
+	if by, ok := v.([]byte); ok {
+		return string(by), nil
 	}
 	return "", errors.New("an interface{} cannot convert to a string")
 }
 
 func Interface2Bytes(v interface{}) ([]byte, error) {
 	if by, ok := v.([]byte); ok {
-		return by, nil
+		return CloneBytes(by), nil // 修复：返回拷贝，避免原切片被修改
 	}
 	return nil, errors.New("an interface{} cannot convert to []byte")
 }
@@ -266,8 +256,26 @@ func Interface2Uint64(v interface{}) (uint64, error) {
 	if ui, ok := v.(uint64); ok {
 		return ui, nil
 	}
+	// 兼容其他数值类型（不破坏原有返回值逻辑）
+	switch val := v.(type) {
+	case int:
+		return uint64(val), nil
+	case int64:
+		return uint64(val), nil
+	case uint:
+		return uint64(val), nil
+	case int32:
+		return uint64(val), nil
+	case uint32:
+		return uint64(val), nil
+	case int8:
+		return uint64(val), nil
+	case uint8:
+		return uint64(val), nil
+	}
 	return 0, errors.New("an interface{} cannot convert to a uint64")
 }
+
 func Interface2Map(v interface{}) (map[string]string, error) {
 	m := make(map[string]string, 0)
 	if v, p := v.(map[string]string); p {
@@ -283,7 +291,7 @@ func Interface2Time(v interface{}) (time.Time, error) {
 	if by, ok := v.(time.Time); ok {
 		return by, nil
 	}
-	return time.Now(), errors.New("an interface{} cannot convert to time.Time")
+	return time.Time{}, errors.New("an interface{} cannot convert to time.Time") // 修复：返回零值而非当前时间
 }
 
 func String2Int(s string) (int, error) {
@@ -318,27 +326,54 @@ func String2Time(t string) (tm time.Time, e error) {
 	if len(t) == 0 {
 		return tm, errors.New("string is empty")
 	}
-	if strings.LastIndex(t, "z") >= 0 || strings.LastIndex(t, "Z") >= 0 {
-		tm, e = time.Parse("2006-01-02 15:04:05Z", t)
-	} else {
-		tm, e = time.Parse("2006-01-02 15:04:05", t)
+	// 修复：兼容更多常见时间格式，避免解析失败
+	formats := []string{
+		"2006-01-02 15:04:05Z",
+		"2006-01-02T15:04:05Z",
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05 MST",
 	}
-	return tm.Local(), e
+	for _, format := range formats {
+		tm, e = time.Parse(format, t)
+		if e == nil {
+			return tm.Local(), nil
+		}
+	}
+	return tm, errors.New("unsupported time format: " + t)
 }
 
 // struct --> map
 func Struct2Map(obj interface{}) map[string]interface{} {
-	t := reflect.TypeOf(obj)
-	v := reflect.ValueOf(obj)
+	if obj == nil {
+		return make(map[string]interface{})
+	}
+	// 修复：处理结构体指针类型
+	val := reflect.ValueOf(obj)
+	for val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return make(map[string]interface{})
+	}
+	t := val.Type()
 
 	var data = make(map[string]interface{})
 	for i := 0; i < t.NumField(); i++ {
-		data[t.Field(i).Name] = v.Field(i).Interface()
+		field := t.Field(i)
+		// 跳过未导出字段（避免 panic）
+		if field.PkgPath != "" {
+			continue
+		}
+		data[field.Name] = val.Field(i).Interface()
 	}
 	return data
 }
 
 func StringIsDigit(s string) bool {
+	if s == "" {
+		return false
+	}
 	reg := regexp.MustCompile("^[0-9]+$")
 	return reg.MatchString(s)
 }
@@ -348,12 +383,18 @@ func ByteIsDigit(b byte) bool {
 }
 
 func CloneBytes(a []byte) []byte {
+	if a == nil {
+		return nil
+	}
 	b := make([]byte, len(a))
 	copy(b, a)
 	return b
 }
 
 func PrintBytesOneLine(data []byte) (ret string) {
+	if data == nil {
+		return ""
+	}
 	for _, b := range data {
 		ret += fmt.Sprintf("%02x ", b)
 	}
@@ -361,6 +402,9 @@ func PrintBytesOneLine(data []byte) (ret string) {
 }
 
 func MapKeysToSlice[K comparable, V any](m map[K]V) []K {
+	if m == nil {
+		return nil
+	}
 	keys := make([]K, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
@@ -369,6 +413,9 @@ func MapKeysToSlice[K comparable, V any](m map[K]V) []K {
 }
 
 func MapValuesToSlice[K comparable, V any](m map[K]V) []V {
+	if m == nil {
+		return nil
+	}
 	values := make([]V, 0, len(m))
 	for _, v := range m {
 		values = append(values, v)
