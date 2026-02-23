@@ -16,7 +16,7 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
 	github.com/lib/pq v1.11.2
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260212121150-44fd27f02786
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260222133122-076f3918fa89
 	github.com/mattn/go-sqlite3 v1.14.34
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/panjf2000/ants/v2 v2.11.5
