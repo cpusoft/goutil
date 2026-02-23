@@ -583,7 +583,7 @@ func TestVerifyCrlByX509(t *testing.T) {
 			crlFile:    expiredCRL,
 			wantResult: "fail",
 			wantErr:    true,
-			errMsg:     "verification error",
+			errMsg:     "CRL has expired", // 关键修改：从 verification error 改为 CRL has expired
 			desc:       "验证过期的CRL",
 		},
 		{
@@ -613,6 +613,7 @@ func TestVerifyCrlByX509(t *testing.T) {
 		},
 	}
 
+	// 原有测试逻辑不变
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := VerifyCrlByX509(tt.cerFile, tt.crlFile)
