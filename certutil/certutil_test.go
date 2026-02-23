@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -57,7 +56,7 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
-// 初始化测试用证书、CRL、文件资源
+// 修复CRL生成逻辑：移除错误的reasonCode扩展，简化CRL结构
 func setupTestResources() error {
 	var err error
 
@@ -178,20 +177,15 @@ func setupTestResources() error {
 	}
 	emptyFd.Close()
 
-	// 8. 生成有效CRL
+	// 8. 生成有效CRL - 修复：移除错误的reasonCode扩展
 	validCRLTemplate := &x509.RevocationList{
 		Number: big.NewInt(1),
+		// 修复1：移除格式错误的reasonCode扩展，简化吊销证书列表
 		RevokedCertificates: []pkix.RevokedCertificate{
 			{
 				SerialNumber:   big.NewInt(999),
 				RevocationTime: time.Now().Add(-12 * time.Hour),
-				Extensions: []pkix.Extension{
-					{
-						Id:       asn1.ObjectIdentifier{2, 5, 29, 21},
-						Critical: false,
-						Value:    []byte{0x01, 0x01, 0x00},
-					},
-				},
+				// 移除错误的Extensions字段
 			},
 		},
 		ThisUpdate:         time.Now().Add(-24 * time.Hour),
