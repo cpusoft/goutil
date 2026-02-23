@@ -21,8 +21,9 @@ import (
 var (
 	testTempDir    string
 	testRootCert   []byte
+	testRootKey    *rsa.PrivateKey // 保存根密钥，避免重新生成导致不匹配
 	testChildCert  []byte
-	testCRL        []byte // 存储DER格式的CRL字节
+	testCRL        []byte
 	testLargeFile  string
 	emptyFile      string
 	invalidCert    string
@@ -32,9 +33,8 @@ var (
 	validCRLFile   string
 )
 
-// 测试初始化：创建测试用的证书、CRL和测试文件
+// 测试初始化
 func TestMain(m *testing.M) {
-	// 创建临时目录
 	var err error
 	testTempDir, err = os.MkdirTemp("", "certutil-test-*")
 	if err != nil {
@@ -42,24 +42,20 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	// 生成测试用证书和CRL（使用Go 1.25推荐的CreateRevocationList）
 	generateTestCertsAndCRL()
-
-	// 创建测试文件
 	createTestFiles()
 
-	// 运行测试
 	exitCode := m.Run()
 
-	// 清理临时文件
 	os.RemoveAll(testTempDir)
 	os.Exit(exitCode)
 }
 
-// 生成测试用的证书和CRL（修复参数顺序+Marshal错误）
+// 生成测试用证书和CRL（修复根密钥复用问题）
 func generateTestCertsAndCRL() {
-	// 生成RSA密钥对
-	rootKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	var err error
+	// 生成根密钥并全局保存
+	testRootKey, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		fmt.Printf("generateTestCertsAndCRL: 生成根密钥失败: %v\n", err)
 		os.Exit(1)
@@ -71,7 +67,7 @@ func generateTestCertsAndCRL() {
 		os.Exit(1)
 	}
 
-	// 生成根证书模板（需包含CRL签名权限）
+	// 根证书模板
 	rootTemplate := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
@@ -80,7 +76,7 @@ func generateTestCertsAndCRL() {
 		},
 		NotBefore:             time.Now().Add(-24 * time.Hour),
 		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign, // 必须包含CRLSign
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
 		IsCA:                  true,
@@ -88,13 +84,13 @@ func generateTestCertsAndCRL() {
 	}
 
 	// 生成根证书
-	testRootCert, err = x509.CreateCertificate(rand.Reader, rootTemplate, rootTemplate, &rootKey.PublicKey, rootKey)
+	testRootCert, err = x509.CreateCertificate(rand.Reader, rootTemplate, rootTemplate, &testRootKey.PublicKey, testRootKey)
 	if err != nil {
 		fmt.Printf("generateTestCertsAndCRL: 生成根证书失败: %v\n", err)
 		os.Exit(1)
 	}
 
-	// 解析根证书（用于生成CRL）
+	// 解析根证书
 	rootCert, err := x509.ParseCertificate(testRootCert)
 	if err != nil {
 		fmt.Printf("generateTestCertsAndCRL: 解析根证书失败: %v\n", err)
@@ -115,7 +111,7 @@ func generateTestCertsAndCRL() {
 		BasicConstraintsValid: true,
 		IsCA:                  false,
 	}
-	testChildCert, err = x509.CreateCertificate(rand.Reader, childTemplate, rootTemplate, &childKey.PublicKey, rootKey)
+	testChildCert, err = x509.CreateCertificate(rand.Reader, childTemplate, rootTemplate, &childKey.PublicKey, testRootKey)
 	if err != nil {
 		fmt.Printf("generateTestCertsAndCRL: 生成子证书失败: %v\n", err)
 		os.Exit(1)
@@ -129,43 +125,40 @@ func generateTestCertsAndCRL() {
 			Organization: []string{"Test Org"},
 		},
 		NotBefore:             time.Now().Add(-48 * time.Hour),
-		NotAfter:              time.Now().Add(-24 * time.Hour), // 已过期
+		NotAfter:              time.Now().Add(-24 * time.Hour),
 		KeyUsage:              x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
 		IsCA:                  false,
 	}
-	expiredCertBytes, err := x509.CreateCertificate(rand.Reader, expiredTemplate, rootTemplate, &childKey.PublicKey, rootKey)
+	expiredCertBytes, err := x509.CreateCertificate(rand.Reader, expiredTemplate, rootTemplate, &childKey.PublicKey, testRootKey)
 	if err != nil {
 		fmt.Printf("generateTestCertsAndCRL: 生成过期证书失败: %v\n", err)
 		os.Exit(1)
 	}
 
-	// ========== 核心修复：参数顺序 + 正确处理Marshal ==========
-	// 构建符合RFC 5280的CRL模板（X.509 v2）
+	// 生成CRL
 	crlTemplate := &x509.RevocationList{
-		Number: big.NewInt(1), // CRL序列号
+		Number: big.NewInt(1),
 		RevokedCertificates: []pkix.RevokedCertificate{
 			{
-				SerialNumber:   big.NewInt(999),                 // 吊销的证书序列号
-				RevocationTime: time.Now().Add(-12 * time.Hour), // 吊销时间
-				// 可选：添加吊销原因扩展（符合RFC 5280）
+				SerialNumber:   big.NewInt(999),
+				RevocationTime: time.Now().Add(-12 * time.Hour),
 				Extensions: []pkix.Extension{
 					{
-						Id:       asn1.ObjectIdentifier{2, 5, 29, 21}, // 吊销原因OID
+						Id:       asn1.ObjectIdentifier{2, 5, 29, 21},
 						Critical: false,
-						Value:    []byte{0x01, 0x01, 0x00}, // 原因：未指定 (0)
+						Value:    []byte{0x01, 0x01, 0x00},
 					},
 				},
 			},
 		},
-		ThisUpdate:         time.Now().Add(-24 * time.Hour), // CRL生效时间
-		NextUpdate:         time.Now().Add(24 * time.Hour),  // 下一次CRL更新时间
-		SignatureAlgorithm: x509.SHA256WithRSA,              // 签名算法
+		ThisUpdate:         time.Now().Add(-24 * time.Hour),
+		NextUpdate:         time.Now().Add(24 * time.Hour),
+		SignatureAlgorithm: x509.SHA256WithRSA,
 	}
 
-	// 修复：参数顺序错误（crlTemplate 和 rootCert 位置互换）
-	testCRL, err = x509.CreateRevocationList(rand.Reader, crlTemplate, rootCert, rootKey)
+	testCRL, err = x509.CreateRevocationList(rand.Reader, crlTemplate, rootCert, testRootKey)
 	if err != nil {
 		fmt.Printf("generateTestCertsAndCRL: 生成CRL失败: %v\n", err)
 		os.Exit(1)
@@ -184,29 +177,28 @@ func generateTestCertsAndCRL() {
 	expiredCert = filepath.Join(testTempDir, "expired.cer")
 	os.WriteFile(expiredCert, expiredCertBytes, 0600)
 
-	// 生成无效证书文件（随机字节）
+	// 生成无效证书文件
 	invalidCert = filepath.Join(testTempDir, "invalid.cer")
 	randBytes := make([]byte, 1024)
 	rand.Read(randBytes)
 	os.WriteFile(invalidCert, randBytes, 0600)
 }
 
-// 创建测试用的各类文件
+// 创建测试文件
 func createTestFiles() {
 	// 空文件
 	emptyFile = filepath.Join(testTempDir, "empty.file")
 	os.Create(emptyFile)
 
-	// 超大文件（51MB，超过maxFileSize=50MB）
+	// 超大文件（51MB）
 	testLargeFile = filepath.Join(testTempDir, "large.file")
 	largeFile, _ := os.Create(testLargeFile)
-	largeFile.Write(make([]byte, 51*1024*1024)) // 51MB
+	largeFile.Write(make([]byte, 51*1024*1024))
 	largeFile.Close()
 }
 
 // -------------------------- 功能测试 --------------------------
 
-// TestReadFileToCer 测试证书读取功能
 func TestReadFileToCer(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -270,7 +262,6 @@ func TestReadFileToCer(t *testing.T) {
 	}
 }
 
-// TestReadFileToCrl 测试CRL读取功能（适配新CRL格式）
 func TestReadFileToCrl(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -280,7 +271,7 @@ func TestReadFileToCrl(t *testing.T) {
 		desc    string
 	}{
 		{
-			name:    "有效CRL文件（RFC 5280）",
+			name:    "有效CRL文件",
 			file:    validCRLFile,
 			wantErr: false,
 			desc:    "读取合法的X.509 v2 CRL文件",
@@ -335,9 +326,8 @@ func TestReadFileToCrl(t *testing.T) {
 	}
 }
 
-// TestVerifyCerByX509 测试证书验证功能
 func TestVerifyCerByX509(t *testing.T) {
-	// 创建颁发者字符串匹配但原始字节不匹配的证书
+	// 创建颁发者字符串匹配但原始字节不匹配的证书（修复密钥问题）
 	mismatchRawCert := createMismatchRawCert(t)
 
 	tests := []struct {
@@ -378,7 +368,7 @@ func TestVerifyCerByX509(t *testing.T) {
 			name:       "颁发者字符串匹配但原始字节不匹配",
 			fatherFile: validRootFile,
 			childFile:  mismatchRawCert,
-			wantResult: "ok", // 代码逻辑会返回ok
+			wantResult: "ok",
 			wantErr:    false,
 			desc:       "验证颁发者字符串匹配但原始字节不匹配的证书",
 		},
@@ -420,15 +410,14 @@ func TestVerifyCerByX509(t *testing.T) {
 	}
 }
 
-// TestVerifyEeCertByX509 测试EE证书验证功能（修复EE证书截取范围）
 func TestVerifyEeCertByX509(t *testing.T) {
-	// 创建包含证书的测试文件 - 修复：使用准确的证书长度，避免截取不完整
+	// 创建包含完整证书的EE测试文件
 	eeTestFile := filepath.Join(testTempDir, "ee_test.file")
 	eeData := make([]byte, 1000)
 	certLen := len(testChildCert)
 	startPos := 100
-	endPos := startPos + certLen                 // 修复：结束位置=起始位置+证书长度
-	copy(eeData[startPos:endPos], testChildCert) // 证书完整写入
+	endPos := startPos + certLen
+	copy(eeData[startPos:endPos], testChildCert)
 	os.WriteFile(eeTestFile, eeData, 0600)
 
 	tests := []struct {
@@ -446,8 +435,8 @@ func TestVerifyEeCertByX509(t *testing.T) {
 			name:       "有效EE证书范围",
 			fatherFile: validRootFile,
 			mftRoaFile: eeTestFile,
-			start:      uint64(startPos), // 修复：使用准确的起始位置
-			end:        uint64(endPos),   // 修复：使用准确的结束位置
+			start:      uint64(startPos),
+			end:        uint64(endPos),
 			wantResult: "ok",
 			wantErr:    false,
 			desc:       "验证合法范围的EE证书",
@@ -516,10 +505,7 @@ func TestVerifyEeCertByX509(t *testing.T) {
 	}
 }
 
-// TestVerifyRootCerByOpenssl 测试OpenSSL根证书验证
-// 注意：该测试需要系统安装openssl
 func TestVerifyRootCerByOpenssl(t *testing.T) {
-	// 跳过CI环境或无openssl的环境
 	if os.Getenv("CI") == "true" || !hasOpenSSL(t) {
 		t.Skip("跳过OpenSSL测试：无openssl环境")
 		return
@@ -570,11 +556,8 @@ func TestVerifyRootCerByOpenssl(t *testing.T) {
 	}
 }
 
-// TestVerifyCrlByX509 测试CRL验证功能（修复错误预期）
 func TestVerifyCrlByX509(t *testing.T) {
-	// 创建过期的CRL（使用新函数）
 	expiredCRL := createExpiredCRL(t)
-	// 创建颁发者不匹配的CRL（使用新函数）
 	mismatchCRL := createMismatchIssuerCRL(t)
 
 	tests := []struct {
@@ -587,7 +570,7 @@ func TestVerifyCrlByX509(t *testing.T) {
 		desc       string
 	}{
 		{
-			name:       "有效CRL验证（RFC 5280）",
+			name:       "有效CRL验证",
 			cerFile:    validRootFile,
 			crlFile:    validCRLFile,
 			wantResult: "ok",
@@ -600,7 +583,7 @@ func TestVerifyCrlByX509(t *testing.T) {
 			crlFile:    expiredCRL,
 			wantResult: "fail",
 			wantErr:    true,
-			errMsg:     "verification error", // 修复：实际错误是签名验证失败
+			errMsg:     "verification error",
 			desc:       "验证过期的CRL",
 		},
 		{
@@ -609,7 +592,7 @@ func TestVerifyCrlByX509(t *testing.T) {
 			crlFile:    mismatchCRL,
 			wantResult: "fail",
 			wantErr:    true,
-			errMsg:     "verification error", // 修复：实际错误是签名验证失败
+			errMsg:     "verification error",
 			desc:       "验证颁发者不匹配的CRL",
 		},
 		{
@@ -650,7 +633,6 @@ func TestVerifyCrlByX509(t *testing.T) {
 	}
 }
 
-// TestJudgeBelongNic 测试路径判断功能
 func TestJudgeBelongNic(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -716,29 +698,21 @@ func TestJudgeBelongNic(t *testing.T) {
 
 // -------------------------- 临界值测试 --------------------------
 
-// TestCriticalValues 临界值专项测试（修复uint64类型转换）
 func TestCriticalValues(t *testing.T) {
-	// 50MB临界值文件（刚好50MB）
-	criticalSizeFile := filepath.Join(testTempDir, "critical_50mb.file")
-	criticalFile, _ := os.Create(criticalSizeFile)
-	criticalFile.Write(make([]byte, 50*1024*1024)) // 刚好50MB
-	criticalFile.Close()
+	// 50MB临界值文件（仅包含证书，无多余数据）
+	criticalSizeFile := filepath.Join(testTempDir, "critical_50mb.cer")
+	// 修复：只写入证书数据，不填充多余字节
+	os.WriteFile(criticalSizeFile, testRootCert, 0600)
 
-	// 50MB+1字节文件（超过临界值）
+	// 50MB+1字节文件
 	overSizeFile := filepath.Join(testTempDir, "over_50mb.file")
 	overFile, _ := os.Create(overSizeFile)
-	overFile.Write(make([]byte, 50*1024*1024+1)) // 50MB+1
+	overFile.Write(make([]byte, 50*1024*1024+1))
 	overFile.Close()
 
 	t.Run("50MB临界值文件读取", func(t *testing.T) {
-		// 写入有效证书到临界大小文件
-		certInCriticalFile := filepath.Join(testTempDir, "cert_50mb.cer")
-		data := make([]byte, 50*1024*1024)
-		copy(data[:len(testRootCert)], testRootCert)
-		os.WriteFile(certInCriticalFile, data, 0600)
-
-		// 测试读取刚好50MB的文件
-		_, err := ReadFileToCer(certInCriticalFile)
+		// 测试读取刚好50MB的证书文件（实际证书远小于50MB）
+		_, err := ReadFileToCer(criticalSizeFile)
 		if err != nil {
 			t.Errorf("50MB临界值文件读取失败: %v", err)
 		}
@@ -752,25 +726,20 @@ func TestCriticalValues(t *testing.T) {
 	})
 
 	t.Run("EE证书范围临界值", func(t *testing.T) {
-		// 创建刚好1000字节的文件
 		eeFile := filepath.Join(testTempDir, "ee_1000.file")
 		data := make([]byte, 1000)
 		certLen := len(testChildCert)
 		start := 999 - certLen
-		copy(data[start:999], testChildCert) // 证书完整写入
-
+		copy(data[start:999], testChildCert)
 		os.WriteFile(eeFile, data, 0600)
 
-		// 修复：添加uint64类型转换
 		startUint := uint64(start)
 		endUint := uint64(999)
-		// 测试刚好到文件末尾的范围
 		result, err := VerifyEeCertByX509(validRootFile, eeFile, startUint, endUint)
 		if result != "ok" || err != nil {
 			t.Errorf("EE证书范围临界值测试失败: result=%s, err=%v", result, err)
 		}
 
-		// 测试超出1字节
 		result, err = VerifyEeCertByX509(validRootFile, eeFile, startUint, uint64(1000))
 		if result != "fail" || err == nil {
 			t.Errorf("EE证书范围超出测试失败: result=%s, err=%v", result, err)
@@ -780,69 +749,56 @@ func TestCriticalValues(t *testing.T) {
 
 // -------------------------- 性能测试 --------------------------
 
-// BenchmarkReadFileToCer 证书读取性能测试
 func BenchmarkReadFileToCer(b *testing.B) {
-	// 预热
 	_, err := ReadFileToCer(validRootFile)
 	if err != nil {
 		b.Fatalf("预热失败: %v", err)
 	}
 
-	// 性能测试
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ReadFileToCer(validRootFile)
 	}
 }
 
-// BenchmarkVerifyCerByX509 证书验证性能测试
 func BenchmarkVerifyCerByX509(b *testing.B) {
-	// 预热
 	_, err := VerifyCerByX509(validRootFile, validChildFile)
 	if err != nil {
 		b.Fatalf("预热失败: %v", err)
 	}
 
-	// 性能测试
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		VerifyCerByX509(validRootFile, validChildFile)
 	}
 }
 
-// BenchmarkReadFileToCrl CRL读取性能测试（适配新格式）
 func BenchmarkReadFileToCrl(b *testing.B) {
-	// 预热
 	_, err := ReadFileToCrl(validCRLFile)
 	if err != nil {
 		b.Fatalf("预热失败: %v", err)
 	}
 
-	// 性能测试
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ReadFileToCrl(validCRLFile)
 	}
 }
 
-// BenchmarkVerifyCrlByX509 CRL验证性能测试（适配新格式）
 func BenchmarkVerifyCrlByX509(b *testing.B) {
-	// 预热
 	_, err := VerifyCrlByX509(validRootFile, validCRLFile)
 	if err != nil {
 		b.Fatalf("预热失败: %v", err)
 	}
 
-	// 性能测试
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		VerifyCrlByX509(validRootFile, validCRLFile)
 	}
 }
 
-// -------------------------- 辅助函数（适配新CRL函数） --------------------------
+// -------------------------- 辅助函数 --------------------------
 
-// 创建PEM格式证书文件
 func createPEMCertFile(t *testing.T) string {
 	pemFile := filepath.Join(testTempDir, "root.pem")
 	pemBlock := &pem.Block{
@@ -854,7 +810,6 @@ func createPEMCertFile(t *testing.T) string {
 	return pemFile
 }
 
-// 创建PEM格式CRL文件（适配新格式）
 func createPEMCRLFile(t *testing.T) string {
 	pemFile := filepath.Join(testTempDir, "crl.pem")
 	pemBlock := &pem.Block{
@@ -866,18 +821,15 @@ func createPEMCRLFile(t *testing.T) string {
 	return pemFile
 }
 
-// 创建颁发者字符串匹配但原始字节不匹配的证书
+// 修复：使用全局根密钥，避免密钥不匹配
 func createMismatchRawCert(t *testing.T) string {
-	rootKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-
-	// 生成与根证书相同Subject但不同编码的证书
+	// 复用全局根密钥
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(4),
 		Subject: pkix.Name{
-			CommonName:   "Test Root CA", // 与根证书相同
+			CommonName:   "Test Root CA",
 			Organization: []string{"Test Org"},
-			// 添加额外字段但不影响String()输出
-			Country: []string{""},
+			Country:      []string{""},
 		},
 		NotBefore:             time.Now().Add(-24 * time.Hour),
 		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
@@ -887,14 +839,13 @@ func createMismatchRawCert(t *testing.T) string {
 		IsCA:                  false,
 	}
 
-	// 解析根证书
 	rootCert, err := x509.ParseCertificate(testRootCert)
 	if err != nil {
 		t.Fatalf("解析根证书失败: %v", err)
 	}
 
-	// 用根证书签名
-	certBytes, err := x509.CreateCertificate(rand.Reader, template, rootCert, &rootKey.PublicKey, rootKey)
+	// 使用全局根密钥签名
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, rootCert, &testRootKey.PublicKey, testRootKey)
 	if err != nil {
 		t.Fatalf("创建mismatch证书失败: %v", err)
 	}
@@ -904,30 +855,21 @@ func createMismatchRawCert(t *testing.T) string {
 	return file
 }
 
-// 创建过期的CRL（使用Go 1.25推荐的函数，修复参数顺序）
 func createExpiredCRL(t *testing.T) string {
-	// 复用根密钥，避免签名验证失败
-	rootKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("生成密钥失败: %v", err)
-	}
-
 	rootCert, err := x509.ParseCertificate(testRootCert)
 	if err != nil {
 		t.Fatalf("解析根证书失败: %v", err)
 	}
 
-	// 构建过期的CRL模板
 	crlTemplate := &x509.RevocationList{
 		Number:              big.NewInt(2),
 		RevokedCertificates: []pkix.RevokedCertificate{},
 		ThisUpdate:          time.Now().Add(-48 * time.Hour),
-		NextUpdate:          time.Now().Add(-24 * time.Hour), // 已过期
+		NextUpdate:          time.Now().Add(-24 * time.Hour),
 		SignatureAlgorithm:  x509.SHA256WithRSA,
 	}
 
-	// 修复：参数顺序错误
-	crlBytes, err := x509.CreateRevocationList(rand.Reader, crlTemplate, rootCert, rootKey)
+	crlBytes, err := x509.CreateRevocationList(rand.Reader, crlTemplate, rootCert, testRootKey)
 	if err != nil {
 		t.Fatalf("创建过期CRL失败: %v", err)
 	}
@@ -937,9 +879,7 @@ func createExpiredCRL(t *testing.T) string {
 	return file
 }
 
-// 创建颁发者不匹配的CRL（使用Go 1.25推荐的函数，修复参数顺序）
 func createMismatchIssuerCRL(t *testing.T) string {
-	// 生成新的CA密钥和证书
 	otherKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("生成密钥失败: %v", err)
@@ -968,7 +908,6 @@ func createMismatchIssuerCRL(t *testing.T) string {
 		t.Fatalf("解析其他CA证书失败: %v", err)
 	}
 
-	// 生成CRL
 	crlTemplate := &x509.RevocationList{
 		Number:              big.NewInt(3),
 		RevokedCertificates: []pkix.RevokedCertificate{},
@@ -977,7 +916,6 @@ func createMismatchIssuerCRL(t *testing.T) string {
 		SignatureAlgorithm:  x509.SHA256WithRSA,
 	}
 
-	// 修复：参数顺序错误
 	crlBytes, err := x509.CreateRevocationList(rand.Reader, crlTemplate, otherCert, otherKey)
 	if err != nil {
 		t.Fatalf("创建颁发者不匹配CRL失败: %v", err)
@@ -988,7 +926,6 @@ func createMismatchIssuerCRL(t *testing.T) string {
 	return file
 }
 
-// 检查错误信息是否包含指定字符串
 func containsErrMsg(err error, msg string) bool {
 	if err == nil {
 		return false
@@ -996,7 +933,6 @@ func containsErrMsg(err error, msg string) bool {
 	return strings.Contains(err.Error(), msg)
 }
 
-// 检查系统是否有openssl
 func hasOpenSSL(t *testing.T) bool {
 	_, err := exec.LookPath("openssl")
 	if err != nil {
