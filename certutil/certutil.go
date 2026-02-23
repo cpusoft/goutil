@@ -3,7 +3,6 @@ package certutil
 import (
 	"bytes"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
@@ -60,8 +59,9 @@ func ReadFileToCer(fileName string) (*x509.Certificate, error) {
 	return x509.ParseCertificate(fileByte)
 }
 
-// if cert cannot pass verify, just log info level
-func ReadFileToCrl(fileName string) (*pkix.CertificateList, error) {
+// 核心修改1：ReadFileToCrl 改用新的 ParseRevocationList，返回新的 x509.RevocationList 类型
+// 对外返回值改为 *x509.RevocationList（采用新数据结构）
+func ReadFileToCrl(fileName string) (*x509.RevocationList, error) {
 	belogs.Debug("ReadFileToCrl(): fileName:", fileName)
 
 	// 检查文件大小（保留安全限制）
@@ -96,13 +96,14 @@ func ReadFileToCrl(fileName string) (*pkix.CertificateList, error) {
 	belogs.Debug("ReadFileToCrl(): ok, fileName:", fileName,
 		"  len(fileByte):", len(fileByte), err)
 
-	crl, err := x509.ParseCRL(fileByte)
+	// 替换废弃的 ParseCRL 为 ParseRevocationList
+	revList, err := x509.ParseRevocationList(fileByte)
 	if err != nil {
-		belogs.Error("ReadFileToCrl(): ParseCRL fail, fileName:", fileName, err)
+		belogs.Error("ReadFileToCrl(): ParseRevocationList fail, fileName:", fileName, err)
 		return nil, fmt.Errorf("failed to parse CRL: %w", err)
 	}
 
-	return crl, nil
+	return revList, nil
 }
 
 // if cert cannot pass verify, just log info level
@@ -341,7 +342,7 @@ func VerifyRootCerByOpenssl(rootFile string) (result string, err error) {
 	return "ok", nil
 }
 
-// if cert cannot pass verify, just log info level
+// 核心修改2：VerifyCrlByX509 适配新的 RevocationList 类型，替换废弃的 CheckCRLSignature
 func VerifyCrlByX509(cerFile, crlFile string) (result string, err error) {
 	/*
 		openssl crl -inform DER -in crl.der -outform PEM -out crl.pem
@@ -354,31 +355,32 @@ func VerifyCrlByX509(cerFile, crlFile string) (result string, err error) {
 		return "fail", fmt.Errorf("failed to read certificate: %w", err)
 	}
 
+	// 读取新的 RevocationList 类型
 	crl, err := ReadFileToCrl(crlFile)
 	if err != nil {
 		belogs.Error("VerifyCrlByX509(): ReadFileToCrl fail: err: ", err, crlFile)
 		return "fail", fmt.Errorf("failed to read CRL: %w", err)
 	}
 
-	// 验证CRL签名
-	err = cer.CheckCRLSignature(crl)
+	// 核心修改：替换废弃的 CheckCRLSignature 为 CheckSignatureFrom
+	err = crl.CheckSignatureFrom(cer)
 	if err != nil {
-		belogs.Info("VerifyCrlByX509(): CheckCRLSignature fail: err: ", err, cerFile, crlFile)
+		belogs.Info("VerifyCrlByX509(): CheckSignatureFrom fail: err: ", err, cerFile, crlFile)
 		return "fail", fmt.Errorf("CRL signature verification failed: %w", err)
 	}
 
-	// 额外检查：CRL的颁发者应该与证书的颁发者匹配
+	// 适配新的 RevocationList 字段（直接访问，无需 TBSCertList 层级）
 	certIssuer := cer.Issuer.String()
-	crlIssuer := crl.TBSCertList.Issuer.String()
+	crlIssuer := crl.Issuer.String() // 新结构直接访问 Issuer
 	if certIssuer != crlIssuer {
 		belogs.Warn("VerifyCrlByX509(): CRL issuer does not match certificate issuer",
 			" certIssuer:", certIssuer, " crlIssuer:", crlIssuer)
 		return "fail", fmt.Errorf("CRL issuer mismatch: cert issuer=%s, crl issuer=%s", certIssuer, crlIssuer)
 	}
 
-	// 检查CRL是否在有效期内
+	// 检查CRL有效期：新结构直接访问 NextUpdate
 	now := time.Now()
-	if crl.TBSCertList.NextUpdate.Before(now) {
+	if crl.NextUpdate.Before(now) { // 新结构无需 TBSCertList 层级
 		belogs.Error("VerifyCrlByX509(): CRL has expired")
 		return "fail", errors.New("CRL has expired")
 	}
