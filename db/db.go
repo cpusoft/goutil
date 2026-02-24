@@ -1,5 +1,6 @@
 package db
 
+/* Obsolete, suggest use "github.com/cpusoft/goutil/xormdb
 import (
 	"database/sql"
 
@@ -68,3 +69,4 @@ func UpdateOutsideTx(tx *sql.Tx, sqlStr string, args ...interface{}) error {
 	_, err := tx.Exec(sqlStr, args...)
 	return err
 }
+*/
