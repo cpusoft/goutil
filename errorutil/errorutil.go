@@ -1,5 +1,6 @@
 package errorutil
 
+/* close
 import (
 	"errors"
 
@@ -32,3 +33,4 @@ func CloseErrorChanToError(errChan chan error) error {
 	return nil
 
 }
+*/

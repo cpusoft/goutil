@@ -1,5 +1,6 @@
 package errorutil
 
+/*
 import (
 	"errors"
 	"fmt"
@@ -29,3 +30,4 @@ func TestErrorChanToError2(t *testing.T) {
 	fmt.Println(errs)
 
 }
+*/
