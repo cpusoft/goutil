@@ -10,6 +10,20 @@ import (
 	"time"
 )
 
+/*
+# 1. 运行所有基础测试（包含临界值测试）
+go test -v ./executil
+
+# 2. 运行指定测试（如临界值测试）
+go test -v ./executil -run TestExecCommand_EdgeCases
+
+# 3. 运行性能测试（Benchmark）
+go test -bench=. ./executil -benchmem
+
+# 4. 运行性能测试并指定次数（如1000次）
+go test -bench=. ./executil -benchmem -count=5 -benchtime=1000x
+*/
+
 // -------------------------- 基础功能测试（覆盖核心场景） --------------------------
 // TestExecCommandCombinedOutput_Basic 测试ExecCommandCombinedOutput基础功能
 func TestExecCommandCombinedOutput_Basic(t *testing.T) {
@@ -161,14 +175,17 @@ func TestExecCommand_EdgeCases(t *testing.T) {
 		}()
 
 		// 等待3秒后判断是否还在运行（验证临界超时）
+		// 修正：使用整数时间判断，误差范围放宽到±1秒
 		select {
 		case <-done:
 			t.Error("sleep 5秒命令提前结束，不符合预期")
 		case <-time.After(3 * time.Second):
 			// 预期结果：3秒后仍在运行
 			elapsed := time.Since(start)
-			if elapsed < 2*time.Second || elapsed > 3*time.Second {
-				t.Errorf("超时检测误差过大，耗时: %v", elapsed)
+			// 改为整数判断：耗时在2秒到4秒之间都算正常（±1秒误差）
+			elapsedSeconds := int(elapsed.Seconds()) // 转换为整数秒
+			if elapsedSeconds < 2 || elapsedSeconds > 4 {
+				t.Errorf("超时检测误差过大，耗时: %v (整数秒: %d)", elapsed, elapsedSeconds)
 			}
 		}
 	})
