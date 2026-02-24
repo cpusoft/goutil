@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	config "github.com/cpusoft/goutil/beconfig"
@@ -14,51 +15,57 @@ var configure config.Configer
 
 // load configure file
 func init() {
-	/*
-			cannot use flag in init()
-				flagFile := flag.String("conf", "", "")
-				flag.Parse()
-				fmt.Println("conf file is ", *flagFile, " from args")
-				exists, err := osutil.IsExists(*flagFile)
-				if err != nil || !exists {
-					*flagFile = osutil.GetParentPath() + string(os.PathSeparator) + "conf" + string(os.PathSeparator) + "project.conf"
-					fmt.Println("conf file is ", *flagFile, " default")
-				}
-		so ,use os.Args
-
-	*/
 	var err error
 	var conf string
-	if len(os.Args) > 1 {
-		args := strings.Split(os.Args[1], "=")
-		if len(args) > 1 && (args[0] == "conf" || args[0] == "-conf" || args[0] == "--conf") {
-			conf = args[1]
+
+	// 修复：遍历所有参数，支持任意位置的 -conf/--conf/conf 参数
+	for _, arg := range os.Args[1:] {
+		parts := strings.SplitN(arg, "=", 2) // 仅分割第一个=，避免值中包含=
+		if len(parts) != 2 {
+			continue
+		}
+		key := parts[0]
+		value := parts[1]
+		if key == "conf" || key == "-conf" || key == "--conf" {
+			conf = value
+			break
 		}
 	}
 
-	// decide by "conf" directory
+	// 修复：优先使用命令行参数，无则使用默认路径
 	if conf == "" {
 		confPath, currentPath, err := osutil.GetConfOrLogPath("conf")
 		if err != nil {
-			fmt.Println("conf():GetConfOrLogPath conf failed, " + err.Error())
+			fmt.Printf("conf(): GetConfOrLogPath failed: %v\n", err)
 		}
 		if confPath == "" {
-			fmt.Println("conf():found confPath failed, use currentPath:", currentPath)
-			conf = currentPath + "project.conf"
+			fmt.Printf("conf(): confPath not found, use currentPath: %s\n", currentPath)
+			// 修复：使用 filepath.Join 保证跨平台兼容性
+			conf = filepath.Join(currentPath, "project.conf")
 		} else {
-			conf = confPath + "project.conf"
+			conf = filepath.Join(confPath, "project.conf")
 		}
 	}
-	fmt.Println("conf file is ", conf)
-	configure, err = config.NewConfig("ini", conf)
-	if err != nil {
-		fmt.Println("NewConfig fail, ", conf, " is not in ini format. "+err.Error())
+
+	fmt.Printf("conf file is: %s\n", conf)
+
+	// 修复：检查配置文件是否存在
+	if _, err := os.Stat(conf); err != nil {
+		fmt.Printf("conf(): config file not exist: %s, err: %v\n", conf, err)
 		configure = nil
 		return
 	}
-	fmt.Println("NewConfig conf file ", conf, " success")
+
+	configure, err = config.NewConfig("ini", conf)
+	if err != nil {
+		fmt.Printf("NewConfig failed, file %s is not ini format: %v\n", conf, err)
+		configure = nil
+		return
+	}
+	fmt.Printf("NewConfig success, file: %s\n", conf)
 }
 
+// 以下基础配置读取函数保持原有逻辑，仅优化注释
 func String(key string) string {
 	if configure != nil {
 		s, _ := configure.String(key)
@@ -89,9 +96,18 @@ func DefaultInt(key string, defaultVal int) int {
 	return defaultVal
 }
 
+// 新增：兼容beconfig的Strings分隔符问题，手动按逗号分割
 func Strings(key string) []string {
 	if configure != nil {
-		s, _ := configure.Strings(key)
+		s, err := configure.Strings(key)
+		// 若解析失败/返回长度为1，手动按逗号分割（兼容常见场景）
+		if err != nil || (len(s) == 1 && strings.Contains(s[0], ",")) {
+			raw := String(key)
+			if len(raw) > 0 {
+				return strings.Split(raw, ",")
+			}
+			return nil
+		}
 		return s
 	}
 	return nil
@@ -119,42 +135,59 @@ func DefaultBool(key string, defaultVal bool) bool {
 	return defaultVal
 }
 
-// destpath=${rpstir2::datadir}/rsyncrepo   --> replace ${rpstir2::datadir}
-// -->/root/rpki/data/rsyncrepo --> get /root/rpki/data/rsyncrepo
-// Deprecated
+/* close
+// VariableString 解析带变量占位符的配置值（如 ${rpstir2::datadir}/rsyncrepo）
+// 不支持嵌套占位符 （如 ${a::${b::c}}）
+// Deprecated: 建议使用更健壮的变量替换方案
+// VariableString 解析带变量占位符的配置值（仅支持单层占位符，如 ${rpstir2::datadir}/rsyncrepo）
+// 注意：
+// 1. 不支持嵌套占位符（如 ${a::${b::c}}），此类场景会返回原始值；
+// 2. 占位符格式必须为 ${key}，且 key 必须存在配置值，否则返回原始值；
+// Deprecated: 建议使用更健壮的变量替换方案
 func VariableString(key string) string {
-	if len(key) == 0 || len(String(key)) == 0 {
+	// 边界校验：key或配置值为空时返回空
+	if len(key) == 0 {
 		return ""
 	}
 	value := String(key)
+	if len(value) == 0 {
+		return ""
+	}
+
 	start := strings.Index(value, "${")
 	end := strings.Index(value, "}")
-	if start >= 0 && end > 0 && start < end {
-		//${rpstir2::datadir}/rsyncrepo -->rpstir2::datadir
-		replaceKey := string(value[start+len("${") : end])
-		if len(replaceKey) == 0 || len(String(replaceKey)) == 0 {
-			return value
-		}
-		//rpstir2::datadir -->get  "/root/rpki/data"
-		replaceValue := String(replaceKey)
-		prefix := string(value[:start])
-		suffix := ""
-		if end+1 < len(value) {
-			suffix = string(value[end+1:])
-		}
-		///root/rpki/data/rsyncrepo
-		newValue := prefix + replaceValue + suffix
-		return newValue
-	}
-	return ""
 
+	// 边界校验，避免切片越界
+	if start < 0 || end <= start || start+2 > end { // ${ 占2个字符，需保证 start+2 <= end
+		return value // 无合法占位符，返回原始值
+	}
+
+	// 提取占位符内的key（如 ${rpstir2::datadir} -> rpstir2::datadir）
+	replaceKey := value[start+2 : end]
+	replaceValue := String(replaceKey)
+	if len(replaceValue) == 0 {
+		return value // 占位符key无配置值，返回原始值
+	}
+
+	// 拼接新值：前缀 + 替换值 + 后缀
+	prefix := value[:start]
+	suffix := ""
+	if end+1 < len(value) {
+		suffix = value[end+1:]
+	}
+	newValue := prefix + replaceValue + suffix
+	return newValue
 }
+*/
 
-// key:  "aaa::bbb"
-// value: "ccc"
+// SetString 设置配置值
+// 修复：增加key/value合法性校验
 func SetString(key, value string) error {
-	if configure != nil {
-		return configure.Set(key, value)
+	if configure == nil {
+		return errors.New("configure is nil")
 	}
-	return errors.New("configure is nil")
+	if len(key) == 0 {
+		return errors.New("key is empty")
+	}
+	return configure.Set(key, value)
 }
