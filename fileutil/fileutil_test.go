@@ -572,15 +572,26 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 	// 最终修复：超长文件名测试（240+4=244 ≤255）
 	t.Run("long filename (Linux)", func(t *testing.T) {
 		destPath := testTempDir
-		// 240个a + .txt = 244 ≤255
-		longFileName := strings.Repeat("a", 240) + ".txt"
+		// 核心修复：精确控制文件名长度（245个a + .txt = 245+4=249 ≤255）
+		// 避免因文件名长度接近临界值导致的路径处理异常
+		longFileName := strings.Repeat("a", 245) + ".txt"
 		url := "http://example.com/" + longFileName
 		rawContent := []byte("test long filename (Linux)")
 		base64Str := base64.StdEncoding.EncodeToString(rawContent)
 
+		// 打印调试信息（可选，帮助定位路径问题）
+		absDest, _ := filepath.Abs(destPath)
+		t.Logf("Absolute dest path: %s", absDest)
+
 		filePathName, err := JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64Str)
 		if err != nil {
 			t.Fatalf("JoinPrefixAndUrlFileNameAndWriteBase64ToFile long filename failed (Linux): %v", err)
+		}
+
+		// 验证最终路径的绝对路径前缀
+		absFile, _ := filepath.Abs(filePathName)
+		if !strings.HasPrefix(absFile, absDest) {
+			t.Errorf("File path %s is not under dest path %s", absFile, absDest)
 		}
 
 		_, fileName := filepath.Split(filePathName)

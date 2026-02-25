@@ -259,7 +259,7 @@ func calculateFileHashChunked(filePathName string) ([32]byte, error) {
 	return *(*[32]byte)(hash.Sum(nil)), nil
 }
 
-// ------------------------------ 路径拼接与拷贝函数 ------------------------------
+// ------------------------------ 核心修复：JoinPrefixAndUrlFileNameAndWriteBase64ToFile ------------------------------
 func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) (filePathName string, err error) {
 	if destPath == "" {
 		return "", errors.New("destination path is empty")
@@ -273,36 +273,41 @@ func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) 
 
 	belogs.Debug("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): destPath:", destPath, "  url:", url)
 
-	// 先获取拼接后的路径
-	filePathName, err = urlutil.JoinPrefixPathAndUrlFileName(destPath, url)
+	// 核心修复1：先将目标目录转为绝对路径（解决相对路径导致的前缀不匹配）
+	absDestPath, err := filepath.Abs(destPath)
+	if err != nil {
+		return "", errors.New("failed to get absolute dest path: " + err.Error())
+	}
+	// 确保目标目录以路径分隔符结尾（统一匹配规则）
+	absDestPath = filepath.Clean(absDestPath) + string(filepath.Separator)
+
+	// 核心修复2：基于绝对路径拼接文件路径
+	filePathName, err = urlutil.JoinPrefixPathAndUrlFileName(absDestPath, url)
 	if err != nil {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "Path校验失败") || strings.Contains(errMsg, "path traversal") {
 			return "", errors.New("invalid file path (path traversal detected or not in whitelist): " + filePathName)
 		}
-		belogs.Error("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): JoinPrefixPathAndUrlFileName fail, destPath:", destPath,
+		belogs.Error("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): JoinPrefixPathAndUrlFileName fail, destPath:", absDestPath,
 			"  url:", url, err)
 		return "", err
 	}
 
-	// 核心修复：彻底清理路径中的/./、//等冗余符号
-	cleanedFilePath := filepath.Clean(filePathName)
-	cleanedDestPath := filepath.Clean(destPath)
-
-	// 修复路径校验逻辑
-	inDir, err := isPathInDir(cleanedFilePath, cleanedDestPath)
+	// 核心修复3：强制转为绝对路径并清理（消除所有冗余符号）
+	cleanedFilePath, err := filepath.Abs(filepath.Clean(filePathName))
 	if err != nil {
-		return "", errors.New("invalid file path (path traversal detected): " + cleanedFilePath)
+		return "", errors.New("invalid file path (failed to get absolute path): " + filePathName)
 	}
-	if !inDir {
+
+	// 核心修复4：严格前缀匹配（确保文件路径在目标目录内）
+	if !strings.HasPrefix(cleanedFilePath, absDestPath) {
 		return "", errors.New("invalid file path (path traversal detected or not in whitelist): " + cleanedFilePath)
 	}
 
-	// 修复特殊字符校验逻辑（包含Linux所有非法字符）
+	// 特殊字符校验（保留原有逻辑）
 	invalidChars := []rune{'\000', ':', '*', '?', '"', '<', '>', '|', ' ', '\t', '\n'}
-	// 遍历完整路径（除了/）检查非法字符
 	for _, c := range cleanedFilePath {
-		if c == '/' {
+		if c == filepath.Separator {
 			continue
 		}
 		for _, invalidChar := range invalidChars {
@@ -312,13 +317,13 @@ func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) 
 		}
 	}
 
-	// 严格校验单个文件名长度
+	// 文件名长度校验（保留原有逻辑）
 	_, fileName := filepath.Split(cleanedFilePath)
 	if len(fileName) > FileNameMaxLength {
 		return "", errors.New("file name too long (Linux): " + fileName)
 	}
 
-	// 使用清理后的路径写入
+	// 使用清理后的绝对路径写入文件
 	err = CreateAndWriteBase64ToFile(cleanedFilePath, base64)
 	if err != nil {
 		belogs.Error("JoinPrefixAndUrlFileNameAndWriteBase64ToFile(): CreateAndWriteBase64ToFile fail, filePathName:", cleanedFilePath, err)
@@ -326,6 +331,9 @@ func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) 
 	}
 	return cleanedFilePath, nil
 }
+
+// 保留原有其他函数（ReadFileToLines、WriteBytesToFile等，无需修改）
+// ... （此处省略原有未修改的函数，使用之前修复版的其余代码）
 
 func Copy(srcFilePathName, dstFilePathName string) error {
 	if srcFilePathName == "" {
@@ -372,8 +380,8 @@ func Copy(srcFilePathName, dstFilePathName string) error {
 
 // ------------------------------ 辅助函数 ------------------------------
 // 最终修复：彻底解决/./路径匹配问题
+// ------------------------------ 简化并修复 isPathInDir（备用，本次核心用直接前缀匹配） ------------------------------
 func isPathInDir(filePath, dirPath string) (bool, error) {
-	// 1. 转为绝对路径（统一格式）
 	absDir, err := filepath.Abs(dirPath)
 	if err != nil {
 		return false, err
@@ -383,20 +391,9 @@ func isPathInDir(filePath, dirPath string) (bool, error) {
 		return false, err
 	}
 
-	// 2. 彻底清理所有冗余符号（/./、//、/../等）
 	absDir = filepath.Clean(absDir)
 	absFile = filepath.Clean(absFile)
 
-	// 3. 确保目录路径以/结尾
-	absDirWithSep := absDir
-	if !strings.HasSuffix(absDirWithSep, "/") {
-		absDirWithSep += "/"
-	}
-
-	// 4. 核心：前缀匹配（处理绝对路径/相对路径统一问题）
-	if strings.HasPrefix(absFile, absDirWithSep) {
-		return true, nil
-	}
-	// 兼容文件路径等于目录路径的情况
-	return absFile == absDir, nil
+	absDirWithSep := absDir + string(filepath.Separator)
+	return strings.HasPrefix(absFile, absDirWithSep) || absFile == absDir, nil
 }
