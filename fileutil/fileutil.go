@@ -13,7 +13,6 @@ import (
 	"github.com/cpusoft/goutil/base64util"
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/osutil"
-	"github.com/cpusoft/goutil/urlutil"
 )
 
 // Linux专属常量（严格遵循Linux限制）
@@ -259,6 +258,7 @@ func calculateFileHashChunked(filePathName string) ([32]byte, error) {
 	return *(*[32]byte)(hash.Sum(nil)), nil
 }
 
+/*
 // ------------------------------ 核心修复：JoinPrefixAndUrlFileNameAndWriteBase64ToFile ------------------------------
 func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) (filePathName string, err error) {
 	if destPath == "" {
@@ -331,9 +331,7 @@ func JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64 string) 
 	}
 	return cleanedFilePath, nil
 }
-
-// 保留原有其他函数（ReadFileToLines、WriteBytesToFile等，无需修改）
-// ... （此处省略原有未修改的函数，使用之前修复版的其余代码）
+*/
 
 func Copy(srcFilePathName, dstFilePathName string) error {
 	if srcFilePathName == "" {

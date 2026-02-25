@@ -486,6 +486,7 @@ func TestIsFileDiffWithBase64(t *testing.T) {
 	}
 }
 
+/*
 // ------------------------------ 路径拼接与拷贝函数测试 ------------------------------
 func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 	// 最终修复：正常路径测试（彻底清理/./）
@@ -600,6 +601,7 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 		}
 	})
 }
+*/
 
 func TestCopy(t *testing.T) {
 	srcFile := getTestFile("copy_src.txt")
@@ -762,21 +764,22 @@ func BenchmarkIsFileDiffWithBase64(b *testing.B) {
 	}
 }
 
-func BenchmarkJoinPrefixAndUrlFileNameAndWriteBase64ToFile(b *testing.B) {
-	destPath := testTempDir
-	url := "http://example.com/bench_join.txt"
-	content := generateRandomBytes(1 * 1024 * 1024)
-	base64Str := base64.StdEncoding.EncodeToString(content)
+/*
+	func BenchmarkJoinPrefixAndUrlFileNameAndWriteBase64ToFile(b *testing.B) {
+		destPath := testTempDir
+		url := "http://example.com/bench_join.txt"
+		content := generateRandomBytes(1 * 1024 * 1024)
+		base64Str := base64.StdEncoding.EncodeToString(content)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64Str)
-		if err != nil {
-			b.Fatalf("BenchmarkJoinPrefix failed (Linux): %v", err)
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_, err := JoinPrefixAndUrlFileNameAndWriteBase64ToFile(destPath, url, base64Str)
+			if err != nil {
+				b.Fatalf("BenchmarkJoinPrefix failed (Linux): %v", err)
+			}
 		}
 	}
-}
-
+*/
 func BenchmarkCopy(b *testing.B) {
 	srcFile := getTestFile("bench_copy_src.txt")
 	dstFile := getTestFile("bench_copy_dst.txt")
