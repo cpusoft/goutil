@@ -12,46 +12,51 @@ import (
 
 // Calculate Md5
 func Md5(data string) string {
-	md5 := md5.New()
-	md5.Write([]byte(data))
-	md5Data := md5.Sum([]byte(""))
+	// 修复：变量名从md5改为h，避免与包名冲突
+	h := md5.New()
+	h.Write([]byte(data))
+	md5Data := h.Sum([]byte(""))
 	return hex.EncodeToString(md5Data)
 }
 
-// Calculate Hmac
+// Calculate Hmac (基于MD5的HMAC)
 func Hmac(key, data string) string {
-	hmac := hmac.New(md5.New, []byte(key))
-	hmac.Write([]byte(data))
-	return hex.EncodeToString(hmac.Sum([]byte("")))
+	// 修复：变量名从hmac改为h，避免与包名冲突
+	h := hmac.New(md5.New, []byte(key))
+	h.Write([]byte(data))
+	return hex.EncodeToString(h.Sum([]byte("")))
 }
 
 // Calculate Sha1
 func Sha1(data []byte) string {
-	sha1 := sha1.New()
-	sha1.Write(data)
-	return hex.EncodeToString(sha1.Sum([]byte("")))
+	h := sha1.New()
+	h.Write(data)
+	return hex.EncodeToString(h.Sum([]byte("")))
 }
 
 func Sha256(data []byte) string {
-	sha256 := sha256.New()
-	sha256.Write(data)
-	return hex.EncodeToString(sha256.Sum([]byte("")))
+	h := sha256.New()
+	h.Write(data)
+	return hex.EncodeToString(h.Sum([]byte("")))
 }
 
 func Sha256File(fileName string) (string, error) {
-
 	f, err := os.Open(fileName)
 	if err != nil {
 		return "", err
 	}
 	defer f.Close()
-	sha256 := sha256.New()
-	_, erro := io.Copy(sha256, f)
-	if erro != nil {
-		return "", err
+
+	h := sha256.New()
+	// 修复1：错误变量名从erro改为errCopy，规范命名
+	// 修复2：拷贝出错时返回正确的错误（errCopy）而非文件打开的err
+	_, errCopy := io.Copy(h, f)
+	if errCopy != nil {
+		return "", errCopy
 	}
-	return hex.EncodeToString(sha256.Sum(nil)), nil
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
+
 func HashFileByte(filePathName string) ([32]byte, error) {
 	file, err := os.Open(filePathName)
 	if err != nil {
