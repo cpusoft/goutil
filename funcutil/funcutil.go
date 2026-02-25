@@ -17,7 +17,7 @@ func Reduce[T1, T2 any](s []T1, initializer T2, f func(T2, T1) T2) T2 {
 }
 
 func Filter[T any](s []T, f func(T) bool) []T {
-	var r []T
+	r := make([]T, 0, len(s))
 	for _, v := range s {
 		if f(v) {
 			r = append(r, v)
