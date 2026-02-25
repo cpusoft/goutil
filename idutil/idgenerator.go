@@ -29,11 +29,11 @@ var node *snowflake.Node
 		return node.Generate()
 	}
 */
-func GenerateSnowflakInt64(nodeId int64) (int64, error) {
+func GenerateSnowflakeInt64(nodeId int64) (int64, error) {
 	return GenerateInt64(nodeId)
 }
 
-// Deprecated: Use GenerateSnowflakInt64 instead.
+// Deprecated: Use GenerateSnowflakeInt64 instead.
 func GenerateInt64(nodeId int64) (int64, error) {
 	node, err := snowflake.NewNode(nodeId)
 	if err != nil {
@@ -55,6 +55,10 @@ func GenerateString(nodeId int64) (string, error) {
 		return "", err
 	}
 	return node.Generate().String(), nil
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
 
 // GenerateSequentialUint64UUID generates a uint64 based on timestamp and randomness.
