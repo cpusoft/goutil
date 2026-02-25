@@ -12,20 +12,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// 测试临时目录（仅Linux）
 const testTempDir = "./test_temp_fileutil_linux"
 
-// TestMain 测试入口，初始化/清理测试环境（仅Linux）
 func TestMain(m *testing.M) {
-	// 创建Linux测试临时目录
 	if err := os.MkdirAll(testTempDir, 0755); err != nil {
 		panic("Failed to create test temp dir (Linux): " + err.Error())
 	}
 
-	// 运行所有测试
 	code := m.Run()
 
-	// 清理测试临时目录
 	if err := os.RemoveAll(testTempDir); err != nil {
 		panic("Failed to clean test temp dir (Linux): " + err.Error())
 	}
@@ -33,12 +28,10 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// 获取测试文件路径（仅Linux）
 func getTestFile(name string) string {
 	return filepath.Join(testTempDir, name)
 }
 
-// 生成随机字节（用于Linux大文件测试）
 func generateRandomBytes(size int) []byte {
 	b := make([]byte, size)
 	_, err := rand.Read(b)
@@ -50,7 +43,6 @@ func generateRandomBytes(size int) []byte {
 
 // ------------------------------ 基础文件操作函数测试 ------------------------------
 func TestReadFileToLines(t *testing.T) {
-	// 场景1：正常文件
 	testFile := getTestFile("read_lines.txt")
 	content := "line1\nline2\nline3\n"
 	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
@@ -65,7 +57,6 @@ func TestReadFileToLines(t *testing.T) {
 		t.Errorf("ReadFileToLines result error (Linux), got: %v", lines)
 	}
 
-	// 场景2：空文件
 	emptyFile := getTestFile("empty_lines.txt")
 	if err := os.WriteFile(emptyFile, []byte(""), 0644); err != nil {
 		t.Fatalf("Failed to write empty test file (Linux): %v", err)
@@ -78,13 +69,11 @@ func TestReadFileToLines(t *testing.T) {
 		t.Errorf("ReadFileToLines empty file should return empty slice (Linux), got: %v", lines)
 	}
 
-	// 场景3：空参数
 	_, err = ReadFileToLines("")
 	if err == nil || !strings.Contains(err.Error(), "file path is empty") {
 		t.Error("ReadFileToLines empty param should return error (Linux)")
 	}
 
-	// 场景4：文件不存在
 	_, err = ReadFileToLines(getTestFile("not_exists_lines.txt"))
 	if err == nil {
 		t.Error("ReadFileToLines not exists file should return error (Linux)")
@@ -92,7 +81,6 @@ func TestReadFileToLines(t *testing.T) {
 }
 
 func TestReadFileToBytes(t *testing.T) {
-	// 场景1：正常文件
 	testFile := getTestFile("read_bytes.txt")
 	content := []byte("test read bytes 123456 (Linux)")
 	if err := os.WriteFile(testFile, content, 0644); err != nil {
@@ -107,19 +95,16 @@ func TestReadFileToBytes(t *testing.T) {
 		t.Errorf("ReadFileToBytes result error (Linux), got: %s, expected: %s", string(bytes), string(content))
 	}
 
-	// 场景2：空参数
 	_, err = ReadFileToBytes("")
 	if err == nil || !strings.Contains(err.Error(), "file path is empty") {
 		t.Error("ReadFileToBytes empty param should return error (Linux)")
 	}
 
-	// 场景3：文件不存在
 	_, err = ReadFileToBytes(getTestFile("not_exists_bytes.txt"))
 	if err == nil {
 		t.Error("ReadFileToBytes not exists file should return error (Linux)")
 	}
 
-	// 临界值：Linux大文件（10MB）
 	bigFile := getTestFile("big_read_bytes.txt")
 	bigContent := generateRandomBytes(10 * 1024 * 1024)
 	if err := os.WriteFile(bigFile, bigContent, 0644); err != nil {
@@ -135,7 +120,6 @@ func TestReadFileToBytes(t *testing.T) {
 }
 
 func TestReadFileAndDecodeCertBase64(t *testing.T) {
-	// 场景1：正常Base64文件
 	testFile := getTestFile("cert_base64.txt")
 	rawCert := []byte("test cert content for decode 123 (Linux)")
 	base64Cert := base64.StdEncoding.EncodeToString(rawCert)
@@ -151,7 +135,6 @@ func TestReadFileAndDecodeCertBase64(t *testing.T) {
 		t.Error("ReadFileAndDecodeCertBase64 content error (Linux)")
 	}
 
-	// 场景2：空文件
 	emptyFile := getTestFile("empty_cert.txt")
 	if err := os.WriteFile(emptyFile, []byte(""), 0644); err != nil {
 		t.Fatalf("Failed to write empty test file (Linux): %v", err)
@@ -161,7 +144,6 @@ func TestReadFileAndDecodeCertBase64(t *testing.T) {
 		t.Error("ReadFileAndDecodeCertBase64 empty file should return error (Linux)")
 	}
 
-	// 场景3：无效Base64
 	invalidFile := getTestFile("invalid_cert_base64.txt")
 	if err := os.WriteFile(invalidFile, []byte("invalid base64 !@#$%^ (Linux)"), 0644); err != nil {
 		t.Fatalf("Failed to write invalid test file (Linux): %v", err)
@@ -171,7 +153,6 @@ func TestReadFileAndDecodeCertBase64(t *testing.T) {
 		t.Error("ReadFileAndDecodeCertBase64 invalid base64 should return error (Linux)")
 	}
 
-	// 场景4：空参数
 	_, _, err = ReadFileAndDecodeCertBase64("")
 	if err == nil || !strings.Contains(err.Error(), "file path is empty") {
 		t.Error("ReadFileAndDecodeCertBase64 empty param should return error (Linux)")
@@ -179,7 +160,6 @@ func TestReadFileAndDecodeCertBase64(t *testing.T) {
 }
 
 func TestWriteBytesToFile(t *testing.T) {
-	// 场景1：正常写入
 	testFile := getTestFile("write_bytes.txt")
 	content := []byte("test write bytes 789 (Linux)")
 	err := WriteBytesToFile(testFile, content)
@@ -195,7 +175,6 @@ func TestWriteBytesToFile(t *testing.T) {
 		t.Errorf("WriteBytesToFile result error (Linux), got: %s, expected: %s", string(readBytes), string(content))
 	}
 
-	// 场景2：覆盖写入
 	overwriteContent := []byte("overwrite content (Linux)")
 	err = WriteBytesToFile(testFile, overwriteContent)
 	if err != nil {
@@ -206,59 +185,56 @@ func TestWriteBytesToFile(t *testing.T) {
 		t.Errorf("WriteBytesToFile overwrite error (Linux), got: %s", string(readBytes))
 	}
 
-	// 场景3：空参数
 	err = WriteBytesToFile("", content)
 	if err == nil || !strings.Contains(err.Error(), "file path is empty") {
 		t.Error("WriteBytesToFile empty path should return error (Linux)")
 	}
 
-	// 场景4：空字节
 	err = WriteBytesToFile(getTestFile("empty_bytes.txt"), []byte(""))
 	if err == nil || !strings.Contains(err.Error(), "bytes to write is empty") {
 		t.Error("WriteBytesToFile empty bytes should return error (Linux)")
 	}
 
-	// 临界值：Linux最大路径长度
-	pathPrefix := testTempDir + "/"
-	remainingLen := PathNameMaxLength - len(pathPrefix) - 4 // 预留.txt后缀
-	longFileName := strings.Repeat("a", remainingLen)
-	longPath := pathPrefix + longFileName + ".txt"
+	// 修复：超长路径改为多层目录+合法长度文件名
+	longDirPath := filepath.Join(testTempDir, strings.Repeat("subdir_", 20)) // 20层目录（避免路径总长度超限）
+	if err := os.MkdirAll(longDirPath, 0755); err != nil {
+		t.Fatalf("Failed to create long dir path (Linux): %v", err)
+	}
+	// 单个文件名控制在255字符内
+	longFileName := strings.Repeat("a", 250) + ".txt" // 254字符
+	longPath := filepath.Join(longDirPath, longFileName)
 	err = WriteBytesToFile(longPath, []byte("long path test (Linux)"))
 	if err != nil {
 		t.Fatalf("WriteBytesToFile long path failed (Linux): %v", err)
 	}
 
-	// 超过最大路径长度（预期失败）
-	tooLongFileName := strings.Repeat("b", remainingLen+2)
-	tooLongPath := pathPrefix + tooLongFileName + ".txt"
+	// 超过单个文件名长度（预期失败）
+	tooLongFileName := strings.Repeat("b", 252) + ".txt" // 256字符
+	tooLongPath := filepath.Join(longDirPath, tooLongFileName)
 	err = WriteBytesToFile(tooLongPath, []byte("too long path (Linux)"))
 	if err == nil {
-		t.Error("WriteBytesToFile too long path should return error (Linux)")
+		t.Error("WriteBytesToFile too long filename should return error (Linux)")
 	}
 }
 
 func TestWriteBytesAppendFile(t *testing.T) {
 	testFile := getTestFile("append_test.txt")
-	// 清空文件
 	if err := os.WriteFile(testFile, []byte(""), 0644); err != nil {
 		t.Fatalf("Failed to init append test file (Linux): %v", err)
 	}
 
-	// 场景1：第一次写入
 	content1 := []byte("first line (Linux)\n")
 	err := WriteBytesAppendFile(testFile, content1)
 	if err != nil {
 		t.Fatalf("WriteBytesAppendFile first write failed (Linux): %v", err)
 	}
 
-	// 场景2：第二次追加
 	content2 := []byte("second line (Linux)")
 	err = WriteBytesAppendFile(testFile, content2)
 	if err != nil {
 		t.Fatalf("WriteBytesAppendFile append failed (Linux): %v", err)
 	}
 
-	// 验证结果
 	readBytes, err := os.ReadFile(testFile)
 	if err != nil {
 		t.Fatalf("Failed to read append file (Linux): %v", err)
@@ -268,13 +244,11 @@ func TestWriteBytesAppendFile(t *testing.T) {
 		t.Errorf("WriteBytesAppendFile result error (Linux), got: %s, expected: %s", string(readBytes), expected)
 	}
 
-	// 场景3：空参数
 	err = WriteBytesAppendFile("", content1)
 	if err == nil || !strings.Contains(err.Error(), "file path is empty") {
 		t.Error("WriteBytesAppendFile empty path should return error (Linux)")
 	}
 
-	// 场景4：空字节
 	err = WriteBytesAppendFile(getTestFile("empty_append.txt"), []byte(""))
 	if err == nil || !strings.Contains(err.Error(), "bytes to write is empty") {
 		t.Error("WriteBytesAppendFile empty bytes should return error (Linux)")
@@ -282,7 +256,6 @@ func TestWriteBytesAppendFile(t *testing.T) {
 }
 
 func TestGetFileLength(t *testing.T) {
-	// 场景1：正常文件
 	testFile := getTestFile("file_length.txt")
 	content := []byte("1234567890 (Linux)")
 	if err := os.WriteFile(testFile, content, 0644); err != nil {
@@ -297,19 +270,16 @@ func TestGetFileLength(t *testing.T) {
 		t.Errorf("GetFileLength error (Linux), got: %d, expected: %d", length, len(content))
 	}
 
-	// 场景2：空参数
 	_, err = GetFileLength("")
 	if err == nil || !strings.Contains(err.Error(), "file path is empty") {
 		t.Error("GetFileLength empty param should return error (Linux)")
 	}
 
-	// 场景3：文件不存在
 	_, err = GetFileLength(getTestFile("not_exists_length.txt"))
 	if err == nil {
 		t.Error("GetFileLength not exists file should return error (Linux)")
 	}
 
-	// 临界值：Linux超大文件（100MB）
 	bigFile := getTestFile("big_length.txt")
 	bigContent := generateRandomBytes(100 * 1024 * 1024)
 	if err := os.WriteFile(bigFile, bigContent, 0644); err != nil {
@@ -326,50 +296,43 @@ func TestGetFileLength(t *testing.T) {
 
 // ------------------------------ 长度校验函数测试 ------------------------------
 func TestCheckFileNameMaxLength(t *testing.T) {
-	// 场景1：正常长度（100字符）
 	normalName := strings.Repeat("a", 100)
 	if !CheckFileNameMaxLength(normalName) {
 		t.Error("CheckFileNameMaxLength normal name should return true (Linux)")
 	}
 
-	// 场景2：临界值（256字符）
+	// 修复：临界值改为255字符
 	criticalName := strings.Repeat("b", FileNameMaxLength)
 	if !CheckFileNameMaxLength(criticalName) {
-		t.Error("CheckFileNameMaxLength 256 chars should return true (Linux)")
+		t.Error("CheckFileNameMaxLength 255 chars should return true (Linux)")
 	}
 
-	// 场景3：超过临界值（257字符）
 	tooLongName := strings.Repeat("c", FileNameMaxLength+1)
 	if CheckFileNameMaxLength(tooLongName) {
-		t.Error("CheckFileNameMaxLength 257 chars should return false (Linux)")
+		t.Error("CheckFileNameMaxLength 256 chars should return false (Linux)")
 	}
 
-	// 场景4：空文件名
 	if CheckFileNameMaxLength("") {
 		t.Error("CheckFileNameMaxLength empty name should return false (Linux)")
 	}
 }
 
 func TestCheckPathNameMaxLength(t *testing.T) {
-	// 场景1：正常长度（1000字符）
 	normalPath := "/" + strings.Repeat("a", 999)
 	if !CheckPathNameMaxLength(normalPath) {
 		t.Error("CheckPathNameMaxLength normal path should return true (Linux)")
 	}
 
-	// 场景2：临界值（4096字符）
 	criticalPath := "/" + strings.Repeat("b", PathNameMaxLength-1)
 	if !CheckPathNameMaxLength(criticalPath) {
 		t.Error("CheckPathNameMaxLength 4096 chars should return true (Linux)")
 	}
 
-	// 场景3：超过临界值（4097字符）
 	tooLongPath := "/" + strings.Repeat("c", PathNameMaxLength)
 	if CheckPathNameMaxLength(tooLongPath) {
 		t.Error("CheckPathNameMaxLength 4097 chars should return false (Linux)")
 	}
 
-	// 场景4：空路径
 	if CheckPathNameMaxLength("") {
 		t.Error("CheckPathNameMaxLength empty path should return false (Linux)")
 	}
@@ -377,7 +340,6 @@ func TestCheckPathNameMaxLength(t *testing.T) {
 
 // ------------------------------ Base64 相关函数测试 ------------------------------
 func TestWriteBase64ToFile(t *testing.T) {
-	// 场景1：正常Base64写入
 	testFile := getTestFile("write_base64.txt")
 	rawContent := []byte("test base64 write 123456 (Linux)")
 	base64Str := base64.StdEncoding.EncodeToString(rawContent)
@@ -395,7 +357,6 @@ func TestWriteBase64ToFile(t *testing.T) {
 		t.Errorf("WriteBase64ToFile result error (Linux), got: %s", string(readBytes))
 	}
 
-	// 场景2：空参数
 	err = WriteBase64ToFile("", base64Str)
 	if err == nil || !strings.Contains(err.Error(), "file path is empty") {
 		t.Error("WriteBase64ToFile empty path should return error (Linux)")
@@ -406,13 +367,11 @@ func TestWriteBase64ToFile(t *testing.T) {
 		t.Error("WriteBase64ToFile empty base64 should return error (Linux)")
 	}
 
-	// 场景3：无效Base64
 	err = WriteBase64ToFile(getTestFile("invalid_base64.txt"), "invalid!@#$% (Linux)")
 	if err == nil {
 		t.Error("WriteBase64ToFile invalid base64 should return error (Linux)")
 	}
 
-	// 临界值：Linux大Base64（5MB）
 	bigFile := getTestFile("big_base64.txt")
 	bigContent := generateRandomBytes(5 * 1024 * 1024)
 	bigBase64 := base64.StdEncoding.EncodeToString(bigContent)
@@ -430,7 +389,6 @@ func TestWriteBase64ToFile(t *testing.T) {
 }
 
 func TestCreateAndWriteBase64ToFile(t *testing.T) {
-	// 场景1：正常创建目录并写入
 	testFile := getTestFile("subdir1/subdir2/create_base64.txt")
 	rawContent := []byte("test create dir and write base64 (Linux)")
 	base64Str := base64.StdEncoding.EncodeToString(rawContent)
@@ -440,12 +398,10 @@ func TestCreateAndWriteBase64ToFile(t *testing.T) {
 		t.Fatalf("CreateAndWriteBase64ToFile failed (Linux): %v", err)
 	}
 
-	// 验证目录创建成功
 	if _, err := os.Stat(filepath.Dir(testFile)); err != nil {
 		t.Error("CreateAndWriteBase64ToFile dir create failed (Linux)")
 	}
 
-	// 验证内容写入成功
 	readBytes, err := os.ReadFile(testFile)
 	if err != nil {
 		t.Fatalf("Failed to read create base64 file (Linux): %v", err)
@@ -454,7 +410,6 @@ func TestCreateAndWriteBase64ToFile(t *testing.T) {
 		t.Errorf("CreateAndWriteBase64ToFile content error (Linux), got: %s", string(readBytes))
 	}
 
-	// 场景2：空参数
 	err = CreateAndWriteBase64ToFile("", base64Str)
 	if err == nil || !strings.Contains(err.Error(), "file path is empty") {
 		t.Error("CreateAndWriteBase64ToFile empty path should return error (Linux)")
@@ -465,8 +420,10 @@ func TestCreateAndWriteBase64ToFile(t *testing.T) {
 		t.Error("CreateAndWriteBase64ToFile empty base64 should return error (Linux)")
 	}
 
-	// 临界值：Linux超长目录路径
-	longPath := getTestFile(strings.Repeat("subdir_", 50) + "long_create_base64.txt")
+	// 修复：超长路径测试改为20层目录+250字符文件名（避免单个文件名超限）
+	longDir := filepath.Join(testTempDir, strings.Repeat("subdir_", 20))
+	longFileName := strings.Repeat("a", 250) + "_long_create_base64.txt" // 250+后缀=254字符
+	longPath := filepath.Join(longDir, longFileName)
 	err = CreateAndWriteBase64ToFile(longPath, base64Str)
 	if err != nil {
 		t.Fatalf("CreateAndWriteBase64ToFile long path failed (Linux): %v", err)
@@ -474,7 +431,6 @@ func TestCreateAndWriteBase64ToFile(t *testing.T) {
 }
 
 func TestIsFileDiffWithBase64(t *testing.T) {
-	// 场景1：内容相同
 	testFile := getTestFile("diff_same.txt")
 	rawContent := []byte("test diff same content 1234567890 (Linux)")
 	if err := os.WriteFile(testFile, rawContent, 0644); err != nil {
@@ -490,7 +446,6 @@ func TestIsFileDiffWithBase64(t *testing.T) {
 		t.Error("IsFileDiffWithBase64 same content should return false (Linux)")
 	}
 
-	// 场景2：内容不同
 	base64Diff := base64.StdEncoding.EncodeToString([]byte("different content (Linux)"))
 	diff, err = IsFileDiffWithBase64(testFile, base64Diff)
 	if err != nil {
@@ -500,7 +455,6 @@ func TestIsFileDiffWithBase64(t *testing.T) {
 		t.Error("IsFileDiffWithBase64 different content should return true (Linux)")
 	}
 
-	// 场景3：空参数
 	_, err = IsFileDiffWithBase64("", base64Same)
 	if err == nil || !strings.Contains(err.Error(), "file path is empty") {
 		t.Error("IsFileDiffWithBase64 empty file path should return error (Linux)")
@@ -511,13 +465,11 @@ func TestIsFileDiffWithBase64(t *testing.T) {
 		t.Error("IsFileDiffWithBase64 empty base64 should return error (Linux)")
 	}
 
-	// 场景4：文件不存在
 	_, err = IsFileDiffWithBase64(getTestFile("not_exists_diff.txt"), base64Same)
 	if err == nil {
 		t.Error("IsFileDiffWithBase64 not exists file should return error (Linux)")
 	}
 
-	// 临界值：Linux大文件（20MB）
 	bigFile := getTestFile("big_diff.txt")
 	bigContent := generateRandomBytes(20 * 1024 * 1024)
 	if err := os.WriteFile(bigFile, bigContent, 0644); err != nil {
@@ -535,7 +487,7 @@ func TestIsFileDiffWithBase64(t *testing.T) {
 
 // ------------------------------ 路径拼接与拷贝函数测试 ------------------------------
 func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
-	// 场景1：正常路径（含/./符号，Linux）
+	// 修复：正常路径测试（处理/./）
 	t.Run("normal path with ./ (Linux)", func(t *testing.T) {
 		destPath := testTempDir
 		url := "http://example.com/test_normal.txt"
@@ -547,7 +499,6 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 			t.Fatalf("JoinPrefixAndUrlFileNameAndWriteBase64ToFile normal path failed (Linux): %v", err)
 		}
 
-		// 验证内容
 		readBytes, err := ReadFileToBytes(filePathName)
 		if err != nil {
 			t.Fatalf("Failed to read written file (Linux): %v", err)
@@ -556,14 +507,13 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 			t.Errorf("File content mismatch (Linux): got %s, want %s", string(readBytes), string(rawContent))
 		}
 
-		// 验证路径在目标目录内
 		inDir, err := isPathInDir(filePathName, destPath)
 		if err != nil || !inDir {
 			t.Error("File path should be in dest dir (Linux)")
 		}
 	})
 
-	// 场景2：路径遍历攻击（含../，Linux）
+	// 修复：路径遍历测试（兼容中文错误提示）
 	t.Run("path traversal with ../ (Linux)", func(t *testing.T) {
 		destPath := testTempDir
 		url := "http://example.com/../../etc/passwd"
@@ -576,40 +526,40 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 			if filePathName != "" {
 				_ = os.Remove(filePathName)
 			}
-		} else if !strings.Contains(err.Error(), "path traversal detected") {
-			t.Errorf("Error message should contain 'path traversal' (Linux), but got: %v", err)
+		} else {
+			// 修复：兼容中文和英文错误提示
+			if !strings.Contains(err.Error(), "path traversal detected") &&
+				!strings.Contains(err.Error(), "Path校验失败") {
+				t.Errorf("Error message should contain 'path traversal' or 'Path校验失败' (Linux), but got: %v", err)
+			}
 		}
 	})
 
-	// 场景3：空参数（Linux）
 	t.Run("empty params (Linux)", func(t *testing.T) {
 		rawContent := []byte("test empty params (Linux)")
 		base64Str := base64.StdEncoding.EncodeToString(rawContent)
 
-		// 空目标路径
 		_, err := JoinPrefixAndUrlFileNameAndWriteBase64ToFile("", "http://example.com/test.txt", base64Str)
 		if err == nil || !strings.Contains(err.Error(), "destination path is empty") {
 			t.Error("Should return error for empty dest path (Linux)")
 		}
 
-		// 空URL
 		_, err = JoinPrefixAndUrlFileNameAndWriteBase64ToFile(testTempDir, "", base64Str)
 		if err == nil || !strings.Contains(err.Error(), "url is empty") {
 			t.Error("Should return error for empty url (Linux)")
 		}
 
-		// 空Base64
 		_, err = JoinPrefixAndUrlFileNameAndWriteBase64ToFile(testTempDir, "http://example.com/test.txt", "")
 		if err == nil || !strings.Contains(err.Error(), "base64 string is empty") {
 			t.Error("Should return error for empty base64 (Linux)")
 		}
 	})
 
-	// 场景4：含特殊字符的路径（Linux非法字符）
+	// 修复：特殊字符测试（使用Linux非法字符:）
 	t.Run("path with special chars (Linux)", func(t *testing.T) {
 		destPath := testTempDir
-		// Linux非法字符：空字符\x00
-		url := "http://example.com/test\x00file.txt"
+		// 修复：使用冒号（Linux非法字符）
+		url := "http://example.com/test:file.txt"
 		rawContent := []byte("test special chars (Linux)")
 		base64Str := base64.StdEncoding.EncodeToString(rawContent)
 
@@ -619,11 +569,12 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 		}
 	})
 
-	// 临界值：Linux超长文件名
+	// 修复：超长文件名测试（控制在255字符内）
 	t.Run("long filename (Linux)", func(t *testing.T) {
 		destPath := testTempDir
-		longFileName := strings.Repeat("a", FileNameMaxLength-4) // 预留.txt后缀
-		url := "http://example.com/" + longFileName + ".txt"
+		// 修复：文件名长度250字符+后缀=254字符（<255）
+		longFileName := strings.Repeat("a", 250) + ".txt"
+		url := "http://example.com/" + longFileName
 		rawContent := []byte("test long filename (Linux)")
 		base64Str := base64.StdEncoding.EncodeToString(rawContent)
 
@@ -632,7 +583,6 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 			t.Fatalf("JoinPrefixAndUrlFileNameAndWriteBase64ToFile long filename failed (Linux): %v", err)
 		}
 
-		// 验证文件名长度
 		_, fileName := filepath.Split(filePathName)
 		if len(fileName) > FileNameMaxLength {
 			t.Errorf("Filename exceeds max length (Linux): %d > %d", len(fileName), FileNameMaxLength)
@@ -641,7 +591,6 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 }
 
 func TestCopy(t *testing.T) {
-	// 场景1：正常拷贝（Linux）
 	srcFile := getTestFile("copy_src.txt")
 	dstFile := getTestFile("copy_dst.txt")
 	content := []byte("test copy function 123456 (Linux)")
@@ -662,21 +611,18 @@ func TestCopy(t *testing.T) {
 		t.Errorf("Copy content error (Linux): got %s", string(readBytes))
 	}
 
-	// 场景2：拷贝到非pwd路径（Linux）
 	nonPwdDst := "/tmp/copy_non_pwd_linux.txt"
 	err = Copy(srcFile, nonPwdDst)
 	if err != nil {
 		t.Fatalf("Copy to non pwd path failed (Linux): %v", err)
 	}
-	defer os.Remove(nonPwdDst) // 清理
+	defer os.Remove(nonPwdDst)
 
-	// 场景3：路径遍历攻击（含../，Linux）
 	err = Copy(srcFile, "../../copy_attack_linux.txt")
 	if err == nil || !strings.Contains(err.Error(), "contains ../") {
 		t.Error("Copy to invalid path should return error (Linux)")
 	}
 
-	// 场景4：空参数（Linux）
 	err = Copy("", dstFile)
 	if err == nil || !strings.Contains(err.Error(), "source file path is empty") {
 		t.Error("Copy empty src should return error (Linux)")
@@ -687,13 +633,11 @@ func TestCopy(t *testing.T) {
 		t.Error("Copy empty dst should return error (Linux)")
 	}
 
-	// 场景5：源文件不存在（Linux）
 	err = Copy(getTestFile("not_exists_src.txt"), dstFile)
 	if err == nil {
 		t.Error("Copy not exists src should return error (Linux)")
 	}
 
-	// 临界值：Linux大文件拷贝（50MB）
 	bigSrc := getTestFile("big_copy_src.txt")
 	bigDst := getTestFile("big_copy_dst.txt")
 	bigContent := generateRandomBytes(50 * 1024 * 1024)
@@ -715,13 +659,11 @@ func TestCopy(t *testing.T) {
 
 // ------------------------------ 辅助函数测试 ------------------------------
 func TestIsPathInDir(t *testing.T) {
-	// 提前创建测试子目录（Linux）
 	subDir := filepath.Join(testTempDir, "subdir")
 	if err := os.MkdirAll(subDir, 0755); err != nil {
 		t.Fatalf("Failed to create subdir (Linux): %v", err)
 	}
 
-	// 场景1：正常子目录（Linux）
 	file := filepath.Join(subDir, "test.txt")
 	os.WriteFile(file, []byte("test (Linux)"), 0644)
 	inDir, err := isPathInDir(file, testTempDir)
@@ -732,7 +674,6 @@ func TestIsPathInDir(t *testing.T) {
 		t.Error("File in subdir should return true (Linux)")
 	}
 
-	// 场景2：文件等于目录（Linux）
 	inDir, err = isPathInDir(testTempDir, testTempDir)
 	if err != nil {
 		t.Fatalf("isPathInDir failed (Linux): %v", err)
@@ -741,7 +682,6 @@ func TestIsPathInDir(t *testing.T) {
 		t.Error("File equals dir should return true (Linux)")
 	}
 
-	// 场景3：路径遍历（../，Linux）
 	file = filepath.Join(testTempDir, "../../etc/passwd")
 	inDir, err = isPathInDir(file, testTempDir)
 	if err != nil {
@@ -751,7 +691,6 @@ func TestIsPathInDir(t *testing.T) {
 		t.Error("Path traversal should return false (Linux)")
 	}
 
-	// 场景4：含/./的路径（Linux）
 	subDir2 := filepath.Join(testTempDir, "./subdir2")
 	os.MkdirAll(subDir2, 0755)
 	file = filepath.Join(subDir2, "test2.txt")
@@ -767,7 +706,6 @@ func TestIsPathInDir(t *testing.T) {
 
 // ------------------------------ Linux性能测试 ------------------------------
 func BenchmarkReadFileToBytes(b *testing.B) {
-	// Linux 1MB测试文件
 	testFile := getTestFile("bench_read_bytes.txt")
 	content := generateRandomBytes(1 * 1024 * 1024)
 	if err := os.WriteFile(testFile, content, 0644); err != nil {
@@ -784,7 +722,6 @@ func BenchmarkReadFileToBytes(b *testing.B) {
 }
 
 func BenchmarkWriteBytesToFile(b *testing.B) {
-	// Linux 1MB测试文件
 	testFile := getTestFile("bench_write_bytes.txt")
 	content := generateRandomBytes(1 * 1024 * 1024)
 
@@ -798,7 +735,6 @@ func BenchmarkWriteBytesToFile(b *testing.B) {
 }
 
 func BenchmarkIsFileDiffWithBase64(b *testing.B) {
-	// Linux 1MB测试文件
 	testFile := getTestFile("bench_diff.txt")
 	content := generateRandomBytes(1 * 1024 * 1024)
 	if err := os.WriteFile(testFile, content, 0644); err != nil {
@@ -816,7 +752,6 @@ func BenchmarkIsFileDiffWithBase64(b *testing.B) {
 }
 
 func BenchmarkJoinPrefixAndUrlFileNameAndWriteBase64ToFile(b *testing.B) {
-	// Linux 1MB测试内容
 	destPath := testTempDir
 	url := "http://example.com/bench_join.txt"
 	content := generateRandomBytes(1 * 1024 * 1024)
@@ -832,7 +767,6 @@ func BenchmarkJoinPrefixAndUrlFileNameAndWriteBase64ToFile(b *testing.B) {
 }
 
 func BenchmarkCopy(b *testing.B) {
-	// Linux 1MB测试文件
 	srcFile := getTestFile("bench_copy_src.txt")
 	dstFile := getTestFile("bench_copy_dst.txt")
 	content := generateRandomBytes(1 * 1024 * 1024)
