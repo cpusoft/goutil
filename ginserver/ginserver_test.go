@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -632,7 +631,7 @@ func BenchmarkSaveToTmpFile(b *testing.B) {
 }
 
 ////////////////////////////////////////////////////
-
+/*
 func TestRunTLSEx1(t *testing.T) {
 	engine := gin.New()
 	engine.GET("/user/:name/*action", func(c *gin.Context) {
@@ -779,3 +778,4 @@ func uploadFile(c *gin.Context) {
 	fmt.Println("ParseValidateFile(): ReceiveFile, receiveFile:", receiveFile, err)
 
 }
+*/
