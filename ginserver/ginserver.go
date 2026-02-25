@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/cpusoft/goutil/belogs"
@@ -116,10 +117,22 @@ func ReceiveFile(c *gin.Context, dir string) (receiveFile string, err error) {
 		return "", err
 	}
 	belogs.Debug("ReceiveFile():dir:", dir, "  postForm:", postForm, "   file.Filename:", file.Filename)
+	// 保留：基础路径遍历防护（仅取文件名，不修改）
+	filename := filepath.Base(file.Filename)
+	belogs.Debug("ReceiveFile():dir:", dir, "  postForm:", postForm, "   file.Filename:", filename)
+
+	// 保留：确保目录存在（不处理权限）
+	if err := os.MkdirAll(dir, 0755); err != nil { // 恢复默认权限，不修改
+		belogs.Error("ReceiveFile(): MkdirAll fail:", dir, err)
+		return "", err
+	}
+
 	if !strings.HasSuffix(dir, string(os.PathSeparator)) {
 		dir = dir + string(os.PathSeparator)
 	}
-	receiveFile = dir + file.Filename
+	receiveFile = dir + filename // 恢复原文件名，不修改
+	belogs.Debug("ReceiveFile():dir:", dir, "  filename:", filename, "   receiveFile:", receiveFile)
+
 	err = c.SaveUploadedFile(file, receiveFile)
 	if err != nil {
 		belogs.Error("ReceiveFile(): SaveUploadedFile fail:", receiveFile, err)
@@ -206,8 +219,12 @@ func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 
 	tmpFile, tmpDir, err := saveToTmpFile(file)
 	defer func() {
-		osutil.CloseAndRemoveFile(tmpFile)
-		os.Remove(tmpDir)
+		if tmpFile != nil {
+			osutil.CloseAndRemoveFile(tmpFile)
+		}
+		if tmpDir != "" {
+			os.RemoveAll(tmpDir) // 修复：删除目录及内容，而非仅删除目录
+		}
 	}()
 	if err != nil {
 		belogs.Error("ReceiveFileAndPostNewUrl(): saveToTmpFile fail:", err)
@@ -250,7 +267,9 @@ func saveToTmpFile(fileHeader *multipart.FileHeader) (tmpFile *os.File, tmpDir s
 		return nil, tmpDir, err
 	}
 	defer file.Close()
-	belogs.Debug("saveToTmpFile(): fileHeader.Filename:", fileHeader.Filename)
+	// 保留：基础路径遍历防护（仅取文件名，不修改）
+	filename := filepath.Base(fileHeader.Filename)
+	belogs.Debug("saveToTmpFile(): fileHeader.Filename:", fileHeader.Filename, " filename:", filename)
 
 	// create tmp file
 	tmpDir, err = os.MkdirTemp("", "tmp-")
@@ -258,12 +277,12 @@ func saveToTmpFile(fileHeader *multipart.FileHeader) (tmpFile *os.File, tmpDir s
 		belogs.Error("saveToTmpFile(): TempDir fail:", err)
 		return nil, tmpDir, err
 	}
-	tmpFile, err = os.Create(tmpDir + string(os.PathSeparator) + fileHeader.Filename)
+	tmpFilePath := filepath.Join(tmpDir, filename) // 修复：使用filepath.Join防止路径遍历
+	tmpFile, err = os.Create(tmpFilePath)
 	if err != nil {
 		belogs.Error("saveToTmpFile(): TempFile fail:", err)
 		return nil, tmpDir, err
 	}
-
 	belogs.Debug("saveToTmpFile(): tmpFile:", tmpFile.Name())
 
 	// save to tmp file
@@ -271,6 +290,11 @@ func saveToTmpFile(fileHeader *multipart.FileHeader) (tmpFile *os.File, tmpDir s
 	if err != nil {
 		belogs.Error("saveToTmpFile(): Copy fail:", err)
 		return nil, tmpDir, err
+	}
+	// 保留：回退文件指针，确保后续读取完整
+	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
+		belogs.Debug("saveToTmpFile(): Seek fail:", err)
+		// no return err, just log and ignore
 	}
 
 	return tmpFile, tmpDir, nil
