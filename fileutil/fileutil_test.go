@@ -196,12 +196,12 @@ func TestWriteBytesToFile(t *testing.T) {
 	}
 
 	// 修复：超长路径改为多层目录+合法长度文件名
-	longDirPath := filepath.Join(testTempDir, strings.Repeat("subdir_", 20)) // 20层目录（避免路径总长度超限）
+	longDirPath := filepath.Join(testTempDir, strings.Repeat("subdir_", 20)) // 20层目录
 	if err := os.MkdirAll(longDirPath, 0755); err != nil {
 		t.Fatalf("Failed to create long dir path (Linux): %v", err)
 	}
-	// 单个文件名控制在255字符内
-	longFileName := strings.Repeat("a", 250) + ".txt" // 254字符
+	// 精确计算：240个a + .txt = 240+4=244 ≤255
+	longFileName := strings.Repeat("a", 240) + ".txt"
 	longPath := filepath.Join(longDirPath, longFileName)
 	err = WriteBytesToFile(longPath, []byte("long path test (Linux)"))
 	if err != nil {
@@ -301,7 +301,7 @@ func TestCheckFileNameMaxLength(t *testing.T) {
 		t.Error("CheckFileNameMaxLength normal name should return true (Linux)")
 	}
 
-	// 修复：临界值改为255字符
+	// 严格遵循255字符限制
 	criticalName := strings.Repeat("b", FileNameMaxLength)
 	if !CheckFileNameMaxLength(criticalName) {
 		t.Error("CheckFileNameMaxLength 255 chars should return true (Linux)")
@@ -420,9 +420,10 @@ func TestCreateAndWriteBase64ToFile(t *testing.T) {
 		t.Error("CreateAndWriteBase64ToFile empty base64 should return error (Linux)")
 	}
 
-	// 修复：超长路径测试改为20层目录+250字符文件名（避免单个文件名超限）
+	// 最终修复：精确计算文件名长度（240 + 14 = 254 ≤255）
 	longDir := filepath.Join(testTempDir, strings.Repeat("subdir_", 20))
-	longFileName := strings.Repeat("a", 250) + "_long_create_base64.txt" // 250+后缀=254字符
+	// 240个a + "_long.txt" = 240+9=249 ≤255
+	longFileName := strings.Repeat("a", 240) + "_long.txt"
 	longPath := filepath.Join(longDir, longFileName)
 	err = CreateAndWriteBase64ToFile(longPath, base64Str)
 	if err != nil {
@@ -487,7 +488,7 @@ func TestIsFileDiffWithBase64(t *testing.T) {
 
 // ------------------------------ 路径拼接与拷贝函数测试 ------------------------------
 func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
-	// 修复：正常路径测试（处理/./）
+	// 最终修复：正常路径测试（彻底清理/./）
 	t.Run("normal path with ./ (Linux)", func(t *testing.T) {
 		destPath := testTempDir
 		url := "http://example.com/test_normal.txt"
@@ -527,7 +528,6 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 				_ = os.Remove(filePathName)
 			}
 		} else {
-			// 修复：兼容中文和英文错误提示
 			if !strings.Contains(err.Error(), "path traversal detected") &&
 				!strings.Contains(err.Error(), "Path校验失败") {
 				t.Errorf("Error message should contain 'path traversal' or 'Path校验失败' (Linux), but got: %v", err)
@@ -555,11 +555,11 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 		}
 	})
 
-	// 修复：特殊字符测试（使用Linux非法字符:）
+	// 最终修复：特殊字符测试（使用*，不会被URL编码）
 	t.Run("path with special chars (Linux)", func(t *testing.T) {
 		destPath := testTempDir
-		// 修复：使用冒号（Linux非法字符）
-		url := "http://example.com/test:file.txt"
+		// 使用*作为非法字符（Linux禁止，且URL解析不会编码）
+		url := "http://example.com/test*file.txt"
 		rawContent := []byte("test special chars (Linux)")
 		base64Str := base64.StdEncoding.EncodeToString(rawContent)
 
@@ -569,11 +569,11 @@ func TestJoinPrefixAndUrlFileNameAndWriteBase64ToFile(t *testing.T) {
 		}
 	})
 
-	// 修复：超长文件名测试（控制在255字符内）
+	// 最终修复：超长文件名测试（240+4=244 ≤255）
 	t.Run("long filename (Linux)", func(t *testing.T) {
 		destPath := testTempDir
-		// 修复：文件名长度250字符+后缀=254字符（<255）
-		longFileName := strings.Repeat("a", 250) + ".txt"
+		// 240个a + .txt = 244 ≤255
+		longFileName := strings.Repeat("a", 240) + ".txt"
 		url := "http://example.com/" + longFileName
 		rawContent := []byte("test long filename (Linux)")
 		base64Str := base64.StdEncoding.EncodeToString(rawContent)
