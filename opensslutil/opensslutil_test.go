@@ -157,8 +157,10 @@ func TestValidateCertFile(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name:     "osutil.IsExists返回error（模拟不可访问路径）",
-			certFile: string(os.PathSeparator) + "proc" + string(os.PathSeparator) + "1" + string(os.PathSeparator) + "fd" + string(os.PathSeparator) + "9999",
+			name: "osutil.IsExists返回error（权限不足）",
+			// Linux下普通用户无权限访问/root目录，osutil.IsExists调用os.Stat会返回permission denied（err!=nil）
+			// 触发"failed to check certificate file existence"分支
+			certFile: "/root/non_exist_openssl_test.cer",
 			wantErr:  true,
 			errMsg:   "failed to check certificate file existence",
 		},
@@ -166,6 +168,7 @@ func TestValidateCertFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// 直接使用原生osutil.IsExists，无任何mock
 			err := validateCertFile(tt.certFile)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validateCertFile() error = %v, wantErr %v", err, tt.wantErr)
