@@ -1,6 +1,7 @@
 package whoisutil
 
 import (
+	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -18,6 +19,12 @@ func GetWhoisResult(q string) (whoisResult *WhoisResult, err error) {
 
 func GetWhoisResultWithConfig(query string, whoisConfig *WhoisConfig) (whoisResult *WhoisResult, err error) {
 	belogs.Debug("GetWhoisResult(): cmd:  query:", query, "  whoisConfig:", jsonutil.MarshalJson(whoisConfig))
+	// 新增：空查询前置校验
+	query = strings.TrimSpace(query)
+	if query == "" {
+		belogs.Error("GetWhoisResultWithConfig(): query is empty")
+		return nil, fmt.Errorf("query is empty")
+	}
 
 	var cmd *exec.Cmd
 	if whoisConfig == nil {

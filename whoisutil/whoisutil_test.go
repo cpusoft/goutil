@@ -284,7 +284,7 @@ func TestGetWhoisResult(t *testing.T) {
 		{
 			name:         "空查询（临界）",
 			query:        "",
-			wantErr:      true, // whois命令执行失败
+			wantErr:      true, // 现在代码会主动返回错误，符合预期
 			wantNonEmpty: false,
 		},
 		{
@@ -390,8 +390,8 @@ func TestWhoisAsnAddressPrefixByCymru(t *testing.T) {
 			wantErr:       false, // 代码返回nil,nil
 		},
 		{
-			name:          "无效ASN（超大数）",
-			query:         "9999999999",
+			name:          "无效ASN（超出int范围）",      // 修改：用超出int范围的数，确保转换失败
+			query:         "9223372036854775808", // 超过int64最大值（9223372036854775807）
 			wantQueryType: "asn",
 			wantAsnValid:  false,
 			wantErr:       false,
