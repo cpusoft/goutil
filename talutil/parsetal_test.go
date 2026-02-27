@@ -5,13 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/cpusoft/goutil/belogs"
 )
-
-func init() {
-	belogs.SetLogToConsole(true)
-}
 
 // ===================== 单元测试 - GetAllTalFile =====================
 func TestGetAllTalFile(t *testing.T) {
