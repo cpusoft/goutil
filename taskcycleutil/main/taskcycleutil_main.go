@@ -11,22 +11,20 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/taskcycleutil"
 )
 
 // ========== 下载任务配置 ==========
 // DownloadTaskConfig 下载任务的自定义参数
 type DownloadTaskConfig struct {
-	URLs       []string `json:"urls"`       // 待下载的URL数组
-	SaveDir    string   `json:"saveDir"`    // 文件保存目录
-	Timeout    int      `json:"timeout"`    // 单个URL下载超时（秒）
-	RetryCount int      `json:"retryCount"` // 重试次数
+	SaveDir    string        `json:"saveDir"`    // 文件保存目录
+	Timeout    time.Duration `json:"timeout"`    // 单个URL下载超时（秒）
+	RetryCount int           `json:"retryCount"` // 重试次数
 }
 
 // ========== 核心下载函数 ==========
 // downloadFile 单个URL下载实现
-func downloadFile(ctx context.Context, url, saveDir string, timeout int) (string, error) {
+func downloadFile(ctx context.Context, url, saveDir string, timeout time.Duration) (string, error) {
 	// 创建保存目录
 	if err := os.MkdirAll(saveDir, 0755); err != nil {
 		return "", fmt.Errorf("create save dir failed: %w", err)
@@ -34,7 +32,7 @@ func downloadFile(ctx context.Context, url, saveDir string, timeout int) (string
 
 	// 设置HTTP客户端超时
 	client := &http.Client{
-		Timeout: time.Duration(timeout) * time.Second,
+		Timeout: timeout,
 	}
 
 	// 发起HTTP请求
@@ -82,55 +80,55 @@ func downloadFile(ctx context.Context, url, saveDir string, timeout int) (string
 // downloadTaskExecuteFunc 适配框架的执行函数
 // 功能：遍历URL数组，逐个下载，全部成功则返回true，否则返回false
 func downloadTaskExecuteFunc(ctx context.Context, task *taskcycleutil.Task) (bool, error) {
-	// 解析自定义任务数据
-	var downloadConfig DownloadTaskConfig
-	// 这里假设你使用jsonutil反序列化（也可自定义解析方式）
-	// 注：实际使用时需确保task.Data.Content是JSON格式的DownloadTaskConfig
-	if err := jsonutil.UnmarshalJson(task.Data.Content, &downloadConfig); err != nil {
-		return false, fmt.Errorf("parse download config failed: %w", err)
-	}
 
 	// 校验配置
-	if len(downloadConfig.URLs) == 0 {
-		return false, errors.New("empty urls list")
+	if len(task.Key) == 0 {
+		return false, errors.New("empty key")
 	}
-	if downloadConfig.SaveDir == "" {
-		downloadConfig.SaveDir = "./downloads" // 默认保存目录
+	url := task.Key
+	downloadTaskConfig, ok := task.Data.Params["downloadConfig"].(*DownloadTaskConfig)
+	if !ok {
+		return false, errors.New("downloadTaskConfig is empty")
 	}
-	if downloadConfig.Timeout <= 0 {
-		downloadConfig.Timeout = 30 // 默认30秒超时
+	if downloadTaskConfig == nil {
+		return false, errors.New("downloadTaskConfig is nil")
 	}
-	if downloadConfig.RetryCount < 0 {
-		downloadConfig.RetryCount = 2 // 默认重试2次
+
+	if downloadTaskConfig.SaveDir == "" {
+		downloadTaskConfig.SaveDir = "/tmp" // 默认保存目录
+	}
+	if downloadTaskConfig.Timeout <= 0 {
+		downloadTaskConfig.Timeout = 70 * time.Minute // 默认30秒超时
+	}
+	if downloadTaskConfig.RetryCount < 0 {
+		downloadTaskConfig.RetryCount = 1 // 默认重试2次
 	}
 
 	// 遍历URL执行下载（带重试）
 	successCount := 0
 	failedURLs := make([]string, 0)
 
-	for _, url := range downloadConfig.URLs {
-		var savePath string
-		var err error
+	var savePath string
+	var err error
 
-		// 重试逻辑
-		for i := 0; i <= downloadConfig.RetryCount; i++ {
-			savePath, err = downloadFile(ctx, url, downloadConfig.SaveDir, downloadConfig.Timeout)
-			if err == nil {
-				belogs.Info(fmt.Sprintf("download success: %s -> %s (retry: %d)", url, savePath, i))
-				successCount++
-				break
-			}
-			belogs.Warn(fmt.Sprintf("download failed: %s (retry: %d): %v", url, i, err))
+	// 重试逻辑
+	for i := 0; i <= downloadTaskConfig.RetryCount; i++ {
+		savePath, err = downloadFile(ctx, url, downloadTaskConfig.SaveDir, downloadTaskConfig.Timeout)
+		if err == nil {
+			belogs.Info(fmt.Sprintf("download success: %s -> %s (retry: %d)", url, savePath, i))
+			successCount++
+			break
+		}
+		belogs.Warn(fmt.Sprintf("download failed: %s (retry: %d): %v", url, i, err))
 
-			// 最后一次重试失败，记录失败URL
-			if i == downloadConfig.RetryCount {
-				failedURLs = append(failedURLs, url)
-			}
+		// 最后一次重试失败，记录失败URL
+		if i == downloadTaskConfig.RetryCount {
+			failedURLs = append(failedURLs, url)
+		}
 
-			// 非最后一次重试，等待1秒后重试
-			if i < downloadConfig.RetryCount {
-				time.Sleep(1 * time.Second)
-			}
+		// 非最后一次重试，等待1秒后重试
+		if i < downloadTaskConfig.RetryCount {
+			time.Sleep(1 * time.Second)
 		}
 	}
 
@@ -139,8 +137,8 @@ func downloadTaskExecuteFunc(ctx context.Context, task *taskcycleutil.Task) (boo
 		return true, nil
 	}
 
-	return false, fmt.Errorf("download failed for urls: %v (success: %d/%d)",
-		failedURLs, successCount, len(downloadConfig.URLs))
+	return false, fmt.Errorf("download failed for url: %v (success: %d/%d)",
+		failedURLs, successCount, len(failedURLs)+successCount)
 }
 
 // ========== 递归生成新任务函数（可选） ==========
@@ -317,36 +315,32 @@ func main() {
 	}
 
 	// 构建自定义下载配置
-	downloadConfig := DownloadTaskConfig{
-		URLs:       downloadURLs,
-		SaveDir:    "/tmp/",
-		Timeout:    30,
-		RetryCount: 2,
+	downloadConfig := &DownloadTaskConfig{
+		SaveDir:    "/tmp/taskcycleutil_downloads",
+		Timeout:    70 * time.Minute,
+		RetryCount: 1,
 	}
-
-	// 序列化配置为JSON（存入task.Data.Content）
-	configJson := jsonutil.MarshalJson(downloadConfig)
 
 	// 构建框架任务
-	tasks := []*taskcycleutil.Task{
-		{
-			Key: "download_task_1", // 任务唯一Key
+	tasks := make([]*taskcycleutil.Task, 0, len(downloadURLs))
+	for _, url := range downloadURLs {
+		task := &taskcycleutil.Task{
+			Key: url, // 任务唯一Key
 			Data: taskcycleutil.TaskData{
-				Content: configJson, // 自定义数据（JSON格式的下载配置）
 				Params: map[string]interface{}{
-					"description": "测试下载任务",
-					"priority":    "high",
+					"downloadConfig": downloadConfig,
 				},
 			},
-		},
-		// 可添加更多任务...
-		// {
-		// 	Key: "download_task_2",
-		// 	Data: taskcycleutil.TaskData{
-		// 		Content: `{"urls":["https://example.com/file4.zip"], "saveDir":"./downloads"}`,
-		// 	},
-		// },
+		}
+		tasks = append(tasks, task)
 	}
+	// 可添加更多任务...
+	// {
+	// 	Key: "download_task_2",
+	// 	Data: taskcycleutil.TaskData{
+	// 		Content: `{"urls":["https://example.com/file4.zip"], "saveDir":"./downloads"}`,
+	// 	},
+	// },
 
 	// ========== 6. 启动框架 ==========
 	framework.Start()
