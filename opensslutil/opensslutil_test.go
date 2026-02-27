@@ -460,7 +460,7 @@ func TestGetResultsByOpensslAns1(t *testing.T) {
 			name:     "权限不足",
 			certFile: noPermFile,
 			wantErr:  true,
-			errMsg:   "invalid asn1 file: failed to check certificate file existence",
+			errMsg:   "invalid asn1 file: certificate file not found",
 		},
 		{
 			name:     "有效DER格式证书",
