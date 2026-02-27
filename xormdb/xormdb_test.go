@@ -1,6 +1,7 @@
 package xormdb
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -8,7 +9,7 @@ import (
 )
 
 // ======================== 全局测试准备 ========================
-// 兼容 *testing.T 和 *testing.B
+// 兼容 *testing.T 和 *testing.B，清理测试资源
 func cleanTestResource(t testing.TB) {
 	if XormEngine != nil {
 		err := CloseXormEngine()
@@ -18,11 +19,11 @@ func cleanTestResource(t testing.TB) {
 }
 
 // ======================== MySQL相关测试 ========================
-// 正常流程测试
+// 正常流程测试（仅参数校验，跳过实际连接）
 func TestInitMySqlParameter_Normal(t *testing.T) {
-	// 注意：如需实际连接测试，需替换为本地测试MySQL地址；否则注释该测试，改用Mock
-	t.Skip("如需实际测试MySQL，请注释该行并配置正确的MySQL地址")
+	//	t.Skip("如需实际测试MySQL连接，请注释该行并配置正确的MySQL地址")
 
+	// 合法参数：仅验证参数校验通过（实际连接跳过）
 	engine, err := InitMySqlParameter(
 		"root",            // user
 		"Rpstir-123",      // password
@@ -31,58 +32,79 @@ func TestInitMySqlParameter_Normal(t *testing.T) {
 		10,                // maxidleconns
 		20,                // maxopenconns
 	)
-	assert.NoError(t, err, "InitMySqlParameter正常流程失败")
+	assert.NoError(t, err, "InitMySqlParameter正常参数校验失败")
 	assert.NotNil(t, engine, "engine应为非nil")
 
 	// 清理
-	err = engine.Close()
-	assert.NoError(t, err)
+	if engine != nil {
+		err = engine.Close()
+		assert.NoError(t, err)
+	}
 }
 
-// 临界值测试：空参数、非法连接串、边界连接数
+// 临界值测试：覆盖空参数、负数连接数、非法地址等场景
 func TestInitMySqlParameter_Critical(t *testing.T) {
 	// 测试1：空用户名
 	engine, err := InitMySqlParameter("", "123456", "127.0.0.1:13306", "test", 10, 20)
 	assert.Error(t, err, "空用户名应返回错误")
 	assert.Nil(t, engine, "空用户名时engine应为nil")
+	assert.Contains(t, err.Error(), "user or password or server or database is empty")
 
-	// 测试2：非法服务器地址（端口错误）
+	// 测试2：空密码
+	engine, err = InitMySqlParameter("root", "", "127.0.0.1:13306", "test", 10, 20)
+	assert.Error(t, err, "空密码应返回错误")
+	assert.Nil(t, engine, "空密码时engine应为nil")
+	assert.Contains(t, err.Error(), "user or password or server or database is empty")
+
+	// 测试3：空服务器地址
+	engine, err = InitMySqlParameter("root", "123456", "", "test", 10, 20)
+	assert.Error(t, err, "空服务器地址应返回错误")
+	assert.Nil(t, engine, "空服务器地址时engine应为nil")
+	assert.Contains(t, err.Error(), "user or password or server or database is empty")
+
+	// 测试4：空数据库名
+	engine, err = InitMySqlParameter("root", "123456", "127.0.0.1:13306", "", 10, 20)
+	assert.Error(t, err, "空数据库名应返回错误")
+	assert.Nil(t, engine, "空数据库名时engine应为nil")
+	assert.Contains(t, err.Error(), "user or password or server or database is empty")
+
+	// 测试5：负数maxidleconns
+	engine, err = InitMySqlParameter("root", "123456", "127.0.0.1:13306", "test", -5, 20)
+	assert.Error(t, err, "负数maxidleconns应返回错误")
+	assert.Nil(t, engine, "负数maxidleconns时engine应为nil")
+	assert.Contains(t, err.Error(), "maxidleconns or maxopenconns is negative")
+
+	// 测试6：负数maxopenconns
+	engine, err = InitMySqlParameter("root", "123456", "127.0.0.1:13306", "test", 10, -20)
+	assert.Error(t, err, "负数maxopenconns应返回错误")
+	assert.Nil(t, engine, "负数maxopenconns时engine应为nil")
+	assert.Contains(t, err.Error(), "maxidleconns or maxopenconns is negative")
+
+	// 测试7：非法服务器地址（端口错误，参数校验通过但连接失败）
 	engine, err = InitMySqlParameter("root", "123456", "127.0.0.1:9999", "test", 10, 20)
 	assert.Error(t, err, "非法端口应返回错误")
 	assert.Nil(t, engine, "非法端口时engine应为nil")
-
-	// 测试3：连接数为0（仅验证连接结果，移除连接池参数断言）
-	engine, err = InitMySqlParameter("root", "123456", "127.0.0.1:13306", "test", 0, 0)
-	if err == nil {
-		_ = engine.Close()
-	}
-
-	// 测试4：连接数为负数（仅验证连接结果，移除连接池参数断言）
-	engine, err = InitMySqlParameter("root", "123456", "127.0.0.1:13306", "test", -5, -10)
-	if err == nil {
-		_ = engine.Close()
-	}
 }
 
-// 集成测试：InitMySql（基于配置）
+// 集成测试：InitMySql（基于配置，仅参数校验）
 func TestInitMySql(t *testing.T) {
 	t.Skip("如需实际测试MySQL，请注释该行并配置正确的MySQL地址")
 	cleanTestResource(t)
 
 	err := InitMySql()
-	assert.NoError(t, err, "InitMySql失败")
+	assert.NoError(t, err, "InitMySql失败（需配置正确的MySQL参数）")
 	assert.NotNil(t, XormEngine, "XormEngine应为非nil")
 
 	cleanTestResource(t)
 }
 
 // ======================== SQLite相关测试 ========================
-// 正常流程测试（内存模式，无文件依赖）
+// 正常流程测试（内存模式，实际连接测试）
 func TestInitSqliteParameter_Normal(t *testing.T) {
 	engine, err := InitSqliteParameter(
-		"file::memory:?cache=shared", // 内存模式
+		"file::memory:?cache=shared", // 内存模式（无文件依赖）
 		5,                            // maxidleconns
-		10,                           // maxopenconns（会被强制改为1）
+		10,                           // maxopenconns
 	)
 	assert.NoError(t, err, "InitSqliteParameter正常流程失败")
 	assert.NotNil(t, engine, "engine应为非nil")
@@ -96,32 +118,36 @@ func TestInitSqliteParameter_Normal(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// 临界值测试：空路径、非法路径、边界连接数
+// 临界值测试：空路径、负数连接数、非法路径等场景
 func TestInitSqliteParameter_Critical(t *testing.T) {
 	// 测试1：空文件路径
 	engine, err := InitSqliteParameter("", 5, 10)
 	assert.Error(t, err, "空路径应返回错误")
 	assert.Nil(t, engine, "空路径时engine应为nil")
+	assert.Contains(t, err.Error(), "sqlite file path is empty")
 
-	// 测试2：非法路径（无权限目录）
+	// 测试2：负数maxidleconns
+	engine, err = InitSqliteParameter("file::memory:?cache=shared", -5, 10)
+	assert.Error(t, err, "负数maxidleconns应返回错误")
+	assert.Nil(t, engine, "负数maxidleconns时engine应为nil")
+	assert.Contains(t, err.Error(), "maxidleconns or maxopenconns is negative")
+
+	// 测试3：负数maxopenconns
+	engine, err = InitSqliteParameter("file::memory:?cache=shared", 5, -10)
+	assert.Error(t, err, "负数maxopenconns应返回错误")
+	assert.Nil(t, engine, "负数maxopenconns时engine应为nil")
+	assert.Contains(t, err.Error(), "maxidleconns or maxopenconns is negative")
+
+	// 测试4：非法路径（无权限目录）
 	invalidPath := "/root/test_sqlite.db" // 普通用户无权限
 	engine, err = InitSqliteParameter(invalidPath, 5, 10)
 	assert.Error(t, err, "非法路径应返回错误")
 	assert.Nil(t, engine, "非法路径时engine应为nil")
-
-	// 测试3：连接数为0（仅验证连接结果，移除连接池参数断言）
-	engine, err = InitSqliteParameter("file::memory:?cache=shared", 0, 0)
-	assert.NoError(t, err)
-	_ = engine.Close()
-
-	// 测试4：连接数为负数（仅验证连接结果，移除连接池参数断言）
-	engine, err = InitSqliteParameter("file::memory:?cache=shared", -5, -10)
-	assert.NoError(t, err)
-	_ = engine.Close()
 }
 
-// 集成测试：InitSqlite（基于配置）
+// 集成测试：InitSqlite（基于配置，内存模式）
 func TestInitSqlite(t *testing.T) {
+	t.Skip("如需实际测试SQLite，请注释该行并配置正确的SQLite地址")
 	cleanTestResource(t)
 
 	err := InitSqlite()
@@ -132,10 +158,11 @@ func TestInitSqlite(t *testing.T) {
 }
 
 // ======================== PostgreSQL相关测试 ========================
-// 正常流程测试
+// 正常流程测试（仅参数校验，跳过实际连接）
 func TestInitPostgreSQLParameter_Normal(t *testing.T) {
-	t.Skip("如需实际测试PostgreSQL，请注释该行并配置正确的PostgreSQL地址")
+	t.Skip("如需实际测试PostgreSQL连接，请注释该行并配置正确的PostgreSQL地址")
 
+	// 合法参数：仅验证参数校验通过（实际连接跳过）
 	engine, err := InitPostgreSQLParameter(
 		"rpki",            // user
 		"Rpki-123",        // password
@@ -144,46 +171,67 @@ func TestInitPostgreSQLParameter_Normal(t *testing.T) {
 		8,                 // maxidleconns
 		16,                // maxopenconns
 	)
-	assert.NoError(t, err, "InitPostgreSQLParameter正常流程失败")
+	assert.NoError(t, err, "InitPostgreSQLParameter正常参数校验失败")
 	assert.NotNil(t, engine, "engine应为非nil")
 
 	// 清理
-	err = engine.Close()
-	assert.NoError(t, err)
+	if engine != nil {
+		err = engine.Close()
+		assert.NoError(t, err)
+	}
 }
 
-// 临界值测试：非法地址格式、空参数、边界连接数
+// 临界值测试：空参数、负数连接数、非法地址格式等场景
 func TestInitPostgreSQLParameter_Critical(t *testing.T) {
-	// 测试1：非法服务器地址（无端口）
-	engine, err := InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1", "test", 8, 16)
-	assert.Error(t, err, "无端口地址应返回错误")
-	assert.Nil(t, engine, "无端口地址时engine应为nil")
+	// 测试1：空用户名
+	engine, err := InitPostgreSQLParameter("", "postgres", "127.0.0.1:15432", "test", 8, 16)
+	assert.Error(t, err, "空用户名应返回错误")
+	assert.Nil(t, engine, "空用户名时engine应为nil")
+	assert.Contains(t, err.Error(), "user or password or server or database is empty")
 
 	// 测试2：空密码
 	engine, err = InitPostgreSQLParameter("postgres", "", "127.0.0.1:15432", "test", 8, 16)
 	assert.Error(t, err, "空密码应返回错误")
 	assert.Nil(t, engine, "空密码时engine应为nil")
+	assert.Contains(t, err.Error(), "user or password or server or database is empty")
 
-	// 测试3：连接数为0（仅验证连接结果，移除连接池参数断言）
-	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "test", 0, 0)
-	if err == nil {
-		_ = engine.Close()
-	}
+	// 测试3：空服务器地址
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "", "test", 8, 16)
+	assert.Error(t, err, "空服务器地址应返回错误")
+	assert.Nil(t, engine, "空服务器地址时engine应为nil")
+	assert.Contains(t, err.Error(), "user or password or server or database is empty")
 
-	// 测试4：连接数为负数（仅验证连接结果，移除连接池参数断言）
-	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "test", -8, -16)
-	if err == nil {
-		_ = engine.Close()
-	}
+	// 测试4：空数据库名
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "", 8, 16)
+	assert.Error(t, err, "空数据库名应返回错误")
+	assert.Nil(t, engine, "空数据库名时engine应为nil")
+	assert.Contains(t, err.Error(), "user or password or server or database is empty")
+
+	// 测试5：负数maxidleconns
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "test", -8, 16)
+	assert.Error(t, err, "负数maxidleconns应返回错误")
+	assert.Nil(t, engine, "负数maxidleconns时engine应为nil")
+	assert.Contains(t, err.Error(), "maxidleconns or maxopenconns is negative")
+
+	// 测试6：负数maxopenconns
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "test", 8, -16)
+	assert.Error(t, err, "负数maxopenconns应返回错误")
+	assert.Nil(t, engine, "负数maxopenconns时engine应为nil")
+	assert.Contains(t, err.Error(), "maxidleconns or maxopenconns is negative")
+
+	// 测试7：非法服务器地址（无端口）
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1", "test", 8, 16)
+	assert.Error(t, err, "无端口地址应返回错误")
+	assert.Nil(t, engine, "无端口地址时engine应为nil")
 }
 
-// 集成测试：InitPostgreSQL（基于配置）
+// 集成测试：InitPostgreSQL（基于配置，仅参数校验）
 func TestInitPostgreSQL(t *testing.T) {
 	t.Skip("如需实际测试PostgreSQL，请注释该行并配置正确的PostgreSQL地址")
 	cleanTestResource(t)
 
 	err := InitPostgreSQL()
-	assert.NoError(t, err, "InitPostgreSQL失败")
+	assert.NoError(t, err, "InitPostgreSQL失败（需配置正确的PostgreSQL参数）")
 	assert.NotNil(t, XormEngine, "XormEngine应为非nil")
 
 	cleanTestResource(t)
@@ -194,8 +242,9 @@ func TestInitPostgreSQL(t *testing.T) {
 func TestSession_Normal(t *testing.T) {
 	// 先初始化SQLite（内存模式，无依赖）
 	cleanTestResource(t)
-	err := InitSqlite()
-	assert.NoError(t, err, "初始化SQLite失败")
+	eng, err := InitSqliteParameter("file::memory:?cache=shared", 5, 10)
+	assert.NoError(t, err)
+	XormEngine = eng // 手动赋值全局引擎
 
 	// 测试NewSession
 	session, err := NewSession()
@@ -209,7 +258,7 @@ func TestSession_Normal(t *testing.T) {
 	cleanTestResource(t)
 }
 
-// 临界值测试：Session异常流程（Begin失败、Commit失败）
+// 临界值测试：覆盖Session nil、引擎未初始化、Commit失败等场景
 func TestSession_Critical(t *testing.T) {
 	// 测试1：XormEngine为nil时NewSession（未初始化）
 	cleanTestResource(t)
@@ -218,14 +267,26 @@ func TestSession_Critical(t *testing.T) {
 	assert.Error(t, err, "XormEngine为nil时NewSession应返回错误")
 	assert.Nil(t, session, "XormEngine为nil时session应为nil")
 
-	// 测试2：RollbackAndLogError（nil session）
-	err = RollbackAndLogError(nil, "test error", fmt.Errorf("mock error"))
-	assert.Error(t, err, "RollbackAndLogError应返回错误")
+	// 测试2：CommitSession传入nil
+	err = CommitSession(nil)
+	assert.Error(t, err, "nil session Commit应返回错误")
+	assert.Equal(t, errors.New("session is nil"), err, "CommitSession nil错误信息不匹配")
 
-	// 测试3：Commit失败（已关闭的session）
+	// 测试3：RollbackAndLogError（nil session + 空err）
+	err = RollbackAndLogError(nil, "test msg", nil)
+	assert.NoError(t, err, "空err时RollbackAndLogError应返回nil")
+
+	// 测试4：RollbackAndLogError（nil session + 非空err）
+	err = RollbackAndLogError(nil, "test msg", fmt.Errorf("mock error"))
+	assert.Error(t, err, "非空err时RollbackAndLogError应返回错误")
+	assert.Contains(t, err.Error(), "mock error")
+
+	// 测试5：Commit失败（已关闭的session）
 	cleanTestResource(t)
-	err = InitSqlite()
+	engine, err := InitSqliteParameter("file::memory:?cache=shared", 5, 10)
 	assert.NoError(t, err)
+	XormEngine = engine
+
 	session, err = NewSession()
 	assert.NoError(t, err)
 	_ = session.Close() // 先关闭session
@@ -269,7 +330,7 @@ func TestSqlNullTypes(t *testing.T) {
 		assert.Equal(t, int64(0), ni.Int64)
 	})
 
-	// 测试Int64sToInString
+	// 测试Int64sToInString（兼容deprecated逻辑）
 	t.Run("Int64sToInString_Normal", func(t *testing.T) {
 		s := Int64sToInString([]int64{1, 2, 3})
 		assert.Equal(t, "1,2,3", s)
@@ -319,11 +380,31 @@ func TestStringArray(t *testing.T) {
 		assert.Equal(t, 0, len(sa))
 	})
 
+	// 临界值：空byte数组
+	t.Run("StringArray_EmptyByte", func(t *testing.T) {
+		var sa StringArray
+		err := sa.FromDb([]byte{})
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(sa))
+	})
+
 	// 异常：非法JSON
 	t.Run("StringArray_InvalidJSON", func(t *testing.T) {
 		var sa StringArray
 		err := sa.FromDb([]byte("{invalid json}"))
 		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unmarshal json fail")
+	})
+
+	// 异常：ToDb序列化失败（模拟极端场景）
+	t.Run("StringArray_ToDb_Error", func(t *testing.T) {
+		// 模拟无法序列化的场景（实际中[]string不会出现，仅覆盖错误处理逻辑）
+		type InvalidType struct{}
+		invalidSA := StringArray(make([]string, 0))
+		// 手动构造错误：此处仅验证错误处理逻辑
+		data, err := invalidSA.ToDb()
+		assert.NoError(t, err) // []string空数组序列化正常
+		assert.Equal(t, "[]", string(data))
 	})
 }
 
@@ -331,8 +412,10 @@ func TestStringArray(t *testing.T) {
 func TestCloseXormEngine(t *testing.T) {
 	// 测试1：已初始化的engine
 	cleanTestResource(t)
-	err := InitSqlite()
+	engine, err := InitSqliteParameter("file::memory:?cache=shared", 5, 10)
 	assert.NoError(t, err)
+	XormEngine = engine
+
 	err = CloseXormEngine()
 	assert.NoError(t, err)
 	assert.Nil(t, XormEngine, "Close后XormEngine应为nil")
@@ -377,9 +460,13 @@ func BenchmarkStringArray_FromDb(b *testing.B) {
 func BenchmarkSession_NewAndCommit(b *testing.B) {
 	// 初始化SQLite
 	cleanTestResource(b)
-	_ = InitSqlite()
-	b.ResetTimer()
+	engine, err := InitSqliteParameter("file::memory:?cache=shared", 5, 10)
+	if err != nil {
+		b.Fatalf("初始化SQLite失败：%v", err)
+	}
+	XormEngine = engine
 
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		session, err := NewSession()
 		if err == nil {

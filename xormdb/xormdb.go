@@ -1,6 +1,7 @@
 package xormdb
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -34,6 +35,15 @@ func InitMySql() (err error) {
 }
 
 func InitMySqlParameter(user, password, server, database string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
+	if user == "" || password == "" || server == "" || database == "" {
+		belogs.Error("InitMySqlParameter(): fail, user or password or server or database is empty")
+		return nil, fmt.Errorf("user or password or server or database is empty")
+	}
+	if maxidleconns < 0 || maxopenconns < 0 {
+		belogs.Error("InitMySqlParameter(): fail, maxidleconns or maxopenconns is negative, maxidleconns:", maxidleconns, " maxopenconns:", maxopenconns)
+		return nil, fmt.Errorf("maxidleconns or maxopenconns is negative")
+	}
+
 	// 修复：charset改为utf8mb4，支持完整UTF-8（含emoji等4字节字符）
 	openSql := user + ":" + password + "@tcp(" + server + ")/" + database + "?charset=utf8mb4&parseTime=True&loc=Local"
 	// 修复：删除未使用的logName变量
@@ -43,14 +53,16 @@ func InitMySqlParameter(user, password, server, database string, maxidleconns, m
 	engine, err = xorm.NewEngine("mysql", openSql)
 	if err != nil {
 		belogs.Error("InitMySqlParameter(): NewEngine failed, err:", err)
-		return engine, err
+		engine = nil
+		return nil, err
 	}
 
 	// 连接测试 + 修复：Ping失败后关闭engine，避免连接泄漏
 	if err := engine.Ping(); err != nil {
 		belogs.Error("InitMySqlParameter(): Ping failed, err:", err)
 		_ = engine.Close() // 关闭已创建的engine，避免资源泄漏
-		return engine, err
+		engine = nil
+		return nil, err
 	}
 
 	// 设置连接池参数
@@ -102,19 +114,29 @@ func InitSqlite() (err error) {
 // 修复：参数名改为sqliteFilePath，避免与filepath包名混淆
 func InitSqliteParameter(sqliteFilePath string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
 	belogs.Info("InitSqliteParameter(): sqliteFilePath: ", sqliteFilePath)
+	if len(sqliteFilePath) == 0 {
+		belogs.Error("InitSqliteParameter(): fail, sqliteFilePath is empty")
+		return nil, fmt.Errorf("sqlite file path is empty")
+	}
+	if maxidleconns < 0 || maxopenconns < 0 {
+		belogs.Error("InitSqliteParameter(): fail, maxidleconns or maxopenconns is negative, maxidleconns:", maxidleconns, " maxopenconns:", maxopenconns)
+		return nil, fmt.Errorf("maxidleconns or maxopenconns is negative")
+	}
 
 	// 连接数据库
 	engine, err = xorm.NewEngine("sqlite3", sqliteFilePath)
 	if err != nil {
 		belogs.Error("InitSqliteParameter(): NewEngine failed, sqliteFilePath:", sqliteFilePath, err)
-		return engine, err
+		engine = nil
+		return nil, err
 	}
 
 	// 连接测试 + 修复：Ping失败后关闭engine
 	if err := engine.Ping(); err != nil {
 		belogs.Error("InitSqliteParameter(): Ping failed, err:", err)
 		_ = engine.Close()
-		return engine, err
+		engine = nil
+		return nil, err
 	}
 
 	// SQLite连接池修复：强制SetMaxOpenConns(1)（SQLite不支持多连接，否则易锁库）
@@ -144,6 +166,15 @@ func InitPostgreSQL() (err error) {
 }
 
 func InitPostgreSQLParameter(user, password, server, database string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
+	if user == "" || password == "" || server == "" || database == "" {
+		belogs.Error("InitPostgreSQLParameter(): fail, user or password or server or database is empty")
+		return nil, fmt.Errorf("user or password or server or database is empty")
+	}
+	if maxidleconns < 0 || maxopenconns < 0 {
+		belogs.Error("InitPostgreSQLParameter(): fail, maxidleconns or maxopenconns is negative, maxidleconns:", maxidleconns, " maxopenconns:", maxopenconns)
+		return nil, fmt.Errorf("maxidleconns or maxopenconns is negative")
+	}
+
 	host, port, err := net.SplitHostPort(server)
 	if err != nil {
 		belogs.Error("InitPostgreSQLParameter(): SplitHostPort fail, server:", server, err)
@@ -158,14 +189,16 @@ func InitPostgreSQLParameter(user, password, server, database string, maxidlecon
 	engine, err = xorm.NewEngine("postgres", str)
 	if err != nil {
 		belogs.Error("InitPostgreSQLParameter(): NewEngine failed, err:", err)
-		return engine, err
+		engine = nil
+		return nil, err
 	}
 
 	// 连接测试 + 修复：Ping失败后关闭engine
 	if err := engine.Ping(); err != nil {
 		belogs.Error("InitPostgreSQLParameter(): Ping failed, err:", err)
 		_ = engine.Close()
-		return engine, err
+		engine = nil
+		return nil, err
 	}
 
 	// 设置连接池参数
@@ -189,6 +222,9 @@ func NewSession() (*xorm.Session, error) {
 // commit session, if err, will rollback.
 // must return error, so not use in defer,
 func CommitSession(session *xorm.Session) error {
+	if session == nil {
+		return errors.New("session is nil")
+	}
 	if err := session.Commit(); err != nil {
 		belogs.Error("main():Commit fail")
 		return RollbackAndLogError(session, "session.Commit fail", err)
@@ -199,7 +235,7 @@ func CommitSession(session *xorm.Session) error {
 // 修复：检查Rollback()的错误并日志，避免丢失关键错误
 func RollbackAndLogError(session *xorm.Session, msg string, err error) error {
 	if err != nil {
-		belogs.Error(msg, err)
+		belogs.Error("RollbackAndLogError(): msg:", msg, " err:", err)
 		if session != nil {
 			if rollbackErr := session.Rollback(); rollbackErr != nil {
 				belogs.Error("RollbackAndLogError(): rollback fail, msg:", msg, rollbackErr)
