@@ -274,16 +274,14 @@ func TestParseStdoutToRsyncResults(t *testing.T) {
 }
 
 // -------------------------- AddCerToRsyncResults 测试 --------------------------
+// TestAddCerToRsyncResults 纯文件系统测试（修复切片扩容问题）
 func TestAddCerToRsyncResults(t *testing.T) {
 	// 测试工具函数：创建临时目录+指定cer文件
 	createTestDirWithCers := func(t *testing.T, cerFiles []string) string {
 		t.Helper()
-		// 创建临时目录
 		tempDir := createTempDir(t)
-		// 创建指定的cer文件
 		for _, fileName := range cerFiles {
 			filePath := filepath.Join(tempDir, fileName)
-			// 创建空的cer文件
 			f, err := os.Create(filePath)
 			if err != nil {
 				t.Fatalf("创建测试文件%s失败: %v", filePath, err)
@@ -296,24 +294,21 @@ func TestAddCerToRsyncResults(t *testing.T) {
 	// 构造测试用例
 	tests := []struct {
 		name             string
-		cerFilesToCreate []string      // 要在临时目录创建的cer文件
-		rsyncResults     []RsyncResult // 已有结果（FilePath必须是临时目录路径）
-		wantErr          bool          // 是否预期错误
-		wantAddCount     int           // 预期新增JUST_SYNC数量
+		cerFilesToCreate []string
+		rsyncResults     []RsyncResult
+		wantErr          bool
+		wantAddCount     int
 	}{
 		{
 			name:             "已有部分cer文件（预期新增1个）",
-			cerFilesToCreate: []string{"test1.cer", "test2.cer"}, // 目录下有2个文件
-			rsyncResults: []RsyncResult{
-				// 注意：FilePath会在测试中替换为实际临时目录路径
-				{FilePath: "", FileName: "test1.cer"}, // 已有test1.cer
-			},
-			wantErr:      false,
-			wantAddCount: 1, // test2.cer未匹配，新增
+			cerFilesToCreate: []string{"test1.cer", "test2.cer"},
+			rsyncResults:     []RsyncResult{{FilePath: "", FileName: "test1.cer"}},
+			wantErr:          false,
+			wantAddCount:     1,
 		},
 		{
 			name:             "空目录（预期新增0个）",
-			cerFilesToCreate: []string{}, // 目录下无cer文件
+			cerFilesToCreate: []string{},
 			rsyncResults:     []RsyncResult{},
 			wantErr:          false,
 			wantAddCount:     0,
@@ -321,12 +316,9 @@ func TestAddCerToRsyncResults(t *testing.T) {
 		{
 			name:             "所有文件已存在（预期新增0个）",
 			cerFilesToCreate: []string{"test1.cer", "test2.cer"},
-			rsyncResults: []RsyncResult{
-				{FilePath: "", FileName: "test1.cer"},
-				{FilePath: "", FileName: "test2.cer"},
-			},
-			wantErr:      false,
-			wantAddCount: 0,
+			rsyncResults:     []RsyncResult{{FilePath: "", FileName: "test1.cer"}, {FilePath: "", FileName: "test2.cer"}},
+			wantErr:          false,
+			wantAddCount:     0,
 		},
 		{
 			name:             "目录无权限（预期错误）",
@@ -341,23 +333,24 @@ func TestAddCerToRsyncResults(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var tempDir string
 			if tt.name == "目录无权限（预期错误）" {
-				// 构造无权限目录
 				tempDir = createTempDir(t)
-				// 移除所有权限（跨平台兼容）
 				if err := os.Chmod(tempDir, 0000); err != nil {
 					t.Skipf("无法设置无权限目录（系统限制）: %v", err)
 				}
 			} else {
-				// 创建正常临时目录+cer文件
 				tempDir = createTestDirWithCers(t, tt.cerFilesToCreate)
 			}
 
-			// 关键：将rsyncResults中的FilePath替换为实际临时目录路径（确保完整路径匹配）
-			rsyncResultsCopy := make([]RsyncResult, len(tt.rsyncResults))
+			// ========== 核心修复：预分配足够容量，避免切片扩容 ==========
+			// 1. 先替换FilePath
+			rsyncResultsWithPath := make([]RsyncResult, len(tt.rsyncResults))
 			for i, rr := range tt.rsyncResults {
-				rr.FilePath = tempDir // 替换为实际临时目录路径
-				rsyncResultsCopy[i] = rr
+				rr.FilePath = tempDir
+				rsyncResultsWithPath[i] = rr
 			}
+			// 2. 创建切片时预分配足够容量（避免append扩容导致切片分离）
+			rsyncResultsCopy := make([]RsyncResult, len(rsyncResultsWithPath), len(rsyncResultsWithPath)+10)
+			copy(rsyncResultsCopy, rsyncResultsWithPath)
 			originalLen := len(rsyncResultsCopy)
 
 			// 执行待测试函数
@@ -369,25 +362,25 @@ func TestAddCerToRsyncResults(t *testing.T) {
 				return
 			}
 			if err != nil {
-				return // 有错误时无需验证数量
+				return
 			}
 
-			// ========== 修复核心：统计逻辑 ==========
+			// ========== 统计新增数量 ==========
 			addCount := 0
-			// 遍历新增的元素（从originalLen到末尾）
+			// 遍历所有元素，筛选新增的JUST_SYNC（原函数append后长度会正确更新）
 			for i := originalLen; i < len(rsyncResultsCopy); i++ {
 				r := rsyncResultsCopy[i]
-				// 关键：确保RSYNC_TYPE_JUST_SYNC与实际值一致（日志里是"justsync"）
 				t.Logf("新增元素[%d]: RsyncType=%s, FileName=%s", i, r.RsyncType, r.FileName)
 				if r.RsyncType == RSYNC_TYPE_JUST_SYNC {
 					addCount++
 				}
 			}
 
-			// 调试打印（验证完整路径匹配逻辑）
+			// 调试打印
 			t.Logf("=== 调试信息 ===")
 			t.Logf("实际临时目录: %s", tempDir)
-			t.Logf("初始rsyncResults长度: %d, 最终长度: %d", originalLen, len(rsyncResultsCopy))
+			t.Logf("初始rsyncResults长度: %d, 最终长度: %d (容量: %d)",
+				originalLen, len(rsyncResultsCopy), cap(rsyncResultsCopy))
 			t.Logf("已有文件fullName列表: %v", func() []string {
 				var list []string
 				for _, rr := range rsyncResultsCopy[:originalLen] {
