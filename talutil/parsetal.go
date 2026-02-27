@@ -10,17 +10,14 @@ import (
 	"github.com/cpusoft/goutil/osutil"
 )
 
-// 修复：PubKey的json tag拼写错误（jons -> json）
 type TalInfo struct {
 	SyncUrl string `json:"syncUrl"`
 	PubKey  string `json:"pubKey"`
 }
 
 func GetAllTalFile(file string) ([]string, error) {
-
 	belogs.Notice("GetAllTalFile():input read file or path :", file)
 
-	// 读取所有文件，加入到fileList列表中
 	isDir, err := osutil.IsDir(file)
 	if err != nil {
 		belogs.Error("GetAllTalFile():IsDir err:", file, err)
@@ -67,7 +64,6 @@ func parseTalInfo(file string) (TalInfo, error) {
 		belogs.Error("ParseTalInfo(): file Open err:", file, err)
 		return talInfo, err
 	}
-	// 修复1：添加defer关闭文件句柄，避免资源泄漏
 	defer func() {
 		if err := f.Close(); err != nil {
 			belogs.Error("ParseTalInfo(): file Close err:", file, err)
@@ -75,9 +71,13 @@ func parseTalInfo(file string) (TalInfo, error) {
 	}()
 
 	input := bufio.NewScanner(f)
+	// 修复：配置Scanner缓冲区，支持最大2MB单行（可根据需求调整）
+	buf := make([]byte, 1024*1024) // 初始1MB缓冲区
+	input.Buffer(buf, 2*1024*1024) // 最大2MB单行
+
 	i := 0
 	var buffer bytes.Buffer
-	for input.Scan() { // 遇到 \n 或者\r\n循环一次
+	for input.Scan() {
 		tmp := strings.TrimSpace(input.Text())
 		if len(tmp) == 0 {
 			continue
@@ -91,7 +91,6 @@ func parseTalInfo(file string) (TalInfo, error) {
 		i++
 	}
 
-	// 修复2：检查Scanner的扫描错误，避免IO错误被静默忽略
 	if err := input.Err(); err != nil {
 		belogs.Error("ParseTalInfo(): scan file err:", file, err)
 		return talInfo, err
