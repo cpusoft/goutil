@@ -275,7 +275,7 @@ func TestSession_Critical(t *testing.T) {
 	// 测试2：CommitSession传入nil
 	err = CommitSession(nil)
 	assert.Error(t, err, "nil session Commit应返回错误")
-	assert.Equal(t, errors.New("session is nil"), err, "CommitSession nil错误信息不匹配")
+	assert.Equal(t, errors.New("session is nil or closed"), err, "CommitSession nil or closed错误信息不匹配")
 
 	// 测试3：RollbackAndLogError（nil session + 空err）
 	err = RollbackAndLogError(nil, "test msg", nil)
