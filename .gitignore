@@ -10,7 +10,6 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-/passwordutil/passwordutil_test.go
 /transportutil/conf
 /transportutil/log
 /grpcutil/cert
