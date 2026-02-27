@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -282,6 +283,20 @@ func ParseStdoutToRsyncResults(rsyncUrl string, rsyncDestPath string, output []b
 	return parseToRsyncResults(rsyncUrl, rsyncDestPath, results)
 }
 
+/*
+https://stackoverflow.com/questions/40612505/format-of-rsync-logfile
+  - : delete
+    < : ignore
+    > :
+    ++++: add
+    ....: update
+    L:  link  , ignore
+    h:  link  , ignore
+    c:
+    d: directory,    cd+++++++++
+    L: link ,cL  , ignore
+    .: attribute change ,ignore
+*/
 func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string) (rsyncResults []RsyncResult, err error) {
 	belogs.Debug("parseToRsyncResults():destPath:", rsyncDestPath, " result:", results)
 	rsyncResults = make([]RsyncResult, 0)
@@ -293,29 +308,23 @@ func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string
 			continue
 		}
 		result = stringutil.TrimNewLine(result)
+		// 关键修复：跳过空行（分割stdout时可能产生）
+		if result == "" {
+			continue
+		}
 		first := result[0]
 		second := result[1]
 		rsyncResult := RsyncResult{}
-		/*
-			https://stackoverflow.com/questions/40612505/format-of-rsync-logfile
-					* : delete
-					< : ignore
-					> :
-					    ++++: add
-					    ....: update
-					L:  link  , ignore
-					h:  link  , ignore
-					c:
-						d: directory,    cd+++++++++
-						L: link ,cL  , ignore
-					.: attribute change ,ignore
-		*/
 
 		switch first {
 		case '*':
 			rsyncResult.RsyncType = RSYNC_TYPE_DEL
-			rsyncResult.FilePath, rsyncResult.FileName =
-				osutil.GetFilePathAndFileName(rsyncDestPath + string(result[RSYNC_LOG_PREFIX:]))
+			// 关键修复：截取从第12位开始的完整文件名，而非硬编码RSYNC_LOG_PREFIX（避免截取不全）
+			fileNamePart := strings.TrimSpace(result[RSYNC_LOG_PREFIX:])
+			if fileNamePart == "" {
+				continue // 空文件名跳过
+			}
+			rsyncResult.FilePath, rsyncResult.FileName = osutil.GetFilePathAndFileName(rsyncDestPath + fileNamePart)
 			rsyncResult.FileType = strings.Replace(path.Ext(rsyncResult.FileName), ".", "", -1)
 		case '>':
 			if strings.Contains(result, "++++") {
@@ -323,31 +332,33 @@ func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string
 			} else {
 				rsyncResult.RsyncType = RSYNC_TYPE_UPDATE
 			}
-			rsyncResult.FilePath, rsyncResult.FileName =
-				osutil.GetFilePathAndFileName(rsyncDestPath + string(result[RSYNC_LOG_PREFIX:]))
+			fileNamePart := strings.TrimSpace(result[RSYNC_LOG_PREFIX:])
+			if fileNamePart == "" {
+				continue
+			}
+			rsyncResult.FilePath, rsyncResult.FileName = osutil.GetFilePathAndFileName(rsyncDestPath + fileNamePart)
 			rsyncResult.FileType = strings.Replace(path.Ext(rsyncResult.FileName), ".", "", -1)
 		case 'c':
 			switch second {
 			case 'd':
 				rsyncResult.RsyncType = RSYNC_TYPE_MKDIR
-				rsyncResult.FilePath = rsyncDestPath + string(result[RSYNC_LOG_PREFIX:])
-
+				dirNamePart := strings.TrimSpace(result[RSYNC_LOG_PREFIX:])
+				if dirNamePart == "" {
+					continue
+				}
+				rsyncResult.FilePath = rsyncDestPath + dirNamePart
+				// MKDIR类型FileName为空，需手动设置（避免被过滤）
+				rsyncResult.FileName = filepath.Base(dirNamePart)
 			default:
 				rsyncResult.RsyncType = RSYNC_TYPE_IGNORE
 			}
-		case '<':
-			fallthrough
-		case 'L':
-			fallthrough
-		case 'h':
-			fallthrough
-		case '.':
+		case '<', 'L', 'h', '.':
 			fallthrough
 		default:
 			rsyncResult.RsyncType = RSYNC_TYPE_IGNORE
 		}
+
 		rsyncResult.SyncTime = time.Now()
-		// 修复4：拼接完整路径+处理IsDir错误（不再忽略错误）
 		fullPath := rsyncResult.FilePath + rsyncResult.FileName
 		isDir, dirErr := osutil.IsDir(fullPath)
 		if dirErr != nil {
@@ -356,12 +367,9 @@ func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string
 		rsyncResult.IsDir = isDir
 
 		belogs.Info("parseToRsyncResults():rsyncResult:", jsonutil.MarshalJson(rsyncResult))
-		if err != nil {
-			belogs.Error("parseToRsyncResults(): parseRsyncResult: err: ", err, ": "+result)
-			return rsyncResults, err
-		}
+		// 关键修复：MKDIR类型允许FileName为空（因为是目录）
 		if rsyncResult.RsyncType == RSYNC_TYPE_IGNORE ||
-			len(rsyncResult.FileName) == 0 || len(rsyncResult.FilePath) == 0 {
+			(rsyncResult.RsyncType != RSYNC_TYPE_MKDIR && (len(rsyncResult.FileName) == 0 || len(rsyncResult.FilePath) == 0)) {
 			belogs.Debug("parseToRsyncResults():ignore parseRsyncResult: ", rsyncResult)
 			continue
 		}

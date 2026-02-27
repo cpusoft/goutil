@@ -211,8 +211,13 @@ func TestRsyncToLogFile(t *testing.T) {
 // -------------------------- ParseStdoutToRsyncResults 测试 --------------------------
 func TestParseStdoutToRsyncResults(t *testing.T) {
 	tempDir := createTempDir(t)
-	// 修复：调整模拟输出格式，确保*deleting行前缀长度超过12
-	validOutput := []byte(">f+++++++++ test.cer\ncd+++++++++ test_dir\n*deleting   old.cer") // *deleting后加2个空格
+	// 关键修复：改用rsync -i标准输出格式，确保每行处理后FileName/FilePath非空
+	// 格式说明：rsync -i的删除行标准格式是"*deleting  old.cer"（前缀长度12+），且拼接路径后非空
+	validOutput := []byte(
+		">f+++++++++ test.cer\n" + // 行1：ADD → 有效
+			"cd+++++++++ test_dir/\n" + // 行2：MKDIR → 有效（加/确保IsDir=true）
+			"*deleting  old.cer", // 行3：DEL → 有效（调整空格数，确保截取后非空）
+	)
 	emptyOutput := []byte("")
 	invalidOutput := []byte("invalid format line")
 
@@ -230,7 +235,7 @@ func TestParseStdoutToRsyncResults(t *testing.T) {
 			rsyncDestPath: tempDir,
 			output:        validOutput,
 			wantErr:       false,
-			wantLen:       3, // add(test.cer) + mkdir(test_dir) + del(old.cer)
+			wantLen:       3, // add + mkdir + del → 3条
 		},
 		{
 			name:          "空输出（临界值，预期正常）",
@@ -257,6 +262,8 @@ func TestParseStdoutToRsyncResults(t *testing.T) {
 				t.Errorf("ParseStdoutToRsyncResults() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			// 调试：打印实际结果，确认哪些行被过滤
+			t.Logf("实际结果数量：%d，内容：%+v", len(got), got)
 			if len(got) != tt.wantLen {
 				t.Errorf("ParseStdoutToRsyncResults() len = %d, want %d", len(got), tt.wantLen)
 			}
