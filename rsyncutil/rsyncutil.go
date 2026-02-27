@@ -397,8 +397,10 @@ func AddCerToRsyncResults(rsyncDestPath string, rsyncResults []RsyncResult) (err
 		belogs.Debug("addCerToRsyncResults():GetFilesInDir, files:", files, err)
 		return err
 	}
+	belogs.Debug("addCerToRsyncResults():GetFilesInDir, files:", files)
 	for _, file := range files {
 		fullFile := osutil.JoinPathFile(rsyncDestPath, file)
+		belogs.Debug("addCerToRsyncResults(): check file:", fullFile)
 		if !existingFiles[fullFile] { // 对比完整路径
 			// 原有逻辑不变
 			rsyncResult := RsyncResult{}
@@ -411,12 +413,14 @@ func AddCerToRsyncResults(rsyncDestPath string, rsyncResults []RsyncResult) (err
 			isDir, dirErr := osutil.IsDir(fullFilePath)
 			if dirErr != nil {
 				belogs.Error("addCerToRsyncResults(): osutil.IsDir fail, fullFilePath:", fullFilePath, " err:", dirErr)
+				continue
 			}
 			rsyncResult.IsDir = isDir
 			rsyncResults = append(rsyncResults, rsyncResult)
 			belogs.Info("addCerToRsyncResults(): manual add rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 		}
 	}
+	belogs.Debug("addCerToRsyncResults(): after add cer, rsyncResults:", jsonutil.MarshalJson(rsyncResults))
 	return nil
 }
 
