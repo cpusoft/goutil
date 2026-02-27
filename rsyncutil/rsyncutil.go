@@ -2,6 +2,7 @@ package rsyncutil
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -17,31 +18,6 @@ import (
 	"github.com/cpusoft/goutil/transportutil"
 	"github.com/cpusoft/goutil/urlutil"
 )
-
-// rsync type
-
-var globalRsyncClientConfig = NewRsyncClientConfig(RSYNC_TIMEOUT_SEC, RSYNC_CONTIMEOUT_SEC)
-
-type RsyncRecord struct {
-	Id           uint64        `json:"id"`
-	StartTime    time.Time     `json:"startTime"`
-	EndTime      time.Time     `json:"endTime"`
-	Style        string        `json:"style"`
-	RsyncResults []RsyncResult `json:"rsyncResults"`
-}
-
-type RsyncResult struct {
-	Id       uint64 `json:"id"`
-	RsyncId  uint64 `json:"rsyncId"`
-	FileName string `json:"fileName"`
-	FilePath string `json:"filePath"`
-	FileType string `json:"fileType"`
-	//RSYNC_TYPE_***
-	RsyncType string    `json:"rsyncType"`
-	RsyncUrl  string    `json:"rsyncUrl"`
-	IsDir     bool      `json:"isDir"`
-	SyncTime  time.Time `json:"syncTime"`
-}
 
 func Rsync(rsyncUrl, destPath string) (rsyncResults []RsyncResult, err error) {
 	belogs.Debug("Rsync():rsyncUrl:", rsyncUrl, " destPath:", destPath)
@@ -83,11 +59,12 @@ func RsyncQuiet(rsyncUrl string, destPath string) (rsyncDestPath string, output 
 func RsyncQuietWithConfig(rsyncUrl string, destPath string, rsyncClientConfig *RsyncClientConfig) (rsyncDestPath string, output []byte, err error) {
 	belogs.Debug("RsyncQuietWithConfig():rsyncUrl:", rsyncUrl, " destPath:", destPath, "  rsyncClientConfig:", jsonutil.MarshalJson(rsyncClientConfig))
 	defer func(rsyncUrl string) {
-		if err := recover(); err != nil {
+		if r := recover(); r != nil {
 			errStack := string(debug.Stack())
 			belogs.Error("RsyncQuietWithConfig(): recover from panic, rsyncUrl is :", rsyncUrl,
-				" debug.Stack():", errStack, "  err is :", err)
-
+				" debug.Stack():", errStack, "  panic is :", r)
+			// 修复1：将panic转为错误返回给调用方
+			err = errors.New("panic in RsyncQuietWithConfig: " + fmt.Sprintf("%v", r) + ", stack: " + errStack)
 		}
 	}(rsyncUrl)
 
@@ -197,8 +174,9 @@ func RsyncToLogFile(rsyncUrl string, destPath string, logPath string) (rsyncDest
 
 	// call rsync
 	//rsync -Lirzts --del --timeout=5 --contimeout=5 --no-motd  -4 rsync://rpki.afrinic.net/repository/afrinic/  /tmp/rpki.afrinic.net/repository/afrinic/
-	belogs.Debug("RsyncToLogFile(): Command: rsync", "-Lirzts", "--del", "--no-motd", "-4", "--log-file=\""+rsyncLogFile+"\"", rsyncUrl, rsyncDestPath)
-	cmd := exec.Command("rsync", "-Lirzts", "--del", "--no-motd", "-4", "--log-file=\""+rsyncLogFile+"\"", rsyncUrl, rsyncDestPath)
+	// 修复2：移除--log-file参数的手动引号（exec.Command会自动处理参数分隔）
+	belogs.Debug("RsyncToLogFile(): Command: rsync", "-Lirzts", "--del", "--no-motd", "-4", "--log-file="+rsyncLogFile, rsyncUrl, rsyncDestPath)
+	cmd := exec.Command("rsync", "-Lirzts", "--del", "--no-motd", "-4", "--log-file="+rsyncLogFile, rsyncUrl, rsyncDestPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("RsyncToLogFile(): exec.Command fail, rsyncUrl is :", rsyncUrl, "   output is ", string(output), " err is :", err)
@@ -207,7 +185,6 @@ func RsyncToLogFile(rsyncUrl string, destPath string, logPath string) (rsyncDest
 	}
 	belogs.Debug("RsyncToLogFile(): rsyncDestPath:", rsyncDestPath, "  rsyncLogFile:", rsyncLogFile)
 	return rsyncDestPath, rsyncLogFile, nil
-
 }
 
 // set rsync url and local dest path , then will call rsync
@@ -216,8 +193,7 @@ func RsyncToLogFile(rsyncUrl string, destPath string, logPath string) (rsyncDest
 func RsyncToStdout(rsyncUrl string, destPath string) (rsyncDestPath string, output []byte, err error) {
 	belogs.Debug("RsyncToStdout():rsyncUrl:", rsyncUrl, " destPath:", destPath)
 
-	//
-	output = make([]byte, 0)
+	// 移除多余的初始化：output = make([]byte, 0)
 
 	// get host+path by url
 	hostAndPath, err := urlutil.HostAndPath(rsyncUrl)
@@ -249,8 +225,10 @@ func RsyncToStdout(rsyncUrl string, destPath string) (rsyncDestPath string, outp
 	//-4  --ipv4                  prefer IPv4
 	//--timeout=SECONDS       set I/O timeout in seconds
 	//--no-motd               suppress daemon-mode MOTD (see manpage caveat)
-	belogs.Debug("RsyncToStdout(): Command: rsync", "-Lirzts", "--del", "--timeout=600", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
-	cmd := exec.Command("rsync", "-Lirzts", "--del", "--timeout=6000", "--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	// 修复3：使用全局配置的timeout，而非硬编码6000
+	timeout := globalRsyncClientConfig.Timeout
+	belogs.Debug("RsyncToStdout(): Command: rsync", "-Lirzts", "--del", "--timeout="+timeout, "--no-motd", "-4", rsyncUrl, rsyncDestPath)
+	cmd := exec.Command("rsync", "-Lirzts", "--del", "--timeout="+timeout, "--no-motd", "-4", rsyncUrl, rsyncDestPath)
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		belogs.Alert("RsyncToStdout(): exec.Command fail, rsyncUrl is :", rsyncUrl, "   output is ", string(output), " err is :", err)
@@ -302,7 +280,6 @@ func ParseStdoutToRsyncResults(rsyncUrl string, rsyncDestPath string, output []b
 	results := strings.Split(result, osutil.GetNewLineSep())
 	belogs.Debug("ParseStdoutToRsyncResults(): len(results):", len(results))
 	return parseToRsyncResults(rsyncUrl, rsyncDestPath, results)
-
 }
 
 func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string) (rsyncResults []RsyncResult, err error) {
@@ -370,7 +347,14 @@ func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string
 			rsyncResult.RsyncType = RSYNC_TYPE_IGNORE
 		}
 		rsyncResult.SyncTime = time.Now()
-		rsyncResult.IsDir, _ = osutil.IsDir(rsyncResult.FilePath + rsyncResult.FileName)
+		// 修复4：拼接完整路径+处理IsDir错误（不再忽略错误）
+		fullPath := rsyncResult.FilePath + rsyncResult.FileName
+		isDir, dirErr := osutil.IsDir(fullPath)
+		if dirErr != nil {
+			belogs.Error("parseToRsyncResults(): osutil.IsDir fail, fullPath:", fullPath, " err:", dirErr)
+		}
+		rsyncResult.IsDir = isDir
+
 		belogs.Info("parseToRsyncResults():rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 		if err != nil {
 			belogs.Error("parseToRsyncResults(): parseRsyncResult: err: ", err, ": "+result)
@@ -386,11 +370,15 @@ func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string
 	}
 	belogs.Debug("parseToRsyncResults():rsyncResults: ", jsonutil.MarshalJson(rsyncResults))
 	return rsyncResults, nil
-
 }
 
-//  need read all current existed cer file, to just to trigger sub ca repo sync
+// need read all current existed cer file, to just to trigger sub ca repo sync
 func AddCerToRsyncResults(rsyncDestPath string, rsyncResults []RsyncResult) (err error) {
+	// 修复5：用map优化查询（O(n+m)替代O(n*m)）
+	existingFiles := make(map[string]bool, len(rsyncResults))
+	for _, rsyncResult := range rsyncResults {
+		existingFiles[rsyncResult.FileName] = true
+	}
 
 	m := make(map[string]string, 0)
 	m[".cer"] = ".cer"
@@ -402,30 +390,27 @@ func AddCerToRsyncResults(rsyncDestPath string, rsyncResults []RsyncResult) (err
 	}
 	for _, file := range files {
 		belogs.Debug("addCerToRsyncResults():file:", file)
-		found := false
-		// if this file had synced, should not repeated add
-		for _, rsyncResult := range rsyncResults {
-			if file == rsyncResult.FileName {
-				found = true
-				break
-			}
-
-		}
-		belogs.Debug("addCerToRsyncResults():GetFilesInDir,found:", found, "   file:", file)
-		if !found {
+		// 优化：O(1)查询
+		if !existingFiles[file] {
 			rsyncResult := RsyncResult{}
 			rsyncResult.RsyncType = RSYNC_TYPE_JUST_SYNC
 			rsyncResult.FilePath = rsyncDestPath
 			rsyncResult.FileName = file
 			rsyncResult.FileType = "cer"
 			rsyncResult.SyncTime = time.Now()
-			rsyncResult.IsDir, _ = osutil.IsDir(file)
+			// 修复6：拼接完整路径+处理IsDir错误
+			fullFilePath := osutil.JoinPathFile(rsyncDestPath, file)
+			isDir, dirErr := osutil.IsDir(fullFilePath)
+			if dirErr != nil {
+				belogs.Error("addCerToRsyncResults(): osutil.IsDir fail, fullFilePath:", fullFilePath, " err:", dirErr)
+			}
+			rsyncResult.IsDir = isDir
+
 			rsyncResults = append(rsyncResults, rsyncResult)
 			belogs.Info("addCerToRsyncResults(): manual add rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 		}
 	}
 	return nil
-
 }
 
 func GetFilesHashFromDisk(destPath string) (files map[string]RsyncFileHash, err error) {
@@ -460,7 +445,6 @@ func GetFilesHashFromDisk(destPath string) (files map[string]RsyncFileHash, err 
 
 	belogs.Info("GetFilesHashFromDisk(): len(files):", len(files), "  time(s):", time.Since(start))
 	return files, nil
-
 }
 
 // db is old, disk is new
@@ -468,13 +452,19 @@ func DiffFiles(filesFromDb, filesFromDisk map[string]RsyncFileHash) (addFiles,
 	delFiles, updateFiles, noChangeFiles map[string]RsyncFileHash, err error) {
 
 	start := time.Now()
+	// 修复7：创建filesFromDisk副本，避免修改入参map
+	filesFromDiskCopy := make(map[string]RsyncFileHash, len(filesFromDisk))
+	for k, v := range filesFromDisk {
+		filesFromDiskCopy[k] = v
+	}
+
 	// if db is empty, so all filesFromDisk is add
 	if len(filesFromDb) == 0 {
 		return filesFromDisk, nil, nil, nil, nil
 	}
 
 	// if disk is empty, so all filesFromDb is del
-	if len(filesFromDisk) == 0 {
+	if len(filesFromDiskCopy) == 0 {
 		return nil, filesFromDb, nil, nil, nil
 	}
 
@@ -487,7 +477,7 @@ func DiffFiles(filesFromDb, filesFromDisk map[string]RsyncFileHash) (addFiles,
 	// for db, check disk
 	for keyDb, valueDb := range filesFromDb {
 		// if found in disk,
-		if valueDisk, ok := filesFromDisk[keyDb]; ok {
+		if valueDisk, ok := filesFromDiskCopy[keyDb]; ok {
 			// if hash is equal, then save to noChangeFiles, else save to updateFiles
 			// and db.jsonall should save as lasjsonall
 			if valueDb.FileHash == valueDisk.FileHash {
@@ -499,22 +489,19 @@ func DiffFiles(filesFromDb, filesFromDisk map[string]RsyncFileHash) (addFiles,
 				updateFiles[keyDb] = valueDisk
 			}
 			//have found in disk, then del it in disk map, so remain in disk will be add
-			delete(filesFromDisk, keyDb)
+			delete(filesFromDiskCopy, keyDb)
 		} else {
-
 			// if not found in disk ,then is del, so save to delFiles, and value is db
 			delFiles[keyDb] = valueDb
 		}
 	}
-	addFiles = filesFromDisk
+	addFiles = filesFromDiskCopy
 	belogs.Debug("DiffFiles(): len(addFiles):", len(addFiles), jsonutil.MarshalJson(addFiles))
 	belogs.Debug("DiffFiles(): len(delFiles):", len(delFiles), jsonutil.MarshalJson(delFiles))
 	belogs.Debug("DiffFiles(): len(updateFiles):", len(updateFiles), jsonutil.MarshalJson(updateFiles))
 	belogs.Debug("DiffFiles(): len(noChangeFiles):", len(noChangeFiles), jsonutil.MarshalJson(noChangeFiles))
-	belogs.Debug("DiffFiles(): time(s):", time.Since(start))
 	belogs.Info("DiffFiles(): len(addFiles):", len(addFiles), "  len(delFiles):", len(delFiles),
 		"  len(updateFiles):", len(updateFiles), "  len(noChangeFiles):", len(noChangeFiles), "  time(s):", time.Since(start))
 
 	return addFiles, delFiles, updateFiles, noChangeFiles, nil
-
 }
