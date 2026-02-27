@@ -2,10 +2,14 @@ package taskcycleutil
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/jsonutil"
 )
 
 // ========== 核心枚举定义 ==========
@@ -52,22 +56,23 @@ func NewConfig(mode AddTaskMode) *Config {
 
 // ========== 任务结构体定义 ==========
 type TaskData struct {
-	Content string
-	Params  map[string]interface{}
+	Content string                 `json:"content"`
+	Params  map[string]interface{} `json:"params,omitempty"`
 }
 
 type Task struct {
-	Key          string
-	Data         TaskData
-	State        TaskState
-	Result       TaskResult
-	SuccessTime  *time.Time
-	FailTime     *time.Time
-	FailReason   string
-	SuccessCount uint64
-	FailCount    uint64
-	StartTime    *time.Time
-	executeFunc  func(ctx context.Context, task *Task) (bool, error)
+	Key          string     `json:"key"`
+	Data         TaskData   `json:"data"`
+	State        TaskState  `json:"state"`
+	Result       TaskResult `json:"result"`
+	SuccessTime  *time.Time `json:"successTime,omitempty"`
+	FailTime     *time.Time `json:"failTime,omitempty"`
+	FailReason   string     `json:"failReason,omitempty"`
+	SuccessCount uint64     `json:"successCount"`
+	FailCount    uint64     `json:"failCount"`
+	StartTime    *time.Time `json:"startTime,omitempty"`
+
+	executeFunc func(ctx context.Context, task *Task) (bool, error) `json:"-"`
 }
 
 type GenerateTasksFunc func(completedTask *Task) []*Task
@@ -79,11 +84,9 @@ type TaskFramework struct {
 	pendingTasks   map[string]struct{}
 	completedTasks map[string]struct{}
 
-	forbiddenMu   sync.RWMutex
 	forbiddenKeys map[string]struct{}
+	config        *Config
 
-	configMu          sync.RWMutex
-	config            *Config
 	generateMu        sync.RWMutex
 	generateTasksFunc GenerateTasksFunc
 
@@ -96,12 +99,14 @@ type TaskFramework struct {
 }
 
 // ========== NewTaskFramework ==========
-func NewTaskFramework(ctx context.Context, config *Config) *TaskFramework {
+func NewTaskFramework(config *Config) (*TaskFramework, error) {
 	if config == nil {
-		panic("config cannot be nil")
+		return nil, errors.New("config cannot be nil")
 	}
+	belogs.Debug("NewTaskFramework(): input config: ", jsonutil.MarshalJson(config))
+
 	if config.Mode != AddTaskModeRecursive && config.Mode != AddTaskModeExternal {
-		panic("invalid add task mode")
+		return nil, errors.New("invalid add task mode")
 	}
 	if config.CycleInterval <= 0 {
 		config.CycleInterval = 30 * time.Minute
@@ -116,11 +121,10 @@ func NewTaskFramework(ctx context.Context, config *Config) *TaskFramework {
 		config.MaxConcurrent = 100
 	}
 	if config.CheckInterval >= config.CycleInterval {
-		panic("check interval must be less than cycle interval")
+		return nil, errors.New("check interval must be less than cycle interval")
 	}
 
 	executorCtx, executorCancel := context.WithCancel(context.Background())
-
 	return &TaskFramework{
 		tasks:          make(map[string]*Task),
 		pendingTasks:   make(map[string]struct{}),
@@ -130,11 +134,11 @@ func NewTaskFramework(ctx context.Context, config *Config) *TaskFramework {
 		executorCtx:    executorCtx,
 		executorCancel: executorCancel,
 		semaphore:      make(chan struct{}, config.MaxConcurrent),
-	}
+	}, nil
 }
 
 // ========== 公开API方法 ==========
-func (f *TaskFramework) SetGenerateTasksFunc(ctx context.Context, fn GenerateTasksFunc) {
+func (f *TaskFramework) SetGenerateTasksFunc(fn GenerateTasksFunc) {
 	f.generateMu.Lock()
 	defer f.generateMu.Unlock()
 	f.generateTasksFunc = fn
@@ -142,15 +146,15 @@ func (f *TaskFramework) SetGenerateTasksFunc(ctx context.Context, fn GenerateTas
 
 // ========== 修改：AddTasks 返回失败的任务列表 ==========
 // AddTasks 批量添加任务
-// ctx: 用于系统记录
 // tasks: 待添加的任务列表
 // executeFunc: 任务执行函数
 // 返回:
 //
 //	successCount: 成功添加的任务数量
 //	failedTasks: 失败的任务列表（每个任务的 FailReason 字段会填充失败原因）
-func (f *TaskFramework) AddTasks(ctx context.Context, tasks []*Task, executeFunc func(ctx context.Context, task *Task) (bool, error)) (successCount int, failedTasks []*Task) {
+func (f *TaskFramework) AddTasks(tasks []*Task, executeFunc func(ctx context.Context, task *Task) (bool, error)) (successCount int, failedTasks []*Task) {
 	// 🔧 修改：不再返回 error，而是返回失败的任务列表
+	belogs.Debug("AddTasks(): input tasks count: ", len(tasks))
 
 	if executeFunc == nil {
 		// 如果执行函数为nil，所有任务都失败
@@ -164,16 +168,9 @@ func (f *TaskFramework) AddTasks(ctx context.Context, tasks []*Task, executeFunc
 	if len(tasks) == 0 {
 		return 0, nil
 	}
-
-	f.configMu.RLock()
 	mode := f.config.Mode
-	f.configMu.RUnlock()
-
 	f.tasksMu.Lock()
 	defer f.tasksMu.Unlock()
-
-	f.forbiddenMu.RLock()
-	defer f.forbiddenMu.RUnlock()
 
 	// 🔧 修改：收集失败的任务而不是错误字符串
 	for _, task := range tasks {
@@ -203,6 +200,7 @@ func (f *TaskFramework) AddTasks(ctx context.Context, tasks []*Task, executeFunc
 		task.FailTime = nil
 		task.FailReason = ""
 		task.StartTime = nil
+		belogs.Debug("AddTasks(): task added successfully: ", jsonutil.MarshalJson(task))
 
 		switch mode {
 		case AddTaskModeRecursive:
@@ -213,7 +211,7 @@ func (f *TaskFramework) AddTasks(ctx context.Context, tasks []*Task, executeFunc
 
 			successCount++
 			f.wg.Add(1)
-			go f.executeTask(ctx, task)
+			go f.executeTask(task)
 
 		case AddTaskModeExternal:
 			f.tasks[task.Key] = task
@@ -229,27 +227,25 @@ func (f *TaskFramework) AddTasks(ctx context.Context, tasks []*Task, executeFunc
 	return successCount, failedTasks
 }
 
-func (f *TaskFramework) AddForbiddenKeys(ctx context.Context, keys ...string) {
-	f.forbiddenMu.Lock()
-	defer f.forbiddenMu.Unlock()
+func (f *TaskFramework) AddForbiddenKeys(keys ...string) {
 	for _, key := range keys {
 		if key == "" {
 			continue
 		}
 		f.forbiddenKeys[key] = struct{}{}
 	}
+	belogs.Debug("AddForbiddenKeys(): added keys: ", keys)
 }
 
-func (f *TaskFramework) RemoveForbiddenKeys(ctx context.Context, keys ...string) {
-	f.forbiddenMu.Lock()
-	defer f.forbiddenMu.Unlock()
+func (f *TaskFramework) RemoveForbiddenKeys(keys ...string) {
 	for _, key := range keys {
 		delete(f.forbiddenKeys, key)
 	}
+	belogs.Debug("RemoveForbiddenKeys(): removed keys: ", keys)
 }
 
 // ========== 内部方法（保持不变） ==========
-func (f *TaskFramework) updateTaskState(ctx context.Context, task *Task, newState TaskState) {
+func (f *TaskFramework) updateTaskState(task *Task, newState TaskState) {
 	if task == nil {
 		return
 	}
@@ -275,7 +271,7 @@ func (f *TaskFramework) updateTaskState(ctx context.Context, task *Task, newStat
 	}
 }
 
-func (f *TaskFramework) executeTask(ctx context.Context, task *Task) {
+func (f *TaskFramework) executeTask(task *Task) {
 	defer f.wg.Done()
 
 	defer func() {
@@ -284,19 +280,17 @@ func (f *TaskFramework) executeTask(ctx context.Context, task *Task) {
 			defer f.tasksMu.Unlock()
 
 			now := time.Now()
-			f.updateTaskState(ctx, task, TaskStateCompleted)
+			f.updateTaskState(task, TaskStateCompleted)
 			task.Result = TaskResultFail
 			task.FailTime = &now
 			task.FailReason = fmt.Sprintf("execute panic: %v\nstack: %s", r, debug.Stack())
 			task.FailCount++
+			belogs.Debug("executeTask(): task execution panic: ", task.Key, task.FailReason)
 		}
 	}()
-
-	f.configMu.RLock()
 	maxTimeout := f.config.MaxTimeout
 	mode := f.config.Mode
 	checkInterval := f.config.CheckInterval
-	f.configMu.RUnlock()
 
 	select {
 	case f.semaphore <- struct{}{}:
@@ -336,23 +330,25 @@ func (f *TaskFramework) executeTask(ctx context.Context, task *Task) {
 	case <-f.executorCtx.Done():
 		f.tasksMu.Lock()
 		now := time.Now()
-		f.updateTaskState(ctx, task, TaskStateCompleted)
+		f.updateTaskState(task, TaskStateCompleted)
 		task.Result = TaskResultFail
 		task.FailTime = &now
 		task.FailReason = "framework stopped"
 		task.FailCount++
 		f.tasksMu.Unlock()
+		belogs.Debug("executeTask(): framework stopped during task execution: ", task.Key)
 		return
 
 	case <-taskCtx.Done():
 		f.tasksMu.Lock()
 		now := time.Now()
-		f.updateTaskState(ctx, task, TaskStateCompleted)
+		f.updateTaskState(task, TaskStateCompleted)
 		task.Result = TaskResultFail
 		task.FailTime = &now
 		task.FailReason = fmt.Sprintf("timeout after %v: %v", maxTimeout, taskCtx.Err())
 		task.FailCount++
 		f.tasksMu.Unlock()
+		belogs.Debug("executeTask(): task execution timeout: ", task.Key, task.FailReason)
 		return
 
 	case res := <-resultChan:
@@ -363,6 +359,7 @@ func (f *TaskFramework) executeTask(ctx context.Context, task *Task) {
 			task.Result = TaskResultOK
 			task.SuccessTime = &now
 			task.SuccessCount++
+			belogs.Debug("executeTask(): task executed successfully: ", task.Key)
 
 			var needGenerate bool
 			var generateFunc GenerateTasksFunc
@@ -370,7 +367,8 @@ func (f *TaskFramework) executeTask(ctx context.Context, task *Task) {
 			var taskCopyForGenerate *Task
 
 			if mode == AddTaskModeRecursive {
-				f.updateTaskState(ctx, task, TaskStatePending)
+				belogs.Debug("executeTask(): AddTaskModeRecursive, task eligible for generating new tasks: ", task.Key)
+				f.updateTaskState(task, TaskStateCompleted)
 				f.generateMu.RLock()
 				generateFunc = f.generateTasksFunc
 				f.generateMu.RUnlock()
@@ -390,64 +388,61 @@ func (f *TaskFramework) executeTask(ctx context.Context, task *Task) {
 						SuccessTime: task.SuccessTime,
 						executeFunc: task.executeFunc,
 					}
+					belogs.Debug("executeTask(): task eligible for generating new tasks: ", task.Key)
+
+					go func() {
+						newTasks := generateFunc(taskCopyForGenerate)
+						belogs.Debug("executeTask(): generated new tasks count: ", len(newTasks), " from task: ", task.Key)
+						_, _ = f.AddTasks(newTasks, taskCopyForGenerate.executeFunc)
+					}()
+					belogs.Debug("executeTask(): task generation triggered for task: ", task.Key)
 				}
 			} else {
-				f.updateTaskState(ctx, task, TaskStateCompleted)
+				belogs.Debug("executeTask(): not in AddTaskModeRecursive, marking task as completed: ", task.Key)
+				f.updateTaskState(task, TaskStateCompleted)
 			}
 
 			f.tasksMu.Unlock()
 
-			if needGenerate && mode == AddTaskModeRecursive && generateFunc != nil && taskCopyForGenerate != nil {
-				go func() {
-					defer func() {
-						_ = recover()
-					}()
-					newTasks := generateFunc(taskCopyForGenerate)
-					_, _ = f.AddTasks(ctx, newTasks, taskCopyForGenerate.executeFunc)
-				}()
-			}
 			return
 		} else {
-			f.updateTaskState(ctx, task, TaskStateCompleted)
+			f.updateTaskState(task, TaskStateCompleted)
 			task.Result = TaskResultFail
 			task.FailTime = &now
 			task.FailReason = res.err.Error()
 			task.FailCount++
+			belogs.Debug("executeTask(): task execution failed: ", task.Key, task.FailReason)
 		}
 
 		f.tasksMu.Unlock()
 	}
 }
 
-func (f *TaskFramework) cycleExecutor(ctx context.Context) {
-	f.triggerCycle(ctx)
-
-	f.configMu.RLock()
+func (f *TaskFramework) cycleExecutor() {
+	f.triggerCycle()
 	cycleInterval := f.config.CycleInterval
-	f.configMu.RUnlock()
-
 	cycleTicker := time.NewTicker(cycleInterval)
 	defer cycleTicker.Stop()
 
 	for {
 		select {
 		case <-f.executorCtx.Done():
+			belogs.Debug("cycleExecutor(): executor context done, exiting cycle executor")
 			return
 		case <-cycleTicker.C:
-			f.triggerCycle(ctx)
+			belogs.Debug("cycleExecutor(): cycle ticker triggered")
+			f.triggerCycle()
 		}
 	}
 }
 
-func (f *TaskFramework) triggerCycle(ctx context.Context) {
+func (f *TaskFramework) triggerCycle() {
 	now := time.Now()
 	f.cycleMu.Lock()
 	f.currentCycleStart = now
 	f.cycleMu.Unlock()
 
-	f.configMu.RLock()
 	checkInterval := f.config.CheckInterval
-	f.configMu.RUnlock()
 
 	f.tasksMu.RLock()
 	taskKeysToRun := make([]string, 0, len(f.pendingTasks)+len(f.completedTasks))
@@ -460,9 +455,7 @@ func (f *TaskFramework) triggerCycle(ctx context.Context) {
 	f.tasksMu.RUnlock()
 
 	for _, key := range taskKeysToRun {
-		f.forbiddenMu.RLock()
 		_, forbidden := f.forbiddenKeys[key]
-		f.forbiddenMu.RUnlock()
 		if forbidden {
 			continue
 		}
@@ -473,31 +466,32 @@ func (f *TaskFramework) triggerCycle(ctx context.Context) {
 			f.tasksMu.Unlock()
 			continue
 		}
-		f.updateTaskState(ctx, task, TaskStateRunning)
+		f.updateTaskState(task, TaskStateRunning)
 		task.StartTime = &now
 		f.tasksMu.Unlock()
 
 		f.wg.Add(1)
-		go f.executeTask(ctx, task)
+		belogs.Debug("triggerCycle(): will executing task: ", task.Key)
+		go f.executeTask(task)
 	}
 
 	go func() {
 		time.Sleep(checkInterval)
-		f.triggerCheck(ctx)
+		f.triggerCheck()
 	}()
 }
 
-func (f *TaskFramework) triggerCheck(ctx context.Context) {
-	f.configMu.RLock()
+func (f *TaskFramework) triggerCheck() {
+	belogs.Debug("triggerCheck(): checking tasks after cycle trigger")
 	mode := f.config.Mode
 	checkInterval := f.config.CheckInterval
-	f.configMu.RUnlock()
 
 	f.generateMu.RLock()
 	generateFunc := f.generateTasksFunc
 	f.generateMu.RUnlock()
 
 	if mode != AddTaskModeRecursive || generateFunc == nil {
+		belogs.Debug("triggerCheck(): not in AddTaskModeRecursive or generateFunc is nil, skipping task generation check")
 		return
 	}
 
@@ -517,6 +511,7 @@ func (f *TaskFramework) triggerCheck(ctx context.Context) {
 		}
 	}
 	f.tasksMu.RUnlock()
+	belogs.Debug("triggerCheck(): tasks to check for generation: ", len(tasksToCheck))
 
 	for _, task := range tasksToCheck {
 		f.tasksMu.RLock()
@@ -537,23 +532,21 @@ func (f *TaskFramework) triggerCheck(ctx context.Context) {
 				_ = recover()
 			}()
 			newTasks := generateFunc(t)
-			_, _ = f.AddTasks(ctx, newTasks, executeFunc)
+			_, _ = f.AddTasks(newTasks, executeFunc)
 		}(currentTask)
 	}
 }
 
-func (f *TaskFramework) Start(ctx context.Context) {
-	f.configMu.RLock()
+func (f *TaskFramework) Start() {
 	config := *f.config
-	f.configMu.RUnlock()
 
-	go f.cycleExecutor(ctx)
-	fmt.Printf("task framework started, config: mode=%d, cycle=%v, check=%v, timeout=%v, max_concurrent=%d\n",
+	go f.cycleExecutor()
+	belogs.Debug("Start():task framework started, config: mode=%d, cycle=%v, check=%v, timeout=%v, max_concurrent=%d\n",
 		config.Mode, config.CycleInterval, config.CheckInterval, config.MaxTimeout, config.MaxConcurrent)
 }
 
-func (f *TaskFramework) Stop(ctx context.Context) {
+func (f *TaskFramework) Stop() {
 	f.executorCancel()
 	f.wg.Wait()
-	fmt.Println("task framework stopped gracefully")
+	belogs.Debug("Stop():task framework stopped gracefully")
 }
