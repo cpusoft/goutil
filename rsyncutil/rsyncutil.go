@@ -36,7 +36,7 @@ func Rsync(rsyncUrl, destPath string) (rsyncResults []RsyncResult, err error) {
 	}
 
 	belogs.Debug("Rsync():before AddCerToRsyncResults, rsyncDestPath:", rsyncDestPath, "   len(rsyncResults)", len(rsyncResults))
-	err = AddCerToRsyncResults(rsyncDestPath, rsyncResults)
+	err = AddCerToRsyncResults(rsyncDestPath, &rsyncResults)
 	if err != nil {
 		belogs.Error("Rsync():AddCerToRsyncResults fail, rsyncUrl:", rsyncUrl, "   rsyncDestPath:", rsyncDestPath, "   err:", err)
 		return nil, err
@@ -382,10 +382,10 @@ func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string
 
 // need read all current existed cer file, to just to trigger sub ca repo sync
 // 同时修复AddCerToRsyncResults中文件名对比逻辑（确保GetFilesInDir返回纯文件名）
-func AddCerToRsyncResults(rsyncDestPath string, rsyncResults []RsyncResult) (err error) {
+func AddCerToRsyncResults(rsyncDestPath string, rsyncResults *[]RsyncResult) (err error) {
 	// 修复：existingFiles 存储 完整路径+文件名，避免纯文件名匹配错误
-	existingFiles := make(map[string]bool, len(rsyncResults))
-	for _, rsyncResult := range rsyncResults {
+	existingFiles := make(map[string]bool, len(*rsyncResults))
+	for _, rsyncResult := range *rsyncResults {
 		fullName := osutil.JoinPathFile(rsyncResult.FilePath, rsyncResult.FileName)
 		existingFiles[fullName] = true
 	}
@@ -416,11 +416,11 @@ func AddCerToRsyncResults(rsyncDestPath string, rsyncResults []RsyncResult) (err
 				continue
 			}
 			rsyncResult.IsDir = isDir
-			rsyncResults = append(rsyncResults, rsyncResult)
+			*rsyncResults = append(*rsyncResults, rsyncResult) // 指针解引用append
 			belogs.Info("addCerToRsyncResults(): manual add rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 		}
 	}
-	belogs.Debug("addCerToRsyncResults(): after add cer, rsyncResults:", jsonutil.MarshalJson(rsyncResults))
+	belogs.Debug("addCerToRsyncResults(): after add cer, rsyncResults:", jsonutil.MarshalJson(*rsyncResults))
 	return nil
 }
 

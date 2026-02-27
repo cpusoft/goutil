@@ -294,15 +294,17 @@ func TestAddCerToRsyncResults(t *testing.T) {
 	// 构造测试用例
 	tests := []struct {
 		name             string
-		cerFilesToCreate []string
-		rsyncResults     []RsyncResult
-		wantErr          bool
-		wantAddCount     int
+		cerFilesToCreate []string      // 要创建的cer文件
+		rsyncResults     []RsyncResult // 已有结果
+		useNonExistDir   bool          // 是否使用不存在的目录（替代无权限目录）
+		wantErr          bool          // 是否预期错误
+		wantAddCount     int           // 预期新增数量
 	}{
 		{
 			name:             "已有部分cer文件（预期新增1个）",
 			cerFilesToCreate: []string{"test1.cer", "test2.cer"},
 			rsyncResults:     []RsyncResult{{FilePath: "", FileName: "test1.cer"}},
+			useNonExistDir:   false,
 			wantErr:          false,
 			wantAddCount:     1,
 		},
@@ -310,6 +312,7 @@ func TestAddCerToRsyncResults(t *testing.T) {
 			name:             "空目录（预期新增0个）",
 			cerFilesToCreate: []string{},
 			rsyncResults:     []RsyncResult{},
+			useNonExistDir:   false,
 			wantErr:          false,
 			wantAddCount:     0,
 		},
@@ -317,13 +320,15 @@ func TestAddCerToRsyncResults(t *testing.T) {
 			name:             "所有文件已存在（预期新增0个）",
 			cerFilesToCreate: []string{"test1.cer", "test2.cer"},
 			rsyncResults:     []RsyncResult{{FilePath: "", FileName: "test1.cer"}, {FilePath: "", FileName: "test2.cer"}},
+			useNonExistDir:   false,
 			wantErr:          false,
 			wantAddCount:     0,
 		},
 		{
-			name:             "目录无权限（预期错误）",
+			name:             "不存在的目录（预期错误）", // 替代无权限目录
 			cerFilesToCreate: []string{"test1.cer"},
 			rsyncResults:     []RsyncResult{},
+			useNonExistDir:   true, // 使用不存在的目录
 			wantErr:          true,
 			wantAddCount:     0,
 		},
@@ -331,32 +336,27 @@ func TestAddCerToRsyncResults(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// 1. 构造目标目录
 			var tempDir string
-			if tt.name == "目录无权限（预期错误）" {
-				tempDir = createTempDir(t)
-				if err := os.Chmod(tempDir, 0000); err != nil {
-					t.Skipf("无法设置无权限目录（系统限制）: %v", err)
-				}
+			if tt.useNonExistDir {
+				// 关键：使用不存在的目录，确保osutil.GetFilesInDir返回错误
+				tempDir = filepath.Join(os.TempDir(), "rsyncutil_nonexist_"+t.Name())
 			} else {
 				tempDir = createTestDirWithCers(t, tt.cerFilesToCreate)
 			}
 
-			// ========== 核心修复：预分配足够容量，避免切片扩容 ==========
-			// 1. 先替换FilePath
+			// 2. 替换rsyncResults中的FilePath为实际临时目录
 			rsyncResultsWithPath := make([]RsyncResult, len(tt.rsyncResults))
 			for i, rr := range tt.rsyncResults {
 				rr.FilePath = tempDir
 				rsyncResultsWithPath[i] = rr
 			}
-			// 2. 创建切片时预分配足够容量（避免append扩容导致切片分离）
-			rsyncResultsCopy := make([]RsyncResult, len(rsyncResultsWithPath), len(rsyncResultsWithPath)+10)
-			copy(rsyncResultsCopy, rsyncResultsWithPath)
-			originalLen := len(rsyncResultsCopy)
+			originalLen := len(rsyncResultsWithPath)
 
-			// 执行待测试函数
-			err := AddCerToRsyncResults(tempDir, rsyncResultsCopy)
+			// 3. 执行待测试函数（传指针）
+			err := AddCerToRsyncResults(tempDir, &rsyncResultsWithPath)
 
-			// 验证错误
+			// 4. 验证错误
 			if (err != nil) != tt.wantErr {
 				t.Errorf("AddCerToRsyncResults() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -365,30 +365,31 @@ func TestAddCerToRsyncResults(t *testing.T) {
 				return
 			}
 
-			// ========== 统计新增数量 ==========
+			// 5. 统计新增数量
 			addCount := 0
-			// 遍历所有元素，筛选新增的JUST_SYNC（原函数append后长度会正确更新）
-			for i := originalLen; i < len(rsyncResultsCopy); i++ {
-				r := rsyncResultsCopy[i]
+			for i := originalLen; i < len(rsyncResultsWithPath); i++ {
+				r := rsyncResultsWithPath[i]
 				t.Logf("新增元素[%d]: RsyncType=%s, FileName=%s", i, r.RsyncType, r.FileName)
 				if r.RsyncType == RSYNC_TYPE_JUST_SYNC {
 					addCount++
 				}
 			}
 
-			// 调试打印
+			// 6. 调试打印
 			t.Logf("=== 调试信息 ===")
-			t.Logf("实际临时目录: %s", tempDir)
-			t.Logf("初始rsyncResults长度: %d, 最终长度: %d (容量: %d)",
-				originalLen, len(rsyncResultsCopy), cap(rsyncResultsCopy))
+			t.Logf("实际目录: %s (是否存在: %t)", tempDir, !tt.useNonExistDir)
+			t.Logf("初始长度: %d, 最终长度: %d", originalLen, len(rsyncResultsWithPath))
 			t.Logf("已有文件fullName列表: %v", func() []string {
 				var list []string
-				for _, rr := range rsyncResultsCopy[:originalLen] {
+				for _, rr := range rsyncResultsWithPath[:originalLen] {
 					list = append(list, osutil.JoinPathFile(rr.FilePath, rr.FileName))
 				}
 				return list
 			}())
 			t.Logf("目录下实际cer文件fullFile列表: %v", func() []string {
+				if tt.useNonExistDir {
+					return nil
+				}
 				m := map[string]string{".cer": ".cer"}
 				files, _ := osutil.GetFilesInDir(tempDir, m)
 				var list []string
@@ -399,7 +400,7 @@ func TestAddCerToRsyncResults(t *testing.T) {
 			}())
 			t.Logf("实际新增数量: %d, 预期: %d", addCount, tt.wantAddCount)
 
-			// 验证新增数量
+			// 7. 验证新增数量
 			if addCount != tt.wantAddCount {
 				t.Errorf("AddCerToRsyncResults() 新增数量 = %d, want %d", addCount, tt.wantAddCount)
 			}
