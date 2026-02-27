@@ -25,10 +25,10 @@ func TestInitMySqlParameter_Normal(t *testing.T) {
 
 	// 合法参数：仅验证参数校验通过（实际连接跳过）
 	engine, err := InitMySqlParameter(
-		"root",            // user
+		"rpstir2",         // user
 		"Rpstir-123",      // password
 		"127.0.0.1:13306", // server
-		"root",            // database
+		"rpstir2",         // database
 		10,                // maxidleconns
 		20,                // maxopenconns
 	)
@@ -108,14 +108,17 @@ func TestInitSqliteParameter_Normal(t *testing.T) {
 	)
 	assert.NoError(t, err, "InitSqliteParameter正常流程失败")
 	assert.NotNil(t, engine, "engine应为非nil")
+	if engine != nil {
+		// 验证Ping
+		err = engine.Ping()
+		assert.NoError(t, err, "SQLite Ping失败")
 
-	// 验证Ping
-	err = engine.Ping()
-	assert.NoError(t, err, "SQLite Ping失败")
-
-	// 清理
-	err = engine.Close()
-	assert.NoError(t, err)
+		// 清理
+		err = engine.Close()
+		assert.NoError(t, err)
+	} else {
+		t.Error("engine为nil，无法进行Ping测试")
+	}
 }
 
 // 临界值测试：空路径、负数连接数、非法路径等场景
