@@ -335,16 +335,6 @@ func TestSqlNullTypes(t *testing.T) {
 		assert.Equal(t, int64(0), ni.Int64)
 	})
 
-	// 测试Int64sToInString（兼容deprecated逻辑）
-	t.Run("Int64sToInString_Normal", func(t *testing.T) {
-		s := Int64sToInString([]int64{1, 2, 3})
-		assert.Equal(t, "1,2,3", s)
-	})
-
-	t.Run("Int64sToInString_Empty", func(t *testing.T) {
-		s := Int64sToInString([]int64{})
-		assert.Equal(t, "", s)
-	})
 }
 
 // ======================== StringArray自定义类型测试 ========================

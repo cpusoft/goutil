@@ -7,7 +7,6 @@ import (
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/jsonutil"
-	"github.com/cpusoft/goutil/stringutil"
 )
 
 // SQL Null types utils
@@ -29,11 +28,6 @@ func SqlNullInt(s int64) sql.NullInt64 {
 		Int64: s,
 		Valid: true,
 	}
-}
-
-// Deprecated: should using stringutil.Int64sToInString
-func Int64sToInString(s []int64) string {
-	return stringutil.Int64sToInString(s)
 }
 
 // StringArray 自定义类型：[]string <-> JSON字符串（数据库存储）

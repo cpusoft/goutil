@@ -225,8 +225,8 @@ func NewSession() (*xorm.Session, error) {
 // commit session, if err, will rollback.
 // must return error, so not use in defer,
 func CommitSession(session *xorm.Session) error {
-	if session == nil {
-		return errors.New("session is nil")
+	if session == nil || session.IsClosed() {
+		return errors.New("session is nil or closed")
 	}
 	if err := session.Commit(); err != nil {
 		belogs.Error("main():Commit fail")
@@ -252,6 +252,7 @@ func RollbackAndLogError(session *xorm.Session, msg string, err error) error {
 // 新增：补充engine关闭函数，避免程序退出时资源泄漏
 func CloseXormEngine() error {
 	if XormEngine != nil {
+		XormEngine = nil
 		return XormEngine.Close()
 	}
 	return nil
