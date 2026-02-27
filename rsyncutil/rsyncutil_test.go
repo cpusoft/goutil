@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -495,25 +496,26 @@ func TestRsync(t *testing.T) {
 	}
 }
 
-// -------------------------- 性能测试 --------------------------
-// BenchmarkDiffFiles 测试大量文件对比性能
+// BenchmarkDiffFiles 测试大量文件对比性能（修复int转string问题）
 func BenchmarkDiffFiles(b *testing.B) {
 	// 构造1000个DB文件和1000个磁盘文件（50%新增/50%更新）
 	filesFromDb := make(map[string]RsyncFileHash, 1000)
 	filesFromDisk := make(map[string]RsyncFileHash, 1000)
 	for i := 0; i < 1000; i++ {
-		key := "key" + string(i)
-		filesFromDb[key] = RsyncFileHash{FileHash: "hash" + string(i)}
+		// 修复：用strconv.Itoa(i)替代string(i)
+		key := "key" + strconv.Itoa(i)
+		filesFromDb[key] = RsyncFileHash{FileHash: "hash" + strconv.Itoa(i)}
 		if i%2 == 0 {
-			filesFromDisk[key] = RsyncFileHash{FileHash: "hash" + string(i)} // 无变化
+			filesFromDisk[key] = RsyncFileHash{FileHash: "hash" + strconv.Itoa(i)} // 无变化
 		} else {
-			filesFromDisk[key] = RsyncFileHash{FileHash: "hash_new" + string(i)} // 更新
+			filesFromDisk[key] = RsyncFileHash{FileHash: "hash_new" + strconv.Itoa(i)} // 更新
 		}
 	}
 	// 新增500个文件
 	for i := 1000; i < 1500; i++ {
-		key := "key" + string(i)
-		filesFromDisk[key] = RsyncFileHash{FileHash: "hash" + string(i)}
+		// 修复：用strconv.Itoa(i)替代string(i)
+		key := "key" + strconv.Itoa(i)
+		filesFromDisk[key] = RsyncFileHash{FileHash: "hash" + strconv.Itoa(i)}
 	}
 
 	b.ResetTimer() // 重置计时器，排除初始化耗时
@@ -522,17 +524,19 @@ func BenchmarkDiffFiles(b *testing.B) {
 	}
 }
 
-// BenchmarkAddCerToRsyncResults 测试大量cer文件场景性能
+// BenchmarkAddCerToRsyncResults 测试大量cer文件场景性能（修复int转string问题）
 func BenchmarkAddCerToRsyncResults(b *testing.B) {
 	tempDir := createTempDir(b)
 	// 创建1000个cer文件
 	for i := 0; i < 1000; i++ {
-		createTestFile(b, tempDir, "test"+string(i)+".cer", "content")
+		// 修复：用strconv.Itoa(i)替代string(i)
+		createTestFile(b, tempDir, "test"+strconv.Itoa(i)+".cer", "content")
 	}
 	// 构造已有500个文件的rsyncResults
 	rsyncResults := make([]RsyncResult, 500)
 	for i := 0; i < 500; i++ {
-		rsyncResults[i] = RsyncResult{FileName: "test" + string(i) + ".cer"}
+		// 修复：用strconv.Itoa(i)替代string(i)
+		rsyncResults[i] = RsyncResult{FileName: "test" + strconv.Itoa(i) + ".cer"}
 	}
 
 	b.ResetTimer()
