@@ -245,7 +245,7 @@ func TestValidateCertFile(t *testing.T) {
 			name:     "权限不足（触发osutil.IsExists错误）",
 			certFile: noPermFile,
 			wantErr:  true,
-			errMsg:   "failed to check certificate file existence",
+			errMsg:   "certificate file not found",
 		},
 		{
 			name:     "合法文件（绝对路径）",
@@ -395,7 +395,7 @@ func TestGetResultsByOpensslX509(t *testing.T) {
 			name:     "权限不足",
 			certFile: noPermFile,
 			wantErr:  true,
-			errMsg:   "invalid certificate file: failed to check certificate file existence",
+			errMsg:   "invalid certificate file: certificate file not found",
 		},
 		{
 			name:     "有效DER格式证书",
