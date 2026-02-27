@@ -10,7 +10,6 @@ import (
 	"github.com/cpusoft/goutil/stringutil"
 )
 
-// ////////////////////////////////
 // SQL Null types utils
 func SqlNullString(s string) sql.NullString {
 	if len(s) == 0 {
@@ -37,8 +36,7 @@ func Int64sToInString(s []int64) string {
 	return stringutil.Int64sToInString(s)
 }
 
-// /////////////////////////////////
-// StringArray is a custom type for storing []string as JSON in the database
+// StringArray 自定义类型：[]string <-> JSON字符串（数据库存储）
 type StringArray []string
 
 // FromDB 从数据库JSON字符串转换为[]string
@@ -47,7 +45,6 @@ func (s *StringArray) FromDb(b []byte) error {
 		*s = []string{}
 		return nil
 	}
-	// 解析JSON数组为[]string
 	var arr []string
 	if err := json.Unmarshal(b, &arr); err != nil {
 		belogs.Error("StringArray.FromDb(): fail, b:", jsonutil.MarshalJson(b), err)
@@ -57,16 +54,15 @@ func (s *StringArray) FromDb(b []byte) error {
 	return nil
 }
 
-// ToDB 将[]string转换为数据库JSON字符串
+// ToDb 将[]string转换为数据库JSON字符串
 func (s StringArray) ToDb() ([]byte, error) {
 	if len(s) == 0 {
 		return []byte("[]"), nil
 	}
-	// 序列化为JSON字符串
 	data, err := json.Marshal(s)
 	if err != nil {
 		belogs.Error("StringArray.ToDb(): fail, s:", jsonutil.MarshalJson(s), err)
-		return nil, fmt.Errorf("Marshal json fail: %w", err)
+		return nil, fmt.Errorf("marshal json fail: %w", err)
 	}
 	return data, nil
 }

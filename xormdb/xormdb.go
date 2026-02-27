@@ -3,8 +3,6 @@ package xormdb
 import (
 	"fmt"
 	"net"
-	"os"
-	"path/filepath"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
@@ -15,7 +13,8 @@ import (
 	"xorm.io/xorm/names"
 )
 
-var XormEngine = &xorm.Engine{}
+// 修复：初始化为nil（未初始化前使用会显式panic，而非操作空结构体）
+var XormEngine *xorm.Engine
 
 // ////////////////////////////////////////////
 // MySQL
@@ -35,27 +34,27 @@ func InitMySql() (err error) {
 }
 
 func InitMySqlParameter(user, password, server, database string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
-	//DB, err = sql.Open("mysql", "rpstir:Rpstir-123@tcp(202.173.9.21:13306)/rpstir")
+	// 修复：charset改为utf8mb4，支持完整UTF-8（含emoji等4字节字符）
+	openSql := user + ":" + password + "@tcp(" + server + ")/" + database + "?charset=utf8mb4&parseTime=True&loc=Local"
+	// 修复：删除未使用的logName变量
+	belogs.Info("InitMySqlParameter(): server is: ", server, database)
 
-	openSql := user + ":" + password + "@tcp(" + server + ")/" + database + "?charset=utf8&parseTime=True&loc=Local"
-	logName := filepath.Base(os.Args[0])
-	belogs.Info("InitMySqlParameter(): server is: ", server, database, logName)
-
-	//连接数据库
+	// 连接数据库
 	engine, err = xorm.NewEngine("mysql", openSql)
 	if err != nil {
 		belogs.Error("InitMySqlParameter(): NewEngine failed, err:", err)
 		return engine, err
 	}
-	//连接测试
+
+	// 连接测试 + 修复：Ping失败后关闭engine，避免连接泄漏
 	if err := engine.Ping(); err != nil {
 		belogs.Error("InitMySqlParameter(): Ping failed, err:", err)
+		_ = engine.Close() // 关闭已创建的engine，避免资源泄漏
 		return engine, err
 	}
 
-	//设置连接池的空闲数大小
+	// 设置连接池参数
 	engine.SetMaxIdleConns(maxidleconns)
-	//设置最大打开连接数
 	engine.SetMaxOpenConns(maxopenconns)
 	// show sql
 	//engine.ShowSQL(true)
@@ -80,12 +79,10 @@ func InitMySqlParameter(user, password, server, database string, maxidleconns, m
 		user_info	UserInfo
 		id	ID
 		url	URL
-
 	*/
 	engine.SetTableMapper(names.SnakeMapper{})
 
 	return engine, nil
-
 }
 
 // ///////////////////////////////////////////
@@ -102,32 +99,31 @@ func InitSqlite() (err error) {
 	return nil
 }
 
-func InitSqliteParameter(filepath string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
+// 修复：参数名改为sqliteFilePath，避免与filepath包名混淆
+func InitSqliteParameter(sqliteFilePath string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
+	belogs.Info("InitSqliteParameter(): sqliteFilePath: ", sqliteFilePath)
 
-	belogs.Info("InitSqliteParameter(): filepath: ", filepath)
-
-	//连接数据库
-	engine, err = xorm.NewEngine("sqlite3", filepath)
+	// 连接数据库
+	engine, err = xorm.NewEngine("sqlite3", sqliteFilePath)
 	if err != nil {
-		belogs.Error("InitSqliteParameter(): NewEngine failed, filepath:", filepath, err)
+		belogs.Error("InitSqliteParameter(): NewEngine failed, sqliteFilePath:", sqliteFilePath, err)
 		return engine, err
 	}
-	//连接测试
+
+	// 连接测试 + 修复：Ping失败后关闭engine
 	if err := engine.Ping(); err != nil {
 		belogs.Error("InitSqliteParameter(): Ping failed, err:", err)
+		_ = engine.Close()
 		return engine, err
 	}
 
-	//设置连接池的空闲数大小
+	// SQLite连接池修复：强制SetMaxOpenConns(1)（SQLite不支持多连接，否则易锁库）
+	// 保留配置参数兼容，但覆盖为安全值
 	engine.SetMaxIdleConns(maxidleconns)
-	//设置最大打开连接数
-	engine.SetMaxOpenConns(maxopenconns)
-	// show sql
-	//engine.ShowSQL(true)
+	engine.SetMaxOpenConns(1) // 核心修复：SQLite必须单连接
 	engine.SetTableMapper(names.SnakeMapper{})
 
 	return engine, nil
-
 }
 
 // ////////////////////////////////////////////
@@ -148,70 +144,41 @@ func InitPostgreSQL() (err error) {
 }
 
 func InitPostgreSQLParameter(user, password, server, database string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
-	// db, err := xorm.NewPostgreSQL("postgres://postgres:123@localhost:5432/test?sslmode=disable")
 	host, port, err := net.SplitHostPort(server)
 	if err != nil {
 		belogs.Error("InitPostgreSQLParameter(): SplitHostPort fail, server:", server, err)
-		return nil, err
+		return nil, err // 修复：逻辑更清晰，直接返回nil而非engine（此时engine未初始化）
 	}
 	str := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, database)
-	logName := filepath.Base(os.Args[0])
-	belogs.Info("InitPostgreSQLParameter(): server:", server,
-		"  database:", database, "  logName:", logName)
+	// 修复：删除未使用的logName变量
+	belogs.Info("InitPostgreSQLParameter(): server:", server, "  database:", database)
 
-	//连接数据库
+	// 连接数据库
 	engine, err = xorm.NewEngine("postgres", str)
 	if err != nil {
 		belogs.Error("InitPostgreSQLParameter(): NewEngine failed, err:", err)
 		return engine, err
 	}
-	//连接测试
+
+	// 连接测试 + 修复：Ping失败后关闭engine
 	if err := engine.Ping(); err != nil {
 		belogs.Error("InitPostgreSQLParameter(): Ping failed, err:", err)
+		_ = engine.Close()
 		return engine, err
 	}
 
-	//设置连接池的空闲数大小
+	// 设置连接池参数
 	engine.SetMaxIdleConns(maxidleconns)
-	//设置最大打开连接数
 	engine.SetMaxOpenConns(maxopenconns)
-	// show sql
-	//engine.ShowSQL(true)
-	/*
-		http://blog.xorm.io/2016/1/4/1-about-mapper.html
-		SnakeMapper
-		SnakeMapper是默认的映射机制，他支持数据库表采用匈牙利命名法，而程序中采用驼峰式命名法。下面是一些常见的映射：
-		表中名称		程序名称
-		user_info	UserInfo
-		id			Id
-
-		SameMapper
-		SameMapper就是数据库中的命名法和程序中是相同的。那么鉴于在Go中，基本上要求首字母必须大写。所以一般都是表中和程序中均采用驼峰式命名。下面是一些常见的映射：
-		表中名称	程序名称
-		UserInfo	UserInfo
-		Id	Id
-
-
-		GonicMapper
-		GonicMapper是在SnakeMapper的基础上增加了特例，对于常见的缩写不新增下划线处理。这个同时也符合golint的规则。下面是一些常见的映射：
-		表中名称	程序名称
-		user_info	UserInfo
-		id	ID
-		url	URL
-
-	*/
 	engine.SetTableMapper(names.SnakeMapper{})
 
 	return engine, nil
-
 }
 
 // //////////////////////////////////
 // Session utils
-// get new session, and begin session
 func NewSession() (*xorm.Session, error) {
-	// open mysql session
 	session := XormEngine.NewSession()
 	if err := session.Begin(); err != nil {
 		return nil, RollbackAndLogError(session, "session.Begin() fail", err)
@@ -225,19 +192,28 @@ func CommitSession(session *xorm.Session) error {
 	if err := session.Commit(); err != nil {
 		belogs.Error("main():Commit fail")
 		return RollbackAndLogError(session, "session.Commit fail", err)
-
 	}
 	return nil
 }
 
-// when session is error, will rollback and log the error
+// 修复：检查Rollback()的错误并日志，避免丢失关键错误
 func RollbackAndLogError(session *xorm.Session, msg string, err error) error {
 	if err != nil {
 		belogs.Error(msg, err)
 		if session != nil {
-			session.Rollback()
+			if rollbackErr := session.Rollback(); rollbackErr != nil {
+				belogs.Error("RollbackAndLogError(): rollback fail, msg:", msg, rollbackErr)
+			}
 		}
 		return err
+	}
+	return nil
+}
+
+// 新增：补充engine关闭函数，避免程序退出时资源泄漏
+func CloseXormEngine() error {
+	if XormEngine != nil {
+		return XormEngine.Close()
 	}
 	return nil
 }
