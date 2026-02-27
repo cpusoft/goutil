@@ -373,39 +373,38 @@ func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string
 }
 
 // need read all current existed cer file, to just to trigger sub ca repo sync
+// 同时修复AddCerToRsyncResults中文件名对比逻辑（确保GetFilesInDir返回纯文件名）
 func AddCerToRsyncResults(rsyncDestPath string, rsyncResults []RsyncResult) (err error) {
-	// 修复5：用map优化查询（O(n+m)替代O(n*m)）
+	// 修复：existingFiles 存储 完整路径+文件名，避免纯文件名匹配错误
 	existingFiles := make(map[string]bool, len(rsyncResults))
 	for _, rsyncResult := range rsyncResults {
-		existingFiles[rsyncResult.FileName] = true
+		fullName := osutil.JoinPathFile(rsyncResult.FilePath, rsyncResult.FileName)
+		existingFiles[fullName] = true
 	}
 
 	m := make(map[string]string, 0)
 	m[".cer"] = ".cer"
 	files, err := osutil.GetFilesInDir(rsyncDestPath, m)
-	belogs.Debug("addCerToRsyncResults():GetFilesInDir, files:", files, err)
 	if err != nil {
 		belogs.Debug("addCerToRsyncResults():GetFilesInDir, files:", files, err)
 		return err
 	}
 	for _, file := range files {
-		belogs.Debug("addCerToRsyncResults():file:", file)
-		// 优化：O(1)查询
-		if !existingFiles[file] {
+		fullFile := osutil.JoinPathFile(rsyncDestPath, file)
+		if !existingFiles[fullFile] { // 对比完整路径
+			// 原有逻辑不变
 			rsyncResult := RsyncResult{}
 			rsyncResult.RsyncType = RSYNC_TYPE_JUST_SYNC
 			rsyncResult.FilePath = rsyncDestPath
 			rsyncResult.FileName = file
 			rsyncResult.FileType = "cer"
 			rsyncResult.SyncTime = time.Now()
-			// 修复6：拼接完整路径+处理IsDir错误
 			fullFilePath := osutil.JoinPathFile(rsyncDestPath, file)
 			isDir, dirErr := osutil.IsDir(fullFilePath)
 			if dirErr != nil {
 				belogs.Error("addCerToRsyncResults(): osutil.IsDir fail, fullFilePath:", fullFilePath, " err:", dirErr)
 			}
 			rsyncResult.IsDir = isDir
-
 			rsyncResults = append(rsyncResults, rsyncResult)
 			belogs.Info("addCerToRsyncResults(): manual add rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 		}

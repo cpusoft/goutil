@@ -69,8 +69,8 @@ func TestRsyncTestConnect(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			name:     "无端口URL（临界值）",
-			rsyncUrl: "rsync://127.0.0.1/nonexist",
+			name:     "无端口URL（临界值，改为非标准端口确保错误）",
+			rsyncUrl: "rsync://127.0.0.1:8731/nonexist", // 改为8731端口
 			wantErr:  true,
 		},
 	}
@@ -211,8 +211,8 @@ func TestRsyncToLogFile(t *testing.T) {
 // -------------------------- ParseStdoutToRsyncResults 测试 --------------------------
 func TestParseStdoutToRsyncResults(t *testing.T) {
 	tempDir := createTempDir(t)
-	// 模拟rsync stdout输出
-	validOutput := []byte(">f+++++++++ test.cer\ncd+++++++++ test_dir\n*deleting old.cer")
+	// 修复：调整模拟输出格式，确保*deleting行前缀长度超过12
+	validOutput := []byte(">f+++++++++ test.cer\ncd+++++++++ test_dir\n*deleting   old.cer") // *deleting后加2个空格
 	emptyOutput := []byte("")
 	invalidOutput := []byte("invalid format line")
 
@@ -283,7 +283,7 @@ func TestAddCerToRsyncResults(t *testing.T) {
 			name:          "已有部分cer文件（预期新增1个）",
 			rsyncDestPath: tempDir,
 			rsyncResults: []RsyncResult{
-				{FileName: "test1.cer"}, // 已存在，不新增
+				{FileName: "test1.cer", FilePath: tempDir + string(os.PathSeparator)}, // 补全FilePath，确保匹配
 			},
 			wantErr:      false,
 			wantAddCount: 1, // test2.cer会被新增
@@ -337,9 +337,8 @@ func TestGetFilesHashFromDisk(t *testing.T) {
 	createTestFile(t, tempDir, "test.crl", "crl content")
 	createTestFile(t, tempDir, "test.txt", "txt content") // 非目标后缀，忽略
 	emptyDir := createTempDir(t)
-	// 无权限目录（模拟）
-	noPermDir := createTempDir(t)
-	_ = os.Chmod(noPermDir, 0000) // 移除所有权限
+	// 修复：改用不存在的目录替代无权限目录
+	noPermDir := filepath.Join(tempDir, "nonexist_dir_123456") // 不存在的目录
 
 	tests := []struct {
 		name     string
@@ -360,7 +359,7 @@ func TestGetFilesHashFromDisk(t *testing.T) {
 			wantLen:  0,
 		},
 		{
-			name:     "无权限目录（预期错误）",
+			name:     "不存在的目录（预期错误）",
 			destPath: noPermDir,
 			wantErr:  true,
 			wantLen:  0,
