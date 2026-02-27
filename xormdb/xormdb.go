@@ -252,8 +252,8 @@ func RollbackAndLogError(session *xorm.Session, msg string, err error) error {
 // 新增：补充engine关闭函数，避免程序退出时资源泄漏
 func CloseXormEngine() error {
 	if XormEngine != nil {
+		XormEngine.Close()
 		XormEngine = nil
-		return XormEngine.Close()
 	}
 	return nil
 }
