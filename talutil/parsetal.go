@@ -10,9 +10,10 @@ import (
 	"github.com/cpusoft/goutil/osutil"
 )
 
+// 修复：PubKey的json tag拼写错误（jons -> json）
 type TalInfo struct {
 	SyncUrl string `json:"syncUrl"`
-	PubKey  string `jons:"pubKey"`
+	PubKey  string `json:"pubKey"`
 }
 
 func GetAllTalFile(file string) ([]string, error) {
@@ -66,12 +67,21 @@ func parseTalInfo(file string) (TalInfo, error) {
 		belogs.Error("ParseTalInfo(): file Open err:", file, err)
 		return talInfo, err
 	}
+	// 修复1：添加defer关闭文件句柄，避免资源泄漏
+	defer func() {
+		if err := f.Close(); err != nil {
+			belogs.Error("ParseTalInfo(): file Close err:", file, err)
+		}
+	}()
 
 	input := bufio.NewScanner(f)
 	i := 0
 	var buffer bytes.Buffer
 	for input.Scan() { // 遇到 \n 或者\r\n循环一次
 		tmp := strings.TrimSpace(input.Text())
+		if len(tmp) == 0 {
+			continue
+		}
 		if i == 0 {
 			tmp = strings.Replace(tmp, "\r\n", "", -1)
 			talInfo.SyncUrl = tmp
@@ -80,6 +90,13 @@ func parseTalInfo(file string) (TalInfo, error) {
 		}
 		i++
 	}
+
+	// 修复2：检查Scanner的扫描错误，避免IO错误被静默忽略
+	if err := input.Err(); err != nil {
+		belogs.Error("ParseTalInfo(): scan file err:", file, err)
+		return talInfo, err
+	}
+
 	talInfo.PubKey = buffer.String()
 	belogs.Info("ParseTalInfo(): talInfo:", talInfo)
 	return talInfo, nil
