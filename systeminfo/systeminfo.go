@@ -53,17 +53,16 @@ func GetHostInfo() (*host.InfoStat, error) {
 	}
 	return hostInfo, nil
 }
+
 func GetProcesLoad() (*load.MiscStat, *load.AvgStat, error) {
 	misStat, err := load.Misc()
 	if err != nil {
 		belogs.Error("GetProcesLoad(): Misc fail: ", err)
-		// no return err
 	}
 
 	avgStat, err := load.Avg()
 	if err != nil {
 		belogs.Error("GetProcesLoad(): Avg fail: ", err)
-		// no return err
 	}
 
 	return misStat, avgStat, nil
@@ -75,11 +74,12 @@ func GetDiskPartitions() ([]disk.PartitionStat, error) {
 		belogs.Error("GetDiskPartitions(): Partitions fail: ", err)
 		return nil, err
 	} else if len(parts) == 0 {
-		belogs.Error("GetDiskPartitions():len(ret) == 0: ")
+		belogs.Error("GetDiskPartitions():len(parts) == 0: no disk partitions found")
 		return nil, errors.New("partitions is empty")
 	}
 	return parts, nil
 }
+
 func GetDiskUsage() (*disk.UsageStat, error) {
 	path := "/"
 	if runtime.GOOS == "windows" {
@@ -87,7 +87,7 @@ func GetDiskUsage() (*disk.UsageStat, error) {
 	}
 	u, err := disk.Usage(path)
 	if err != nil {
-		belogs.Error("GetDiskUsage(): Usage fail: ", err)
+		belogs.Error("GetDiskUsage(): Usage fail for path '", path, "': ", err)
 		return nil, err
 	}
 	return u, nil
@@ -99,7 +99,7 @@ func GetCpusInfo() ([]cpu.InfoStat, error) {
 		belogs.Error("GetCpusInfo(): Info fail: ", err)
 		return nil, err
 	} else if len(cpus) == 0 {
-		belogs.Error("GetDiskPartitions():len(cpus) == 0: ")
+		belogs.Error("GetCpusInfo():len(cpus) == 0: no CPU info found")
 		return nil, errors.New("cpu is empty")
 	}
 	return cpus, nil
@@ -112,12 +112,13 @@ func GetNetIoCounter() (*net.IOCountersStat, error) {
 		return nil, err
 	}
 	if len(ioCounters) != 1 {
-		belogs.Error("GetNetIoCounter(): len(ioCounters) is not 1")
+		belogs.Error("GetNetIoCounter(): len(ioCounters) =", len(ioCounters), " (expected 1)")
 		return nil, errors.New("ioCounters is not summary")
 	}
 	v := ioCounters[0]
 	return &v, nil
 }
+
 func GetNetInterfaces() (net.InterfaceStatList, error) {
 	ifs, err := net.Interfaces()
 	if err != nil {
@@ -125,16 +126,15 @@ func GetNetInterfaces() (net.InterfaceStatList, error) {
 		return nil, err
 	}
 	return ifs, nil
-
 }
 
 func GetSystemInfoUniqueId() (systemInfoUniqueId SystemInfoUniqueId, err error) {
-
 	hostInfo, err := GetHostInfo()
 	if err != nil {
 		belogs.Error("GetSystemInfoUniqueId(): GetHostInfo fail: ", err)
 		return systemInfoUniqueId, err
 	}
+	// 改用jsonutil.MarshalJson，不校验返回值（按你的要求）
 	belogs.Debug("GetSystemInfoUniqueId(): GetHostInfo hostInfo: ", jsonutil.MarshalJson(hostInfo))
 
 	cpusInfo, err := GetCpusInfo()
@@ -142,6 +142,12 @@ func GetSystemInfoUniqueId() (systemInfoUniqueId SystemInfoUniqueId, err error) 
 		belogs.Error("GetSystemInfoUniqueId(): GetCpusInfo fail: ", err)
 		return systemInfoUniqueId, err
 	}
+	// 防御性检查：避免极端情况下切片索引越界
+	if len(cpusInfo) == 0 {
+		belogs.Error("GetSystemInfoUniqueId(): cpusInfo is empty unexpectedly")
+		return systemInfoUniqueId, errors.New("cpu info is empty")
+	}
+	// 改用jsonutil.MarshalJson，不校验返回值
 	belogs.Debug("GetSystemInfoUniqueId(): GetHostInfo cpusInfo: ", jsonutil.MarshalJson(cpusInfo))
 
 	memoryInfo, err := GetMemoryInfo()
@@ -149,7 +155,9 @@ func GetSystemInfoUniqueId() (systemInfoUniqueId SystemInfoUniqueId, err error) 
 		belogs.Error("GetSystemInfoUniqueId(): GetMemoryInfo fail: ", err)
 		return systemInfoUniqueId, err
 	}
+	// 改用jsonutil.MarshalJson，不校验返回值
 	belogs.Debug("GetSystemInfoUniqueId(): GetMemoryInfo memoryInfo: ", jsonutil.MarshalJson(memoryInfo))
+
 	systemInfoUniqueId = SystemInfoUniqueId{
 		HostOs:         hostInfo.OS,
 		HostKernelArch: hostInfo.KernelArch,
@@ -159,6 +167,7 @@ func GetSystemInfoUniqueId() (systemInfoUniqueId SystemInfoUniqueId, err error) 
 		CpuModelName:   cpusInfo[0].ModelName,
 		MemoryTotal:    convert.ToString(memoryInfo.Total),
 	}
+	// 改用jsonutil.MarshalJson，不校验返回值
 	belogs.Info("GetSystemInfoUniqueId(): systemInfoUniqueId: ", jsonutil.MarshalJson(systemInfoUniqueId))
 	return systemInfoUniqueId, nil
 }
@@ -169,11 +178,13 @@ func GetSystemInfoUniqueIdSha256() (systemInfoUniqueIdSha256 []byte, err error) 
 		belogs.Error("GetSystemInfoUniqueIdSha256(): GetSystemInfoUniqueId fail: ", err)
 		return nil, err
 	}
+	// 改用jsonutil.MarshalJson，不校验返回值（按你的要求）
 	systemInfoUniqueIdData := []byte(jsonutil.MarshalJson(systemInfoUniqueId))
 	systemInfoUniqueIdSha256Data := sha256.Sum256(systemInfoUniqueIdData)
 	systemInfoUniqueIdSha256 = systemInfoUniqueIdSha256Data[:]
-	belogs.Info("GetSystemInfoUniqueIdSha256(): systemInfoUniqueIdData: ", string(systemInfoUniqueIdData),
-		"    systemInfoUniqueIdSha256 base64:", base64util.EncodeBase64(systemInfoUniqueIdSha256),
+
+	// 保留敏感日志修复：移除明文数据，降级为Debug级别
+	belogs.Debug("GetSystemInfoUniqueIdSha256(): systemInfoUniqueIdSha256 base64:", base64util.EncodeBase64(systemInfoUniqueIdSha256),
 		"    systemInfoUniqueIdSha256 hex:", convert.PrintBytesOneLine(systemInfoUniqueIdSha256))
 	return systemInfoUniqueIdSha256, nil
 }
