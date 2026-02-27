@@ -15,6 +15,7 @@ import (
 func GetWhoisResult(q string) (whoisResult *WhoisResult, err error) {
 	return GetWhoisResultWithConfig(q, nil)
 }
+
 func GetWhoisResultWithConfig(query string, whoisConfig *WhoisConfig) (whoisResult *WhoisResult, err error) {
 	belogs.Debug("GetWhoisResult(): cmd:  query:", query, "  whoisConfig:", jsonutil.MarshalJson(whoisConfig))
 
@@ -49,7 +50,7 @@ func GetWhoisResultWithConfig(query string, whoisConfig *WhoisConfig) (whoisResu
 
 // afterKey: may be "", Value is should afterKey to get by Key
 func GetValueInWhoisResult(whoisResult *WhoisResult, key string, afterKey string) string {
-	if whoisResult == nil || len(key) == 0 {
+	if whoisResult == nil || len(key) == 0 || whoisResult.WhoisOneResults == nil {
 		return ""
 	}
 	k := strings.TrimSpace(key)
@@ -69,14 +70,14 @@ func GetValueInWhoisResult(whoisResult *WhoisResult, key string, afterKey string
 	return ""
 }
 
-func WhoisAsnAddressPrefixByCymru(query string,
-	whoisConfig *WhoisConfig) (whoisCymruResult *WhoisCymruResult, err error) {
+func WhoisAsnAddressPrefixByCymru(query string, whoisConfig *WhoisConfig) (whoisCymruResult *WhoisCymruResult, err error) {
 	belogs.Debug("WhoisAsnAddressPrefixByCymru(): query:", query, "  whoisConfig:", jsonutil.MarshalJson(whoisConfig))
 	query = strings.TrimSpace(query)
 	if query == "" {
 		belogs.Error("WhoisAsnAddressPrefixByCymru(): query is empty")
 		return nil, nil
 	}
+
 	var isQueryAsn bool
 	var queryV string
 	if convert.StringIsDigit(query) {
@@ -87,27 +88,29 @@ func WhoisAsnAddressPrefixByCymru(query string,
 		// ip address or prefix
 		queryV = `-v ` + query
 		isQueryAsn = false
+	} else {
+		// 处理无效查询（既非ASN也非IP）
+		belogs.Error("WhoisAsnAddressPrefixByCymru(): invalid query type, query:", query)
+		return nil, nil
 	}
 	belogs.Debug("WhoisAsnAddressPrefixByCymru(): new queryV:", queryV, "   isQueryAsn:", isQueryAsn)
 
+	// 初始化默认配置（覆盖nil的情况）
 	if whoisConfig == nil {
 		whoisConfig = &WhoisConfig{
 			Host: "whois.cymru.com",
 			Port: "43",
 		}
 	}
-	var cmd *exec.Cmd
-	if whoisConfig == nil {
-		cmd = exec.Command("whois", queryV)
-	} else {
-		cmd = exec.Command("whois", whoisConfig.getParamsWithQuery(queryV)...)
-	}
+	// 构建命令（参数顺序已修复）
+	cmd := exec.Command("whois", whoisConfig.getParamsWithQuery(queryV)...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		belogs.Error("WhoisAsnAddressPrefixByCymru(): exec.Command fail, queryV:", queryV,
 			"   output: "+string(output), err)
 		return nil, err
 	}
+
 	outputStr := string(output)
 	tmps := strings.Split(outputStr, osutil.GetNewLineSep())
 	belogs.Debug("WhoisAsnAddressPrefixByCymru(): outputStr:", outputStr, "   tmps:", jsonutil.MarshalJson(tmps))
@@ -123,9 +126,10 @@ func WhoisAsnAddressPrefixByCymru(query string,
 		}
 		belogs.Debug("WhoisAsnAddressPrefixByCymru(): line:", line)
 		split := strings.Split(line, "|")
+
 		if isQueryAsn {
 			if len(split) != 5 {
-				belogs.Error("WhoisAsnAddressPrefixByCymru(): isQueryAsn but len(slite)!=5, query:", query,
+				belogs.Error("WhoisAsnAddressPrefixByCymru(): isQueryAsn but len(split)!=5, query:", query,
 					"   line:", line, "   split:", jsonutil.MarshalJson(split))
 				continue
 			}
@@ -147,7 +151,7 @@ func WhoisAsnAddressPrefixByCymru(query string,
 
 		} else {
 			if len(split) != 7 {
-				belogs.Error("WhoisAsnAddressPrefixByCymru(): isQueryIpPrefix but len(slite)!=3, query:", query,
+				belogs.Error("WhoisAsnAddressPrefixByCymru(): isQueryIpPrefix but len(split)!=7, query:", query,
 					"   line:", line, "   split:", jsonutil.MarshalJson(split))
 				continue
 			}
@@ -175,6 +179,7 @@ func WhoisAsnAddressPrefixByCymru(query string,
 		belogs.Debug("WhoisAsnAddressPrefixByCymru(): whoisCymruResult:", jsonutil.MarshalJson(whoisCymruResult))
 		break
 	}
+
 	belogs.Debug("WhoisAsnAddressPrefixByCymru(): GetWhoisResultWithConfig success, query:", query,
 		"   whoisConfig:", jsonutil.MarshalJson(whoisConfig),
 		"   whoisCymruResult:", jsonutil.MarshalJson(whoisCymruResult))
@@ -189,7 +194,7 @@ func asnStrToNullInt(asnTmp string) (null.Int, error) {
 	} else {
 		asn, err := strconv.Atoi(asnStr)
 		if err != nil {
-			belogs.Error("AsnStrToNullInt(): Atoi fail, asnTmp:", asnTmp,
+			belogs.Error("asnStrToNullInt(): Atoi fail, asnTmp:", asnTmp,
 				"   asnStr:", asnStr)
 			return null.NewInt(0, false), err
 		}

@@ -13,9 +13,10 @@ type WhoisConfig struct {
 	Port string `json:"port"` // default: 43
 }
 
+// 修复核心问题：参数顺序（先选项，后查询内容）
 func (c *WhoisConfig) getParamsWithQuery(query string) []string {
 	params := make([]string, 0)
-	params = append(params, query)
+	// 先加-h和-p选项
 	if len(c.Host) > 0 {
 		params = append(params, "-h")
 		params = append(params, c.Host)
@@ -24,6 +25,9 @@ func (c *WhoisConfig) getParamsWithQuery(query string) []string {
 		params = append(params, "-p")
 		params = append(params, c.Port)
 	}
+	// 最后加查询内容
+	params = append(params, query)
+
 	belogs.Debug("WhoisConfig.getParamsWithQuery(): query:", query, "  whoisConfig:", jsonutil.MarshalJson(c),
 		"   params:", jsonutil.MarshalJson(params))
 	return params
@@ -61,7 +65,8 @@ func newWhoisResult(line string) *WhoisOneResult {
 		Key:   key,
 		Value: value,
 	}
-	belogs.Debug("GetWhoisResult(): line, tmp:", tmp, "   whoisResult:", jsonutil.MarshalJson(c))
+	// 修复日志函数名
+	belogs.Debug("newWhoisResult(): line, tmp:", tmp, "   whoisResult:", jsonutil.MarshalJson(c))
 	return c
 }
 
