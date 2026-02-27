@@ -1,12 +1,5 @@
 package redisutil
 
-import (
-	"context"
-
-	"github.com/cpusoft/goutil/conf"
-	redis "github.com/redis/go-redis/v9"
-)
-
 //func redisOptions() *redis.Options {
 //	return &redis.Options{
 //		Addr: redisAddr,
@@ -37,6 +30,7 @@ import (
 //fmt.Println(pong, err)
 //// Output: PONG <nil>
 
+/*
 var (
 	Ctx = context.Background()
 	Rdb *redis.Client
@@ -51,3 +45,4 @@ func InitRedis() (err error) {
 	})
 	return nil
 }
+*/
