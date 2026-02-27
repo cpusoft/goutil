@@ -203,7 +203,7 @@ func TestCheckPassword(t *testing.T) {
 	}{
 		// 正常场景
 		{"6位（数字+字母+特殊字符）", "A1@bcd", true},
-		{"20位（全类型）", "Abc123!@#456789012345", true},
+		{"20位（全类型）", "Abc123!@#45678901234", true}, // 修正：20位（原21位）
 		{"中间长度", "123Abc!@#", true},
 		// 异常场景
 		{"长度5", "A1@bc", false},
@@ -215,7 +215,7 @@ func TestCheckPassword(t *testing.T) {
 		// 临界值
 		{"临界长度5", "a1@bc", false},
 		{"临界长度6", "a1@bcd", true},
-		{"临界长度20", "a1@bcdefghijklmnopqrs", true},
+		{"临界长度20", "a1@bcdefghijklmnopqr", true}, // 修正：20位（原21位）
 		{"临界长度21", "a1@bcdefghijklmnopqrst", false},
 	}
 
@@ -243,6 +243,7 @@ func BenchmarkCheckPassword(b *testing.B) {
 }
 
 // ------------------------------ CheckCompany 测试 ------------------------------
+// ------------------------------ CheckCompany 测试 ------------------------------
 func TestCheckCompany(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -251,11 +252,12 @@ func TestCheckCompany(t *testing.T) {
 	}{
 		// 正常场景
 		{"2位中文", "测试", true},
-		{"32位混合", "测试公司_ABC123 有限公司12345678901234567890", true},
+		// 修正：严格32位符文的混合字符串（逐个数：2+2+1+3+3+1+4+8+8=32）
+		{"32位混合", "测试公司_ABC123 有限公司1234567812345678", true},
 		{"含空格+下划线", "XX_科技 有限公司", true},
 		// 异常场景
 		{"1位字符", "测", false},
-		{"33位字符", "测试公司_ABC123 有限公司123456789012345678901", false},
+		{"33位字符", "测试公司_ABC123 有限公司12345678123456789", false},
 		{"含非法字符!", "测试!公司", false},
 		{"含非法字符@", "测试@公司", false},
 		// 临界值

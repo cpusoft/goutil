@@ -12,22 +12,23 @@ var (
 	rpkiFileNameRegex = regexp.MustCompile(`^[0-9a-zA-Z_-]+\.(cer|roa|crl|mft|gbr|asa|sig|moa|toa)$`)
 	// 匹配11位数字手机号
 	phoneRegex = regexp.MustCompile(`^\d{11}$`)
-	// 匹配邮箱格式
-	mailRegex = regexp.MustCompile(`^[0-9a-z][_.0-9a-z-]{0,31}@([0-9a-z][0-9a-z-]{0,30}[0-9a-z]\.){1,4}[a-z]{2,4}$`)
-	// 匹配密码格式（6-20位，包含数字、字母、特殊字符）
-	passwordRegex = regexp.MustCompile(`^.*(?=.{6,20})(?=.*\d)(?=.*[A-Za-z])(?=.*[-_=+!@#$%^&*?/]).*$`)
+	// 修复邮箱正则：
+	// 1. 域名段允许单字符（([0-9a-z]([0-9a-z-]{0,30}[0-9a-z])?\.)）
+	// 2. 用户名长度限制为1-31位（{0,30}），32位则失败
+	mailRegex = regexp.MustCompile(`^[0-9a-z][_.0-9a-z-]{0,30}@([0-9a-z]([0-9a-z-]{0,30}[0-9a-z])?\.){1,4}[a-z]{2,4}$`)
+	// 拆分密码校验的正则（无前瞻断言，分步校验）
+	passwordHasDigit   = regexp.MustCompile(`\d`)               // 包含数字
+	passwordHasLetter  = regexp.MustCompile(`[A-Za-z]`)         // 包含字母
+	passwordHasSpecial = regexp.MustCompile(`[-_=+!@#$%^&*?/]`) // 包含指定特殊字符
 	// 匹配公司名称（2-32位，包含中文、字母、数字、下划线、空白符）
-	companyRegex = regexp.MustCompile(`^[\u4e00-\u9fa5_a-zA-Z0-9_\s]{2,32}$`)
+	companyRegex = regexp.MustCompile(`^[\p{Han}a-zA-Z0-9_\s]{2,32}$`)
 )
 
 func IsHex(s string) (bool, error) {
-	// 预编译后仅调用MatchString，error恒为nil（保持原返回值结构）
 	return hexRegex.MatchString(s), nil
 }
 
-// https://www.iana.org/assignments/rpki/rpki.xhtml
 func CheckRpkiFileName(s string) bool {
-	// 使用预编译的正则，避免重复编译
 	return rpkiFileNameRegex.MatchString(s)
 }
 
@@ -40,7 +41,25 @@ func CheckMail(mail string) bool {
 }
 
 func CheckPassword(password string) bool {
-	return passwordRegex.MatchString(password)
+	// 步骤1：校验长度（6-20位）
+	length := len(password)
+	if length < 6 || length > 20 {
+		return false
+	}
+	// 步骤2：校验包含数字
+	if !passwordHasDigit.MatchString(password) {
+		return false
+	}
+	// 步骤3：校验包含字母
+	if !passwordHasLetter.MatchString(password) {
+		return false
+	}
+	// 步骤4：校验包含指定特殊字符
+	if !passwordHasSpecial.MatchString(password) {
+		return false
+	}
+	// 所有条件满足
+	return true
 }
 
 func CheckCompany(company string) bool {
