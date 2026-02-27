@@ -372,9 +372,13 @@ func TestAddCerToRsyncResults(t *testing.T) {
 				return // 有错误时无需验证数量
 			}
 
-			// 统计新增的JUST_SYNC数量
+			// ========== 修复核心：统计逻辑 ==========
 			addCount := 0
-			for _, r := range rsyncResultsCopy[originalLen:] {
+			// 遍历新增的元素（从originalLen到末尾）
+			for i := originalLen; i < len(rsyncResultsCopy); i++ {
+				r := rsyncResultsCopy[i]
+				// 关键：确保RSYNC_TYPE_JUST_SYNC与实际值一致（日志里是"justsync"）
+				t.Logf("新增元素[%d]: RsyncType=%s, FileName=%s", i, r.RsyncType, r.FileName)
 				if r.RsyncType == RSYNC_TYPE_JUST_SYNC {
 					addCount++
 				}
@@ -383,6 +387,7 @@ func TestAddCerToRsyncResults(t *testing.T) {
 			// 调试打印（验证完整路径匹配逻辑）
 			t.Logf("=== 调试信息 ===")
 			t.Logf("实际临时目录: %s", tempDir)
+			t.Logf("初始rsyncResults长度: %d, 最终长度: %d", originalLen, len(rsyncResultsCopy))
 			t.Logf("已有文件fullName列表: %v", func() []string {
 				var list []string
 				for _, rr := range rsyncResultsCopy[:originalLen] {
