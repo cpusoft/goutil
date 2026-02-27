@@ -42,7 +42,7 @@ func TestInitMySqlParameter_Normal(t *testing.T) {
 // 临界值测试：空参数、非法连接串、边界连接数
 func TestInitMySqlParameter_Critical(t *testing.T) {
 	// 测试1：空用户名
-	engine, err := InitMySqlParameter("", "123456", "127.0.0.1:3306", "test", 10, 20)
+	engine, err := InitMySqlParameter("", "123456", "127.0.0.1:13306", "test", 10, 20)
 	assert.Error(t, err, "空用户名应返回错误")
 	assert.Nil(t, engine, "空用户名时engine应为nil")
 
@@ -52,13 +52,13 @@ func TestInitMySqlParameter_Critical(t *testing.T) {
 	assert.Nil(t, engine, "非法端口时engine应为nil")
 
 	// 测试3：连接数为0（仅验证连接结果，移除连接池参数断言）
-	engine, err = InitMySqlParameter("root", "123456", "127.0.0.1:3306", "test", 0, 0)
+	engine, err = InitMySqlParameter("root", "123456", "127.0.0.1:13306", "test", 0, 0)
 	if err == nil {
 		_ = engine.Close()
 	}
 
 	// 测试4：连接数为负数（仅验证连接结果，移除连接池参数断言）
-	engine, err = InitMySqlParameter("root", "123456", "127.0.0.1:3306", "test", -5, -10)
+	engine, err = InitMySqlParameter("root", "123456", "127.0.0.1:13306", "test", -5, -10)
 	if err == nil {
 		_ = engine.Close()
 	}
@@ -160,18 +160,18 @@ func TestInitPostgreSQLParameter_Critical(t *testing.T) {
 	assert.Nil(t, engine, "无端口地址时engine应为nil")
 
 	// 测试2：空密码
-	engine, err = InitPostgreSQLParameter("postgres", "", "127.0.0.1:5432", "test", 8, 16)
+	engine, err = InitPostgreSQLParameter("postgres", "", "127.0.0.1:15432", "test", 8, 16)
 	assert.Error(t, err, "空密码应返回错误")
 	assert.Nil(t, engine, "空密码时engine应为nil")
 
 	// 测试3：连接数为0（仅验证连接结果，移除连接池参数断言）
-	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:5432", "test", 0, 0)
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "test", 0, 0)
 	if err == nil {
 		_ = engine.Close()
 	}
 
 	// 测试4：连接数为负数（仅验证连接结果，移除连接池参数断言）
-	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:5432", "test", -8, -16)
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "test", -8, -16)
 	if err == nil {
 		_ = engine.Close()
 	}
