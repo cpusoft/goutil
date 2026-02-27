@@ -125,7 +125,7 @@ func NewCtxWithValueDefault() context.Context {
 	// 修复：处理Snowflake ID生成错误，避免空值
 	traceId, err := idutil.GenerateSnowflakeString(time.Now().UnixNano())
 	if err != nil {
-		belogs.Warn("NewCtxWithValueDefault(): generate traceId fail:", err)
+		belogs.Error("NewCtxWithValueDefault(): generate traceId fail:", err)
 		// 降级方案：使用随机ID保证非空
 		traceId = uuidutil.GetUuid() // 生成一个随机UUID作为traceId，确保不为空
 	}
@@ -133,7 +133,7 @@ func NewCtxWithValueDefault() context.Context {
 
 	opLogId, err := idutil.GenerateSnowflakeString(time.Now().UnixNano() + 1)
 	if err != nil {
-		belogs.Warn("NewCtxWithValueDefault(): generate opLogId fail:", err)
+		belogs.Error("NewCtxWithValueDefault(): generate opLogId fail:", err)
 		opLogId = uuidutil.GetUuid()
 	}
 	m["opLogId"] = opLogId

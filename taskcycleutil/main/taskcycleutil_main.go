@@ -119,7 +119,7 @@ func downloadTaskExecuteFunc(ctx context.Context, task *taskcycleutil.Task) (boo
 			successCount++
 			break
 		}
-		belogs.Warn(fmt.Sprintf("download failed: %s (retry: %d): %v", url, i, err))
+		belogs.Info(fmt.Sprintf("download failed: %s (retry: %d): %v", url, i, err))
 
 		// 最后一次重试失败，记录失败URL
 		if i == downloadTaskConfig.RetryCount {

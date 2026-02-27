@@ -373,7 +373,7 @@ func VerifyCrlByX509(cerFile, crlFile string) (result string, err error) {
 	certIssuer := cer.Issuer.String()
 	crlIssuer := crl.Issuer.String() // 新结构直接访问 Issuer
 	if certIssuer != crlIssuer {
-		belogs.Warn("VerifyCrlByX509(): CRL issuer does not match certificate issuer",
+		belogs.Error("VerifyCrlByX509(): CRL issuer does not match certificate issuer",
 			" certIssuer:", certIssuer, " crlIssuer:", crlIssuer)
 		return "fail", fmt.Errorf("CRL issuer mismatch: cert issuer=%s, crl issuer=%s", certIssuer, crlIssuer)
 	}

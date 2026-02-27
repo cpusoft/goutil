@@ -69,11 +69,11 @@ func ParseTime(s string, timeLayout string) (tm time.Time, err error) {
 func CompareTimeRange(srcNotBefore, srcNotAfter, dstNotBefore, dstNotAfter time.Time) int {
 	// 先校验入参合法性（起始时间不能晚于结束时间）
 	if srcNotBefore.After(srcNotAfter) {
-		belogs.Warn("CompareTimeRange(): src time range is invalid, notBefore after notAfter")
+		belogs.Info("CompareTimeRange(): src time range is invalid, notBefore after notAfter")
 		return 0
 	}
 	if dstNotBefore.After(dstNotAfter) {
-		belogs.Warn("CompareTimeRange(): dst time range is invalid, notBefore after notAfter")
+		belogs.Info("CompareTimeRange(): dst time range is invalid, notBefore after notAfter")
 		return 0
 	}
 

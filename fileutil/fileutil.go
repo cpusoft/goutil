@@ -107,7 +107,7 @@ func WriteBytesToFile(file string, bytes []byte) (err error) {
 	}
 
 	if _, err := os.Stat(file); err == nil {
-		belogs.Warn("WriteBytesToFile(): file already exists, will overwrite:", file)
+		belogs.Info("WriteBytesToFile(): file already exists, will overwrite:", file)
 	}
 
 	return os.WriteFile(file, bytes, FileModeReadWrite)

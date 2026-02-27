@@ -162,7 +162,7 @@ func DecodeOid(data []byte) (ret string) {
 		if f >= 0x80 {
 			// 检查溢出风险
 			if tmp > math.MaxUint32>>7 {
-				belogs.Warn("DecodeOid(): potential overflow when parsing OID byte")
+				belogs.Info("DecodeOid(): potential overflow when parsing OID byte")
 				tmp = 0
 				continue
 			}
@@ -234,14 +234,14 @@ func DecodeInteger(data []byte) (ret uint64) {
 	}
 	// 检查溢出风险
 	if len(data) > 8 {
-		belogs.Warn("DecodeInteger(): input too long, potential overflow")
+		belogs.Info("DecodeInteger(): input too long, potential overflow")
 		return 0
 	}
 
 	for _, i := range data {
 		// 溢出检查
 		if ret > (math.MaxUint64-uint64(i))/256 {
-			belogs.Warn("DecodeInteger(): integer overflow detected")
+			belogs.Info("DecodeInteger(): integer overflow detected")
 			return 0
 		}
 		ret = ret*256 + uint64(i)

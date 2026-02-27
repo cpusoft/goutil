@@ -262,7 +262,7 @@ func (f *TaskFramework) executeTask(task *Task) {
 		task.FailReason = "framework stopped"
 		task.FailCount++
 		f.mu.Unlock()
-		belogs.Warn("executeTask(): framework stopped for task ", task.Key)
+		belogs.Info("executeTask(): framework stopped for task ", task.Key)
 
 	case <-ctx.Done():
 		// 任务超时（需求3）
@@ -274,7 +274,7 @@ func (f *TaskFramework) executeTask(task *Task) {
 		task.FailReason = fmt.Sprintf("timeout (max %v): %v", f.config.MaxTimeout, ctx.Err())
 		task.FailCount++
 		f.mu.Unlock()
-		belogs.Warn("executeTask(): timeout for task ", task.Key, ": ", task.FailReason)
+		belogs.Info("executeTask(): timeout for task ", task.Key, ": ", task.FailReason)
 
 	case res := <-resultChan:
 		// 任务执行完成（需求2）
@@ -311,7 +311,7 @@ func (f *TaskFramework) executeTask(task *Task) {
 			task.FailTime = &now
 			task.FailReason = res.err.Error()
 			task.FailCount++
-			belogs.Warn("executeTask(): fail for task ", task.Key, ": ", res.err)
+			belogs.Info("executeTask(): fail for task ", task.Key, ": ", res.err)
 		}
 		f.mu.Unlock()
 	}
