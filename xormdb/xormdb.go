@@ -212,9 +212,12 @@ func InitPostgreSQLParameter(user, password, server, database string, maxidlecon
 // //////////////////////////////////
 // Session utils
 func NewSession() (*xorm.Session, error) {
+	if XormEngine == nil {
+		return nil, errors.New("xorm engine is not initialized")
+	}
 	session := XormEngine.NewSession()
 	if err := session.Begin(); err != nil {
-		return nil, RollbackAndLogError(session, "session.Begin() fail", err)
+		return nil, RollbackAndLogError(session, "NewSession() fail", err)
 	}
 	return session, nil
 }

@@ -9,6 +9,8 @@ import (
 )
 
 // ======================== 全局测试准备 ========================
+// export CGO_ENABLED=1
+//
 // 兼容 *testing.T 和 *testing.B，清理测试资源
 func cleanTestResource(t testing.TB) {
 	if XormEngine != nil {
@@ -142,7 +144,7 @@ func TestInitSqliteParameter_Critical(t *testing.T) {
 	assert.Contains(t, err.Error(), "maxidleconns or maxopenconns is negative")
 
 	// 测试4：非法路径（无权限目录）
-	invalidPath := "/root/test_sqlite.db" // 普通用户无权限
+	invalidPath := "/dev/null/test_sqlite.db" // root也无权限
 	engine, err = InitSqliteParameter(invalidPath, 5, 10)
 	assert.Error(t, err, "非法路径应返回错误")
 	assert.Nil(t, engine, "非法路径时engine应为nil")
