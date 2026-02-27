@@ -46,76 +46,75 @@ func ForceTestHashPassword(hashPassword, salt string, dictFilePathName string) (
 	// 3. 并发控制：保留原500并发限制
 	concurrencyCh := make(chan struct{}, 500) // 改用struct{}节省内存
 
-	// 4. 监听结果：找到密码后立即触发终止逻辑
-	go func() {
-		select {
-		case password = <-resultCh: // 接收匹配的密码
-			belogs.Debug("ForceTestHashPassword(): found password:", password)
-			cancel() // 终止所有协程+停止读取文件
-		case <-ctx.Done(): // 上下文取消（如函数退出）
-		}
-		close(resultCh)
-	}()
-
 	// 5. 逐行读取文件，边读边启动协程匹配
 	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		// 优先检查：已找到密码则停止读取文件
-		select {
-		case <-ctx.Done():
-			break // 退出文件读取循环
-		default:
-		}
-
-		// 读取当前行，去除首尾空格
-		line := scanner.Text()
-		testPassword := strings.TrimSpace(line)
-		if testPassword == "" { // 跳过空行
-			continue
-		}
-
-		// 占用并发槽位，控制最大并发数
-		concurrencyCh <- struct{}{}
-		wg.Add(1)
-
-		// 启动协程匹配密码：修复闭包变量问题（传入当前行的testPassword）
-		go func(pwd string) {
-			defer func() {
-				<-concurrencyCh // 释放并发槽位
-				wg.Done()       // 标记协程完成
-			}()
-
-			// 优先检查：上下文已取消则直接退出，不执行验证
+	go func() {
+		for scanner.Scan() {
+			// 优先检查：已找到密码则停止读取文件
 			select {
 			case <-ctx.Done():
-				return
+				return // 退出读取协程，不再创建新协程
 			default:
 			}
 
-			// 密码匹配逻辑
-			isPass := VerifyHashPassword(pwd, salt, hashPassword)
-			if isPass {
-				// 非阻塞写入结果（避免多个协程同时写入）
+			// 读取当前行，去除首尾空格
+			line := scanner.Text()
+			testPassword := strings.TrimSpace(line)
+			if testPassword == "" { // 跳过空行
+				continue
+			}
+
+			// 占用并发槽位，控制最大并发数
+			concurrencyCh <- struct{}{}
+			wg.Add(1)
+
+			// 启动协程匹配密码：修复闭包变量问题（传入当前行的testPassword）
+			go func(pwd string) {
+				defer func() {
+					<-concurrencyCh // 释放并发槽位
+					wg.Done()       // 标记协程完成
+				}()
+
+				// 优先检查：上下文已取消则直接退出，不执行验证
 				select {
-				case resultCh <- pwd:
+				case <-ctx.Done():
+					return
 				default:
 				}
-				cancel() // 立即终止所有未完成的协程
-			}
-		}(testPassword) // 传入当前行的密码，修复闭包陷阱
+
+				// 密码匹配逻辑
+				isPass := VerifyHashPassword(pwd, salt, hashPassword)
+				if isPass {
+					// 非阻塞写入结果（避免多个协程同时写入）
+					select {
+					case resultCh <- pwd:
+						cancel() // 立即终止所有未完成的协程
+					default:
+					}
+				}
+			}(testPassword) // 传入当前行的密码，修复闭包陷阱
+		}
+
+		// 读取完成后等待所有协程结束，然后关闭resultCh
+		wg.Wait()
+		close(resultCh)
+	}()
+
+	// 4. 主流程阻塞等待结果：优先接收匹配的密码，再处理其他情况
+	select {
+	case password = <-resultCh: // 接收到匹配的密码
+		belogs.Debug("ForceTestHashPassword(): found password:", password)
+	case <-ctx.Done(): // 上下文取消（如主动终止）
+		// 无结果时password保持空
 	}
 
 	// 检查文件读取过程中是否出错
 	if err = scanner.Err(); err != nil {
 		belogs.Error("ForceTestHashPassword(): Scan file fail, dictFilePathName:", dictFilePathName, err)
-		cancel() // 读取出错时终止所有协程
-		wg.Wait()
-		close(concurrencyCh)
+		cancel()
 		return "", err
 	}
 
-	// 6. 等待所有协程完成，确保资源释放
-	wg.Wait()
 	close(concurrencyCh) // 关闭并发控制通道
 	return password, nil
 }
