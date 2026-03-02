@@ -27,11 +27,11 @@ const (
 	TaskResultFail TaskResult = "fail" // 执行失败
 )
 
-type AddTaskMode int
+type AddTaskMode string
 
 const (
-	AddTaskModeRecursive AddTaskMode = 1 // 递归模式：从成功任务生成新任务并立即执行
-	AddTaskModeExternal  AddTaskMode = 2 // 外部模式：外部注入任务，待下周期执行
+	AddTaskModeRecursive AddTaskMode = "recursive" // 递归模式：从成功任务生成新任务并立即执行
+	AddTaskModeExternal  AddTaskMode = "external"  // 外部模式：外部注入任务，待下周期执行
 )
 
 // ========== 配置结构体定义 ==========
