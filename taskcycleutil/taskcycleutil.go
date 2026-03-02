@@ -281,7 +281,7 @@ func (f *TaskFramework) executeTask(task *Task) {
 		f.mu.Lock()
 		now := time.Now()
 		if res.success {
-			// 执行成功
+			// 执行成功，原任务进入completed状态，记录成功时间和次数，下30分钟继续执行
 			task.State = TaskStateCompleted
 			task.Result = TaskResultOK
 			task.SuccessTime = &now
@@ -290,12 +290,7 @@ func (f *TaskFramework) executeTask(task *Task) {
 
 			// 递归模式：生成新任务（需求4.2）
 			if f.config.Mode == AddTaskModeRecursive && f.generateFunc != nil {
-				// 1. 原任务改回待执行（下周期处理）
-				task.State = TaskStatePending
-				task.Result = "" // 清空结果，等待下周期
-				task.SuccessTime = nil
 
-				// 2. 生成新任务并立即执行
 				// 拷贝任务数据（避免锁持有过久）
 				taskCopy := *task
 				go func() {
@@ -375,12 +370,13 @@ func (f *TaskFramework) runCycle() {
 		}
 		// 仅处理 pending 或 completed 状态的任务
 		if task.State == TaskStatePending || task.State == TaskStateCompleted {
+			belogs.Debug("runCycle(): task will add to run: ", task.Key, " state: ", task.State)
 			tasksToRun = append(tasksToRun, task)
 		}
 	}
 	f.mu.RUnlock()
 
-	belogs.Info("runCycle(): found ", len(tasksToRun), " tasks to run (pending/completed)")
+	belogs.Info("runCycle(): found len(tasksToRun):", len(tasksToRun), " tasks to run (pending/completed)")
 
 	// 2. 将任务改为 running 并异步执行
 	for _, task := range tasksToRun {
@@ -414,6 +410,7 @@ func (f *TaskFramework) checkCycleTasks(cycleStart time.Time) {
 	runningTasks := make([]*Task, 0)
 	for _, task := range f.tasks {
 		if task.State == TaskStateRunning {
+			belogs.Debug("checkCycleTasks(): task still running: ", task.Key)
 			runningTasks = append(runningTasks, task)
 		}
 	}
@@ -429,6 +426,7 @@ func (f *TaskFramework) checkCycleTasks(cycleStart time.Time) {
 			if task.State == TaskStateCompleted && task.Result == TaskResultOK && task.SuccessTime != nil {
 				// 判断是否在本周期前10分钟内完成
 				if task.SuccessTime.After(cycleStart) && task.SuccessTime.Before(cycleStart.Add(f.config.CheckInterval)) {
+					belogs.Debug("checkCycleTasks(): task completed successfully in this cycle: ", task.Key)
 					completedSuccessTasks = append(completedSuccessTasks, task)
 				}
 			}
