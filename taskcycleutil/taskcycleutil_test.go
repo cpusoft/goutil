@@ -162,28 +162,39 @@ func TestForbiddenKeys(t *testing.T) {
 
 	// 测试1：添加禁止Key
 	fw.AddForbiddenKeys("key1", "key2", "") // 空key忽略
+	t.Log("after add forbiddenkeys")
 	fw.mu.RLock()
+	t.Log("after RLock")
 	defer fw.mu.RUnlock()
+	t.Log("after defer RUnlock")
 	if _, exists := fw.forbiddenKeys["key1"]; !exists {
 		t.Error("AddForbiddenKeys() key1 not added")
 	}
+	t.Log("after key1")
+
 	if _, exists := fw.forbiddenKeys["key2"]; !exists {
 		t.Error("AddForbiddenKeys() key2 not added")
 	}
+	t.Log("after key2")
+
 	if _, exists := fw.forbiddenKeys[""]; exists {
 		t.Error("AddForbiddenKeys() empty key should be ignored")
 	}
+	t.Log("after key empty")
 
 	// 测试2：移除禁止Key
 	fw.RemoveForbiddenKeys("key1", "key3") // key3不存在
+	t.Log("after rm forbiddenkeys")
 	fw.mu.RLock()
 	defer fw.mu.RUnlock()
 	if _, exists := fw.forbiddenKeys["key1"]; exists {
 		t.Error("RemoveForbiddenKeys() key1 not removed")
 	}
+	t.Log("after key1 again")
 	if _, exists := fw.forbiddenKeys["key2"]; !exists {
 		t.Error("RemoveForbiddenKeys() key2 should remain")
 	}
+	t.Log("after key2 again")
 }
 
 // ===================== 任务添加测试（递归模式） =====================
