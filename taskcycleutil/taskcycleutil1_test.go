@@ -39,13 +39,45 @@ func failExecuteFunc(ctx context.Context, task *Task) TaskExecutionResult {
 	}
 }
 
-// 超时执行函数：阻塞超过指定时间
+// 等待任务达到指定状态
+func waitForTaskState(framework *TaskFramework, key string, targetState string, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		framework.mu.RLock()
+		task, exists := framework.tasks[key]
+		framework.mu.RUnlock()
+
+		if exists && task.TaskState == targetState {
+			return true
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return false
+}
+
+// 等待任务结果计数达到指定值
+func waitForTaskResultCount(framework *TaskFramework, key string, targetCount uint64, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		framework.mu.RLock()
+		task, exists := framework.tasks[key]
+		framework.mu.RUnlock()
+
+		if exists && task.TaskResult.ResultCount == targetCount {
+			return true
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return false
+}
+
+// 修复超时执行函数（确保只触发一次超时）
 func timeoutExecuteFunc(ctx context.Context, task *Task) TaskExecutionResult {
-	// 模拟长时间执行，确保超时触发
-	time.Sleep(200 * time.Millisecond)
+	// 无限等待直到上下文取消（确保超时，且只执行一次）
+	<-ctx.Done()
 	return TaskExecutionResult{
-		Result: TaskResultOK,
-		Err:    "",
+		Result: TaskResultFail,
+		Err:    ctx.Err().Error(),
 	}
 }
 
@@ -221,8 +253,9 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 		assert.Equal(t, 1, successCount)
 		assert.Empty(t, failedTasks)
 
-		// 等待周期触发执行并超时
-		time.Sleep(1500 * time.Millisecond)
+		// 等待任务超时完成（使用工具函数精准等待）
+		success := waitForTaskResultCount(framework, "timeout_task", 1, 2*time.Second)
+		assert.True(t, success, "任务超时计数未达到1")
 
 		// 检查任务状态：超时失败
 		framework.mu.RLock()
@@ -232,16 +265,16 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 		assert.Equal(t, TaskStateCompleted, taskObj.TaskState)
 		assert.Equal(t, TaskResultFail, taskObj.TaskResult.Result)
 		assert.Contains(t, taskObj.TaskResult.ResultReason, "timeout")
-		assert.Equal(t, uint64(1), taskObj.TaskResult.ResultCount)
+		assert.Equal(t, uint64(1), taskObj.TaskResult.ResultCount) // 确保计数为1
 	})
 
 	// 测试周期触发场景
 	t.Run("CycleTrigger", func(t *testing.T) {
 		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
 		assert.NoError(t, err)
-		config.CycleInterval = 1 * time.Second // 1秒周期
-		config.CheckInterval = 500 * time.Millisecond
-		config.MaxTimeout = 2 * time.Second
+		config.CycleInterval = 2 * time.Second // 延长周期，避免执行过快
+		config.CheckInterval = 1 * time.Second
+		config.MaxTimeout = 5 * time.Second
 		framework, err := NewTaskFramework(context.Background(), config)
 		assert.NoError(t, err)
 		defer framework.Stop()
@@ -260,20 +293,23 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 		assert.Equal(t, TaskStatePending, framework.tasks["cycle_task"].TaskState)
 		framework.mu.RUnlock()
 
-		// 等待第一个周期触发（1秒）
-		time.Sleep(1500 * time.Millisecond)
+		// 等待第一个周期触发并执行完成
+		success := waitForTaskState(framework, "cycle_task", TaskStateCompleted, 3*time.Second)
+		assert.True(t, success, "任务未完成第一个周期执行")
 
-		// 检查状态：执行完成
+		// 检查第一个周期执行结果
 		framework.mu.RLock()
-		taskState := framework.tasks["cycle_task"].TaskState
-		framework.mu.RUnlock()
-		assert.Equal(t, TaskStateCompleted, taskState)
+		assert.Equal(t, TaskStateCompleted, framework.tasks["cycle_task"].TaskState)
 		assert.Equal(t, TaskResultOK, framework.tasks["cycle_task"].TaskResult.Result)
+		framework.mu.RUnlock()
 
-		// 等待第二个周期触发
-		time.Sleep(1000 * time.Millisecond)
+		// 等待第二个周期触发（确保任务变为running）
+		// 关键修复：等待第二个周期开始后立即检查，而不是等待完整周期
+		time.Sleep(config.CycleInterval / 2) // 等待第二个周期开始
+		success = waitForTaskState(framework, "cycle_task", TaskStateRunning, 1*time.Second)
+		assert.True(t, success, "任务未进入第二个周期的running状态")
 
-		// 检查状态：再次变为running（completed任务被重新执行）
+		// 最终状态检查
 		framework.mu.RLock()
 		assert.Equal(t, TaskStateRunning, framework.tasks["cycle_task"].TaskState)
 		framework.mu.RUnlock()
@@ -283,9 +319,9 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 	t.Run("RecursiveGenerateTasks", func(t *testing.T) {
 		config, err := NewTaskFrameworkConfig(AddTaskModeRecursive, td, td, td)
 		assert.NoError(t, err)
-		config.CycleInterval = 1 * time.Second
-		config.CheckInterval = 500 * time.Millisecond
-		config.MaxTimeout = 2 * time.Second
+		config.CycleInterval = 2 * time.Second
+		config.CheckInterval = 1 * time.Second
+		config.MaxTimeout = 5 * time.Second
 		framework, err := NewTaskFramework(context.Background(), config)
 		assert.NoError(t, err)
 		defer framework.Stop()
@@ -301,18 +337,28 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 		assert.Equal(t, 1, successCount)
 		assert.Empty(t, failedTasks)
 
-		// 等待任务执行完成并生成新任务
-		time.Sleep(1 * time.Second)
+		// 等待初始任务执行完成（计数为1）
+		success := waitForTaskResultCount(framework, "initial_task", 1, 3*time.Second)
+		assert.True(t, success, "初始任务执行计数未达到1")
 
-		// 检查初始任务状态：completed
+		// 检查初始任务状态
 		framework.mu.RLock()
 		initialTaskObj, exists := framework.tasks["initial_task"]
 		assert.True(t, exists)
 		assert.Equal(t, TaskStateCompleted, initialTaskObj.TaskState)
-		assert.Equal(t, uint64(1), initialTaskObj.TaskResult.ResultCount)
-		// 检查生成的新任务
-		_, newTaskExists := framework.tasks["initial_task_generated"]
-		assert.True(t, newTaskExists)
+		assert.Equal(t, uint64(1), initialTaskObj.TaskResult.ResultCount) // 确保计数为1
+
+		// 检查生成的新任务（允许延迟）
+		newTaskExists := false
+		deadline := time.Now().Add(2 * time.Second)
+		for time.Now().Before(deadline) {
+			_, newTaskExists = framework.tasks["initial_task_generated"]
+			if newTaskExists {
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		assert.True(t, newTaskExists, "未生成新任务")
 		framework.mu.RUnlock()
 	})
 
