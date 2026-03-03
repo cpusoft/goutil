@@ -185,8 +185,6 @@ func TestForbiddenKeys(t *testing.T) {
 	// 测试2：移除禁止Key
 	fw.RemoveForbiddenKeys("key1", "key3") // key3不存在
 	t.Log("after rm forbiddenkeys")
-	fw.mu.RLock()
-	defer fw.mu.RUnlock()
 	if _, exists := fw.forbiddenKeys["key1"]; exists {
 		t.Error("RemoveForbiddenKeys() key1 not removed")
 	}
