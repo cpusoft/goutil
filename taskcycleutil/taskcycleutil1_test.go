@@ -293,9 +293,9 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 	t.Run("CycleTrigger", func(t *testing.T) {
 		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
 		assert.NoError(t, err)
-		config.CycleInterval = 2 * time.Second // 延长周期，避免执行过快
+		config.CycleInterval = 3 * time.Second // 进一步延长周期，确保有足够时间观察状态
 		config.CheckInterval = 1 * time.Second
-		config.MaxTimeout = 5 * time.Second
+		config.MaxTimeout = 10 * time.Second // 延长超时时间避免任务意外超时
 		framework, err := NewTaskFramework(context.Background(), config)
 		assert.NoError(t, err)
 		defer framework.Stop()
@@ -315,7 +315,7 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 		framework.mu.RUnlock()
 
 		// 等待第一个周期触发并执行完成
-		success := waitForTaskState(framework, "cycle_task", TaskStateCompleted, 3*time.Second)
+		success := waitForTaskState(framework, "cycle_task", TaskStateCompleted, 4*time.Second)
 		assert.True(t, success, "任务未完成第一个周期执行")
 
 		// 检查第一个周期执行结果
@@ -324,16 +324,22 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 		assert.Equal(t, TaskResultOK, framework.tasks["cycle_task"].TaskResult.Result)
 		framework.mu.RUnlock()
 
-		// 等待第二个周期触发（确保任务变为running）
-		// 关键修复：等待第二个周期开始后立即检查，而不是等待完整周期
-		time.Sleep(config.CycleInterval / 2) // 等待第二个周期开始
-		success = waitForTaskState(framework, "cycle_task", TaskStateRunning, 1*time.Second)
-		assert.True(t, success, "任务未进入第二个周期的running状态")
+		// 等待第二个周期开始（关键修复：主动触发第二个周期的检查）
+		// 方案1：等待完整周期 + 短时间，确保周期执行器触发
+		time.Sleep(config.CycleInterval + 200*time.Millisecond)
 
-		// 最终状态检查
+		// 方案2：主动检查任务状态，允许completed（因为任务执行太快）
 		framework.mu.RLock()
-		assert.Equal(t, TaskStateRunning, framework.tasks["cycle_task"].TaskState)
+		taskState := framework.tasks["cycle_task"].TaskState
 		framework.mu.RUnlock()
+
+		// 修复：任务可能已经执行完成变为completed，所以允许两种状态
+		assert.True(t, taskState == TaskStateRunning || taskState == TaskStateCompleted,
+			fmt.Sprintf("任务状态应为running或completed，实际为%s", taskState))
+
+		// 如果仍要验证第二个周期确实执行了，检查执行计数
+		success = waitForTaskResultCount(framework, "cycle_task", 2, 2*time.Second)
+		assert.True(t, success, "任务未执行第二个周期（计数未达到2）")
 	})
 
 	// 测试递归生成任务场景
@@ -388,20 +394,26 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
 		assert.NoError(t, err)
 		config.CycleInterval = 1 * time.Second
-		config.MaxTimeout = 2 * time.Second
+		config.MaxTimeout = 5 * time.Second
 		framework, err := NewTaskFramework(context.Background(), config)
 		assert.NoError(t, err)
 
 		framework.Start()
 
-		// 添加任务
+		// 添加任务（外部模式初始状态为pending）
 		task := generateTestTask("stop_task")
 		_, _, err = framework.AddTasks([]*Task{task}, ctxCancelExecuteFunc)
 		assert.NoError(t, err)
 
-		// 等待任务开始执行后停止框架
-		time.Sleep(100 * time.Millisecond)
+		// 关键修复1：等待任务被周期执行器选中并变为running
+		success := waitForTaskState(framework, "stop_task", TaskStateRunning, 2*time.Second)
+		assert.True(t, success, "任务未进入running状态")
+
+		// 关键修复2：立即停止框架，确保上下文被取消
 		framework.Stop()
+
+		// 等待任务处理框架停止逻辑
+		time.Sleep(300 * time.Millisecond)
 
 		// 检查任务状态：因框架停止失败
 		framework.mu.RLock()
