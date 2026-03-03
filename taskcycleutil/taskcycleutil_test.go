@@ -410,9 +410,12 @@ func TestExecuteTask_FrameworkStop(t *testing.T) {
 		t.Fatalf("AddTasks() error: %v", err)
 	}
 
-	// 立即停止框架
-	cancel()
+	// 关键修复：先调用Stop()（让框架主动标记任务状态），再取消context
 	fw.Stop()
+	cancel() // 再取消context，避免goroutine泄漏
+
+	// 等待任务状态更新（短暂休眠，确保异步逻辑执行完成）
+	time.Sleep(100 * time.Millisecond)
 
 	// 验证结果
 	fw.mu.RLock()
