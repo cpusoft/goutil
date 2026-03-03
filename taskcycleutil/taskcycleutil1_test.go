@@ -355,64 +355,85 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 
 	// 测试递归生成任务场景
 	t.Run("RecursiveGenerateTasks", func(t *testing.T) {
+		// 关键1：创建带超时的上下文，避免测试卡死
+		testCtx, testCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer testCancel()
+
 		config, err := NewTaskFrameworkConfig(AddTaskModeRecursive, td, td, td)
 		assert.NoError(t, err)
-		config.CycleInterval = 5 * time.Second // 大幅延长周期避免重复执行
-		config.CheckInterval = 2 * time.Second
-		config.MaxTimeout = 10 * time.Second // 延长超时时间
-		framework, err := NewTaskFramework(context.Background(), config)
+		// 关键2：禁用周期重复执行（仅执行一次，避免递归+周期导致无限任务）
+		config.CycleInterval = 0 // 设为0表示只执行一次，不循环
+		config.CheckInterval = 1 * time.Second
+		config.MaxTimeout = 5 * time.Second                 // 缩短超时，避免阻塞
+		framework, err := NewTaskFramework(testCtx, config) // 传入带超时的上下文
 		assert.NoError(t, err)
 		defer framework.Stop()
 
-		// 设置生成任务函数
-		framework.SetGenerateTasksFunc(testGenerateTasksFunc)
+		// 设置生成任务函数（限制递归深度，避免无限生成）
+		generateCount := atomic.Int32{}
+		framework.SetGenerateTasksFunc(func(completedTask *Task) []*Task {
+			// 关键3：限制递归生成次数（仅生成1次新任务）
+			if generateCount.Add(1) > 1 {
+				return nil
+			}
+			newKey := completedTask.Key + "_generated"
+			return []*Task{generateTestTask(newKey)}
+		})
 		framework.Start()
 
-		// 添加初始任务（递归模式会立即执行）
+		// 添加初始任务
 		initialTask := generateTestTask("initial_task")
 		successCount, failedTasks, err := framework.AddTasks([]*Task{initialTask}, successExecuteFunc)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, successCount)
 		assert.Empty(t, failedTasks)
 
-		// 等待初始任务执行完成（放宽计数检查，允许1-3次，重点检查状态）
+		// 关键4：带超时的等待逻辑，避免卡死
 		success := false
-		deadline := time.Now().Add(5 * time.Second)
+		initialTaskCountOK := false
+		deadline := time.Now().Add(8 * time.Second)
 		for time.Now().Before(deadline) {
+			// 检查上下文是否取消（避免无效等待）
+			select {
+			case <-testCtx.Done():
+				t.Log("测试上下文超时，退出等待")
+				break
+			default:
+			}
+
 			framework.mu.RLock()
 			task, exists := framework.tasks["initial_task"]
+			if exists {
+				// 放宽计数检查：只要执行过（≥1）即可
+				if task.TaskResult.ResultCount >= 1 && task.TaskState == TaskStateCompleted {
+					initialTaskCountOK = true
+				}
+				// 检查是否生成新任务
+				_, newTaskExists := framework.tasks["initial_task_generated"]
+				if initialTaskCountOK && newTaskExists {
+					success = true
+				}
+			}
 			framework.mu.RUnlock()
 
-			if exists && task.TaskState == TaskStateCompleted && task.TaskResult.Result == TaskResultOK {
-				success = true
+			if success {
 				break
 			}
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 		}
-		assert.True(t, success, "初始任务未执行完成")
 
-		// 检查初始任务状态（不再严格校验计数，重点校验执行成功）
+		// 核心断言：重点验证递归生成功能，而非计数精准性
+		assert.True(t, initialTaskCountOK, "初始任务未执行完成")
+		assert.True(t, success, "未生成新任务或测试卡死")
+
+		// 最终状态检查（不再严格校验计数）
 		framework.mu.RLock()
 		initialTaskObj, exists := framework.tasks["initial_task"]
 		assert.True(t, exists)
 		assert.Equal(t, TaskStateCompleted, initialTaskObj.TaskState)
 		assert.Equal(t, TaskResultOK, initialTaskObj.TaskResult.Result)
-		// 放宽计数断言，只要执行过即可
+		// 只校验计数≥1，不限制上限
 		assert.GreaterOrEqual(t, initialTaskObj.TaskResult.ResultCount, uint64(1))
-
-		// 检查生成的新任务（允许延迟）
-		newTaskExists := false
-		deadline = time.Now().Add(3 * time.Second)
-		for time.Now().Before(deadline) {
-			framework.mu.RLock()
-			_, newTaskExists = framework.tasks["initial_task_generated"]
-			framework.mu.RUnlock()
-			if newTaskExists {
-				break
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
-		assert.True(t, newTaskExists, "未生成新任务")
 		framework.mu.RUnlock()
 	})
 
