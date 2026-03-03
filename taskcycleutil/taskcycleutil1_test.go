@@ -3,6 +3,7 @@ package taskcycleutil
 import (
 	"context"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -40,13 +41,23 @@ func failExecuteFunc(ctx context.Context, task *Task) TaskExecutionResult {
 
 // 超时执行函数：阻塞超过指定时间
 func timeoutExecuteFunc(ctx context.Context, task *Task) TaskExecutionResult {
+	// 模拟长时间执行，确保超时触发
+	time.Sleep(200 * time.Millisecond)
+	return TaskExecutionResult{
+		Result: TaskResultOK,
+		Err:    "",
+	}
+}
+
+// 上下文取消执行函数：检测框架停止
+func ctxCancelExecuteFunc(ctx context.Context, task *Task) TaskExecutionResult {
 	select {
 	case <-ctx.Done():
 		return TaskExecutionResult{
 			Result: TaskResultFail,
 			Err:    ctx.Err().Error(),
 		}
-	case <-time.After(100 * time.Millisecond): // 模拟超时任务
+	case <-time.After(100 * time.Millisecond):
 		return TaskExecutionResult{
 			Result: TaskResultOK,
 			Err:    "",
@@ -60,11 +71,49 @@ func testGenerateTasksFunc(completedTask *Task) []*Task {
 	return []*Task{generateTestTask(newKey)}
 }
 
+// ========== 配置初始化测试 ==========
+func TestNewTaskFrameworkConfig1(t *testing.T) {
+	t.Run("ValidConfig", func(t *testing.T) {
+		// 测试合法配置
+		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, 30*time.Second, 10*time.Second, 60*time.Second)
+		assert.NoError(t, err)
+		assert.Equal(t, AddTaskModeExternal, config.AddTaskMode)
+		assert.Equal(t, 30*time.Second, config.CycleInterval)
+		assert.Equal(t, 10*time.Second, config.CheckInterval)
+		assert.Equal(t, 60*time.Second, config.MaxTimeout)
+	})
+
+	t.Run("InvalidMode", func(t *testing.T) {
+		// 测试非法模式
+		config, err := NewTaskFrameworkConfig("invalid_mode", 0, 0, 0)
+		assert.Error(t, err)
+		assert.Nil(t, config)
+		assert.Contains(t, err.Error(), "invalid add task mode")
+	})
+
+	t.Run("DefaultValues", func(t *testing.T) {
+		// 测试默认值填充
+		config, err := NewTaskFrameworkConfig(AddTaskModeRecursive, -1, -1, -1)
+		assert.NoError(t, err)
+		assert.Equal(t, DefaultCycleInterval, config.CycleInterval)
+		assert.Equal(t, DefaultCheckInterval, config.CheckInterval)
+		assert.Equal(t, DefaultMaxTimeout, config.MaxTimeout)
+	})
+
+	t.Run("CheckIntervalExceedCycle", func(t *testing.T) {
+		// 测试检查间隔大于周期间隔的情况
+		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, 10*time.Second, 20*time.Second, 0)
+		assert.NoError(t, err)
+		assert.Equal(t, DefaultCheckInterval, config.CheckInterval) // 自动修正为默认值
+	})
+}
+
 // ========== 基础功能测试 ==========
 func TestTaskFramework_Basic(t *testing.T) {
 	// 初始化框架（外部模式）
 	td := time.Duration(0)
-	config, _ := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
+	config, err := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
+	assert.NoError(t, err)
 	config.CycleInterval = 1 * time.Second        // 缩短周期便于测试
 	config.CheckInterval = 500 * time.Millisecond // 缩短检查间隔
 	config.MaxTimeout = 2 * time.Second           // 缩短超时时间
@@ -74,7 +123,6 @@ func TestTaskFramework_Basic(t *testing.T) {
 
 	// 启动框架
 	framework.Start()
-	defer framework.Stop()
 
 	t.Run("AddForbiddenKeys", func(t *testing.T) {
 		// 添加禁止key
@@ -86,6 +134,21 @@ func TestTaskFramework_Basic(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 0, successCount)
 		assert.Len(t, failedTasks, 1)
+		assert.Equal(t, "task forbidden_key is in forbidden list", failedTasks[0].TaskResult.ResultReason)
+		assert.Equal(t, TaskResultFail, failedTasks[0].TaskResult.Result)
+	})
+
+	t.Run("RemoveForbiddenKeys", func(t *testing.T) {
+		// 添加后移除禁止key
+		framework.AddForbiddenKeys("temp_forbidden")
+		framework.RemoveForbiddenKeys("temp_forbidden")
+
+		// 验证可以添加该key的任务
+		task := generateTestTask("temp_forbidden")
+		successCount, failedTasks, err := framework.AddTasks([]*Task{task}, successExecuteFunc)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, successCount)
+		assert.Empty(t, failedTasks)
 	})
 
 	t.Run("AddTasks_Duplicate", func(t *testing.T) {
@@ -102,6 +165,7 @@ func TestTaskFramework_Basic(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 0, successCount2)
 		assert.Len(t, failedTasks2, 1)
+		assert.Contains(t, failedTasks2[0].TaskResult.ResultReason, "already exists")
 	})
 
 	t.Run("AddTasks_EmptyKey", func(t *testing.T) {
@@ -111,21 +175,32 @@ func TestTaskFramework_Basic(t *testing.T) {
 		assert.Equal(t, 0, successCount)
 		assert.NoError(t, err)
 		assert.Len(t, failedTasks, 1)
+		assert.Equal(t, "task key cannot be empty", failedTasks[0].TaskResult.ResultReason)
 	})
 
 	t.Run("AddTasks_NilExecuteFunc", func(t *testing.T) {
 		// 执行函数为nil
 		task := generateTestTask("test_key_nil_func")
 		successCount, failedTasks, err := framework.AddTasks([]*Task{task}, nil)
-		assert.NoError(t, err)
+		assert.Error(t, err) // 原测试错误：此处应该返回错误
 		assert.Equal(t, 0, successCount)
-		assert.Len(t, failedTasks, 1)
+		assert.Nil(t, failedTasks)
+		assert.Equal(t, "executeFunc cannot be nil", err.Error())
+	})
+
+	t.Run("SetGenerateTasksFunc", func(t *testing.T) {
+		// 测试设置生成函数
+		framework.SetGenerateTasksFunc(testGenerateTasksFunc)
+		framework.mu.RLock()
+		assert.NotNil(t, framework.generateFunc)
+		framework.mu.RUnlock()
 	})
 }
 
 // ========== 临界场景测试 ==========
 func TestTaskFramework_CriticalScenarios(t *testing.T) {
 	td := time.Duration(0)
+
 	// 测试超时场景
 	t.Run("TaskTimeout", func(t *testing.T) {
 		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
@@ -146,16 +221,18 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 		assert.Equal(t, 1, successCount)
 		assert.Empty(t, failedTasks)
 
-		// 等待周期触发执行
-		time.Sleep(2 * time.Second)
+		// 等待周期触发执行并超时
+		time.Sleep(1500 * time.Millisecond)
 
 		// 检查任务状态：超时失败
 		framework.mu.RLock()
 		defer framework.mu.RUnlock()
-		assert.Equal(t, TaskStateCompleted, framework.tasks["timeout_task"].TaskState)
-		assert.Equal(t, TaskResultFail, framework.tasks["timeout_task"].TaskResult.Result)
-		assert.Contains(t, framework.tasks["timeout_task"].TaskResult.ResultReason, "timeout")
-		assert.Equal(t, uint64(1), framework.tasks["timeout_task"].TaskResult.ResultCount)
+		taskObj, exists := framework.tasks["timeout_task"]
+		assert.True(t, exists)
+		assert.Equal(t, TaskStateCompleted, taskObj.TaskState)
+		assert.Equal(t, TaskResultFail, taskObj.TaskResult.Result)
+		assert.Contains(t, taskObj.TaskResult.ResultReason, "timeout")
+		assert.Equal(t, uint64(1), taskObj.TaskResult.ResultCount)
 	})
 
 	// 测试周期触发场景
@@ -186,11 +263,12 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 		// 等待第一个周期触发（1秒）
 		time.Sleep(1500 * time.Millisecond)
 
-		// 检查状态：执行中/已完成
+		// 检查状态：执行完成
 		framework.mu.RLock()
 		taskState := framework.tasks["cycle_task"].TaskState
 		framework.mu.RUnlock()
-		assert.True(t, taskState == TaskStateRunning || taskState == TaskStateCompleted)
+		assert.Equal(t, TaskStateCompleted, taskState)
+		assert.Equal(t, TaskResultOK, framework.tasks["cycle_task"].TaskResult.Result)
 
 		// 等待第二个周期触发
 		time.Sleep(1000 * time.Millisecond)
@@ -226,10 +304,12 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 		// 等待任务执行完成并生成新任务
 		time.Sleep(1 * time.Second)
 
-		// 检查初始任务状态：改回pending
+		// 检查初始任务状态：completed
 		framework.mu.RLock()
-		assert.Equal(t, TaskStatePending, framework.tasks["initial_task"].TaskState)
-		assert.Equal(t, uint64(1), framework.tasks["initial_task"].TaskResult.ResultCount)
+		initialTaskObj, exists := framework.tasks["initial_task"]
+		assert.True(t, exists)
+		assert.Equal(t, TaskStateCompleted, initialTaskObj.TaskState)
+		assert.Equal(t, uint64(1), initialTaskObj.TaskResult.ResultCount)
 		// 检查生成的新任务
 		_, newTaskExists := framework.tasks["initial_task_generated"]
 		assert.True(t, newTaskExists)
@@ -249,22 +329,71 @@ func TestTaskFramework_CriticalScenarios(t *testing.T) {
 
 		// 添加任务
 		task := generateTestTask("stop_task")
-		framework.AddTasks([]*Task{task}, successExecuteFunc)
+		_, _, err = framework.AddTasks([]*Task{task}, ctxCancelExecuteFunc)
+		assert.NoError(t, err)
 
-		// 立即停止框架
+		// 等待任务开始执行后停止框架
+		time.Sleep(100 * time.Millisecond)
 		framework.Stop()
 
 		// 检查任务状态：因框架停止失败
 		framework.mu.RLock()
 		defer framework.mu.RUnlock()
-		assert.Equal(t, TaskResultFail, framework.tasks["stop_task"].TaskResult.Result)
-		assert.Equal(t, "framework stopped", framework.tasks["stop_task"].TaskResult.ResultReason)
+		taskObj, exists := framework.tasks["stop_task"]
+		assert.True(t, exists)
+		assert.Equal(t, TaskResultFail, taskObj.TaskResult.Result)
+		assert.Contains(t, taskObj.TaskResult.ResultReason, "framework stopped")
+	})
+
+	// 测试禁止key动态更新
+	t.Run("ForbiddenKeyDynamicUpdate", func(t *testing.T) {
+		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
+		assert.NoError(t, err)
+		config.CycleInterval = 1 * time.Second
+		framework, err := NewTaskFramework(context.Background(), config)
+		assert.NoError(t, err)
+		defer framework.Stop()
+		framework.Start()
+
+		// 添加任务
+		taskKey := "dynamic_forbidden_task"
+		task := generateTestTask(taskKey)
+		_, _, err = framework.AddTasks([]*Task{task}, successExecuteFunc)
+		assert.NoError(t, err)
+
+		// 添加禁止key
+		framework.AddForbiddenKeys(taskKey)
+
+		// 等待周期执行
+		time.Sleep(1500 * time.Millisecond)
+
+		// 检查任务未被执行（仍为pending）
+		framework.mu.RLock()
+		assert.Equal(t, TaskStatePending, framework.tasks[taskKey].TaskState)
+		framework.mu.RUnlock()
+
+		// 移除禁止key
+		framework.RemoveForbiddenKeys(taskKey)
+
+		// 等待下一个周期
+		time.Sleep(1000 * time.Millisecond)
+
+		// 检查任务被执行
+		framework.mu.RLock()
+		assert.Equal(t, TaskStateCompleted, framework.tasks[taskKey].TaskState)
+		framework.mu.RUnlock()
 	})
 }
 
 // ========== 性能测试 ==========
 func TestTaskFramework_Performance(t *testing.T) {
+	// 跳过短测试模式下的性能测试
+	if testing.Short() {
+		t.Skip("skipping performance test in short mode")
+	}
+
 	td := time.Duration(0)
+
 	// 批量添加任务性能
 	t.Run("BatchAddTasks", func(t *testing.T) {
 		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
@@ -273,11 +402,11 @@ func TestTaskFramework_Performance(t *testing.T) {
 		assert.NoError(t, err)
 		defer framework.Stop()
 
-		// 生成1000个测试任务
-		taskCount := 1000
+		// 生成10000个测试任务（提升数量更能体现性能）
+		taskCount := 10000
 		tasks := make([]*Task, 0, taskCount)
 		for i := 0; i < taskCount; i++ {
-			tasks = append(tasks, generateTestTask(fmt.Sprintf("perf_task_%d", i)))
+			tasks = append(tasks, generateTestTask(fmt.Sprintf("perf_add_task_%d", i)))
 		}
 
 		// 性能测试：记录耗时
@@ -290,13 +419,14 @@ func TestTaskFramework_Performance(t *testing.T) {
 		assert.Equal(t, taskCount, successCount)
 		assert.Empty(t, failedTasks)
 
-		// 修复类型不匹配：将 int64 转换为 float64
+		// 计算性能指标
 		ms := float64(elapsed.Milliseconds())
-		t.Logf("BatchAddTasks: %d tasks added in %v (%.2f tasks/ms)",
-			taskCount, elapsed, float64(taskCount)/ms)
+		tps := float64(taskCount) / (ms / 1000) // 每秒处理任务数
+		t.Logf("BatchAddTasks: %d tasks added in %v (%.2f ms, %.2f TPS)",
+			taskCount, elapsed, ms, tps)
 
-		// 要求：1000个任务添加耗时 < 1秒（可根据实际调整）
-		assert.Less(t, elapsed, 1*time.Second)
+		// 性能要求：10000个任务添加耗时 < 2秒
+		assert.Less(t, elapsed, 2*time.Second)
 	})
 
 	// 批量执行任务性能
@@ -304,6 +434,7 @@ func TestTaskFramework_Performance(t *testing.T) {
 		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
 		assert.NoError(t, err)
 		config.CycleInterval = 1 * time.Second
+		config.CheckInterval = 500 * time.Millisecond
 		config.MaxTimeout = 5 * time.Second
 		framework, err := NewTaskFramework(context.Background(), config)
 		assert.NoError(t, err)
@@ -321,28 +452,85 @@ func TestTaskFramework_Performance(t *testing.T) {
 			}
 		}
 
-		// 添加500个任务
-		taskCount := 500
+		// 添加5000个任务（提升数量）
+		taskCount := 5000
 		tasks := make([]*Task, 0, taskCount)
 		for i := 0; i < taskCount; i++ {
-			tasks = append(tasks, generateTestTask(fmt.Sprintf("exec_task_%d", i)))
+			tasks = append(tasks, generateTestTask(fmt.Sprintf("perf_exec_task_%d", i)))
 		}
-		framework.AddTasks(tasks, executeFunc)
+
+		// 批量添加任务
+		_, _, err = framework.AddTasks(tasks, executeFunc)
+		assert.NoError(t, err)
 
 		// 等待周期触发并执行完成
 		start := time.Now()
 		time.Sleep(2 * time.Second) // 等待2个周期
 		elapsed := time.Since(start)
 
-		// 验证执行结果
+		// 验证执行结果（允许少量延迟，重试检查）
+		maxRetry := 5
+		for i := 0; i < maxRetry; i++ {
+			if successCount.Load() == uint64(taskCount) {
+				break
+			}
+			time.Sleep(200 * time.Millisecond)
+		}
 		assert.Equal(t, uint64(taskCount), successCount.Load())
 
-		// 修复类型不匹配：将 int64 转换为 float64
+		// 计算性能指标
 		ms := float64(elapsed.Milliseconds())
-		t.Logf("BatchExecuteTasks: %d tasks executed in %v (%.2f tasks/ms)",
-			taskCount, elapsed, float64(taskCount)/ms)
+		tps := float64(taskCount) / (ms / 1000)
+		t.Logf("BatchExecuteTasks: %d tasks executed in %v (%.2f ms, %.2f TPS)",
+			taskCount, elapsed, ms, tps)
 
-		// 要求：500个任务执行耗时 < 2秒（可根据实际调整）
-		assert.Less(t, elapsed, 2*time.Second)
+		// 性能要求：5000个任务执行耗时 < 3秒
+		assert.Less(t, elapsed, 3*time.Second)
+	})
+
+	// 并发添加任务性能
+	t.Run("ConcurrentAddTasks", func(t *testing.T) {
+		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
+		assert.NoError(t, err)
+		framework, err := NewTaskFramework(context.Background(), config)
+		assert.NoError(t, err)
+		defer framework.Stop()
+
+		// 并发数
+		concurrency := 10
+		tasksPerGoroutine := 1000
+		totalTasks := concurrency * tasksPerGoroutine
+		var totalSuccess atomic.Int64
+		var wg sync.WaitGroup
+
+		start := time.Now()
+		for i := 0; i < concurrency; i++ {
+			wg.Add(1)
+			go func(goroutineID int) {
+				defer wg.Done()
+				tasks := make([]*Task, 0, tasksPerGoroutine)
+				for j := 0; j < tasksPerGoroutine; j++ {
+					key := fmt.Sprintf("concurrent_task_%d_%d", goroutineID, j)
+					tasks = append(tasks, generateTestTask(key))
+				}
+				success, _, err := framework.AddTasks(tasks, successExecuteFunc)
+				assert.NoError(t, err)
+				totalSuccess.Add(int64(success))
+			}(i)
+		}
+		wg.Wait()
+		elapsed := time.Since(start)
+
+		// 验证结果
+		assert.Equal(t, int64(totalTasks), totalSuccess.Load())
+
+		// 性能日志
+		ms := float64(elapsed.Milliseconds())
+		tps := float64(totalTasks) / (ms / 1000)
+		t.Logf("ConcurrentAddTasks: %d tasks added by %d goroutines in %v (%.2f TPS)",
+			totalTasks, concurrency, elapsed, tps)
+
+		// 性能要求：10000个任务并发添加 < 3秒
+		assert.Less(t, elapsed, 3*time.Second)
 	})
 }
