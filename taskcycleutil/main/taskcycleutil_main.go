@@ -170,7 +170,7 @@ func main() {
 	config.CheckInterval = 10 * time.Minute
 
 	// ========== 2. 创建框架实例 ==========
-	framework, err := taskcycleutil.NewTaskFramework(config)
+	framework, err := taskcycleutil.NewTaskFramework(context.Background(), config)
 	if err != nil {
 		belogs.Error("create task framework failed: ", err)
 		os.Exit(1)
