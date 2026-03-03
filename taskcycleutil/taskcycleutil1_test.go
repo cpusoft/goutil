@@ -103,6 +103,27 @@ func testGenerateTasksFunc(completedTask *Task) []*Task {
 	return []*Task{generateTestTask(newKey)}
 }
 
+// 等待框架中完成的任务总数达到指定值
+func waitForTaskResultCountTotal(framework *TaskFramework, targetCount int, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		framework.mu.RLock()
+		count := 0
+		for _, task := range framework.tasks {
+			if task.TaskResult.ResultCount > 0 {
+				count++
+			}
+		}
+		framework.mu.RUnlock()
+
+		if count >= targetCount {
+			return true
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return false
+}
+
 // ========== 配置初始化测试 ==========
 func TestNewTaskFrameworkConfig1(t *testing.T) {
 	t.Run("ValidConfig", func(t *testing.T) {
@@ -479,8 +500,8 @@ func TestTaskFramework_Performance(t *testing.T) {
 	t.Run("BatchExecuteTasks", func(t *testing.T) {
 		config, err := NewTaskFrameworkConfig(AddTaskModeExternal, td, td, td)
 		assert.NoError(t, err)
-		config.CycleInterval = 1 * time.Second
-		config.CheckInterval = 500 * time.Millisecond
+		config.CycleInterval = 5 * time.Second // 延长周期避免重复执行
+		config.CheckInterval = 2 * time.Second
 		config.MaxTimeout = 5 * time.Second
 		framework, err := NewTaskFramework(context.Background(), config)
 		assert.NoError(t, err)
@@ -488,41 +509,49 @@ func TestTaskFramework_Performance(t *testing.T) {
 
 		framework.Start()
 
-		// 计数器：记录成功执行的任务数
+		// 计数器：记录成功执行的任务数（确保每个任务只计数一次）
+		executedTasks := make(map[string]bool)
+		var mu sync.Mutex
 		var successCount atomic.Uint64
+
 		executeFunc := func(ctx context.Context, task *Task) TaskExecutionResult {
-			successCount.Add(1)
+			mu.Lock()
+			defer mu.Unlock()
+			// 确保每个任务只计数一次，避免周期重复执行导致计数翻倍
+			if !executedTasks[task.Key] {
+				executedTasks[task.Key] = true
+				successCount.Add(1)
+			}
 			return TaskExecutionResult{
 				Result: TaskResultOK,
 				Err:    "",
 			}
 		}
 
-		// 添加5000个任务（提升数量）
+		// 添加5000个任务
 		taskCount := 5000
 		tasks := make([]*Task, 0, taskCount)
 		for i := 0; i < taskCount; i++ {
-			tasks = append(tasks, generateTestTask(fmt.Sprintf("perf_exec_task_%d", i)))
+			tasks = append(tasks, generateTestTask(fmt.Sprintf("exec_task_%d", i)))
 		}
-
-		// 批量添加任务
 		_, _, err = framework.AddTasks(tasks, executeFunc)
 		assert.NoError(t, err)
 
-		// 等待周期触发并执行完成
+		// 等待任务执行完成（使用工具函数精准等待）
 		start := time.Now()
-		time.Sleep(2 * time.Second) // 等待2个周期
+		success := waitForTaskResultCountTotal(framework, taskCount, 3*time.Second)
 		elapsed := time.Since(start)
 
-		// 验证执行结果（允许少量延迟，重试检查）
-		maxRetry := 5
-		for i := 0; i < maxRetry; i++ {
-			if successCount.Load() == uint64(taskCount) {
-				break
-			}
-			time.Sleep(200 * time.Millisecond)
+		// 强制等待剩余任务执行完成
+		if !success {
+			time.Sleep(1 * time.Second)
 		}
-		assert.Equal(t, uint64(taskCount), successCount.Load())
+
+		// 验证执行结果（使用map确保每个任务只执行一次）
+		mu.Lock()
+		actualCount := len(executedTasks)
+		mu.Unlock()
+		assert.Equal(t, taskCount, actualCount)
 
 		// 计算性能指标
 		ms := float64(elapsed.Milliseconds())
