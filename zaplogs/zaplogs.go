@@ -37,7 +37,7 @@ func init() {
 	case "LevelError":
 		logLevelStr = "error"
 	case "LevelWarning":
-		fallthrough
+		logLevelStr = "warn"
 	case "LevelNotice":
 		fallthrough
 	case "LevelInformational":
@@ -67,7 +67,7 @@ func init() {
 	}
 	fmt.Println(filePath)
 	lc := logConfig{
-		Level:    logLevelStr, // DEBUG<INFO<WARN<ERROR<FATAL
+		Level:    logLevelStr, // DEBUG<INFO<WARN<ERROR
 		FileName: filePath,
 	}
 	err = initLogger(lc)
@@ -243,6 +243,28 @@ func DebugArgs(ctx context.Context, msg string, args ...interface{}) {
 func DebugLine(ctx context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Debugw(msg + " " + convert.Interfaces2String(args))
+}
+
+// Warn in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
+func WarnFields(ctx context.Context, msg string, fields ...Field) {
+	fields = append(fields, appendZap(ctx)...)
+	logger.Warn(msg, fields...)
+}
+
+// Warn in Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
+func WarnArgs(ctx context.Context, msg string, args ...interface{}) {
+	len := len(args) % 2
+	if len != 0 {
+		args = append(args, " ")
+	}
+	args = append(args, appendInterface(ctx)...)
+	sugaredLogger.Warnw(msg, args...)
+}
+
+// Warn in Line("msg","aaa","bbb", "id",33) -> msg aaa bbb id  33
+func WarnLine(ctx context.Context, msg string, args ...interface{}) {
+	args = append(args, appendInterface(ctx)...)
+	sugaredLogger.Warnw(msg + " " + convert.Interfaces2String(args))
 }
 
 // Info in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]

@@ -17,6 +17,7 @@ const (
 	AddTaskModeRecursive = "recursive" // 递归模式：从成功任务生成新任务并立即执行, 用于从tal递归读取
 	AddTaskModeExternal  = "external"  // 外部模式：外部注入任务，待下周期执行，用于precept动态感知一次性导入
 
+	
 	DefaultCycleInterval = 1800 * time.Second
 	DefaultCheckInterval = 600 * time.Second
 	DefaultMaxTimeout    = 4199 * time.Second // 2*1800+600-1（避免正好70分钟超时）
