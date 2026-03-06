@@ -256,7 +256,6 @@ func TestTCP_NoTLS(t *testing.T) {
 // 测试2: 单向TLS认证（服务端验证，客户端不验证）
 func TestTLS_OneWayAuth(t *testing.T) {
 	cfg := initTestConfig(t)
-	belogs.SetLogLevel("debug")
 
 	// 服务器配置（仅服务端证书，不要求客户端证书）
 	serverTLSConfig := &ServerTLSConfig{
