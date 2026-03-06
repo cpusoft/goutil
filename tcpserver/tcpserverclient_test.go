@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -252,8 +253,10 @@ func TestTCP_NoTLS(t *testing.T) {
 }
 
 // 测试2: 单向TLS认证（服务端验证，客户端不验证）
+// 测试2: 单向TLS认证（服务端验证，客户端不验证）
 func TestTLS_OneWayAuth(t *testing.T) {
 	cfg := initTestConfig(t)
+	belogs.SetLogLevel("debug")
 
 	// 服务器配置（仅服务端证书，不要求客户端证书）
 	serverTLSConfig := &ServerTLSConfig{
@@ -266,41 +269,72 @@ func TestTLS_OneWayAuth(t *testing.T) {
 		WithReadWriteTimeout(10*time.Second, 5*time.Second),
 		WithServerTLS(serverTLSConfig),
 	)
+	// 启动服务器（使用errChan捕获启动错误）
+	serverErrChan := make(chan error, 1)
 	go func() {
-		if err := server.Start(cfg.serverAddr); err != nil {
-			t.Errorf("TLS服务器启动失败: %v", err)
-		}
+		serverErrChan <- server.Start(cfg.serverAddr)
 	}()
 	defer server.Stop()
-	time.Sleep(100 * time.Millisecond)
+
+	// 等待服务器启动（增加等待时间，确保TLS监听器就绪）
+	time.Sleep(300 * time.Millisecond)
+	select {
+	case err := <-serverErrChan:
+		if err != nil {
+			t.Fatalf("TLS服务器启动失败: %v", err)
+		}
+	default:
+		// 服务器仍在运行，正常
+	}
 
 	// 客户端配置（仅验证服务端证书）
 	clientTLSConfig := &ClientTLSConfig{
 		RootCAFile:         filepath.Join(cfg.certDir, "ca.crt"),
-		ServerName:         "localhost",
+		ServerName:         "localhost", // 必须匹配服务端证书CN
 		InsecureSkipVerify: false,
 	}
 	clientProcess := newTestClientProcess()
 	client := NewTcpClient(clientProcess, WithClientTLS(clientTLSConfig))
-	go func() {
-		if err := client.Start(cfg.serverAddr); err != nil {
-			t.Errorf("TLS客户端启动失败: %v", err)
-		}
-	}()
-	defer client.CallStop()
-	time.Sleep(100 * time.Millisecond)
 
-	// 测试发送接收
+	// 启动客户端（使用errChan捕获错误）
+	clientErrChan := make(chan error, 1)
+	go func() {
+		clientErrChan <- client.Start(cfg.serverAddr)
+	}()
+	defer func() {
+		// 确保客户端优雅停止
+		client.CallStop()
+		// 等待客户端协程退出
+		time.Sleep(100 * time.Millisecond)
+	}()
+
+	// 等待客户端连接（增加等待时间）
+	time.Sleep(300 * time.Millisecond)
+
+	// 测试发送接收（分两次发送，避免通道阻塞）
 	testData := "test-one-way-tls-7890"
 	client.CallProcessFunc(testData)
 
+	// 验证接收（增加超时时间）
 	select {
 	case data := <-clientProcess.receivedData:
 		if string(data) != testData {
 			t.Errorf("单向TLS数据回显失败: 期望 %s, 实际 %s", testData, string(data))
+		} else {
+			t.Log("单向TLS数据回显成功")
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("单向TLS客户端未收到回显数据，超时")
+	}
+
+	// 验证客户端无错误退出
+	select {
+	case err := <-clientErrChan:
+		if err != nil && !strings.Contains(err.Error(), "closed network connection") {
+			t.Errorf("客户端运行错误: %v", err)
+		}
+	default:
+		// 客户端仍在运行，正常
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
@@ -34,7 +35,7 @@ func defaultClientTLSConfig() *ClientTLSConfig {
 }
 
 type TcpClient struct {
-	stopChan chan string
+	stopChan chan struct{} // 改为struct{}，仅用于信号，不传递数据
 
 	tcpClientProcessChan chan string
 	tcpClientProcessFunc TcpClientProcessFunc
@@ -44,6 +45,8 @@ type TcpClient struct {
 	isTLS           bool             // 是否启用TLS
 	tlsConn         *tls.Conn        // TLS连接（启用TLS时使用）
 	rawConn         *net.TCPConn     // 底层TCP连接
+	mu              sync.Mutex       // 保护通道/连接关闭
+	closed          bool             // 标记是否已关闭
 }
 
 type TcpClientProcessFunc interface {
@@ -82,10 +85,11 @@ func WithClientTLS(tlsCfg *ClientTLSConfig) ClientOption {
 func NewTcpClient(tcpClientProcessFunc TcpClientProcessFunc, opts ...ClientOption) (tc *TcpClient) {
 	belogs.Debug("NewTcpClient():tcpClientProcessFuncs:", tcpClientProcessFunc)
 	tc = &TcpClient{
-		stopChan:             make(chan string),
-		tcpClientProcessChan: make(chan string),
+		stopChan:             make(chan struct{}),    // 无缓冲通道，仅用于退出信号
+		tcpClientProcessChan: make(chan string, 100), // 增加缓冲区，避免阻塞
 		tcpClientProcessFunc: tcpClientProcessFunc,
 		isTLS:                false, // 默认不启用TLS
+		closed:               false,
 	}
 
 	// 应用配置选项（如TLS配置）
@@ -161,6 +165,14 @@ func (tc *TcpClient) Start(server string) (err error) {
 		return err
 	}
 
+	// 加锁防止并发关闭
+	tc.mu.Lock()
+	if tc.closed {
+		tc.mu.Unlock()
+		return fmt.Errorf("client already closed")
+	}
+	tc.mu.Unlock()
+
 	// 根据是否启用TLS创建不同的连接
 	if tc.isTLS {
 		// 构建TLS配置
@@ -191,18 +203,7 @@ func (tc *TcpClient) Start(server string) (err error) {
 		belogs.Info("Start(): TLS handshake success: ", server,
 			"  version:", tlsVersionToString(state.Version),
 			"  cipher suite:", tls.CipherSuiteName(state.CipherSuite))
-		/*
-			// 验证server证书的CN值
-			if len(state.PeerCertificates) == 0 {
-				return errors.New("no server certificate provided")
-			}
-			serverCert := state.PeerCertificates[0]
-			expectedServerCN := "localhost" // 预期的服务端CN
-			if serverCert.Subject.CommonName != expectedServerCN {
-				return fmt.Errorf("server cert CN %s does not match expected %s",
-					serverCert.Subject.CommonName, expectedServerCN)
-			}
-		*/
+
 		tc.tlsConn = tlsConn
 		belogs.Debug("Start():create TLS client ok, server:", server, "   tlsConn:", tlsConn)
 	} else {
@@ -216,16 +217,6 @@ func (tc *TcpClient) Start(server string) (err error) {
 		belogs.Debug("Start():create TCP client ok, server:", server, "   conn:", conn)
 	}
 
-	// 确保连接最终关闭
-	defer func() {
-		if tc.isTLS && tc.tlsConn != nil {
-			_ = tc.tlsConn.Close()
-		}
-		if tc.rawConn != nil && !tc.isTLS { // TLS连接关闭会自动关闭底层TCP
-			_ = tc.rawConn.Close()
-		}
-	}()
-
 	// 启动主动发送协程
 	go tc.waitActiveSend()
 
@@ -233,54 +224,98 @@ func (tc *TcpClient) Start(server string) (err error) {
 	go tc.waitReceive()
 
 	// 等待退出信号
-	for {
-		belogs.Debug("Start():wait for stop  ", server, "   conn:", tc.rawConn)
-		select {
-		case stop := <-tc.stopChan:
-			if stop == "stop" {
-				close(tc.stopChan)
-				close(tc.tcpClientProcessChan)
-				belogs.Info("Start(): end client: ", server)
-				return nil
-			}
-		}
+	<-tc.stopChan // 阻塞直到收到退出信号
+	belogs.Info("Start(): client exiting, server:", server)
+
+	// 关闭连接（加锁保护）
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	if tc.isTLS && tc.tlsConn != nil {
+		_ = tc.tlsConn.Close()
 	}
+	if tc.rawConn != nil {
+		_ = tc.rawConn.Close()
+	}
+	tc.closed = true
+
+	return nil
 }
 
 // exit: to quit
 func (tc *TcpClient) CallProcessFunc(clientProcessFunc string) {
-	belogs.Debug("CallProcessFunc():  clientProcessFunc:", clientProcessFunc)
-	tc.tcpClientProcessChan <- clientProcessFunc
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	// 检查是否已关闭，避免向关闭的通道发送数据
+	if tc.closed {
+		belogs.Warn("CallProcessFunc(): client is closed, skip send")
+		return
+	}
+	// 使用非阻塞发送，避免协程阻塞
+	select {
+	case tc.tcpClientProcessChan <- clientProcessFunc:
+	default:
+		belogs.Warn("CallProcessFunc(): process chan is full, skip send")
+	}
 }
 
 func (tc *TcpClient) CallStop() {
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	if tc.closed {
+		belogs.Warn("CallStop(): client already closed")
+		return
+	}
 	belogs.Debug("CallStop():")
-	tc.stopChan <- "stop"
+	// 关闭退出信号通道（仅关闭一次）
+	close(tc.stopChan)
+	tc.closed = true
 }
 
-// 改造waitActiveSend：适配TLS/非TLS连接
+// 改造waitActiveSend：适配TLS/非TLS连接，增加关闭保护
 func (tc *TcpClient) waitActiveSend() {
 	belogs.Debug("waitActiveSend():wait for ActiveSend, conn:", tc.rawConn, " isTLS:", tc.isTLS)
 	for {
 		select {
-		case tcpClientProcessChan := <-tc.tcpClientProcessChan:
+		case <-tc.stopChan: // 优先处理退出信号
+			belogs.Info("waitActiveSend(): client stopping, exit send loop")
+			return
+		case tcpClientProcessChan, ok := <-tc.tcpClientProcessChan:
+			if !ok { // 通道已关闭
+				belogs.Info("waitActiveSend(): process chan closed, exit")
+				return
+			}
 			belogs.Debug("waitActiveSend():  tcpClientProcess:", tcpClientProcessChan)
 			start := time.Now()
 
-			// 调用回调函数（始终传入底层TCP连接，保持接口兼容）
-			err := tc.tcpClientProcessFunc.ActiveSend(tc.rawConn, tcpClientProcessChan)
-			if err != nil {
-				belogs.Error("waitActiveSend(): tcpClientProcessFunc.ActiveSend fail:  conn:", tc.rawConn, err)
-				// 发送失败时触发停止
-				tc.CallStop()
-				return
+			// 加锁检查连接是否有效
+			tc.mu.Lock()
+			if tc.closed || tc.rawConn == nil {
+				tc.mu.Unlock()
+				belogs.Warn("waitActiveSend(): client closed, skip send")
+				continue
 			}
-			belogs.Info("waitActiveSend(): tcpClientProcessChan:", tcpClientProcessChan, "  time(s):", time.Since(start))
+			conn := tc.rawConn
+			tc.mu.Unlock()
+
+			// 调用回调函数（始终传入底层TCP连接，保持接口兼容）
+			err := tc.tcpClientProcessFunc.ActiveSend(conn, tcpClientProcessChan)
+			if err != nil {
+				belogs.Error("waitActiveSend(): tcpClientProcessFunc.ActiveSend fail:  conn:", conn, err)
+				// 仅在未关闭时触发停止
+				tc.mu.Lock()
+				notClosed := !tc.closed
+				tc.mu.Unlock()
+				if notClosed {
+					tc.CallStop()
+				}
+			} else {
+				belogs.Info("waitActiveSend(): tcpClientProcessChan:", tcpClientProcessChan, "  time(s):", time.Since(start))
+			}
 		}
 	}
 }
 
-// 改造waitReceive：适配TLS/非TLS连接的读取逻辑
+// 改造waitReceive：适配TLS/非TLS连接的读取逻辑，增加关闭保护
 func (tc *TcpClient) waitReceive() {
 	belogs.Debug("waitReceive():wait for OnReceive, conn:", tc.rawConn, " isTLS:", tc.isTLS)
 	// one packet
@@ -288,14 +323,30 @@ func (tc *TcpClient) waitReceive() {
 
 	// 选择读取的连接（TLS或原始TCP）
 	var readConn io.Reader
+	tc.mu.Lock()
 	if tc.isTLS && tc.tlsConn != nil {
 		readConn = tc.tlsConn
 	} else {
 		readConn = tc.rawConn
 	}
+	connValid := readConn != nil
+	tc.mu.Unlock()
+
+	if !connValid {
+		belogs.Error("waitReceive(): no valid read conn")
+		tc.CallStop()
+		return
+	}
 
 	// wait for new packet to read
 	for {
+		select {
+		case <-tc.stopChan: // 优先处理退出信号
+			belogs.Info("waitReceive(): client stopping, exit receive loop")
+			return
+		default:
+		}
+
 		n, err := readConn.Read(buffer)
 		start := time.Now()
 		belogs.Debug("waitReceive(): tcpClient Read n Bytes:", tc.rawConn, "   n:", n)
@@ -303,17 +354,18 @@ func (tc *TcpClient) waitReceive() {
 			if err == io.EOF {
 				// is not error, just server close
 				belogs.Debug("waitReceive(): tcpClient Read io.EOF, close: ", tc.rawConn, err)
-				tc.CallStop()
-				return
-			}
-			// 处理TLS特定错误
-			if tlsErr, ok := err.(tls.RecordHeaderError); ok {
+			} else if tlsErr, ok := err.(tls.RecordHeaderError); ok {
 				belogs.Error("waitReceive(): TLS record error: ", tc.rawConn, tlsErr)
-				tc.CallStop()
-				return
+			} else {
+				belogs.Error("waitReceive(): tcpClient Read fail, fail:", tc.rawConn, err)
 			}
-			belogs.Error("waitReceive(): tcpClient Read fail, fail:", tc.rawConn, err)
-			tc.CallStop()
+			// 仅在未关闭时触发停止
+			tc.mu.Lock()
+			notClosed := !tc.closed
+			tc.mu.Unlock()
+			if notClosed {
+				tc.CallStop()
+			}
 			return
 		}
 		if n == 0 {
@@ -325,11 +377,22 @@ func (tc *TcpClient) waitReceive() {
 		copy(receiveData, buffer[0:n])
 		belogs.Info("waitReceive():tcpClient conn: ", tc.rawConn, "  len(receiveData): ", len(receiveData),
 			" , will call client tcpClientProcessFunc,  time(s):", time.Since(start))
-		err = tc.tcpClientProcessFunc.OnReceive(tc.rawConn, receiveData)
+
+		// 加锁检查连接有效性
+		tc.mu.Lock()
+		conn := tc.rawConn
+		tc.mu.Unlock()
+		err = tc.tcpClientProcessFunc.OnReceive(conn, receiveData)
 		belogs.Debug("waitReceive():tcpClient OnReceive, conn: ", tc.rawConn, "  len(receiveData): ", len(receiveData), "  time(s):", time.Since(start))
 		if err != nil {
 			belogs.Error("waitReceive(): tcpClient OnReceive fail ,will stop client : ", tc.rawConn, err)
-			tc.CallStop()
+			// 仅在未关闭时触发停止
+			tc.mu.Lock()
+			notClosed := !tc.closed
+			tc.mu.Unlock()
+			if notClosed {
+				tc.CallStop()
+			}
 			break
 		}
 	}
