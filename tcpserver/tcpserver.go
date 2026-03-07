@@ -458,22 +458,35 @@ func (ts *TcpServer) CloseConnByIP(ip string) (int, error) {
 // CloseConnByAddr 根据完整地址（IP:Port）关闭指定连接
 // addr: 客户端完整地址（如 "192.168.1.100:8080"）
 // 返回：是否找到并关闭连接
+// 修复CloseConnByAddr方法（使用正确的读写锁）
 func (ts *TcpServer) CloseConnByAddr(addr string) (bool, error) {
 	ts.mu.Lock()
-	defer ts.mu.Unlock()
+	if ts.closed {
+		ts.mu.Unlock()
+		return false, fmt.Errorf("server already closed")
+	}
+	ts.mu.Unlock()
 
-	// 遍历连接映射，匹配客户端地址（修复地址格式问题）
+	ts.tcpConnsMutex.RLock()
+	defer ts.tcpConnsMutex.RUnlock()
+
+	// 精确匹配或后缀匹配
 	for clientAddr, conn := range ts.tcpConns {
-		// 兼容不同格式的地址匹配（如 127.0.0.1:54321 vs [::1]:54321）
-		if clientAddr == addr || strings.HasSuffix(clientAddr, addr) {
-			if err := conn.Close(); err != nil {
-				return true, fmt.Errorf("close conn fail: %w", err)
+		if clientAddr == addr || strings.HasSuffix(clientAddr, ":"+strings.Split(addr, ":")[1]) {
+			// 先触发OnClose回调
+			if ts.processFunc != nil {
+				ts.processFunc.OnClose(conn)
 			}
+			// 关闭连接
+			if err := conn.Close(); err != nil {
+				return true, fmt.Errorf("关闭连接失败: %w", err)
+			}
+			// 删除映射（需要写锁）
 			delete(ts.tcpConns, clientAddr)
 			return true, nil
 		}
 	}
-	return false, fmt.Errorf("connection %s not found", addr)
+	return false, fmt.Errorf("未找到连接: %s", addr)
 }
 
 // CloseAllConns 关闭所有客户端连接（保留服务器监听）
