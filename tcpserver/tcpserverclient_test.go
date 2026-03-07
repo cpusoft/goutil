@@ -6,12 +6,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -19,22 +20,16 @@ import (
 	"github.com/cpusoft/goutil/belogs"
 )
 
-// tcpserver/testdata/ 目录下放测试证书：
-// ca.crt (根CA)、server.crt/server.key (服务端证书)、client.crt/client.key (客户端证书)
-// # 运行所有测试
-//go test -v ./tcpserver
-//
-//# 运行指定测试
-//go test -v ./tcpserver -run TestTCP_CriticalValues
-
-// 测试用的证书生成工具（临时生成测试证书，避免依赖外部文件）
-func generateTestCerts(t *testing.T, certDir string) {
-	// 创建目录
+// -------------------------- 核心工具：自动生成测试证书 --------------------------
+// generateTestCerts 自动生成CA/服务端/客户端测试证书（临时目录）
+func generateTestCerts(t *testing.T) (certDir string) {
+	// 创建临时证书目录
+	certDir = filepath.Join(t.TempDir(), "test-certs")
 	if err := os.MkdirAll(certDir, 0755); err != nil {
 		t.Fatalf("创建证书目录失败: %v", err)
 	}
 
-	// 生成根CA
+	// 1. 生成根CA私钥和证书
 	caPrivKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("生成CA私钥失败: %v", err)
@@ -57,11 +52,14 @@ func generateTestCerts(t *testing.T, certDir string) {
 		t.Fatalf("生成CA证书失败: %v", err)
 	}
 	// 保存CA证书
-	if err := os.WriteFile(filepath.Join(certDir, "ca.crt"), pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caBytes}), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(certDir, "ca.crt"), pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	}), 0644); err != nil {
 		t.Fatalf("保存CA证书失败: %v", err)
 	}
 
-	// 生成服务端证书
+	// 2. 生成服务端证书
 	serverPrivKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("生成服务端私钥失败: %v", err)
@@ -84,14 +82,20 @@ func generateTestCerts(t *testing.T, certDir string) {
 		t.Fatalf("生成服务端证书失败: %v", err)
 	}
 	// 保存服务端证书/私钥
-	if err := os.WriteFile(filepath.Join(certDir, "server.crt"), pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: serverBytes}), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(certDir, "server.crt"), pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: serverBytes,
+	}), 0644); err != nil {
 		t.Fatalf("保存服务端证书失败: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(certDir, "server.key"), pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey)}), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(certDir, "server.key"), pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
+	}), 0600); err != nil {
 		t.Fatalf("保存服务端私钥失败: %v", err)
 	}
 
-	// 生成客户端证书
+	// 3. 生成客户端证书
 	clientPrivKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("生成客户端私钥失败: %v", err)
@@ -112,461 +116,564 @@ func generateTestCerts(t *testing.T, certDir string) {
 		t.Fatalf("生成客户端证书失败: %v", err)
 	}
 	// 保存客户端证书/私钥
-	if err := os.WriteFile(filepath.Join(certDir, "client.crt"), pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: clientBytes}), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(certDir, "client.crt"), pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: clientBytes,
+	}), 0644); err != nil {
 		t.Fatalf("保存客户端证书失败: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(certDir, "client.key"), pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(clientPrivKey)}), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(certDir, "client.key"), pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(clientPrivKey),
+	}), 0600); err != nil {
 		t.Fatalf("保存客户端私钥失败: %v", err)
 	}
+
+	return certDir
 }
 
-// 通用测试配置
-type testConfig struct {
-	serverAddr string
-	certDir    string
+// -------------------------- 通用回调实现 --------------------------
+// TestServerHandler 服务端通用测试回调
+type TestServerHandler struct {
+	sync.Mutex
+	recvData   map[string][]byte // 按客户端地址存储接收的数据
+	connNum    int               // 活跃连接数
+	closeCount int               // 关闭连接数
 }
 
-// 初始化测试配置
-func initTestConfig(t *testing.T) testConfig {
-	certDir := filepath.Join(t.TempDir(), "certs")
-	generateTestCerts(t, certDir)
-	return testConfig{
-		serverAddr: "127.0.0.1:9999",
-		certDir:    certDir,
+func NewTestServerHandler() *TestServerHandler {
+	return &TestServerHandler{
+		recvData: make(map[string][]byte),
 	}
 }
 
-// 服务器处理函数实现（测试用）
-type testServerProcess struct{}
-
-func (t *testServerProcess) OnConnect(conn *net.TCPConn) error {
-	belogs.Debug("测试服务器: 客户端连接成功 - ", conn.RemoteAddr())
+func (h *TestServerHandler) OnConnect(conn *net.TCPConn) error {
+	h.Lock()
+	h.connNum++
+	h.Unlock()
+	belogs.Info("[Server] 客户端连接:", conn.RemoteAddr())
 	return nil
 }
 
-func (t *testServerProcess) OnReceiveAndSend(conn *net.TCPConn, receiveData []byte) error {
-	belogs.Debug("测试服务器: 收到数据 - ", string(receiveData))
-	// 回显数据
-	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-	_, err := conn.Write(receiveData)
+func (h *TestServerHandler) OnReceiveAndSend(conn *net.TCPConn, data []byte) error {
+	addr := conn.RemoteAddr().String()
+	h.Lock()
+	h.recvData[addr] = append(h.recvData[addr], data...)
+	h.Unlock()
+
+	// 回声响应
+	_, err := conn.Write(data)
+	if err != nil {
+		return fmt.Errorf("回声失败: %w", err)
+	}
+	return nil
+}
+
+func (h *TestServerHandler) OnClose(conn *net.TCPConn) {
+	h.Lock()
+	h.connNum--
+	h.closeCount++
+	delete(h.recvData, conn.RemoteAddr().String())
+	h.Unlock()
+	belogs.Info("[Server] 客户端断开:", conn.RemoteAddr())
+}
+
+func (h *TestServerHandler) ActiveSend(conn *net.TCPConn, data []byte) error {
+	conn.SetWriteDeadline(time.Now().Add(30 * time.Second))
+	_, err := conn.Write(data)
 	return err
 }
 
-func (t *testServerProcess) OnClose(conn *net.TCPConn) {
-	belogs.Debug("测试服务器: 客户端断开连接 - ", conn.RemoteAddr())
+// TestClientHandler 客户端通用测试回调
+type TestClientHandler struct {
+	sync.Mutex
+	recvData  []byte // 接收的所有数据
+	sendCount int    // 发送次数
 }
 
-func (t *testServerProcess) ActiveSend(conn *net.TCPConn, sendData []byte) error {
-	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-	_, err := conn.Write(sendData)
+func NewTestClientHandler() *TestClientHandler {
+	return &TestClientHandler{}
+}
+
+func (h *TestClientHandler) ActiveSend(conn *net.TCPConn, data string) error {
+	h.Lock()
+	h.sendCount++
+	h.Unlock()
+	_, err := conn.Write([]byte(data))
 	return err
 }
 
-// 超时测试专用服务器处理函数
-type slowTestServerProcess struct{}
-
-func (t *slowTestServerProcess) OnConnect(conn *net.TCPConn) error {
+func (h *TestClientHandler) OnReceive(conn *net.TCPConn, data []byte) error {
+	h.Lock()
+	h.recvData = append(h.recvData, data...)
+	h.Unlock()
+	belogs.Debug("[Client] 接收数据:", hex.EncodeToString(data[:min(len(data), 10)])+"...")
 	return nil
 }
 
-func (t *slowTestServerProcess) OnReceiveAndSend(conn *net.TCPConn, receiveData []byte) error {
-	// 模拟处理超时（超过1秒读写超时）
-	time.Sleep(2 * time.Second)
-	return nil
+// -------------------------- 通用工具函数 --------------------------
+// genRandData 生成指定大小的随机数据
+func genRandData(size int) []byte {
+	data := make([]byte, size)
+	rand.Read(data)
+	return data
 }
 
-func (t *slowTestServerProcess) OnClose(conn *net.TCPConn) {}
-
-func (t *slowTestServerProcess) ActiveSend(conn *net.TCPConn, sendData []byte) error {
-	return nil
-}
-
-// 客户端处理函数实现（测试用）
-type testClientProcess struct {
-	receivedData chan []byte
-}
-
-func newTestClientProcess() *testClientProcess {
-	return &testClientProcess{
-		receivedData: make(chan []byte, 100),
+// waitReady 等待服务端启动就绪
+func waitReady(addr string, timeout time.Duration) bool {
+	timeoutChan := time.After(timeout)
+	for {
+		select {
+		case <-timeoutChan:
+			return false
+		default:
+			conn, err := net.DialTimeout("tcp", addr, 100*time.Millisecond)
+			if err == nil {
+				conn.Close()
+				return true
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
 	}
 }
 
-func (t *testClientProcess) ActiveSend(conn *net.TCPConn, processChan string) error {
-	belogs.Debug("测试客户端: 主动发送数据 - ", processChan)
-	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-	_, err := conn.Write([]byte(processChan))
-	return err
+// repeatString 重复字符串n次
+func repeatString(s string, n int) string {
+	var res string
+	for i := 0; i < n; i++ {
+		res += s
+	}
+	return res
 }
 
-func (t *testClientProcess) OnReceive(conn *net.TCPConn, receiveData []byte) error {
-	belogs.Debug("测试客户端: 收到数据 - ", string(receiveData))
-	t.receivedData <- receiveData
-	return nil
+// min 取最小值
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
-////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////
-
-// 测试1: 无证书TCP通信
+// -------------------------- 测试用例 --------------------------
+// TestTCP_NoTLS 无证书TCP连接测试（基础功能+连续数据发送）
 func TestTCP_NoTLS(t *testing.T) {
-	cfg := initTestConfig(t)
+	// 1. 启动服务端
+	serverAddr := "127.0.0.1:9999"
+	serverHandler := NewTestServerHandler()
+	server := NewTcpServer(serverHandler, WithReadWriteTimeout(10*time.Second, 10*time.Second))
 
-	// 启动服务器
-	server := NewTcpServer(&testServerProcess{}, WithReadWriteTimeout(10*time.Second, 5*time.Second))
+	// 异步启动服务端
 	go func() {
-		if err := server.Start(cfg.serverAddr); err != nil {
-			t.Errorf("服务器启动失败: %v", err)
+		if err := server.Start(serverAddr); err != nil && err.Error() != "server already closed" {
+			t.Fatal("服务端启动失败:", err)
 		}
 	}()
-	defer server.Stop()
 
-	// 等待服务器启动
-	time.Sleep(3 * time.Second)
+	// 等待服务端就绪
+	if !waitReady(serverAddr, 3*time.Second) {
+		t.Fatal("服务端未就绪")
+	}
 
-	// 启动客户端
-	clientProcess := newTestClientProcess()
-	client := NewTcpClient(clientProcess)
+	// 2. 启动客户端
+	clientHandler := NewTestClientHandler()
+	client := NewTcpClient(clientHandler, WithClientReadWriteTimeout(10*time.Second, 10*time.Second))
+
+	var clientErr error
 	go func() {
-		if err := client.Start(cfg.serverAddr); err != nil {
-			t.Errorf("客户端启动失败: %v", err)
-		}
+		clientErr = client.Start(serverAddr)
 	}()
-	defer client.CallStop()
+	time.Sleep(500 * time.Millisecond)
 
-	// 等待客户端连接
-	time.Sleep(3 * time.Second)
+	// 3. 测试连续数据发送（小/中/大）
+	testCases := []struct {
+		name string
+		data string
+	}{
+		{"小数据(16B)", "hello tcp server"},
+		{"中数据(1KB)", string(genRandData(1024))},
+		{"大数据(8KB)", string(genRandData(8 * 1024))},
+	}
 
-	// 测试发送接收
-	testData := "test-no-tls-123456"
-	client.CallProcessFunc(testData)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 连续发送3次
+			for i := 0; i < 3; i++ {
+				if err := client.CallProcessFunc(tc.data); err != nil {
+					t.Fatalf("发送失败(%d): %v", i, err)
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
 
-	// 验证接收
-	select {
-	case data := <-clientProcess.receivedData:
-		if string(data) != testData {
-			t.Errorf("数据回显失败: 期望 %s, 实际 %s", testData, string(data))
-		}
-	case <-time.After(30 * time.Second):
-		t.Fatal("客户端未收到回显数据，超时")
+			// 验证客户端接收（回声）
+			clientHandler.Lock()
+			recv := clientHandler.recvData
+			clientHandler.Unlock()
+			expected := repeatString(tc.data, 3)
+			if string(recv) != expected {
+				t.Errorf("接收数据不匹配: 期望长度%d, 实际长度%d", len(expected), len(recv))
+			}
+
+			// 验证服务端接收
+			clientAddr := client.conn.RemoteAddr().String()
+			serverHandler.Lock()
+			serverRecv := serverHandler.recvData[clientAddr]
+			serverHandler.Unlock()
+			if string(serverRecv) != expected {
+				t.Errorf("服务端接收数据不匹配: 期望前10字符[%s], 实际[%s]", expected[:10], string(serverRecv)[:10])
+			}
+
+			// 清空缓存
+			clientHandler.Lock()
+			clientHandler.recvData = nil
+			clientHandler.Unlock()
+			serverHandler.Lock()
+			serverHandler.recvData[clientAddr] = nil
+			serverHandler.Unlock()
+		})
+	}
+
+	// 4. 测试主动关闭连接
+	clientAddr := client.conn.RemoteAddr().String()
+	ok, err := server.CloseConnByAddr(clientAddr)
+	if err != nil {
+		t.Fatal("主动关闭连接失败:", err)
+	}
+	if !ok {
+		t.Error("未找到指定客户端连接")
+	}
+	time.Sleep(500 * time.Millisecond)
+
+	// 验证连接数归零
+	if server.GetConnCount() != 0 {
+		t.Errorf("连接数未归零: 期望0, 实际%d", server.GetConnCount())
+	}
+
+	// 5. 清理资源
+	client.CallStop()
+	server.Stop()
+	time.Sleep(200 * time.Millisecond)
+
+	if clientErr != nil && clientErr.Error() != "client already closed" {
+		t.Error("客户端异常:", clientErr)
 	}
 }
 
-// 测试2: 单向TLS认证（服务端验证，客户端不验证）
-// 测试2: 单向TLS认证（服务端验证，客户端不验证）
-func TestTLS_OneWayAuth(t *testing.T) {
-	cfg := initTestConfig(t)
+// TestTLS_OneWay TLS单向认证测试（服务端证书）
+func TestTLS_OneWay(t *testing.T) {
+	// 1. 自动生成测试证书
+	certDir := generateTestCerts(t)
+	serverAddr := "127.0.0.1:9998"
 
-	// 服务器配置（仅服务端证书，不要求客户端证书）
-	serverTLSConfig := &ServerTLSConfig{
-		ServerCertFile: filepath.Join(cfg.certDir, "server.crt"),
-		ServerKeyFile:  filepath.Join(cfg.certDir, "server.key"),
-		RootCAFile:     filepath.Join(cfg.certDir, "ca.crt"),
-		ClientAuth:     tls.NoClientCert, // 不要求客户端证书
+	// 2. 启动TLS服务端（单向认证）
+	serverHandler := NewTestServerHandler()
+	tlsServerCfg := &ServerTLSConfig{
+		ServerCertFile: filepath.Join(certDir, "server.crt"),
+		ServerKeyFile:  filepath.Join(certDir, "server.key"),
+		ClientAuth:     tls.NoClientCert, // 不验证客户端证书
 	}
-	server := NewTcpServer(&testServerProcess{},
-		WithReadWriteTimeout(10*time.Second, 5*time.Second),
-		WithServerTLS(serverTLSConfig),
-	)
-	// 启动服务器（使用errChan捕获启动错误）
-	serverErrChan := make(chan error, 1)
+	server := NewTcpServer(serverHandler, WithServerTLS(tlsServerCfg))
+
 	go func() {
-		serverErrChan <- server.Start(cfg.serverAddr)
-	}()
-	defer server.Stop()
-
-	// 等待服务器启动（增加等待时间，确保TLS监听器就绪）
-	time.Sleep(300 * time.Millisecond)
-	select {
-	case err := <-serverErrChan:
-		if err != nil {
-			t.Fatalf("TLS服务器启动失败: %v", err)
+		if err := server.Start(serverAddr); err != nil && err.Error() != "server already closed" {
+			t.Fatal("TLS服务端启动失败:", err)
 		}
-	default:
-		// 服务器仍在运行，正常
+	}()
+
+	if !waitReady(serverAddr, 3*time.Second) {
+		t.Fatal("TLS服务端未就绪")
 	}
 
-	// 客户端配置（仅验证服务端证书）
-	clientTLSConfig := &ClientTLSConfig{
-		RootCAFile:         filepath.Join(cfg.certDir, "ca.crt"),
-		ServerName:         "localhost", // 必须匹配服务端证书CN
-		InsecureSkipVerify: false,
+	// 3. 启动TLS客户端（验证服务端证书）
+	clientHandler := NewTestClientHandler()
+	tlsClientCfg := &ClientTLSConfig{
+		RootCAFile:         filepath.Join(certDir, "ca.crt"),
+		ServerName:         "localhost", // 匹配服务端证书CN
+		InsecureSkipVerify: false,       // 验证服务端证书
 	}
-	clientProcess := newTestClientProcess()
-	client := NewTcpClient(clientProcess, WithClientTLS(clientTLSConfig))
+	client := NewTcpClient(clientHandler, WithClientTLS(tlsClientCfg))
 
-	// 启动客户端（使用errChan捕获错误）
-	clientErrChan := make(chan error, 1)
+	var clientErr error
 	go func() {
-		clientErrChan <- client.Start(cfg.serverAddr)
+		clientErr = client.Start(serverAddr)
 	}()
-	defer func() {
-		// 确保客户端优雅停止
-		client.CallStop()
-		// 等待客户端协程退出
-		time.Sleep(100 * time.Millisecond)
-	}()
+	time.Sleep(500 * time.Millisecond)
 
-	// 等待客户端连接（增加等待时间）
-	time.Sleep(300 * time.Millisecond)
-
-	// 测试发送接收（分两次发送，避免通道阻塞）
-	testData := "test-one-way-tls-7890"
-	client.CallProcessFunc(testData)
-
-	// 验证接收（增加超时时间）
-	select {
-	case data := <-clientProcess.receivedData:
-		if string(data) != testData {
-			t.Errorf("单向TLS数据回显失败: 期望 %s, 实际 %s", testData, string(data))
-		} else {
-			t.Log("单向TLS数据回显成功")
-		}
-	case <-time.After(10 * time.Second):
-		t.Fatal("单向TLS客户端未收到回显数据，超时")
+	if clientErr != nil {
+		t.Fatal("TLS客户端连接失败:", clientErr)
 	}
 
-	// 验证客户端无错误退出
-	select {
-	case err := <-clientErrChan:
-		if err != nil && !strings.Contains(err.Error(), "closed network connection") {
-			t.Errorf("客户端运行错误: %v", err)
-		}
-	default:
-		// 客户端仍在运行，正常
+	// 4. 发送测试数据（2KB）
+	testData := genRandData(2048)
+	err := client.CallProcessFunc(string(testData))
+	if err != nil {
+		t.Fatal("TLS客户端发送失败:", err)
 	}
+	time.Sleep(200 * time.Millisecond)
+
+	// 5. 验证数据完整性
+	clientHandler.Lock()
+	if string(clientHandler.recvData) != string(testData) {
+		t.Errorf("TLS客户端接收数据不匹配: 期望长度%d, 实际%d", len(testData), len(clientHandler.recvData))
+	}
+	clientHandler.Unlock()
+
+	// 6. 清理资源
+	client.CallStop()
+	server.Stop()
+	time.Sleep(200 * time.Millisecond)
 }
 
-// 测试3: 双向TLS认证（服务端验证客户端，客户端验证服务端）
-func TestTLS_MutualAuth(t *testing.T) {
-	cfg := initTestConfig(t)
+// TestTLS_TwoWay TLS双向认证测试
+func TestTLS_TwoWay(t *testing.T) {
+	// 1. 自动生成测试证书
+	certDir := generateTestCerts(t)
+	serverAddr := "127.0.0.1:9997"
 
-	// 服务器配置（双向认证）
-	serverTLSConfig := &ServerTLSConfig{
-		ServerCertFile: filepath.Join(cfg.certDir, "server.crt"),
-		ServerKeyFile:  filepath.Join(cfg.certDir, "server.key"),
-		RootCAFile:     filepath.Join(cfg.certDir, "ca.crt"),
-		ClientAuth:     tls.RequireAndVerifyClientCert,
+	// 2. 启动双向认证服务端
+	serverHandler := NewTestServerHandler()
+	tlsServerCfg := &ServerTLSConfig{
+		ServerCertFile: filepath.Join(certDir, "server.crt"),
+		ServerKeyFile:  filepath.Join(certDir, "server.key"),
+		RootCAFile:     filepath.Join(certDir, "ca.crt"),
+		ClientAuth:     tls.RequireAndVerifyClientCert, // 强制验证客户端证书
 	}
-	server := NewTcpServer(&testServerProcess{},
-		WithReadWriteTimeout(10*time.Second, 5*time.Second),
-		WithServerTLS(serverTLSConfig),
-	)
+	server := NewTcpServer(serverHandler, WithServerTLS(tlsServerCfg))
+
 	go func() {
-		if err := server.Start(cfg.serverAddr); err != nil {
-			t.Errorf("双向TLS服务器启动失败: %v", err)
+		if err := server.Start(serverAddr); err != nil && err.Error() != "server already closed" {
+			t.Fatal("双向认证服务端启动失败:", err)
 		}
 	}()
-	defer server.Stop()
-	time.Sleep(100 * time.Millisecond)
 
-	// 客户端配置（双向认证）
-	clientTLSConfig := &ClientTLSConfig{
-		ClientCertFile:     filepath.Join(cfg.certDir, "client.crt"),
-		ClientKeyFile:      filepath.Join(cfg.certDir, "client.key"),
-		RootCAFile:         filepath.Join(cfg.certDir, "ca.crt"),
+	if !waitReady(serverAddr, 3*time.Second) {
+		t.Fatal("双向认证服务端未就绪")
+	}
+
+	// 3. 启动双向认证客户端
+	clientHandler := NewTestClientHandler()
+	tlsClientCfg := &ClientTLSConfig{
+		ClientCertFile:     filepath.Join(certDir, "client.crt"),
+		ClientKeyFile:      filepath.Join(certDir, "client.key"),
+		RootCAFile:         filepath.Join(certDir, "ca.crt"),
 		ServerName:         "localhost",
 		InsecureSkipVerify: false,
 	}
-	clientProcess := newTestClientProcess()
-	client := NewTcpClient(clientProcess, WithClientTLS(clientTLSConfig))
+	client := NewTcpClient(clientHandler, WithClientTLS(tlsClientCfg))
+
+	var clientErr error
 	go func() {
-		if err := client.Start(cfg.serverAddr); err != nil {
-			t.Errorf("双向TLS客户端启动失败: %v", err)
-		}
+		clientErr = client.Start(serverAddr)
 	}()
-	defer client.CallStop()
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
-	// 测试发送接收
-	testData := "test-mutual-tls-111222"
-	client.CallProcessFunc(testData)
-
-	select {
-	case data := <-clientProcess.receivedData:
-		if string(data) != testData {
-			t.Errorf("双向TLS数据回显失败: 期望 %s, 实际 %s", testData, string(data))
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("双向TLS客户端未收到回显数据，超时")
+	if clientErr != nil {
+		t.Fatal("双向认证客户端连接失败:", clientErr)
 	}
+
+	// 4. 连续发送5次测试数据
+	for i := 0; i < 5; i++ {
+		testData := fmt.Sprintf("双向认证测试-%d", i)
+		err := client.CallProcessFunc(testData)
+		if err != nil {
+			t.Errorf("双向认证发送失败(%d): %v", i, err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// 5. 验证接收数据
+	clientHandler.Lock()
+	expected := "双向认证测试-0双向认证测试-1双向认证测试-2双向认证测试-3双向认证测试-4"
+	if string(clientHandler.recvData) != expected {
+		t.Errorf("双向认证接收数据不匹配: 期望[%s], 实际[%s]", expected, string(clientHandler.recvData))
+	}
+	clientHandler.Unlock()
+
+	// 6. 清理资源
+	client.CallStop()
+	server.Stop()
+	time.Sleep(200 * time.Millisecond)
 }
 
-// 测试4: 临界值测试（超大/超小数据、超时、断连）
-func TestTCP_CriticalValues(t *testing.T) {
-	cfg := initTestConfig(t)
+// TestEdgeCases 临界值测试（空数据/超大数据/超时/并发）
+func TestEdgeCases(t *testing.T) {
+	serverAddr := "127.0.0.1:9996"
+	serverHandler := NewTestServerHandler()
+	// 超短超时配置（1秒）
+	server := NewTcpServer(serverHandler, WithReadWriteTimeout(1*time.Second, 1*time.Second))
 
-	// 启动无证书服务器
-	server := NewTcpServer(&testServerProcess{},
-		WithReadWriteTimeout(1*time.Second, 1*time.Second), // 短超时
-	)
 	go func() {
-		if err := server.Start(cfg.serverAddr); err != nil {
-			t.Errorf("临界值测试服务器启动失败: %v", err)
-		}
+		_ = server.Start(serverAddr)
 	}()
-	defer server.Stop()
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
+
+	// 测试1：空数据发送
+	t.Run("空数据发送", func(t *testing.T) {
+		client := NewTcpClient(NewTestClientHandler())
+		go func() {
+			_ = client.Start(serverAddr)
+		}()
+		time.Sleep(200 * time.Millisecond)
+
+		err := client.CallProcessFunc("")
+		if err != nil {
+			t.Error("空数据发送失败:", err)
+		}
+		client.CallStop()
+	})
+
+	// 测试2：超大数据（16KB）
+	t.Run("超大数据(16KB)", func(t *testing.T) {
+		client := NewTcpClient(NewTestClientHandler())
+		go func() {
+			_ = client.Start(serverAddr)
+		}()
+		time.Sleep(200 * time.Millisecond)
+
+		largeData := genRandData(16 * 1024)
+		err := client.CallProcessFunc(string(largeData))
+		if err != nil {
+			t.Fatal("超大数据发送失败:", err)
+		}
+		time.Sleep(200 * time.Millisecond)
+
+		// 验证接收长度
+		clientHandler := client.processFunc.(*TestClientHandler)
+		clientHandler.Lock()
+		if len(clientHandler.recvData) != len(largeData) {
+			t.Errorf("超大数据接收长度不匹配: 期望%d, 实际%d", len(largeData), len(clientHandler.recvData))
+		}
+		clientHandler.Unlock()
+		client.CallStop()
+	})
+
+	// 测试3：超时断开
+	t.Run("读超时断开", func(t *testing.T) {
+		client := NewTcpClient(NewTestClientHandler())
+		go func() {
+			_ = client.Start(serverAddr)
+		}()
+		time.Sleep(200 * time.Millisecond)
+
+		// 等待超时（1.5秒）
+		time.Sleep(1500 * time.Millisecond)
+		if server.GetConnCount() != 0 {
+			t.Errorf("超时后未自动断开连接: 连接数%d", server.GetConnCount())
+		}
+		client.CallStop()
+	})
+
+	// 测试4：并发连接（10个客户端）
+	t.Run("并发连接(10个)", func(t *testing.T) {
+		var wg sync.WaitGroup
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				client := NewTcpClient(NewTestClientHandler())
+				err := client.Start(serverAddr)
+				if err == nil {
+					_ = client.CallProcessFunc("并发测试")
+					time.Sleep(100 * time.Millisecond)
+					client.CallStop()
+				}
+			}()
+		}
+		wg.Wait()
+
+		// 验证关闭计数
+		if serverHandler.closeCount < 10 {
+			t.Errorf("并发连接关闭计数不匹配: 期望≥10, 实际%d", serverHandler.closeCount)
+		}
+	})
+
+	// 清理资源
+	server.Stop()
+	time.Sleep(200 * time.Millisecond)
+}
+
+// -------------------------- 性能测试 --------------------------
+// BenchmarkTCP_Throughput TCP吞吐性能测试（1KB数据并发发送）
+func BenchmarkTCP_Throughput(b *testing.B) {
+	serverAddr := "127.0.0.1:9995"
+	serverHandler := NewTestServerHandler()
+	server := NewTcpServer(serverHandler)
+
+	go func() {
+		_ = server.Start(serverAddr)
+	}()
+	time.Sleep(300 * time.Millisecond)
 
 	// 启动客户端
-	clientProcess := newTestClientProcess()
-	client := NewTcpClient(clientProcess)
+	clientHandler := NewTestClientHandler()
+	client := NewTcpClient(clientHandler)
 	go func() {
-		if err := client.Start(cfg.serverAddr); err != nil {
-			t.Errorf("临界值测试客户端启动失败: %v", err)
-		}
+		_ = client.Start(serverAddr)
 	}()
-	defer client.CallStop()
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
-	// 测试1: 超大数据（超过默认buffer 2048）
-	bigData := make([]byte, 4096)
-	for i := range bigData {
-		bigData[i] = byte(i % 256)
-	}
-	client.CallProcessFunc(string(bigData))
-	select {
-	case data := <-clientProcess.receivedData:
-		if len(data) != len(bigData) {
-			t.Errorf("超大数据接收失败: 期望长度 %d, 实际 %d", len(bigData), len(data))
+	// 测试数据（1KB）
+	testData := genRandData(1024)
+	testStr := string(testData)
+
+	// 重置基准计时器
+	b.ResetTimer()
+
+	// 并发压测
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = client.CallProcessFunc(testStr)
 		}
-	case <-time.After(5 * time.Second):
-		t.Error("超大数据接收超时")
-	}
+	})
 
-	// 测试2: 超小数据（空数据）
-	client.CallProcessFunc("")
-	time.Sleep(100 * time.Millisecond) // 空数据应被忽略，无报错
+	// 停止计时器
+	b.StopTimer()
 
-	// 测试3: 超时测试
-	// 启动慢服务器（处理超时）
-	slowServerInst := NewTcpServer(&slowTestServerProcess{}, WithReadWriteTimeout(1*time.Second, 1*time.Second))
-	go func() {
-		if err := slowServerInst.Start("127.0.0.1:8888"); err != nil {
-			t.Errorf("慢服务器启动失败: %v", err)
-		}
-	}()
-	defer slowServerInst.Stop()
-	time.Sleep(100 * time.Millisecond)
+	// 输出内存分配
+	b.ReportAllocs()
 
-	// 启动慢客户端
-	slowClientProcess := newTestClientProcess()
-	slowClient := NewTcpClient(slowClientProcess)
-	clientDone := make(chan error, 1)
-	go func() {
-		clientDone <- slowClient.Start("127.0.0.1:8888")
-	}()
-	time.Sleep(100 * time.Millisecond)
-
-	// 发送测试数据
-	slowClient.CallProcessFunc("test-timeout")
-	time.Sleep(2 * time.Second)
-
-	// 停止客户端并验证是否因超时退出
-	slowClient.CallStop()
-	select {
-	case err := <-clientDone:
-		if err != nil {
-			// 超时会导致Read失败，属于预期结果
-			t.Logf("超时测试通过: 客户端因超时退出，错误: %v", err)
-		} else {
-			t.Error("超时测试失败: 客户端未因超时退出")
-		}
-	case <-time.After(2 * time.Second):
-		t.Error("超时测试失败: 客户端无响应")
-	}
+	// 清理
+	client.CallStop()
+	server.Stop()
 }
 
-// 测试5: 性能测试（并发连接、高吞吐）
-func TestTCP_Performance(t *testing.T) {
-	cfg := initTestConfig(t)
-	// 性能测试降低日志级别
+// BenchmarkTCP_ConcurrentConn 并发连接性能测试
+func BenchmarkTCP_ConcurrentConn(b *testing.B) {
+	serverAddr := "127.0.0.1:9994"
+	serverHandler := NewTestServerHandler()
+	server := NewTcpServer(serverHandler)
 
-	// 启动服务器
-	server := NewTcpServer(&testServerProcess{})
 	go func() {
-		if err := server.Start(cfg.serverAddr); err != nil {
-			t.Errorf("性能测试服务器启动失败: %v", err)
-		}
+		_ = server.Start(serverAddr)
 	}()
-	defer server.Stop()
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
-	// 配置参数
-	const (
-		clientCount = 100  // 并发客户端数
-		sendCount   = 1000 // 每个客户端发送次数
-		dataSize    = 1024 // 每次发送数据大小
-	)
+	b.ResetTimer()
 
-	// 生成测试数据
-	testData := make([]byte, dataSize)
-	_, err := rand.Read(testData)
-	if err != nil {
-		t.Fatalf("生成测试数据失败: %v", err)
-	}
-
-	// 启动并发客户端
+	// 并发创建/关闭连接
 	var wg sync.WaitGroup
-	startTime := time.Now()
-	successCount := 0
-	failCount := 0
-	mu := sync.Mutex{}
-
-	for i := 0; i < clientCount; i++ {
-		wg.Add(1)
-		go func(clientID int) {
-			defer wg.Done()
-			clientProcess := newTestClientProcess()
-			client := NewTcpClient(clientProcess)
-			if err := client.Start(cfg.serverAddr); err != nil {
-				mu.Lock()
-				failCount++
-				mu.Unlock()
-				t.Errorf("客户端%d启动失败: %v", clientID, err)
-				return
-			}
-			defer client.CallStop()
-
-			// 发送数据
-			for j := 0; j < sendCount; j++ {
-				client.CallProcessFunc(string(testData))
-				select {
-				case <-clientProcess.receivedData:
-					mu.Lock()
-					successCount++
-					mu.Unlock()
-				case <-time.After(1 * time.Second):
-					mu.Lock()
-					failCount++
-					mu.Unlock()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				client := NewTcpClient(NewTestClientHandler())
+				err := client.Start(serverAddr)
+				if err == nil {
+					_ = client.CallProcessFunc("ping")
+					client.CallStop()
 				}
-			}
-		}(i)
-	}
-
-	// 等待所有客户端完成
+			}()
+		}
+	})
 	wg.Wait()
-	duration := time.Since(startTime)
-	totalData := clientCount * sendCount * dataSize
-	throughput := float64(totalData) / duration.Seconds() / 1024 / 1024 // MB/s
 
-	// 输出性能指标
-	t.Logf("性能测试结果:")
-	t.Logf("  并发客户端数: %d", clientCount)
-	t.Logf("  每个客户端发送次数: %d", sendCount)
-	t.Logf("  总发送次数: %d", clientCount*sendCount)
-	t.Logf("  成功次数: %d", successCount)
-	t.Logf("  失败次数: %d", failCount)
-	t.Logf("  总耗时: %.2f秒", duration.Seconds())
-	t.Logf("  总数据量: %.2fMB", float64(totalData)/1024/1024)
-	t.Logf("  吞吐量: %.2fMB/s", throughput)
+	b.StopTimer()
+	b.ReportAllocs()
 
-	// 性能阈值校验（可根据实际需求调整）
-	if failCount > clientCount*sendCount*0.01 { // 失败率>1%则报错
-		t.Errorf("性能测试失败率过高: %d/%d (%.2f%%)", failCount, clientCount*sendCount, float64(failCount)/float64(clientCount*sendCount)*100)
+	// 验证连接数归零
+	if server.GetConnCount() != 0 {
+		b.Error("并发压测后连接数未归零")
 	}
-	if throughput < 1 { // 降低阈值适配普通机器，实际可调整为10
-		t.Logf("性能警告: 吞吐量偏低 (%.2fMB/s)", throughput)
-	}
+
+	server.Stop()
 }
