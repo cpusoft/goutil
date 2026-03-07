@@ -5,8 +5,10 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -239,57 +241,53 @@ func (ts *TcpServer) acceptConnections() {
 		belogs.Info("Add new connection, client:", clientAddr, " total connections:", ts.GetConnCount())
 
 		// 处理连接
-		go ts.handleConnection(tcpConn)
+		go ts.handleConn(tcpConn)
 	}
 }
 
 // handleConnection 处理单个连接
-func (ts *TcpServer) handleConnection(conn *net.TCPConn) {
+func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 	clientAddr := conn.RemoteAddr().String()
-	belogs.Info("New connection from:", clientAddr)
+	ts.mu.Lock()
+	ts.tcpConns[clientAddr] = conn
+	ts.mu.Unlock()
 
+	// 触发连接回调
+	if ts.processFunc != nil {
+		ts.processFunc.OnConnect(conn)
+	}
+
+	buf := make([]byte, 4096)
 	defer func() {
-		// 新增：连接关闭时从列表中移除
-		ts.tcpConnsMutex.Lock()
+		ts.mu.Lock()
 		delete(ts.tcpConns, clientAddr)
-		ts.tcpConnsMutex.Unlock()
-		belogs.Info("Remove connection, client:", clientAddr, " total connections:", ts.GetConnCount())
-
+		ts.mu.Unlock()
+		conn.Close()
 		if ts.processFunc != nil {
 			ts.processFunc.OnClose(conn)
 		}
-		_ = conn.Close()
-		belogs.Info("Connection closed:", clientAddr)
 	}()
 
-	// 连接建立回调
-	if ts.processFunc != nil {
-		if err := ts.processFunc.OnConnect(conn); err != nil {
-			belogs.Error("OnConnect fail:", err)
-			return
-		}
-	}
-
-	// 数据读取循环
-	buf := make([]byte, 4096) // 增大缓冲区适配大数据测试
 	for {
 		conn.SetReadDeadline(time.Now().Add(ts.readTimeout))
 		n, err := conn.Read(buf)
 		if err != nil {
-			if err == net.ErrClosed || err.Error() == "EOF" {
-				belogs.Debug("Client closed connection")
-			} else {
-				belogs.Error("Read fail:", err)
+			// 正常关闭不打印错误
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				return
+			}
+			if !errors.Is(err, io.EOF) {
+				belogs.Error("read from client fail:", err)
 			}
 			return
 		}
+
 		if n == 0 {
 			continue
 		}
 
-		// 拷贝数据避免覆盖
 		receiveData := make([]byte, n)
-		copy(receiveData, buf[:n])
+		copy(receiveData, buf[:n]) // 深拷贝避免数据覆盖
 
 		// 业务处理回调
 		if ts.processFunc != nil {
@@ -462,37 +460,20 @@ func (ts *TcpServer) CloseConnByIP(ip string) (int, error) {
 // 返回：是否找到并关闭连接
 func (ts *TcpServer) CloseConnByAddr(addr string) (bool, error) {
 	ts.mu.Lock()
-	if ts.closed {
-		ts.mu.Unlock()
-		return false, fmt.Errorf("server already closed")
+	defer ts.mu.Unlock()
+
+	// 遍历连接映射，匹配客户端地址（修复地址格式问题）
+	for clientAddr, conn := range ts.tcpConns {
+		// 兼容不同格式的地址匹配（如 127.0.0.1:54321 vs [::1]:54321）
+		if clientAddr == addr || strings.HasSuffix(clientAddr, addr) {
+			if err := conn.Close(); err != nil {
+				return true, fmt.Errorf("close conn fail: %w", err)
+			}
+			delete(ts.tcpConns, clientAddr)
+			return true, nil
+		}
 	}
-	ts.mu.Unlock()
-
-	ts.tcpConnsMutex.RLock()
-	conn, exists := ts.tcpConns[addr]
-	ts.tcpConnsMutex.RUnlock()
-
-	if !exists {
-		return false, fmt.Errorf("connection %s not found", addr)
-	}
-
-	// 触发业务回调
-	if ts.processFunc != nil {
-		ts.processFunc.OnClose(conn)
-	}
-
-	// 关闭连接
-	if err := conn.Close(); err != nil {
-		return false, fmt.Errorf("close conn %s fail: %w", addr, err)
-	}
-
-	// 从map中删除
-	ts.tcpConnsMutex.Lock()
-	delete(ts.tcpConns, addr)
-	ts.tcpConnsMutex.Unlock()
-
-	belogs.Info("Successfully closed connection:", addr)
-	return true, nil
+	return false, fmt.Errorf("connection %s not found", addr)
 }
 
 // CloseAllConns 关闭所有客户端连接（保留服务器监听）

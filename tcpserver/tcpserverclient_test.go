@@ -271,22 +271,26 @@ func TestTCP_NoTLS(t *testing.T) {
 		}
 	}()
 
-	// 等待服务端就绪（增加重试次数）
+	// 等待服务端就绪（增强版）
 	if !waitReady(serverAddr, 5*time.Second) {
 		t.Fatal("服务端未就绪")
 	}
 
-	// 启动客户端（修复连接超时）
+	// 启动客户端
 	clientHandler := NewTestClientHandler()
 	client := NewTcpClient(clientHandler, WithClientReadWriteTimeout(10*time.Second, 10*time.Second))
 
-	// 直接调用Start，无需chan等待（修复后Start不会阻塞）
+	// 直接启动客户端（修复后Start不阻塞）
 	clientErr := client.Start(serverAddr)
 	if clientErr != nil {
 		t.Fatal("客户端启动失败:", clientErr)
 	}
-	// 短暂等待确保连接完全建立
-	time.Sleep(500 * time.Millisecond)
+	// 确保连接完全建立并注册到服务端
+	time.Sleep(1 * time.Second)
+
+	// 获取真实的客户端地址（关键：从客户端连接中获取，避免地址格式问题）
+	clientRealAddr := client.conn.RemoteAddr().String()
+	t.Log("客户端真实地址:", clientRealAddr)
 
 	// 测试连续数据发送
 	testCases := []struct {
@@ -304,17 +308,18 @@ func TestTCP_NoTLS(t *testing.T) {
 			clientHandler.Lock()
 			clientHandler.recvData = nil
 			clientHandler.Unlock()
-			clientAddr := client.conn.RemoteAddr().String()
 			serverHandler.Lock()
-			serverHandler.recvData[clientAddr] = nil
+			serverHandler.recvData[clientRealAddr] = nil
 			serverHandler.Unlock()
 
 			// 连续发送3次
 			for i := 0; i < 3; i++ {
-				if err := client.CallProcessFunc(tc.data); err != nil {
+				err := client.CallProcessFunc(tc.data)
+				if err != nil {
 					t.Fatalf("发送失败(%d): %v", i, err)
 				}
-				time.Sleep(200 * time.Millisecond)
+				// 延长等待确保数据接收+处理完成
+				time.Sleep(500 * time.Millisecond)
 			}
 
 			// 验证客户端接收
@@ -325,7 +330,7 @@ func TestTCP_NoTLS(t *testing.T) {
 
 			if string(recv) != expected {
 				t.Errorf(
-					"接收数据不匹配: 期望长度%d, 实际长度%d | 期望前10字符[%s], 实际[%s]",
+					"客户端接收数据不匹配: 期望长度%d, 实际长度%d | 期望前10字符[%s], 实际[%s]",
 					len(expected), len(recv),
 					safeSubstr(expected, 10), safeSubstr(string(recv), 10),
 				)
@@ -333,29 +338,30 @@ func TestTCP_NoTLS(t *testing.T) {
 
 			// 验证服务端接收
 			serverHandler.Lock()
-			serverRecv := serverHandler.recvData[clientAddr]
+			serverRecv := serverHandler.recvData[clientRealAddr]
 			serverHandler.Unlock()
 
 			if string(serverRecv) != expected {
 				t.Errorf(
-					"服务端接收数据不匹配: 期望前10字符[%s], 实际[%s]",
+					"服务端接收数据不匹配: 期望前10字符[%s], 实际[%s] | 服务端接收长度:%d",
 					safeSubstr(expected, 10), safeSubstr(string(serverRecv), 10),
+					len(serverRecv),
 				)
 			}
 		})
 	}
 
-	// 测试主动关闭连接
-	clientAddr := client.conn.RemoteAddr().String()
-	ok, err := server.CloseConnByAddr(clientAddr)
+	// 测试主动关闭连接（使用真实客户端地址）
+	ok, err := server.CloseConnByAddr(clientRealAddr)
 	if err != nil {
 		t.Fatal("主动关闭连接失败:", err)
 	}
 	if !ok {
 		t.Error("未找到指定客户端连接")
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(1 * time.Millisecond)
 
+	// 验证连接数归零
 	if server.GetConnCount() != 0 {
 		t.Errorf("连接数未归零: 期望0, 实际%d", server.GetConnCount())
 	}
