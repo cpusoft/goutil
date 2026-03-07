@@ -271,30 +271,22 @@ func TestTCP_NoTLS(t *testing.T) {
 		}
 	}()
 
-	if !waitReady(serverAddr, 3*time.Second) {
+	// 等待服务端就绪（增加重试次数）
+	if !waitReady(serverAddr, 5*time.Second) {
 		t.Fatal("服务端未就绪")
 	}
 
-	// 启动客户端（增加等待确保连接建立）
+	// 启动客户端（修复连接超时）
 	clientHandler := NewTestClientHandler()
 	client := NewTcpClient(clientHandler, WithClientReadWriteTimeout(10*time.Second, 10*time.Second))
 
-	var clientErr error
-	clientDone := make(chan struct{})
-	go func() {
-		clientErr = client.Start(serverAddr)
-		close(clientDone)
-	}()
-	// 等待客户端连接完成
-	select {
-	case <-clientDone:
-	case <-time.After(2 * time.Second):
-		t.Fatal("客户端连接超时")
-	}
-
+	// 直接调用Start，无需chan等待（修复后Start不会阻塞）
+	clientErr := client.Start(serverAddr)
 	if clientErr != nil {
 		t.Fatal("客户端启动失败:", clientErr)
 	}
+	// 短暂等待确保连接完全建立
+	time.Sleep(500 * time.Millisecond)
 
 	// 测试连续数据发送
 	testCases := []struct {
@@ -322,7 +314,6 @@ func TestTCP_NoTLS(t *testing.T) {
 				if err := client.CallProcessFunc(tc.data); err != nil {
 					t.Fatalf("发送失败(%d): %v", i, err)
 				}
-				// 增加等待确保数据接收完成
 				time.Sleep(200 * time.Millisecond)
 			}
 

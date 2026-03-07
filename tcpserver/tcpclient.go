@@ -119,7 +119,7 @@ func (tc *TcpClient) buildTLSConfig() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-// Start 启动客户端连接
+// Start 启动客户端连接（修复阻塞问题：连接成功后不阻塞，通过独立goroutine监听stopChan）
 func (tc *TcpClient) Start(addr string) error {
 	tc.mu.Lock()
 	if tc.closed {
@@ -151,25 +151,30 @@ func (tc *TcpClient) Start(addr string) error {
 	// 转换为TCPConn
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
-		_ = conn.Close()
+		conn.Close()
 		return fmt.Errorf("connection is not TCPConn")
 	}
 	tc.conn = tcpConn
 
 	belogs.Info("Client connected to:", addr)
 
-	// 启动数据读取协程
-	go tc.readLoop()
+	// 启动独立goroutine处理读循环和stopChan（核心修复：避免Start阻塞）
+	go func() {
+		defer func() {
+			tc.mu.Lock()
+			tc.closed = true
+			tc.conn.Close()
+			tc.conn = nil
+			tc.mu.Unlock()
+			belogs.Info("Client disconnected from:", addr)
+		}()
 
-	// 等待停止信号
-	<-tc.stopChan
+		// 启动读循环
+		go tc.readLoop()
 
-	// 关闭连接
-	tc.mu.Lock()
-	defer tc.mu.Unlock()
-	tc.closed = true
-	_ = tc.conn.Close()
-	belogs.Info("Client disconnected from:", addr)
+		// 等待停止信号
+		<-tc.stopChan
+	}()
 
 	return nil
 }
