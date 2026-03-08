@@ -12,6 +12,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/goccy/go-json v0.10.5
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/context v1.1.2
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
@@ -22,7 +23,6 @@ require (
 	github.com/panjf2000/ants/v2 v2.11.5
 	github.com/parnurzeal/gorequest v0.2.17
 	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b
-	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1

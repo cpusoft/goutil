@@ -1,15 +1,9 @@
 package uuidutil
 
 import (
-	"github.com/cpusoft/goutil/belogs"
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
 
 func GetUuid() string {
-	u, err := uuid.NewV4()
-	if err != nil {
-		belogs.Error("GetUuid(): fail", err)
-		return ""
-	}
-	return u.String()
+	return uuid.New().String()
 }
