@@ -95,7 +95,7 @@ func SetToContextWithValue(c *gin.Context, keyInHeader string) context.Context {
 	if !exists {
 		belogs.Error("SetToContextWithValue(): get JWT_CTX_CustomClaims_Infos from gin.Context fail, JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos)
 		// 使用请求上下文作为父上下文，而非空上下文
-		return context.Background()
+		m = make(map[string]interface{})
 	}
 	valMap, ok := m.(map[string]interface{})
 	if !ok || valMap == nil {
