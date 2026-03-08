@@ -178,7 +178,7 @@ func TestSetToContextWithValue(t *testing.T) {
 			}
 
 			// 3. 执行测试函数
-			ctx := SetToContextWithValue(c)
+			ctx := SetToContextWithValue(c, RequestIDFieldSnake)
 
 			// 4. 断言1：验证是否返回空Background()（无Claims场景）
 			if tt.wantIsBgCtx {
@@ -377,7 +377,7 @@ func BenchmarkContextOperations(b *testing.B) {
 
 	// 基准测试逻辑
 	for i := 0; i < b.N; i++ {
-		ctx := SetToContextWithValue(c)
+		ctx := SetToContextWithValue(c, RequestIDFieldSnake)
 		_ = GetCustomClaims(ctx)
 		_ = GetAuthHeader(ctx)
 	}
@@ -420,7 +420,7 @@ func BenchmarkSetToContextWithValue(b *testing.B) {
 
 			// 执行基准测试（循环b.N次）
 			for i := 0; i < b.N; i++ {
-				_ = SetToContextWithValue(c)
+				_ = SetToContextWithValue(c, RequestIDFieldSnake)
 			}
 		})
 	}
@@ -444,7 +444,7 @@ func BenchmarkContextOperationsFullChain(b *testing.B) {
 
 	// 模拟业务中完整的上下文操作链
 	for i := 0; i < b.N; i++ {
-		ctx := SetToContextWithValue(c)
+		ctx := SetToContextWithValue(c, RequestIDFieldSnake)
 		_ = GetCustomClaims(ctx)
 		_ = GetAuthHeader(ctx)
 	}

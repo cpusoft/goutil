@@ -210,7 +210,7 @@ func ReceiveFileAndUnmarshalJson(c *gin.Context, dir string, f interface{}) (rec
 func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 
 	belogs.Debug("ReceiveFileAndPostNewUrl(): newUrl:", newUrl)
-	ctx := SetToContextWithValue(c)
+	ctx := SetToContextWithValue(c, RequestIDFieldSnake)
 	file, err := getFormFile(c)
 	if err != nil {
 		belogs.Error("ReceiveFileAndPostNewUrl(): getFormFile fail:", err)

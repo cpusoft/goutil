@@ -10,16 +10,20 @@ import (
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/jwtutil"
+	"github.com/cpusoft/goutil/zaplogs"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // 自定义Context Key类型，避免命名冲突
 const (
-	JWT_HEADER_AUTHORIZATION = "Authorization"
-	JWT_HEADER_PREFIX_BEARER = "Bearer"
+	JWT_HEADER_AUTHORIZATION string = "Authorization"
+	JWT_HEADER_PREFIX_BEARER string = "Bearer"
 	// same as in jwtutil.go
 	// same as in zaplogs.go
-	JWT_CTX_CustomClaims_Infos = "CustomClaims.Infos"
+	JWT_CTX_CustomClaims_Infos string = "CustomClaims.Infos"
+	RequestIDFieldSnake        string = "request_id"
+	RequestIDFieldCamel        string = "requestId"
 )
 
 // ginsession.RegisterJwt(engine)
@@ -78,23 +82,44 @@ func jwtAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-func SetToContextWithValue(c *gin.Context) context.Context {
+// keyInHeader: 存在Header中的值，可以为空则不做处理,
+// 如果有值（RequestIDFieldSnake="rpki-request-id"）则存入JWT_CTX_CustomClaims_Infos中
+func SetToContextWithValue(c *gin.Context, keyInHeader string) context.Context {
+	// 从请求头中获取Authorization字段并存入上下文，供后续处理使用
+	authHeader := c.GetHeader(JWT_HEADER_AUTHORIZATION)
+	belogs.Debug("SetToContextWithValue(): get Authorization header", "value", authHeader, "keyInHeader", keyInHeader)
+	ctx := context.WithValue(context.Background(), JWT_HEADER_AUTHORIZATION, authHeader)
+
+	// 从gin.Context中获取JWT_CTX_CustomClaims_Infos并存入上下文，供后续处理使用
 	m, exists := c.Get(string(JWT_CTX_CustomClaims_Infos))
 	if !exists {
 		belogs.Error("SetToContextWithValue(): get JWT_CTX_CustomClaims_Infos from gin.Context fail, JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos)
 		// 使用请求上下文作为父上下文，而非空上下文
 		return context.Background()
 	}
+	valMap, ok := m.(map[string]interface{})
+	if !ok || valMap == nil {
+		valMap = make(map[string]interface{})
+	}
 	// 日志仅输出关键标识，不泄露完整Claims内容
 	belogs.Debug("SetToContextWithValue(): get JWT_CTX_CustomClaims_Infos success, data exists")
 
-	authHeader := c.GetHeader(JWT_HEADER_AUTHORIZATION)
-	belogs.Debug("SetToContextWithValue(): get Authorization header", "value", authHeader)
+	// 从请求头中获取或生成RequestId，并存入上下文，供后续处理使用
+	var requestId string
+	if keyInHeader != "" {
+		requestId = c.GetHeader(keyInHeader)
+		if requestId == "" {
+			requestId = c.GetHeader(RequestIDFieldSnake)
+			if requestId == "" {
+				requestId = uuid.New().String()
+			}
+		}
+		valMap[RequestIDFieldSnake] = requestId
+		valMap[RequestIDFieldCamel] = requestId
+	}
+	ctx = context.WithValue(ctx, JWT_CTX_CustomClaims_Infos, valMap)
+	zaplogs.DebugArgs(ctx, "InitResetDb() set valMap", "requestId", requestId)
 
-	// 正确设置Context值（链式传递，避免覆盖）
-	// 核心：基于同一个Background()，依次设置两个Key
-	ctx := context.WithValue(context.Background(), JWT_CTX_CustomClaims_Infos, m)
-	ctx = context.WithValue(ctx, JWT_HEADER_AUTHORIZATION, authHeader)
 	return ctx
 }
 
