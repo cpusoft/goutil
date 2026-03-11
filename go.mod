@@ -20,7 +20,7 @@ require (
 	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260307033039-1a29562c2dda
 	github.com/mattn/go-sqlite3 v1.14.34
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/panjf2000/ants/v2 v2.11.5
+	github.com/panjf2000/ants/v2 v2.11.6
 	github.com/parnurzeal/gorequest v0.2.17
 	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02
@@ -85,11 +85,11 @@ require (
 	go.opentelemetry.io/otel/metric v1.42.0 // indirect
 	go.opentelemetry.io/otel/trace v1.42.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/arch v0.24.0 // indirect
+	golang.org/x/arch v0.25.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
