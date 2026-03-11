@@ -68,6 +68,9 @@ func DecodeJson(c *gin.Context, v interface{}) error {
 	return nil
 }
 
+// //////////////////////////////////////
+// response1 Model
+// ///////////////////////////////////////
 // reslut:ok/fail ;
 // msg: error ;
 // data: more info ;
@@ -83,15 +86,6 @@ type HttpResponse struct {
 	Msg    string `json:"msg"`
 }
 
-func Html(c *gin.Context, html string, v interface{}) {
-	c.Header("Cache-Control", "no-cache")
-	c.HTML(http.StatusOK, html, v)
-}
-
-func String(c *gin.Context, v string) {
-	c.String(http.StatusOK, "%s", v)
-}
-
 func ResponseOk(c *gin.Context, v interface{}) {
 	c.Header("Cache-Control", "no-cache")
 	ret := ResponseModel{Result: "ok", Msg: "", Data: v}
@@ -104,6 +98,54 @@ func ResponseFail(c *gin.Context, err error, v interface{}) {
 	responseJSON(c, http.StatusOK, &ret)
 }
 
+// //////////////////////////////////////
+// response2 Model
+// ///////////////////////////////////////
+/*
+	{
+	    "code": "200",
+	    "message": "success",
+	    "requestId": "<server-generated-or-echoed>",
+	    "data": <业务数据>
+	  }
+*/
+const (
+	RESPONSE2_CODE_200        string = "200"
+	RESPONSE2_MESSAGE_SUCCESS string = "success"
+)
+
+type Response2Model struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	RequestId string `json:"requestId"`
+	Data      any    `json:"data"`
+}
+
+func Response2Ok(c *gin.Context, v any) {
+	c.Header("Cache-Control", "no-cache")
+	requestId := c.GetHeader(RequestIDFieldSnake)
+	ret := Response2Model{Code: RESPONSE2_CODE_200, Message: "", RequestId: requestId, Data: v}
+	responseJSON(c, http.StatusOK, &ret)
+}
+
+func Response2Fail(c *gin.Context, code string, err error, v interface{}) {
+	c.Header("Cache-Control", "no-cache")
+	requestId := c.GetHeader(RequestIDFieldSnake)
+	ret := Response2Model{Code: code, Message: err.Error(), RequestId: requestId, Data: v}
+	responseJSON(c, http.StatusOK, &ret)
+}
+
+// //////////////////////////////////////
+// response html/string/json
+// ///////////////////////////////////////
+func Html(c *gin.Context, html string, v interface{}) {
+	c.Header("Cache-Control", "no-cache")
+	c.HTML(http.StatusOK, html, v)
+}
+
+func String(c *gin.Context, v string) {
+	c.String(http.StatusOK, "%s", v)
+}
 func responseJSON(c *gin.Context, status int, v interface{}) {
 	c.JSON(status, v)
 }
