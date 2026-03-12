@@ -110,7 +110,8 @@ func ResponseFail(c *gin.Context, err error, v interface{}) {
 	  }
 */
 const (
-	RESPONSE2_CODE_200        string = "200"
+	RESPONSE2_CODE_StatusOK   string = "200"
+	RESPONSE2_CODE_StatusFail string = "500"
 	RESPONSE2_MESSAGE_SUCCESS string = "success"
 )
 
@@ -121,10 +122,17 @@ type Response2Model struct {
 	Data      any    `json:"data"`
 }
 
+type Response2ListModel struct {
+	List   any   `json:"list"` // list:[{},{}]
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
+	Total  int64 `json:"total"`
+}
+
 func Response2Ok(c *gin.Context, v any) {
 	c.Header("Cache-Control", "no-cache")
 	requestId := c.GetHeader(RequestIDFieldSnake)
-	ret := Response2Model{Code: RESPONSE2_CODE_200, Message: "", RequestId: requestId, Data: v}
+	ret := Response2Model{Code: RESPONSE2_CODE_StatusOK, Message: "", RequestId: requestId, Data: v}
 	responseJSON(c, http.StatusOK, &ret)
 }
 
