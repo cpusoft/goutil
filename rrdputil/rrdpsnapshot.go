@@ -31,7 +31,8 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 }
 */
 
-func GetRrdpSnapshotWithConfig(snapshotUrl string, httpClientConfig *httpclient.HttpClientConfig) (snapshotModel SnapshotModel, err error) {
+func GetRrdpSnapshotWithConfig(snapshotUrl string,
+	httpClientConfig *httpclient.HttpClientConfig) (snapshotModel SnapshotModel, err error) {
 	start := time.Now()
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
@@ -51,7 +52,8 @@ func GetRrdpSnapshotWithConfig(snapshotUrl string, httpClientConfig *httpclient.
 
 // check if support range
 // or will call curl
-func getRrdpSnapshotImplWithConfig(snapshotUrl string, httpClientConfig *httpclient.HttpClientConfig) (snapshotModel SnapshotModel, err error) {
+func getRrdpSnapshotImplWithConfig(snapshotUrl string,
+	httpClientConfig *httpclient.HttpClientConfig) (snapshotModel SnapshotModel, err error) {
 
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
@@ -201,7 +203,8 @@ func CheckRrdpSnapshotValue(snapshotModel *SnapshotModel) error {
 }
 
 // repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
-func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) (rrdpFiles []RrdpFile, err error) {
+func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel,
+	repoPath string) (rrdpFiles []RrdpFile, err error) {
 	if snapshotModel == nil || len(snapshotModel.SnapshotPublishs) == 0 {
 		belogs.Error("SaveRrdpSnapshotToRrdpFiles(): len(snapshotModel.SnapshotPublishs)==0")
 		return nil, errors.New("snapshot's publishs is empty")
@@ -274,6 +277,7 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel, repoPath string) 
 			FileName:  file,
 			SyncType:  "add",
 			SourceUrl: snapshotModel.SnapshotUrl,
+			Serial:    snapshotModel.Serial,
 		}
 		rrdpFiles = append(rrdpFiles, rrdpFile)
 	}

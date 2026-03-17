@@ -385,6 +385,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 			FileName:  file,
 			SyncType:  "del",
 			SourceUrl: deltaModel.DeltaUrl,
+			Serial:    deltaModel.Serial,
 		}
 		belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws, del filePathName:", filePathName,
 			"    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,

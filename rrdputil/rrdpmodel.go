@@ -144,4 +144,5 @@ type RrdpFile struct {
 	SyncType string `json:"syncType"`
 	//snapshoturl or deltaurl
 	SourceUrl string `json:"sourceUrl"`
+	Serial    uint64 `json:"serial"`
 }
