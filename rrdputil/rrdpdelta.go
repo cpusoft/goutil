@@ -317,7 +317,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 	if len(deltaModel.DeltaWithdraws) > 0 {
 		belogs.Info("saveRrdpDeltaToRrdpFiles():len(deltaModel.DeltaWithdraws)>0, deltaModel:", jsonutil.MarshalJson(deltaModel))
 	}
-	rrdpFiles = make([]RrdpFile, 0)
+	rrdpFiles = make([]RrdpFile, 0, len(deltaModel.DeltaWithdraws)+len(deltaModel.DeltaPublishs))
 
 	// first , del withdraw files
 	for i := range deltaModel.DeltaWithdraws {
@@ -383,6 +383,7 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 		rrdpFile := RrdpFile{
 			FilePath:  dir,
 			FileName:  file,
+			FileUri:   uri,
 			SyncType:  "del",
 			SourceUrl: deltaModel.DeltaUrl,
 			Serial:    deltaModel.Serial,
@@ -472,9 +473,11 @@ func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64
 		rrdpFile := RrdpFile{
 			FilePath: dir,
 			FileName: file,
+			FileUri:  uri,
 			//SyncType: "add",
 			SyncType:  "update",
 			SourceUrl: deltaModel.DeltaUrl,
+			Serial:    deltaModel.Serial,
 		}
 		belogs.Info("saveRrdpDeltaToRrdpFiles(): Publish, update filePathName:", filePathName,
 			"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl,

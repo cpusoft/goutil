@@ -275,6 +275,7 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel,
 		rrdpFile := RrdpFile{
 			FilePath:  dir,
 			FileName:  file,
+			FileUri:   uri,
 			SyncType:  "add",
 			SourceUrl: snapshotModel.SnapshotUrl,
 			Serial:    snapshotModel.Serial,

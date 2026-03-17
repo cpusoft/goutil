@@ -140,9 +140,11 @@ type DeltaWithdraw struct {
 type RrdpFile struct {
 	FilePath string `json:"filePath"`
 	FileName string `json:"fileName"`
-	// add /del
+	// every file's uri: SnapshotPublish.Uri/DeltaPublish.Uri/DeltaWithdraw.Uri
+	FileUri string `json:"fileUri"`
+	// update(add) /del
 	SyncType string `json:"syncType"`
-	//snapshoturl or deltaurl
+	// snapshot's url, or delta's url
 	SourceUrl string `json:"sourceUrl"`
 	Serial    uint64 `json:"serial"`
 }
