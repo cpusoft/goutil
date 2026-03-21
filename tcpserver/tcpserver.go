@@ -347,6 +347,29 @@ func (ts *TcpServer) GetAllConns() []*net.TCPConn {
 	return conns
 }
 
+// 新增方法：获取所有客户端连接
+func (ts *TcpServer) GetAllConnIps() []string {
+	ipMap := make(map[string]string)
+	ts.tcpConnsMutex.RLock()
+	for _, conn := range ts.tcpConns {
+		remoteAddr := conn.RemoteAddr().String()
+		host, _, err := net.SplitHostPort(remoteAddr)
+		if err != nil {
+			belogs.Warn("Split host port fail:", err, " addr:", remoteAddr)
+			continue
+		}
+		if _, ok := ipMap[host]; !ok {
+			ipMap[host] = host
+		}
+	}
+	ts.tcpConnsMutex.RUnlock()
+	ips := make([]string, 0, len(ipMap))
+	for k := range ipMap {
+		ips = append(ips, k)
+	}
+	return ips
+}
+
 // 新增方法：根据地址获取指定客户端连接
 func (ts *TcpServer) GetConnByAddr(clientAddr string) (*net.TCPConn, bool) {
 	ts.tcpConnsMutex.RLock()
