@@ -296,7 +296,7 @@ func LastInsertIdPostgreSQL(session *xorm.Session, tableName string) (id int64, 
 	}
 	return newId, nil
 }
-*/
+
 func LastInsertIdPostgreSQL(session *xorm.Session, tableName string) (id int64, err error) {
 	// 1. 入参校验（保留你的逻辑，补充更清晰的错误信息）
 	if session == nil {
@@ -333,3 +333,4 @@ func LastInsertIdPostgreSQL(session *xorm.Session, tableName string) (id int64, 
 
 	return newId, nil
 }
+*/
