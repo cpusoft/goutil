@@ -259,6 +259,7 @@ func CloseXormEngine() error {
 }
 
 // pg
+/*
 func LastInsertIdPostgreSQL(session *xorm.Session, tableName string) (id int64, err error) {
 	if session == nil {
 		return 0, errors.New("session is nil")
@@ -282,8 +283,53 @@ func LastInsertIdPostgreSQL(session *xorm.Session, tableName string) (id int64, 
 		err = rows.Scan(&newId)
 		if err != nil {
 			belogs.Error("LastInsertIdPostgreSQL(): Scan fail", "seqSql", seqSql, "err", err)
-			return 0, err
+			//return 0, err
+			_, err = session.SQL("SELECT lastval()").Get(&newId)
+			if err != nil {
+				belogs.Error("LastInsertIdPostgreSQL(): lastval fail", "seqSql", "SELECT lastval()",
+					"err", err)
+				return 0, err
+			}
+			return newId, nil
 		}
+		return newId, nil
 	}
+	return newId, nil
+}
+*/
+func LastInsertIdPostgreSQL(session *xorm.Session, tableName string) (id int64, err error) {
+	// 1. 入参校验（保留你的逻辑，补充更清晰的错误信息）
+	if session == nil {
+		return 0, errors.New("LastInsertIdPostgreSQL(): session is nil")
+	}
+	if len(tableName) == 0 {
+		return 0, errors.New("LastInsertIdPostgreSQL(): tableName is empty")
+	}
+
+	// 2. 构建currval的SQL（使用参数化思路避免注入，PostgreSQL序列名用quote_ident转义）
+	seqName := fmt.Sprintf("%s_id_seq", tableName)
+	currValSql := fmt.Sprintf("SELECT currval(quote_ident(%s))", seqName)
+	belogs.Debug("LastInsertIdPostgreSQL(): currval",
+		"seqName", seqName, "currValSql", currValSql)
+	// 3. 先尝试用currval查询（精准匹配当前表的序列）
+	var newId int64
+	_, err = session.SQL(currValSql, seqName).Get(&newId)
+	if err == nil {
+		belogs.Debug("LastInsertIdPostgreSQL(): currval query",
+			"newId", newId)
+		return newId, nil // currval成功，直接返回
+	}
+
+	// 4. currval失败，打印日志并降级到lastval
+
+	// 5. 用lastval查询（兼容会话级的最后一个序列值）
+	lastValSql := "SELECT lastval()"
+	_, err = session.SQL(lastValSql).Get(&newId)
+	if err != nil {
+		belogs.Error("LastInsertIdPostgreSQL(): lastval query fail",
+			"sql", lastValSql, "err", err)
+		return 0, fmt.Errorf("lastval query failed: %w", err)
+	}
+
 	return newId, nil
 }
