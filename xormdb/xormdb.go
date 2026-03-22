@@ -257,3 +257,33 @@ func CloseXormEngine() error {
 	}
 	return nil
 }
+
+// pg
+func LastInsertIdPostgreSQL(session *xorm.Session, tableName string) (id int64, err error) {
+	if session == nil {
+		return 0, errors.New("session is nil")
+	}
+	if len(tableName) == 0 {
+		return 0, errors.New("tableName is emmpty")
+	}
+
+	// lab_rpki_roa_id_seq
+	seqSql := `SELECT currval('` + tableName + `_id_seq')`
+	rows, err := session.DB().Query(seqSql)
+	if err != nil {
+		belogs.Error("LastInsertIdPostgreSQL(): Query fail", "seqSql", seqSql, "err", err)
+		return 0, err
+	}
+	defer rows.Close()
+
+	// 5. 读取序列返回的 ID
+	var newId int64
+	if rows.Next() {
+		err = rows.Scan(&newId)
+		if err != nil {
+			belogs.Error("LastInsertIdPostgreSQL(): Scan fail", "seqSql", seqSql, "err", err)
+			return 0, err
+		}
+	}
+	return newId, nil
+}
