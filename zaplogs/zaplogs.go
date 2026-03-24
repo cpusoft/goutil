@@ -67,8 +67,11 @@ func init() {
 	}
 	fmt.Println(filePath)
 	lc := logConfig{
-		Level:    logLevelStr, // DEBUG<INFO<WARN<ERROR
-		FileName: filePath,
+		Level:      logLevelStr, // DEBUG<INFO<WARN<ERROR
+		FileName:   filePath,
+		MaxSize:    conf.DefaultInt("logs::maxsize", 1000),
+		MaxAge:     conf.DefaultInt("logs::maxage", 365),
+		MaxBackups: conf.DefaultInt("logs::maxbackups", 365),
 	}
 	err = initLogger(lc)
 	if err != nil {
