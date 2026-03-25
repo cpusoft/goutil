@@ -229,7 +229,6 @@ func CommitSession(session *xorm.Session) error {
 		return errors.New("session is nil or closed")
 	}
 	if err := session.Commit(); err != nil {
-		belogs.Error("main():Commit fail")
 		return RollbackAndLogError(session, "session.Commit fail", err)
 	}
 	return nil
