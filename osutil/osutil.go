@@ -3,6 +3,7 @@ package osutil
 import (
 	"container/list"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -187,8 +188,9 @@ func GetConfOrLogPath(relativePath string) (confOrLogPath string, currentPath st
 	}
 	// 使用filepath.Join自动处理分隔符，避免重复
 	currentPath = filepath.Clean(currentPath) + string(os.PathSeparator)
-
 	confOrLogPath = filepath.Join(currentPath, relativePath)
+	fmt.Println("GetConfOrLogPath(): currentPath:", currentPath, " confOrLogPath:", confOrLogPath)
+
 	ok, err := IsDir(confOrLogPath)
 	if err == nil && ok {
 		// 确保路径以分隔符结尾（按需，建议用filepath.Clean）
@@ -203,8 +205,9 @@ func GetConfOrLogPath(relativePath string) (confOrLogPath string, currentPath st
 	}
 	// 使用filepath.Join自动处理分隔符，避免重复
 	parentPath = filepath.Clean(parentPath) + string(os.PathSeparator)
-
 	confOrLogPath = filepath.Join(parentPath, relativePath)
+	fmt.Println("GetConfOrLogPath(): parentPath:", parentPath, " confOrLogPath:", confOrLogPath)
+
 	ok, err = IsDir(confOrLogPath)
 	if err == nil && ok {
 		// 确保路径以分隔符结尾（按需，建议用filepath.Clean）
