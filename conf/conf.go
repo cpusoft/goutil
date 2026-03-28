@@ -134,6 +134,12 @@ func DefaultBool(key string, defaultVal bool) bool {
 	}
 	return defaultVal
 }
+func GetSection(section string) (map[string]string, error) {
+	if configure != nil {
+		return configure.GetSection(section)
+	}
+	return nil, errors.New("configure is nil")
+}
 
 /* close
 // VariableString 解析带变量占位符的配置值（如 ${rpstir2::datadir}/rsyncrepo）
