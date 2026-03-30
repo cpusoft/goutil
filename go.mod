@@ -16,9 +16,9 @@ require (
 	github.com/gorilla/context v1.1.2
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
-	github.com/lib/pq v1.12.0
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260313013624-04e51e218220
-	github.com/mattn/go-sqlite3 v1.14.37
+	github.com/lib/pq v1.12.1
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260323125519-8a7b0882169b
+	github.com/mattn/go-sqlite3 v1.14.38
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/panjf2000/ants/v2 v2.12.0
 	github.com/parnurzeal/gorequest v0.2.17
@@ -35,16 +35,16 @@ require (
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
-	github.com/bytedance/sonic/loader v0.5.0 // indirect
+	github.com/bytedance/sonic/loader v0.5.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/elazarl/goproxy v1.8.2 // indirect
+	github.com/elazarl/goproxy v1.8.3 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
-	github.com/gin-contrib/sse v1.1.0 // indirect
+	github.com/gin-contrib/sse v1.1.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -59,14 +59,14 @@ require (
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/lufia/plan9stats v0.0.0-20260216142805-b3301c5f2a88 // indirect
+	github.com/lufia/plan9stats v0.0.0-20260330125221-c963978e514e // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.39.1 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
