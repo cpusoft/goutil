@@ -2,6 +2,9 @@ package logutil
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/osutil"
@@ -9,8 +12,11 @@ import (
 
 // fileExtNoDot: "log" or "json"
 func GetLogPathName(fileExtNoDot string) (logPathName string) {
-	logName := conf.DefaultString("logs::name", "logs.+"+fileExtNoDot)
-
+	logName := conf.String("logs::name") + "." + fileExtNoDot
+	if logName == "" {
+		logName := filepath.Base(os.Args[0])
+		logName = strings.Split(logName, ".")[0] + "." + fileExtNoDot
+	}
 	var currentPath string
 	var err error
 	logPath := conf.String("logs::dir")
