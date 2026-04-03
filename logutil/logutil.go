@@ -30,7 +30,7 @@ func GetLogPathName(fileExtNoDot string) (logPathName string) {
 			logPath = currentPath
 		}
 	}
-	logPathName = logPath + logName
+	logPathName = osutil.JoinPathFile(logPath, logName)
 	fmt.Println("logPathName:" + logPathName)
 	return logPathName
 }
