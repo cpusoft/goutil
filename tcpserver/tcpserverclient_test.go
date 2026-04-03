@@ -153,6 +153,11 @@ func (h *TestServerHandler) OnConnect(conn *net.TCPConn) error {
 	return nil
 }
 
+func (h *TestServerHandler) PreCheckConn(conn *net.TCPConn) error {
+	// 这里可以添加连接前的检查逻辑，例如IP白名单、连接速率限制等
+	// 返回非nil错误将拒绝连接
+	return nil
+}
 func (h *TestServerHandler) OnReceiveAndSend(conn *net.TCPConn, data []byte) error {
 	addr := conn.RemoteAddr().String()
 

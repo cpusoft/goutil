@@ -18,6 +18,7 @@ import (
 // TcpServerProcessFunc 服务器业务回调接口
 type TcpServerProcessFunc interface {
 	OnConnect(conn *net.TCPConn) (err error)
+	PreCheckConn(conn *net.TCPConn) (err error)
 	OnReceiveAndSend(conn *net.TCPConn, receiveData []byte) (err error)
 	OnClose(conn *net.TCPConn)
 	ActiveSend(conn *net.TCPConn, sendData []byte) (err error)
@@ -232,13 +233,11 @@ func (ts *TcpServer) acceptConnections() {
 			_ = conn.Close()
 			continue
 		}
-
-		// 新增：将新连接加入连接列表
-		clientAddr := tcpConn.RemoteAddr().String()
-		ts.tcpConnsMutex.Lock()
-		ts.tcpConns[clientAddr] = tcpConn
-		ts.tcpConnsMutex.Unlock()
-		belogs.Info("Add new connection, client:", clientAddr, " total connections:", ts.GetConnCount())
+		if err := ts.preCheckConn(tcpConn); err != nil {
+			belogs.Error("Connection preCheckConn failed:", err)
+			_ = conn.Close()
+			continue
+		}
 
 		// 处理连接
 		go ts.handleConn(tcpConn)
@@ -246,11 +245,22 @@ func (ts *TcpServer) acceptConnections() {
 }
 
 // handleConnection 处理单个连接
+func (ts *TcpServer) preCheckConn(conn *net.TCPConn) error {
+
+	// 触发连接回调
+	if ts.processFunc != nil {
+		return ts.processFunc.PreCheckConn(conn)
+	}
+	return nil
+}
+
+// handleConnection 处理单个连接
 func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 	clientAddr := conn.RemoteAddr().String()
-	ts.mu.Lock()
+	ts.tcpConnsMutex.Lock()
 	ts.tcpConns[clientAddr] = conn
-	ts.mu.Unlock()
+	ts.tcpConnsMutex.Unlock()
+	belogs.Info("Add new connection, client:", clientAddr, " total connections:", ts.GetConnCount())
 
 	// 触发连接回调
 	if ts.processFunc != nil {
