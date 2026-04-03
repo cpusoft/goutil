@@ -12,11 +12,12 @@ import (
 
 // fileExtNoDot: "log" or "json"
 func GetLogPathName(fileExtNoDot string) (logPathName string) {
-	logName := conf.String("logs::name") + "." + fileExtNoDot
+	logName := conf.String("logs::name")
 	if logName == "" {
-		logName := filepath.Base(os.Args[0])
-		logName = strings.Split(logName, ".")[0] + "." + fileExtNoDot
+		logName = filepath.Base(os.Args[0])
+		logName = strings.Split(logName, ".")[0]
 	}
+	logName = logName + "." + fileExtNoDot
 	var currentPath string
 	var err error
 	logPath := conf.String("logs::dir")
