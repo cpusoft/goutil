@@ -3,13 +3,10 @@ package zaplogs
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
-	"github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/logutil"
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -46,34 +43,16 @@ func init() {
 		logLevelStr = "debug"
 	}
 
-	// get level
-	// get process file name as log name
-	logName := filepath.Base(os.Args[0])
-	if logName != "" {
-		logName = strings.Split(logName, ".")[0] + ".json"
-	} else {
-		logName = conf.String("logs::name")
-	}
-	var filePath string
-	logPath, currentPath, err := osutil.GetConfOrLogPath("log")
-	if err != nil {
-		fmt.Println("zaplogs():GetConfOrLogPath conf failed, " + err.Error())
-	}
-	if logPath == "" {
-		fmt.Println("zaplogs():found logpath failed, use currentPath:", currentPath)
-		filePath = currentPath + logName
-	} else {
-		filePath = logPath + logName
-	}
-	fmt.Println(filePath)
+	logPathName := logutil.GetLogPathName("json")
+	fmt.Println(logPathName)
 	lc := logConfig{
 		Level:      logLevelStr, // DEBUG<INFO<WARN<ERROR
-		FileName:   filePath,
+		FileName:   logPathName,
 		MaxSize:    conf.DefaultInt("logs::maxsize", 1000),
 		MaxAge:     conf.DefaultInt("logs::maxage", 365),
 		MaxBackups: conf.DefaultInt("logs::maxbackups", 365),
 	}
-	err = initLogger(lc)
+	err := initLogger(lc)
 	if err != nil {
 		fmt.Println(err)
 	}

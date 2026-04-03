@@ -1,19 +1,6 @@
 package main
 
-import (
-	"context"
-	"errors"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
-	"time"
-
-	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/taskcycleutil"
-)
-
+/*
 // ========== 下载任务配置 ==========
 // DownloadTaskConfig 下载任务的自定义参数
 type DownloadTaskConfig struct {
@@ -367,13 +354,14 @@ func main() {
 	framework.Stop()
 	belogs.Info("task framework stopped")
 
-	/* ========== 10. 输出任务执行结果（可选） ==========
-	framework.TasksMu.RLock() // 注：需将框架的tasksMu改为导出字段，或添加获取任务的方法
-	defer framework.TasksMu.RUnlock()
+	// ========== 10. 输出任务执行结果（可选） ==========
+	//framework.TasksMu.RLock() // 注：需将框架的tasksMu改为导出字段，或添加获取任务的方法
+	//defer framework.TasksMu.RUnlock()
 
-	for key, task := range framework.Tasks {
-		belogs.Info(fmt.Sprintf("task %s result: %s, success count: %d, fail count: %d",
-			key, task.Result, task.SuccessCount, task.FailCount))
-	}
-	*/
+	//for key, task := range framework.Tasks {
+	//	belogs.Info(fmt.Sprintf("task %s result: %s, success count: %d, fail count: %d",
+	//		key, task.Result, task.SuccessCount, task.FailCount))
+	//}
+
 }
+*/

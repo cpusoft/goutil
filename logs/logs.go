@@ -3,13 +3,10 @@ package logs
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 
 	logs "github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
-	"github.com/cpusoft/goutil/osutil"
+	"github.com/cpusoft/goutil/logutil"
 )
 
 /*
@@ -25,16 +22,6 @@ LevelDebug
 func init() {
 
 	logLevel := conf.String("logs::level")
-	// get process file name as log name
-	logName := filepath.Base(os.Args[0])
-	if logName != "" {
-		logName = strings.Split(logName, ".")[0] + ".log"
-	} else {
-		logName = conf.String("logs::name")
-	}
-	//async := conf.DefaultBool("logs::async", false)
-	//fmt.Println("logLevel:", logLevel, "  logName:", logName, "  async:", async)
-
 	var logLevelInt int = logs.LevelInformational
 	switch logLevel {
 	case "LevelEmergency":
@@ -56,24 +43,13 @@ func init() {
 	}
 	//ts := time.Now().Format("2006-01-02")
 
-	//
-	var filePath string
-	logPath, currentPath, err := osutil.GetConfOrLogPath("log")
-	if err != nil {
-		fmt.Println(filePath + " GetConfOrLogPath log failed, " + err.Error())
-	}
-	if logPath == "" {
-		fmt.Println("belogs():found logpath failed, use currentPath:", currentPath)
-		filePath = currentPath + logName
-	} else {
-		filePath = logPath + logName
-	}
-	fmt.Println("belogs():log file is ", filePath)
+	logPathName := logutil.GetLogPathName("log")
+	fmt.Println("belogs():log file is ", logPathName)
 
 	logConfig := make(map[string]interface{})
 	logConfig["daily"] = true
 	logConfig["hourly"] = false
-	logConfig["filename"] = filePath // + "." + ts
+	logConfig["filename"] = logPathName // + "." + ts
 	logConfig["maxlines"] = 0
 	logConfig["maxfiles"] = 0
 	logConfig["maxsize"] = 0
@@ -85,9 +61,9 @@ func init() {
 	//fmt.Println("log:logConfigStr", string(logConfigStr))
 	//logs.NewLogger(1024)
 	//AdapterFile
-	err = logs.SetLogger(logs.AdapterFile, string(logConfigStr))
+	err := logs.SetLogger(logs.AdapterFile, string(logConfigStr))
 	if err != nil {
-		fmt.Println(filePath + " SetLogger failed, " + err.Error() + ",   " + string(logConfigStr))
+		fmt.Println(logPathName + " SetLogger failed, " + err.Error() + ",   " + string(logConfigStr))
 	}
 	logs.GetBeeLogger().DelLogger("console")
 	//if async {

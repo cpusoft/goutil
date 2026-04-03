@@ -177,46 +177,6 @@ func CloseAndRemoveFile(file *os.File) error {
 
 }
 
-// relativePath: "conf" or "log"
-// if not exist conf or log, confOrLogPath is "", can use currentPath
-// only use in goutil/conf and goutil/log.  dont use in others.
-func GetConfOrLogPath(relativePath string) (confOrLogPath string, currentPath string, err error) {
-	// find in ./conf or ./log
-	currentPath, err = GetPwd()
-	if err != nil {
-		return "", relativePath, err
-	}
-	// 使用filepath.Join自动处理分隔符，避免重复
-	currentPath = filepath.Clean(currentPath) + string(os.PathSeparator)
-	confOrLogPath = filepath.Join(currentPath, relativePath)
-	fmt.Println("GetConfOrLogPath(): currentPath:", currentPath, " confOrLogPath:", confOrLogPath)
-
-	ok, err := IsDir(confOrLogPath)
-	if err == nil && ok {
-		// 确保路径以分隔符结尾（按需，建议用filepath.Clean）
-		confOrLogPath = filepath.Clean(confOrLogPath) + string(os.PathSeparator)
-		return confOrLogPath, currentPath, nil
-	}
-
-	// find in ../conf or ../log
-	parentPath, err := GetParentPath()
-	if err != nil {
-		return "", currentPath, err
-	}
-	// 使用filepath.Join自动处理分隔符，避免重复
-	parentPath = filepath.Clean(parentPath) + string(os.PathSeparator)
-	confOrLogPath = filepath.Join(parentPath, relativePath)
-	fmt.Println("GetConfOrLogPath(): parentPath:", parentPath, " confOrLogPath:", confOrLogPath)
-
-	ok, err = IsDir(confOrLogPath)
-	if err == nil && ok {
-		// 确保路径以分隔符结尾（按需，建议用filepath.Clean）
-		confOrLogPath = filepath.Clean(confOrLogPath) + string(os.PathSeparator)
-		return confOrLogPath, currentPath, nil
-	}
-	return "", currentPath, nil
-}
-
 // Deprecated, will use GetAllFilesBySuffixs()
 func GetAllFilesInDirectoryBySuffixs(directory string, suffixs map[string]string) *list.List {
 	if err := checkDirectoryAndSuffixs(directory, suffixs); err != nil {
@@ -404,4 +364,44 @@ func checkDirectoryAndSuffixs(directory string, suffixs map[string]string) error
 		return errors.New("directory is not a directory")
 	}
 	return nil
+}
+
+// relativePath: "conf" or "log"
+// if not exist conf or log, confOrLogPath is "", can use currentPath
+// only use in goutil/conf and goutil/log.  dont use in others.
+func GetConfOrLogPath(relativePath string) (confOrLogPath string, currentPath string, err error) {
+	// find in ./conf or ./log
+	currentPath, err = GetPwd()
+	if err != nil {
+		return "", relativePath, err
+	}
+	// 使用filepath.Join自动处理分隔符，避免重复
+	currentPath = filepath.Clean(currentPath) + string(os.PathSeparator)
+	confOrLogPath = filepath.Join(currentPath, relativePath)
+	fmt.Println("GetConfOrLogPath(): currentPath:", currentPath, " confOrLogPath:", confOrLogPath)
+
+	ok, err := IsDir(confOrLogPath)
+	if err == nil && ok {
+		// 确保路径以分隔符结尾（按需，建议用filepath.Clean）
+		confOrLogPath = filepath.Clean(confOrLogPath) + string(os.PathSeparator)
+		return confOrLogPath, currentPath, nil
+	}
+
+	// find in ../conf or ../log
+	parentPath, err := GetParentPath()
+	if err != nil {
+		return "", currentPath, err
+	}
+	// 使用filepath.Join自动处理分隔符，避免重复
+	parentPath = filepath.Clean(parentPath) + string(os.PathSeparator)
+	confOrLogPath = filepath.Join(parentPath, relativePath)
+	fmt.Println("GetConfOrLogPath(): parentPath:", parentPath, " confOrLogPath:", confOrLogPath)
+
+	ok, err = IsDir(confOrLogPath)
+	if err == nil && ok {
+		// 确保路径以分隔符结尾（按需，建议用filepath.Clean）
+		confOrLogPath = filepath.Clean(confOrLogPath) + string(os.PathSeparator)
+		return confOrLogPath, currentPath, nil
+	}
+	return "", currentPath, nil
 }
