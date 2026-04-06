@@ -309,7 +309,7 @@ func TestTCP_NoTLS(t *testing.T) {
 
 	serverAddr := "127.0.0.1:9999"
 	serverHandler := NewTestServerHandler()
-	server := NewTcpServer(serverHandler, WithReadWriteTimeout(10*time.Second, 10*time.Second))
+	server := NewTcpServer(serverHandler, WithReadWriteTimeout(true, 10*time.Second, 10*time.Second))
 
 	// 异步启动服务端
 	go func() {

@@ -48,8 +48,9 @@ type TcpServer struct {
 	listener        net.Listener // 通用监听器（兼容TLS/非TLS）
 
 	// 超时配置
-	readTimeout  time.Duration
-	writeTimeout time.Duration
+	setReadTimeout bool
+	readTimeout    time.Duration
+	writeTimeout   time.Duration
 
 	// 并发安全
 	mu     sync.Mutex
@@ -91,8 +92,9 @@ func WithServerTLS(tlsCfg *ServerTLSConfig) ServerOption {
 }
 
 // WithReadWriteTimeout 设置读写超时
-func WithReadWriteTimeout(readTimeout, writeTimeout time.Duration) ServerOption {
+func WithReadWriteTimeout(setReadTimeout bool, readTimeout, writeTimeout time.Duration) ServerOption {
 	return func(ts *TcpServer) {
+		ts.setReadTimeout = setReadTimeout
 		ts.readTimeout = readTimeout
 		ts.writeTimeout = writeTimeout
 	}
@@ -260,7 +262,8 @@ func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 	ts.tcpConnsMutex.Lock()
 	ts.tcpConns[clientAddr] = conn
 	ts.tcpConnsMutex.Unlock()
-	belogs.Info("Add new connection, client:", clientAddr, " total connections:", ts.GetConnCount())
+	belogs.Info("handleConn(): Add new connection, client:",
+		clientAddr, " total connections:", ts.GetConnCount())
 
 	// 触发连接回调
 	if ts.processFunc != nil {
@@ -279,20 +282,27 @@ func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 	}()
 
 	for {
-		conn.SetReadDeadline(time.Now().Add(ts.readTimeout))
+		if ts.setReadTimeout {
+			belogs.Debug("handleConn(): set read timeout ", ts.readTimeout)
+			conn.SetReadDeadline(time.Now().Add(ts.readTimeout))
+		}
 		n, err := conn.Read(buf)
 		if err != nil {
 			// 正常关闭不打印错误
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				belogs.Info("handleConn(): read timeout so close", err)
 				return
 			}
 			if !errors.Is(err, io.EOF) {
-				belogs.Error("read from client fail:", err)
+				belogs.Error("handleConn(): read from client no io.EOF fail", err)
+				return
 			}
+			belogs.Error("handleConn(): read from client io.EOF fail", err)
 			return
 		}
-
+		belogs.Debug("handleConn(): read n bytes: ", n)
 		if n == 0 {
+
 			continue
 		}
 
@@ -302,7 +312,7 @@ func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 		// 业务处理回调
 		if ts.processFunc != nil {
 			if err := ts.processFunc.OnReceiveAndSend(conn, receiveData); err != nil {
-				belogs.Error("OnReceiveAndSend fail:", err)
+				belogs.Error("handleConn(): OnReceiveAndSend fail:", err)
 				return
 			}
 		}
