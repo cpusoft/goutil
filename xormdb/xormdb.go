@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
@@ -157,7 +158,11 @@ func InitPostgreSQL() (err error) {
 	database := conf.String("postgresql::database")
 	maxidleconns := conf.Int("postgresql::maxidleconns")
 	maxopenconns := conf.Int("postgresql::maxopenconns")
-	XormEngine, err = InitPostgreSQLParameter(user, password, server, database, maxidleconns, maxopenconns)
+	connmaxidletimeseconds := conf.Int("postgresql::connmaxidletimeseconds")
+	connmaxlifetimeminutes := conf.Int("postgresql::connmaxlifetimeminutes")
+	XormEngine, err = InitPostgreSQLParameter(user, password,
+		server, database, maxidleconns, maxopenconns,
+		connmaxidletimeseconds, connmaxlifetimeminutes)
 	if err != nil {
 		belogs.Error("InitPostgreSQL(): fail: ", err)
 		return err
@@ -165,7 +170,8 @@ func InitPostgreSQL() (err error) {
 	return nil
 }
 
-func InitPostgreSQLParameter(user, password, server, database string, maxidleconns, maxopenconns int) (engine *xorm.Engine, err error) {
+func InitPostgreSQLParameter(user, password, server, database string,
+	maxidleconns, maxopenconns, connmaxidletimeseconds, connmaxlifetimeminutes int) (engine *xorm.Engine, err error) {
 	if user == "" || password == "" || server == "" || database == "" {
 		belogs.Error("InitPostgreSQLParameter(): fail, user or password or server or database is empty")
 		return nil, fmt.Errorf("user or password or server or database is empty")
@@ -204,8 +210,17 @@ func InitPostgreSQLParameter(user, password, server, database string, maxidlecon
 	// 设置连接池参数
 	engine.SetMaxIdleConns(maxidleconns)
 	engine.SetMaxOpenConns(maxopenconns)
+	if connmaxidletimeseconds > 0 {
+		engine.SetConnMaxIdleTime(time.Duration(connmaxidletimeseconds) * time.Second)
+	}
+	if connmaxlifetimeminutes > 0 {
+		engine.SetConnMaxLifetime(time.Duration(connmaxlifetimeminutes) * time.Minute)
+	}
 	engine.SetTableMapper(names.SnakeMapper{})
-
+	belogs.Info("InitPostgreSQLParameter(): PostgreSQL connection pool:",
+		" maxidleconns:", maxidleconns, " maxOpenConns:", maxopenconns,
+		" connMaxIdleTimeSeconds:", connmaxidletimeseconds,
+		" connMaxLifetimeMinutes:", connmaxlifetimeminutes)
 	return engine, nil
 }
 
