@@ -105,9 +105,9 @@ func (c DeltaModel) String() string {
 	return jsonutil.MarshalJson(m)
 }
 
-// support sort: from  bigger to smaller
+// support sort: from   smaller to bigger
 //
-//	v := []NotificationDelta{{Serial: 10, Uri: "3", Hash: "333"},{Serial: 9, Uri: "6", Hash: "666"},{Serial: 8, Uri: "2", Hash: "2222"},{Serial: 7, Uri: "7", Hash: "7777"}}
+//	v := []NotificationDelta{{Serial: 1, Uri: "3", Hash: "333"},{Serial: 2, Uri: "6", Hash: "666"},{Serial: 3, Uri: "2", Hash: "2222"},{Serial: 4, Uri: "7", Hash: "7777"}}
 //	sort.Sort(DeltaModelsSort(v))
 type DeltaModelsSort []DeltaModel
 
@@ -121,7 +121,7 @@ func (v DeltaModelsSort) Swap(i, j int) {
 
 // default comparison.
 func (v DeltaModelsSort) Less(i, j int) bool {
-	return v[i].Serial > v[j].Serial
+	return v[i].Serial < v[j].Serial
 }
 
 type DeltaPublish struct {
@@ -147,4 +147,8 @@ type RrdpFile struct {
 	// snapshot's url, or delta's url
 	SourceUrl string `json:"sourceUrl"`
 	Serial    uint64 `json:"serial"`
+
+	// deltaPUblish or deltaWithdraw
+	DeltaPublish  *DeltaPublish  `json:"deltaPublish"`
+	DeltaWithdraw *DeltaWithdraw `json:"deltaWithdraw"`
 }
