@@ -148,6 +148,7 @@ type RrdpFile struct {
 	SourceUrl string `json:"sourceUrl"`
 	Serial    uint64 `json:"serial"`
 
+	SnapshotPublish *SnapshotPublish `json:"snapshotPublish"`
 	// deltaPUblish or deltaWithdraw
 	DeltaPublish  *DeltaPublish  `json:"deltaPublish"`
 	DeltaWithdraw *DeltaWithdraw `json:"deltaWithdraw"`

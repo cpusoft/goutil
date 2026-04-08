@@ -3,13 +3,11 @@ package rrdputil
 import (
 	"errors"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/cpusoft/goutil/base64util"
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/hashutil"
 	"github.com/cpusoft/goutil/httpclient"
 	"github.com/cpusoft/goutil/jsonutil"
@@ -19,6 +17,7 @@ import (
 	"github.com/cpusoft/goutil/urlutil"
 	"github.com/cpusoft/goutil/xmlutil"
 	"github.com/parnurzeal/gorequest"
+	goorderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
 /*
@@ -203,20 +202,77 @@ func CheckRrdpSnapshotValue(snapshotModel *SnapshotModel) error {
 }
 
 // repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
-func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel,
-	repoPath string) (rrdpFiles []RrdpFile, err error) {
+func ConvertSnapshotToRrdpFiles(snapshotModel *SnapshotModel,
+	repoPath string) (rrdpFilesAll []*RrdpFile, err error) {
 	if snapshotModel == nil || len(snapshotModel.SnapshotPublishs) == 0 {
-		belogs.Error("SaveRrdpSnapshotToRrdpFiles(): len(snapshotModel.SnapshotPublishs)==0")
+		belogs.Error("ConvertSnapshotToRrdpFiles(): len(snapshotModel.SnapshotPublishs)==0")
 		return nil, errors.New("snapshot's publishs is empty")
 	}
-	duplicateFilePathNames := make(map[string]string, 0)
+	om := goorderedmap.New[string, *RrdpFile]()
+
 	for i := range snapshotModel.SnapshotPublishs {
+		uri := snapshotModel.SnapshotPublishs[i].Uri
+		belogs.Debug("ConvertSnapshotToRrdpFiles(): range DeltaPublishs, uri:", uri)
+		if existRrdpFile, ok := om.Get(uri); ok {
+			belogs.Debug("ConvertSnapshotToRrdpFiles(): range DeltaPublishs, find uri:", uri,
+				"    this:", jsonutil.MarshalJson(snapshotModel.SnapshotPublishs[i]),
+				"    last:", jsonutil.MarshalJson(existRrdpFile))
+			om.Delete(uri)
+		}
+		rrdpFile, err := convertSnapshotPublishToRrdpFile(snapshotModel, &snapshotModel.SnapshotPublishs[i], repoPath)
+		if err != nil {
+			belogs.Error("ConvertSnapshotToRrdpFiles(): convertSnapshotPublishToRrdpFile fail,uri:", uri, err)
+			return nil, err
+		}
+		om.Set(uri, rrdpFile)
+		belogs.Info("ConvertSnapshotToRrdpFiles(): range SnapshotPublishs",
+			"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl,
+			"    rrdpFile:", jsonutil.MarshalJson(rrdpFile))
+	}
+	belogs.Info("ConvertSnapshotToRrdpFiles(): after all, will get rrdpFiles",
+		"   len(snapshotModel.SnapshotPublishs):", len(snapshotModel.SnapshotPublishs),
+		"   om.Len():", om.Len())
+	rrdpFilesAll = make([]*RrdpFile, 0, om.Len())
+	for pair := om.Oldest(); pair != nil; pair = pair.Next() {
+		rrdpFilesAll = append(rrdpFilesAll, pair.Value)
+	}
+	belogs.Info("ConvertSnapshotToRrdpFiles(): after range om, len(snapshotModel.SnapshotPublishs):", len(snapshotModel.SnapshotPublishs),
+		"  om.Len():", om.Len(), " len(rrdpFilesAll):", len(rrdpFilesAll))
+	return rrdpFilesAll, nil
+}
+
+func convertSnapshotPublishToRrdpFile(snapshotModel *SnapshotModel, snapshotPublish *SnapshotPublish,
+	repoPath string) (*RrdpFile, error) {
+	belogs.Debug("convertSnapshotPublishToRrdpFile(): snapshotModel.SnapshotUrl", snapshotModel.SnapshotUrl,
+		"    snapshotPublish.Uri", snapshotPublish.Uri, "   repoPath:", repoPath)
+	uri := snapshotPublish.Uri
+	filePathName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
+	if err != nil {
+		belogs.Error("convertSnapshotPublishToRrdpFile(): JoinPrefixPathAndUrlFileName fail,uri:", uri, err)
+		return nil, err
+	}
+	dir, file := osutil.Split(filePathName)
+	rrdpFile := &RrdpFile{
+		FilePath:        dir,
+		FileName:        file,
+		FileUri:         uri,
+		SyncType:        "add",
+		SourceUrl:       snapshotModel.SnapshotUrl,
+		Serial:          snapshotModel.Serial,
+		SnapshotPublish: snapshotPublish,
+	}
+	belogs.Debug("convertSnapshotPublishToRrdpFile(): rrdpFile:", jsonutil.MarshalJson(rrdpFile),
+		"  snapshotModel.SnapshotUrl", snapshotModel.SnapshotUrl,
+		"  snapshotPublish.Uri", snapshotPublish.Uri)
+	return rrdpFile, nil
+
+	/*
 		uri := strings.Replace(snapshotModel.SnapshotPublishs[i].Uri, "../", "/", -1) //fix Path traversal
-		belogs.Debug("SaveRrdpSnapshotToRrdpFiles():snapshotModel.SnapshotPublishs[i].Uri:", snapshotModel.SnapshotPublishs[i].Uri,
+		belogs.Debug("ConvertSnapshotToRrdpFiles():snapshotModel.SnapshotPublishs[i].Uri:", snapshotModel.SnapshotPublishs[i].Uri,
 			" uri:", uri)
 		filePathName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): JoinPrefixPathAndUrlFileName fail:", snapshotModel.SnapshotPublishs[i].Uri,
+			belogs.Error("ConvertSnapshotToRrdpFiles(): JoinPrefixPathAndUrlFileName fail:", snapshotModel.SnapshotPublishs[i].Uri,
 				"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
 			return nil, err
 		}
@@ -224,16 +280,16 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel,
 		// if dir is notexist ,then mkdir
 		dir, file := osutil.Split(filePathName)
 		if !fileutil.CheckPathNameMaxLength(dir) {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): CheckPathNameMaxLength fail,dir:", dir)
+			belogs.Error("ConvertSnapshotToRrdpFiles(): CheckPathNameMaxLength fail,dir:", dir)
 			return nil, errors.New("snapshot path name is too long")
 		}
 		if !fileutil.CheckFileNameMaxLength(file) {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): CheckFileNameMaxLength fail,file:", file)
+			belogs.Error("ConvertSnapshotToRrdpFiles(): CheckFileNameMaxLength fail,file:", file)
 			return nil, errors.New("snapshot file name is too long")
 		}
 
 		if _, ok := duplicateFilePathNames[filePathName]; ok {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): duplicate file in snapshot, fail, filePathName:", filePathName,
+			belogs.Error("ConvertSnapshotToRrdpFiles(): duplicate file in snapshot, fail, filePathName:", filePathName,
 				"   snapshotModel:", snapshotModel.String())
 			continue
 		} else {
@@ -242,21 +298,21 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel,
 
 		isExist, err := osutil.IsExists(dir)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): IsExists dir, fail:", dir, err)
+			belogs.Error("ConvertSnapshotToRrdpFiles(): IsExists dir, fail:", dir, err)
 			return nil, err
 		}
 
 		if !isExist {
 			err = os.MkdirAll(dir, os.ModePerm)
 			if err != nil {
-				belogs.Error("SaveRrdpSnapshotToRrdpFiles(): MkdirAll dir, fail:", dir, "    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
+				belogs.Error("ConvertSnapshotToRrdpFiles(): MkdirAll dir, fail:", dir, "    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
 				return nil, err
 			}
 		}
 
 		bytes, err := base64util.DecodeBase64(strings.TrimSpace(snapshotModel.SnapshotPublishs[i].Base64))
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): DecodeBase64 fail:",
+			belogs.Error("ConvertSnapshotToRrdpFiles(): DecodeBase64 fail:",
 				snapshotModel.SnapshotPublishs[i].Base64,
 				"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
 			return nil, err
@@ -264,13 +320,13 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel,
 
 		err = fileutil.WriteBytesToFile(filePathName, bytes)
 		if err != nil {
-			belogs.Error("SaveRrdpSnapshotToRrdpFiles(): WriteBytesToFile fail:", filePathName,
+			belogs.Error("ConvertSnapshotToRrdpFiles(): WriteBytesToFile fail:", filePathName,
 				len(bytes), "    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
 			return nil, err
 		}
-		belogs.Info("SaveRrdpSnapshotToRrdpFiles(): update filePathName:", filePathName,
+		belogs.Info("ConvertSnapshotToRrdpFiles(): update filePathName:", filePathName,
 			"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, "  ok")
-		belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save filePathName ", filePathName, "  ok")
+		belogs.Debug("ConvertSnapshotToRrdpFiles(): save filePathName ", filePathName, "  ok")
 
 		rrdpFile := RrdpFile{
 			FilePath:  dir,
@@ -280,9 +336,5 @@ func SaveRrdpSnapshotToRrdpFiles(snapshotModel *SnapshotModel,
 			SourceUrl: snapshotModel.SnapshotUrl,
 			Serial:    snapshotModel.Serial,
 		}
-		rrdpFiles = append(rrdpFiles, rrdpFile)
-	}
-	belogs.Debug("SaveRrdpSnapshotToRrdpFiles(): save len(rrdpFiles):", len(rrdpFiles))
-	return rrdpFiles, nil
-
+	*/
 }
