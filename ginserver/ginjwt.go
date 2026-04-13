@@ -10,7 +10,6 @@ import (
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/jwtutil"
-	"github.com/cpusoft/goutil/zaplogs"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -118,7 +117,7 @@ func SetToContextWithValue(c *gin.Context, keyInHeader string) context.Context {
 		valMap[RequestIDFieldCamel] = requestId
 	}
 	ctx = context.WithValue(ctx, JWT_CTX_CustomClaims_Infos, valMap)
-	zaplogs.DebugArgs(ctx, "InitResetDb() set valMap", "requestId", requestId)
+	belogs.Debug("SetToContextWithValue() WithValue", "valMap", jsonutil.MarshalJson(valMap))
 
 	return ctx
 }
