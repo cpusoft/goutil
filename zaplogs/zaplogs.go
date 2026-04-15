@@ -111,11 +111,11 @@ func initLogger(lCfg logConfig) (err error) {
 	writeSyncer := getLogWriter(lCfg.FileName, lCfg.MaxSize, lCfg.MaxBackups, lCfg.MaxAge)
 
 	// 3. 包装为**异步写入器**（核心替代方案）
-	asyncWriter := zapcore.Lock(&zapcore.BufferedWriteSyncer{
+	asyncWriter := &zapcore.BufferedWriteSyncer{
 		WS:            writeSyncer,
-		Size:          256 * 1024,             // 256KB 缓冲区
-		FlushInterval: 200 * time.Millisecond, // 每200毫秒强制刷新
-	})
+		Size:          256 * 1024,      // 256KB 缓冲区
+		FlushInterval: 1 * time.Second, // 每1秒强制刷新
+	}
 
 	// 获取日志编码格式
 	encoder := getEncoder()
@@ -131,7 +131,7 @@ func initLogger(lCfg logConfig) (err error) {
 	// 创建一个将日志写入 asyncWriter 的核心。
 	lowLevelCore := zapcore.NewCore(
 		encoder,
-		asyncWriter,
+		asyncWriter, // >= lCfg.Level  异步缓存写入
 		l)
 
 	highLevelCore := zapcore.NewCore(
@@ -142,7 +142,7 @@ func initLogger(lCfg logConfig) (err error) {
 	core := zapcore.NewTee(highLevelCore, lowLevelCore)
 
 	logger = zap.New(core,
-		zap.AddCaller(),
+		//zap.AddCaller(),
 		zap.AddStacktrace(zap.ErrorLevel))
 
 	// 替换zap包中全局的logger实例，后续在其他包中只需使用zap.L()调用即可
@@ -311,6 +311,11 @@ func ErrorArgs(ctx context.Context, msg string, args ...interface{}) {
 func ErrorLine(ctx context.Context, msg string, args ...interface{}) {
 	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Errorw(msg + " " + convert.Interfaces2String(args))
+}
+
+func ForceSync() {
+	sugaredLogger.Sync()
+	logger.Sync()
 }
 
 func DeferSync() {
