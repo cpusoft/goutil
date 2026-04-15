@@ -37,7 +37,9 @@ func simpleHttpGet(url string) {
 
 	ctx := context.WithValue(context.Background(), JWT_CTX_CustomClaims_Infos, cc)
 
-	DebugArgs(ctx, "Trying to hit GET request for", "url", url, "NOW")
+	DebugArgs(ctx, "Debug Trying to hit GET request for", "url", url, "NOW")
+	InfoArgs(ctx, "Info Trying to hit GET request for", "url", url, "NOW")
+	ErrorArgs(ctx, "Error Trying to hit GET request for", "url", url, "NOW")
 	resp, err := http.Get(url)
 	if err != nil {
 		ErrorFields(ctx, "Error fetching URL:", zap.String("url", url), zap.Errors("err", []error{err}))

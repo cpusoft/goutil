@@ -3,6 +3,7 @@ package zaplogs
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/convert"
@@ -108,6 +109,14 @@ func getLogWriter(filename string, maxsize, maxBackup, maxAge int) zapcore.Write
 func initLogger(lCfg logConfig) (err error) {
 	// 获取日志写入位置
 	writeSyncer := getLogWriter(lCfg.FileName, lCfg.MaxSize, lCfg.MaxBackups, lCfg.MaxAge)
+
+	// 3. 包装为**异步写入器**（核心替代方案）
+	asyncWriter := zapcore.Lock(&zapcore.BufferedWriteSyncer{
+		WS:            writeSyncer,
+		Size:          256 * 1024,             // 256KB 缓冲区
+		FlushInterval: 200 * time.Millisecond, // 每200毫秒强制刷新
+	})
+
 	// 获取日志编码格式
 	encoder := getEncoder()
 
@@ -119,10 +128,21 @@ func initLogger(lCfg logConfig) (err error) {
 		return
 	}
 
-	// 创建一个将日志写入 WriteSyncer 的核心。
-	core := zapcore.NewCore(encoder, writeSyncer, l)
+	// 创建一个将日志写入 asyncWriter 的核心。
+	lowLevelCore := zapcore.NewCore(
+		encoder,
+		asyncWriter,
+		l)
+
+	highLevelCore := zapcore.NewCore(
+		encoder,
+		writeSyncer,    // 直接写入
+		zap.ErrorLevel, // 只处理 Error 及以上
+	)
+	core := zapcore.NewTee(highLevelCore, lowLevelCore)
+
 	logger = zap.New(core,
-		//	zap.AddCaller(),
+		zap.AddCaller(),
 		zap.AddStacktrace(zap.ErrorLevel))
 
 	// 替换zap包中全局的logger实例，后续在其他包中只需使用zap.L()调用即可
