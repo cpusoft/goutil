@@ -3,6 +3,8 @@ package jsonutil
 import (
 	"encoding/hex"
 	"sync"
+
+	"github.com/bytedance/sonic"
 )
 
 // []byte: show in string
@@ -43,11 +45,23 @@ type JsonSyncMap struct {
 	sync.Map
 }
 
-func (c JsonSyncMap) MarshalJSON() ([]byte, error) {
+func (c *JsonSyncMap) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
 	c.Range(func(key, value interface{}) bool {
 		m[key.(string)] = value
 		return true
 	})
 	return []byte(MarshalJson(m)), nil
+}
+func (c *JsonSyncMap) UnmarshalJSON(data []byte) error {
+	// 先解析到普通 map
+	var m map[string]interface{}
+	if err := sonic.Unmarshal(data, &m); err != nil {
+		return err
+	}
+
+	for k, v := range m {
+		c.Store(k, v)
+	}
+	return nil
 }

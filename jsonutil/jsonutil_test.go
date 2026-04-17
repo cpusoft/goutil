@@ -338,7 +338,7 @@ func TestTcptlsMsg(t *testing.T) {
 }
 
 func TestJsonSyncMap(t *testing.T) {
-	failUrls := JsonSyncMap{}
+	failUrls := &JsonSyncMap{}
 	snapshotFailUrls := make(map[string]string)
 	snapshotFailUrls["1_https://rpki.telecentras.lt/"] = "1"
 	snapshotFailUrls["2_https://rrdp.ripe.net/"] = "2"
@@ -350,7 +350,14 @@ func TestJsonSyncMap(t *testing.T) {
 		failUrls.Store(url, v)
 	}
 	fmt.Println(failUrls)
-	fmt.Println(MarshalJson(failUrls))
+	json := MarshalJson(failUrls)
+	fmt.Println(json)
+
+	f2 := &JsonSyncMap{}
+	err := UnmarshalJson(json, f2)
+	fmt.Println(f2, "err is", err)
+	fmt.Println(MarshalJson(f2))
+
 }
 
 func TestSonicJson(t *testing.T) {
