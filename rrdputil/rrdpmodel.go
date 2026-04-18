@@ -1,11 +1,21 @@
 package rrdputil
 
 import (
+	"bytes"
 	xml "encoding/xml"
+	"fmt"
+	"io"
+	"strings"
+	"time"
 
+	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/orisano/gosax/xmlb"
 )
 
+// ///////////////////////////////////////////////
+// notification
+// ///////////////////////////////////////////////
 type NotificationModel struct {
 	XMLName   xml.Name             `xml:"notification"`
 	Xmlns     string               `xml:"xmlns,attr"`
@@ -53,6 +63,9 @@ func (v NotificationDeltasSort) Less(i, j int) bool {
 	return v[i].Serial > v[j].Serial
 }
 
+// ///////////////////////////////////////
+// snapshot
+// ///////////////////////////////////////////////////
 type SnapshotModel struct {
 	XMLName          xml.Name          `xml:"snapshot" json:"snapshot"`
 	Xmlns            string            `xml:"xmlns,attr" json:"xmlns"`
@@ -81,6 +94,9 @@ type SnapshotPublish struct {
 	Base64  string   `xml:",chardata" json:"-"`
 }
 
+// ////////////////////////////////////////////////////
+// delta
+// ////////////////////////////////////////////////////
 type DeltaModel struct {
 	XMLName        xml.Name        `xml:"delta" json:"delta"`
 	Xmlns          string          `xml:"xmlns,attr" json:"xmlns"`
@@ -137,6 +153,9 @@ type DeltaWithdraw struct {
 	Hash    string   `xml:"hash,attr" json:"-"`
 }
 
+// ///////////////////////////////////
+// save rrdp file
+// /////////////////////////////////
 type RrdpFile struct {
 	FilePath string `json:"filePath"`
 	FileName string `json:"fileName"`
@@ -152,4 +171,80 @@ type RrdpFile struct {
 	// deltaPUblish or deltaWithdraw
 	DeltaPublish  *DeltaPublish  `json:"deltaPublish"`
 	DeltaWithdraw *DeltaWithdraw `json:"deltaWithdraw"`
+}
+
+// //////////////////////////////////////
+// unxml snapshot.xml
+// ///////////////////////////////////////
+// SnapshotSAXParser 流式解析器（专为你的 XML 结构封装）
+
+// ParseBytes 解析内存中的 []byte XML 数据
+func parseXmlToSnapshotModel(xmlData []byte) (*SnapshotModel, error) {
+	start := time.Now()
+	buf := make([]byte, 0, 4096)
+	dec := xmlb.NewDecoder(bytes.NewReader(xmlData), buf)
+
+	snapshot := &SnapshotModel{}
+	var currentPub *SnapshotPublish
+	var charBuf strings.Builder
+	inPublish := false
+
+	for {
+		tok, err := dec.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			belogs.Error("parseXmlToSnapshotModel(): Token fail", err)
+			return nil, err
+		}
+
+		switch tok.Type() {
+		case xmlb.StartElement:
+			elem, _ := tok.StartElement()
+
+			switch elem.Name.Local {
+			case "snapshot":
+				for _, attr := range elem.Attr {
+					switch attr.Name.Local {
+					case "xmlns":
+						snapshot.Xmlns = attr.Value
+					case "version":
+						snapshot.Version = attr.Value
+					case "session_id":
+						snapshot.SessionId = attr.Value
+					case "serial":
+						fmt.Sscanf(attr.Value, "%d", &snapshot.Serial)
+					}
+				}
+
+			case "publish":
+				inPublish = true
+				currentPub = &SnapshotPublish{}
+				for _, attr := range elem.Attr {
+					if attr.Name.Local == "uri" {
+						currentPub.Uri = attr.Value
+					}
+				}
+				charBuf.Reset()
+			}
+
+		case xmlb.EndElement:
+			elem := tok.EndElement()
+			if elem.Name.Local == "publish" && currentPub != nil {
+				currentPub.Base64 = strings.TrimSpace(charBuf.String())
+				snapshot.SnapshotPublishs = append(snapshot.SnapshotPublishs, *currentPub)
+				currentPub = nil
+				inPublish = false
+			}
+
+		case xmlb.CharData:
+			if inPublish {
+				data, _ := tok.CharData()
+				charBuf.Write(data)
+			}
+		}
+	}
+	belogs.Debug("parseXmlToSnapshotModel(): len(xml)", len(xmlData), "time(s)", time.Since(start))
+	return snapshot, nil
 }

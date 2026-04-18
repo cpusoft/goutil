@@ -15,7 +15,6 @@ import (
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/cpusoft/goutil/stringutil"
 	"github.com/cpusoft/goutil/urlutil"
-	"github.com/cpusoft/goutil/xmlutil"
 	"github.com/parnurzeal/gorequest"
 	goorderedmap "github.com/wk8/go-ordered-map/v2"
 )
@@ -31,7 +30,7 @@ func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error
 */
 
 func GetRrdpSnapshotWithConfig(snapshotUrl string,
-	httpClientConfig *httpclient.HttpClientConfig) (snapshotModel SnapshotModel, err error) {
+	httpClientConfig *httpclient.HttpClientConfig) (snapshotModel *SnapshotModel, err error) {
 	start := time.Now()
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
@@ -52,7 +51,7 @@ func GetRrdpSnapshotWithConfig(snapshotUrl string,
 // check if support range
 // or will call curl
 func getRrdpSnapshotImplWithConfig(snapshotUrl string,
-	httpClientConfig *httpclient.HttpClientConfig) (snapshotModel SnapshotModel, err error) {
+	httpClientConfig *httpclient.HttpClientConfig) (snapshotModel *SnapshotModel, err error) {
 
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
@@ -142,7 +141,8 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 
 	// get snapshotModel
 	belogs.Debug("getRrdpSnapshotImplWithConfig(): get body, snapshotUrl:", snapshotUrl, "   len(body):", len(body))
-	err = xmlutil.UnmarshalXml(body, &snapshotModel)
+	//err = xmlutil.UnmarshalXml(body, &snapshotModel)
+	snapshotModel, err = parseXmlToSnapshotModel([]byte(body))
 	if err != nil {
 		belogs.Error("getRrdpSnapshotImplWithConfig(): UnmarshalXml fail:", snapshotUrl, "    len(body):", len(body),
 			"   body:", stringutil.OmitString(body, 100), err)
