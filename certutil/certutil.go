@@ -370,12 +370,12 @@ func VerifyCrlByX509(cerFile, crlFile string) (result string, err error) {
 	}
 
 	// 适配新的 RevocationList 字段（直接访问，无需 TBSCertList 层级）
-	certIssuer := cer.Subject.String()
+	cerSubject := cer.Subject.String()
 	crlIssuer := crl.Issuer.String() // 新结构直接访问 Issuer
-	if certIssuer != crlIssuer {
+	if cerSubject != crlIssuer {
 		belogs.Error("VerifyCrlByX509(): CRL issuer does not match certificate issuer",
-			"cerFile", cerFile, " certIssuer:", certIssuer, "crlFile", crlFile, " crlIssuer:", crlIssuer)
-		return "fail", fmt.Errorf("CRL issuer mismatch: cert issuer=%s, crl issuer=%s", certIssuer, crlIssuer)
+			"cerFile", cerFile, " cerSubject:", cerSubject, "crlFile", crlFile, " crlIssuer:", crlIssuer)
+		return "fail", fmt.Errorf("CRL issuer mismatch: cer subject=%s, crl issuer=%s", cerSubject, crlIssuer)
 	}
 
 	// 检查CRL有效期：新结构直接访问 NextUpdate
