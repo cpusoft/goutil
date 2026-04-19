@@ -674,6 +674,13 @@ func TestVerifyCrlByX509(t *testing.T) {
 	}
 }
 
+func TestVerifyCrlByX5092(t *testing.T) {
+	cerFile := `/tmp/6a30b207-de04-425f-94e9-ee12d4529f56.cer`
+	crlFile := `/tmp/6a30b207-de04-425f-94e9-ee12d4529f56.crl`
+	r, err := VerifyCrlByX509(cerFile, crlFile)
+	fmt.Println(r, err)
+}
+
 // TestJudgeBelongNic 测试NIC归属判断函数
 func TestJudgeBelongNic(t *testing.T) {
 	tests := []struct {
