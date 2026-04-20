@@ -496,7 +496,8 @@ func TestEdgeCases(t *testing.T) {
 
 	serverAddr := "127.0.0.1:9996"
 	serverHandler := NewTestServerHandler()
-	server := NewTcpServer(serverHandler, WithReadWriteTimeout(1*time.Second, 1*time.Second))
+	server := NewTcpServer(serverHandler, WithReadWriteTimeout(true, time.Duration(1)*time.Second,
+		time.Duration(1)*time.Second))
 
 	go func() {
 		_ = server.Start(serverAddr)
