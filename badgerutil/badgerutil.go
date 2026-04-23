@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/gobutil"
+	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/dgraph-io/badger/v4/options"
 )
@@ -65,7 +65,7 @@ func Update[T any](key string, value T, expire time.Duration) error {
 		return errors.New("badgerDB is not initialized")
 	}
 
-	valueBytes := gobutil.MarshalGob(value)
+	valueBytes := jsonutil.MarshalJsonBytes(value)
 	if valueBytes == nil {
 		return errors.New("failed to marshal value to JSON bytes")
 	}
@@ -121,7 +121,7 @@ func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int, 
 	// 4. 遍历数据，多key写入
 	for dataIdx, value := range datas {
 		// 序列化value（多个key共用同一个value）
-		valueBytes := gobutil.MarshalGob(value)
+		valueBytes := jsonutil.MarshalJsonBytes(value)
 		if valueBytes == nil {
 			belogs.Error("BatchUpdateKeyFunc(): MarshalGob fail, value:", value)
 			return errors.New("failed to marshal value to JSON bytes")
@@ -279,9 +279,9 @@ func View[T any](key string) (T, bool, error) {
 		return zero, false, err
 	}
 	var result T
-	err = gobutil.UnmarshalGob(value, &result)
+	err = jsonutil.UnmarshalJsonBytes(value, &result)
 	if err != nil {
-		belogs.Error("View(): UnmarshalJsonBytes fail, value:", string(value), err)
+		belogs.Error("View(): UnmarshalGob fail, value:", string(value), err)
 		return zero, false, err
 	}
 	return result, true, err
@@ -316,13 +316,13 @@ func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
 			}
 
 			result := make([]T, 0)
-			err = gobutil.UnmarshalGob(val, &result)
+			err = jsonutil.UnmarshalJsonBytes(val, &result)
 			if err != nil {
-				belogs.Debug("PrefixView(): UnmarshalJsonBytes list fail, will try single model again, value:", string(val), err)
+				belogs.Debug("PrefixView(): UnmarshalGob list fail, will try single model again, value:", string(val), err)
 				var resultOne T
-				err = gobutil.UnmarshalGob(val, &resultOne)
+				err = jsonutil.UnmarshalJsonBytes(val, &resultOne)
 				if err != nil {
-					belogs.Error("PrefixView(): UnmarshalJsonBytes single and list both fail, value:", string(val), err)
+					belogs.Error("PrefixView(): UnmarshalGob single and list both fail, value:", string(val), err)
 					results = nil
 					return err
 				}
