@@ -82,6 +82,93 @@ func Update[T any](key string, value T, expire time.Duration) error {
 	})
 
 }
+import (
+	"errors"
+	"sync/atomic"
+	"time"
+
+	"github.com/dgraph-io/badger/v3" // 按你实际使用的badger版本调整
+	// 你的 belogs、jsonutil 包导入
+)
+
+// BatchUpdateKeyFunc 改造版：支持多个keyFunc生成多键对应同一值，batchSize作为入参
+// T: 泛型数据类型
+// datas: 待批量写入的数据切片
+// expire: 过期时间，<=0表示永不过期
+// batchSize: 每批次写入的数量，必须大于0
+// keyFuncs: 一组生成key的函数，一个数据会生成多个key，对应同一个value
+func BatchUpdateKeyFunc[T any](datas []T, expire time.Duration, batchSize int, keyFuncs ...func(T) string) error {
+	// 1. 基础校验
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+	// 校验批次大小合法性
+	if batchSize <= 0 {
+		return errors.New("batchSize must be greater than 0")
+	}
+	// 校验keyFuncs不能为空
+	if len(keyFuncs) == 0 {
+		return errors.New("keyFuncs cannot be empty")
+	}
+	// 空数据直接返回
+	if len(datas) == 0 {
+		return nil
+	}
+
+	// 2. 计算过期时间
+	expireAt := uint64(0)
+	if expire > 0 {
+		expireAt = uint64(time.Now().Add(expire).Unix())
+	}
+
+	// 3. 创建批量写入对象
+	batch := badgerDB.NewWriteBatch()
+	defer batch.Cancel() // 函数退出时确保取消未提交的批次
+
+	// 4. 遍历数据，多key写入
+	for dataIdx, value := range datas {
+		// 序列化value（多个key共用同一个value）
+		valueBytes := jsonutil.MarshalJsonBytes(value)
+		if valueBytes == nil {
+			belogs.Error("BatchUpdateKeyFunc(): MarshalJsonBytes fail, value:", value)
+			return errors.New("failed to marshal value to JSON bytes")
+		}
+
+		// 遍历所有keyFunc，生成多个key，写入同一个value
+		for _, keyFunc := range keyFuncs {
+			key := keyFunc(value)
+			// 构建badger条目
+			entry := &badger.Entry{
+				Key:       []byte(key),
+				Value:     valueBytes,
+				ExpiresAt: expireAt,
+			}
+			// 设置条目到批次
+			if err := batch.SetEntry(entry); err != nil {
+				belogs.Error("BatchUpdateKeyFunc(): SetEntry fail, entry:", jsonutil.MarshalJson(entry), err)
+				return err
+			}
+		}
+
+		// 达到批次大小，提交并重建批次
+		if (dataIdx+1)%batchSize == 0 {
+			if err := batch.Flush(); err != nil {
+				belogs.Error("BatchUpdateKeyFunc(): Flush every batchSize fail, err:", err)
+				return err
+			}
+			batch.Cancel()                   // 释放旧批次资源
+			batch = badgerDB.NewWriteBatch() // 新建批次
+		}
+	}
+
+	// 5. 刷新最后一批不足batchSize的数据
+	if err := batch.Flush(); err != nil {
+		belogs.Error("BatchUpdateKeyFunc(): Flush final batch fail, err:", err)
+		return err
+	}
+
+	return nil
+}
 
 func BatchUpdateMap[T any](datas map[string]T, expire time.Duration) error {
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
