@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/gobutil"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/dgraph-io/badger/v4/options"
 )
@@ -64,7 +64,7 @@ func Update[T any](key string, value T, expire time.Duration) error {
 		return errors.New("badgerDB is not initialized")
 	}
 
-	valueBytes := jsonutil.MarshalJsonBytes(value)
+	valueBytes := gobutil.MarshalGob(value)
 	if valueBytes == nil {
 		return errors.New("failed to marshal value to JSON bytes")
 	}
@@ -82,14 +82,6 @@ func Update[T any](key string, value T, expire time.Duration) error {
 	})
 
 }
-import (
-	"errors"
-	"sync/atomic"
-	"time"
-
-	"github.com/dgraph-io/badger/v3" // 按你实际使用的badger版本调整
-	// 你的 belogs、jsonutil 包导入
-)
 
 // BatchUpdateKeyFunc 改造版：支持多个keyFunc生成多键对应同一值，batchSize作为入参
 // T: 泛型数据类型
@@ -97,7 +89,7 @@ import (
 // expire: 过期时间，<=0表示永不过期
 // batchSize: 每批次写入的数量，必须大于0
 // keyFuncs: 一组生成key的函数，一个数据会生成多个key，对应同一个value
-func BatchUpdateKeyFunc[T any](datas []T, expire time.Duration, batchSize int, keyFuncs ...func(T) string) error {
+func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int, keyFuncs ...func(T) string) error {
 	// 1. 基础校验
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
 		return errors.New("badgerDB is not initialized")
@@ -128,9 +120,9 @@ func BatchUpdateKeyFunc[T any](datas []T, expire time.Duration, batchSize int, k
 	// 4. 遍历数据，多key写入
 	for dataIdx, value := range datas {
 		// 序列化value（多个key共用同一个value）
-		valueBytes := jsonutil.MarshalJsonBytes(value)
+		valueBytes := gobutil.MarshalGob(value)
 		if valueBytes == nil {
-			belogs.Error("BatchUpdateKeyFunc(): MarshalJsonBytes fail, value:", value)
+			belogs.Error("BatchUpdateKeyFunc(): MarshalGob fail, value:", value)
 			return errors.New("failed to marshal value to JSON bytes")
 		}
 
@@ -145,7 +137,8 @@ func BatchUpdateKeyFunc[T any](datas []T, expire time.Duration, batchSize int, k
 			}
 			// 设置条目到批次
 			if err := batch.SetEntry(entry); err != nil {
-				belogs.Error("BatchUpdateKeyFunc(): SetEntry fail, entry:", jsonutil.MarshalJson(entry), err)
+				belogs.Error("BatchUpdateKeyFunc(): SetEntry fail, key:", key,
+					"value", value, err)
 				return err
 			}
 		}
@@ -170,6 +163,7 @@ func BatchUpdateKeyFunc[T any](datas []T, expire time.Duration, batchSize int, k
 	return nil
 }
 
+/*
 func BatchUpdateMap[T any](datas map[string]T, expire time.Duration) error {
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
 		return errors.New("badgerDB is not initialized")
@@ -252,6 +246,7 @@ func BatchUpdateKeyFunc[T any](datas []T, expire time.Duration, keyFunc func(T) 
 	// 刷新批量写入
 	return batch.Flush()
 }
+*/
 
 // 返回值：value、是否找到、错误
 func View[T any](key string) (T, bool, error) {
@@ -272,7 +267,7 @@ func View[T any](key string) (T, bool, error) {
 		// 复制value（避免引用底层内存），并释放资源
 		val, err := item.ValueCopy(nil)
 		if err != nil {
-			belogs.Error("View(): ValueCopy fail, item:", jsonutil.MarshalJson(item), err)
+			belogs.Error("View(): ValueCopy fail, item:", item, err)
 			return err
 		}
 		value = val
@@ -283,7 +278,7 @@ func View[T any](key string) (T, bool, error) {
 		return zero, false, err
 	}
 	var result T
-	err = jsonutil.UnmarshalJsonBytes(value, &result)
+	err = gobutil.UnmarshalGob(value, &result)
 	if err != nil {
 		belogs.Error("View(): UnmarshalJsonBytes fail, value:", string(value), err)
 		return zero, false, err
@@ -315,16 +310,16 @@ func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
 			item := it.Item()
 			val, err := item.ValueCopy(nil)
 			if err != nil {
-				belogs.Error("PrefixView(): ValueCopy fail, item:", jsonutil.MarshalJson(item), err)
+				belogs.Error("PrefixView(): ValueCopy fail, item:", item, err)
 				return err
 			}
 
 			result := make([]T, 0)
-			err = jsonutil.UnmarshalJsonBytes(val, &result)
+			err = gobutil.UnmarshalGob(val, &result)
 			if err != nil {
 				belogs.Debug("PrefixView(): UnmarshalJsonBytes list fail, will try single model again, value:", string(val), err)
 				var resultOne T
-				err = jsonutil.UnmarshalJsonBytes(val, &resultOne)
+				err = gobutil.UnmarshalGob(val, &resultOne)
 				if err != nil {
 					belogs.Error("PrefixView(): UnmarshalJsonBytes single and list both fail, value:", string(val), err)
 					results = nil
