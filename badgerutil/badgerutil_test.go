@@ -112,6 +112,13 @@ func TestBatchUpdateKeyFuncs(t *testing.T) {
 	if err != nil {
 		return
 	}
+	defer Close() // 确保最后关闭DB
+
+	// 测试数据结构体（确保和你的 View/Write 匹配）
+	type TestData struct {
+		ID   int
+		Name string
+	}
 
 	// 测试数据
 	dataList := []TestData{
@@ -120,14 +127,18 @@ func TestBatchUpdateKeyFuncs(t *testing.T) {
 		{ID: 3, Name: "batch3"},
 	}
 
-	// 多key生成函数：同一个数据生成2个key
-	keyFuncs := []func(TestData) string{
-		func(d TestData) string { return fmt.Sprintf("test:batch:id:%d", d.ID) },
-		func(d TestData) string { return fmt.Sprintf("test:batch:name:%s", d.Name) },
+	// ===================== 关键修改 =====================
+	// 新版函数要求：传入 1 个 keyFunc，返回 []string
+	// ====================================================
+	keyFunc := func(d TestData) []string {
+		return []string{
+			fmt.Sprintf("test:batch:id:%d", d.ID),
+			fmt.Sprintf("test:batch:name:%s", d.Name),
+		}
 	}
 
 	// 1. 正常批量写入（批次大小=2）
-	err = BatchUpdateKeyFuncs(dataList, 0, 2, keyFuncs...)
+	err = BatchUpdateKeyFuncs(dataList, 0, 2, keyFunc)
 	assert.NoError(t, err)
 
 	// 验证：两个key都能读到同一份数据
@@ -138,29 +149,32 @@ func TestBatchUpdateKeyFuncs(t *testing.T) {
 	assert.Equal(t, v1, v2)
 
 	// 2. 临界值：batchSize=1
-	err = BatchUpdateKeyFuncs(dataList, 0, 1, keyFuncs...)
+	err = BatchUpdateKeyFuncs(dataList, 0, 1, keyFunc)
 	assert.NoError(t, err)
 
 	// 3. 临界值：空数据
-	err = BatchUpdateKeyFuncs([]TestData{}, 0, 10, keyFuncs...)
+	err = BatchUpdateKeyFuncs([]TestData{}, 0, 10, keyFunc)
 	assert.NoError(t, err)
 
 	// 4. 临界值：非法batchSize（<=0）
-	err = BatchUpdateKeyFuncs(dataList, 0, 0, keyFuncs...)
+	err = BatchUpdateKeyFuncs(dataList, 0, 0, keyFunc)
 	assert.Error(t, err)
 
-	// 5. 临界值：空keyFuncs
-	err = BatchUpdateKeyFuncs(dataList, 0, 10)
+	// 5. 临界值：keyFunc = nil（新版判断逻辑）
+	err = BatchUpdateKeyFuncs(dataList, 0, 10, nil)
 	assert.Error(t, err)
 
-	// 6. 序列化失败
-	badList := []chan int{make(chan int)}
-	err = BatchUpdateKeyFuncs(badList, 0, 10, func(chan int) string { return "test:bad" })
+	// 6. 序列化失败测试（无法序列化为 JSON 的类型）
+	badData := []chan int{make(chan int)}
+	badKeyFunc := func(c chan int) []string {
+		return []string{"test:bad:key"}
+	}
+	err = BatchUpdateKeyFuncs(badData, 0, 10, badKeyFunc)
 	assert.Error(t, err)
 
 	// 7. 未初始化调用
 	Close()
-	err = BatchUpdateKeyFuncs(dataList, 0, 10, keyFuncs...)
+	err = BatchUpdateKeyFuncs(dataList, 0, 10, keyFunc)
 	assert.Error(t, err)
 }
 
@@ -328,11 +342,15 @@ func TestBatchPerformance(t *testing.T) {
 		list = append(list, TestData{ID: i, Name: fmt.Sprintf("perf_%d", i)})
 	}
 
-	kf1 := func(d TestData) string { return fmt.Sprintf("perf:id:%d", d.ID) }
-	kf2 := func(d TestData) string { return fmt.Sprintf("perf:name:%s", d.Name) }
+	keyFunc := func(d TestData) []string {
+		return []string{
+			fmt.Sprintf("test:batch:id:%d", d.ID),
+			fmt.Sprintf("test:batch:name:%s", d.Name),
+		}
+	}
 
 	start := time.Now()
-	err = BatchUpdateKeyFuncs(list, 0, 1000, kf1, kf2)
+	err = BatchUpdateKeyFuncs(list, 0, 1000, keyFunc)
 	cost := time.Since(start)
 
 	assert.NoError(t, err)

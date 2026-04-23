@@ -90,7 +90,7 @@ func Update[T any](key string, value T, expire time.Duration) error {
 // expire: 过期时间，<=0表示永不过期
 // batchSize: 每批次写入的数量，必须大于0
 // keyFuncs: 一组生成key的函数，一个数据会生成多个key，对应同一个value
-func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int, keyFuncs ...func(T) string) error {
+func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int, keyFunc func(T) []string) error {
 	// 1. 基础校验
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
 		return errors.New("badgerDB is not initialized")
@@ -100,7 +100,7 @@ func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int, 
 		return errors.New("batchSize must be greater than 0")
 	}
 	// 校验keyFuncs不能为空
-	if len(keyFuncs) == 0 {
+	if keyFunc == nil {
 		return errors.New("keyFuncs cannot be empty")
 	}
 	// 空数据直接返回
@@ -128,8 +128,9 @@ func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int, 
 		}
 
 		// 遍历所有keyFunc，生成多个key，写入同一个value
-		for _, keyFunc := range keyFuncs {
-			key := keyFunc(value)
+
+		keys := keyFunc(value)
+		for _, key := range keys {
 			// 构建badger条目
 			entry := &badger.Entry{
 				Key:       []byte(key),
