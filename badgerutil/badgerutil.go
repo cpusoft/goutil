@@ -44,6 +44,7 @@ func Init(dbPath string) error {
 	if err != nil {
 		belogs.Error("Init(): Open with options fail, opts:", opts, err)
 		atomic.StoreUint32(&initialized, 0)
+		badgerDB = nil
 		return err
 	}
 
