@@ -116,6 +116,7 @@ func Append[T any](key string, value T, expire time.Duration) error {
 				belogs.Error("Append(): ValueCopy fail, key:", key, err)
 				return err
 			}
+			belogs.Debug("Append(): get valCopy:", string(valCopy))
 			// 反序列化为数组
 			if err := jsonutil.UnmarshalJsonBytes(valCopy, &values); err != nil {
 				belogs.Error("Append(): Unmarshal existing value fail, key:", key, err)
@@ -125,6 +126,7 @@ func Append[T any](key string, value T, expire time.Duration) error {
 
 		// 3. 追加新数据
 		values = append(values, value)
+		belogs.Debug("Append(): new values:", jsonutil.MarshalJson(values))
 		// 4. 序列化新数组
 		newValueBytes := jsonutil.MarshalJsonBytes(values)
 		if newValueBytes == nil {
@@ -170,10 +172,11 @@ func View[T any](key string) (T, bool, error) {
 	if value == nil {
 		return zero, false, err
 	}
+	belogs.Debug("View(): get value", string(value))
 	var result T
 	err = jsonutil.UnmarshalJsonBytes(value, &result)
 	if err != nil {
-		belogs.Error("View(): UnmarshalGob fail, value:", string(value), err)
+		belogs.Error("View(): UnmarshalJsonBytes fail, value:", string(value), err)
 		return zero, false, err
 	}
 	return result, true, err
@@ -442,11 +445,11 @@ func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
 			result := make([]T, 0)
 			err = jsonutil.UnmarshalJsonBytes(val, &result)
 			if err != nil {
-				belogs.Debug("PrefixView(): UnmarshalGob list fail, will try single model again, value:", string(val), err)
+				belogs.Debug("PrefixView(): UnmarshalJsonBytes list fail, will try single model again, value:", string(val), err)
 				var resultOne T
 				err = jsonutil.UnmarshalJsonBytes(val, &resultOne)
 				if err != nil {
-					belogs.Error("PrefixView(): UnmarshalGob single and list both fail, value:", string(val), err)
+					belogs.Error("PrefixView(): UnmarshalJsonBytes single and list both fail, value:", string(val), err)
 					results = nil
 					return err
 				}
