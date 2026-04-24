@@ -2,6 +2,7 @@ package badgerutil
 
 import (
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -338,9 +339,10 @@ func TestConcurrentPerformance(t *testing.T) {
 func genTestData(n int) []TestModel {
 	datas := make([]TestModel, 0, n)
 	for i := 0; i < n; i++ {
+		str := strconv.Itoa(i)
 		datas = append(datas, TestModel{
-			ID:        string(rune(i)),
-			Name:      "test-" + string(rune(i)),
+			ID:        str,
+			Name:      "test-" + str,
 			Timestamp: time.Now().Unix(),
 		})
 	}
