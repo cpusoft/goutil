@@ -283,6 +283,8 @@ func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int,
 				"mainEntry", jsonutil.MarshalJson(mainEntry), err)
 			return err
 		}
+		belogs.Debug("BatchUpdateKeyFunc(): SetEntry mainEntry, mainKey:", mainKey,
+			"mainEntry", jsonutil.MarshalJson(mainEntry))
 
 		// outerKeys --> mainKey
 		outerKeys := outerKeyFunc(value)
@@ -294,14 +296,16 @@ func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int,
 			}
 			if err := batch.SetEntry(outerEntry); err != nil {
 				belogs.Error("BatchUpdateKeyFunc(): range outerKeys, SetEntry outerEntry fail, outerKey:", outerKey,
-					"mainKey", mainKey, err)
+					"outerEntry", jsonutil.MarshalJson(outerEntry), err)
 				return err
 			}
+			belogs.Debug("BatchUpdateKeyFunc(): range outerKeys, SetEntry outerEntry, outerKey:", outerKey,
+				"outerEntry", jsonutil.MarshalJson(outerEntry))
 		}
 		// mainKey --> []outerKeys
 		mainOuterEntry := &badger.Entry{
 			Key:       []byte(mainKey + MAINKEY_TO_OUTERKEY),
-			Value:     []byte(jsonutil.MarshalJson(outerKeys)),
+			Value:     jsonutil.MarshalJsonBytes(outerKeys),
 			ExpiresAt: expireAt,
 		}
 		if err := batch.SetEntry(mainOuterEntry); err != nil {
@@ -309,6 +313,8 @@ func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int,
 				"mainOuterEntry", jsonutil.MarshalJson(mainOuterEntry), err)
 			return err
 		}
+		belogs.Error("BatchUpdateKeyFunc(): SetEntry mainOuterEntry, mainKey:", mainKey,
+			"mainOuterEntry", jsonutil.MarshalJson(mainOuterEntry))
 
 		// 达到批次大小，提交并重建批次
 		if (dataIdx+1)%batchSize == 0 {
