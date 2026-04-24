@@ -59,6 +59,10 @@ func Close() {
 	atomic.StoreUint32(&initialized, 0)
 }
 
+////////////////////////////////////////////////////
+// base funcs
+/////////////////////////////////////////////////////
+
 // expire: 过期时间（<=0表示永不过期）
 func Update[T any](key string, value T, expire time.Duration) error {
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
@@ -84,171 +88,58 @@ func Update[T any](key string, value T, expire time.Duration) error {
 
 }
 
-// BatchUpdateKeyFunc 改造版：支持多个keyFunc生成多键对应同一值，batchSize作为入参
-// T: 泛型数据类型
-// datas: 待批量写入的数据切片
-// expire: 过期时间，<=0表示永不过期
-// batchSize: 每批次写入的数量，必须大于0
-// keyFuncs: 一组生成key的函数，一个数据会生成多个key，对应同一个value
-func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int, keyFunc func(T) []string) error {
-	// 1. 基础校验
+// Append 追加功能：key存在则将value追加到列表，不存在则直接存储（自动转为数组）
+// expire: 过期时间（<=0表示永不过期）
+func Append[T any](key string, value T, expire time.Duration) error {
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
 		return errors.New("badgerDB is not initialized")
 	}
-	// 校验批次大小合法性
-	if batchSize <= 0 {
-		return errors.New("batchSize must be greater than 0")
-	}
-	// 校验keyFuncs不能为空
-	if keyFunc == nil {
-		return errors.New("keyFuncs cannot be empty")
-	}
-	// 空数据直接返回
-	if len(datas) == 0 {
-		return nil
-	}
 
-	// 2. 计算过期时间
 	expireAt := uint64(0)
 	if expire > 0 {
 		expireAt = uint64(time.Now().Add(expire).Unix())
 	}
 
-	// 3. 创建批量写入对象
-	batch := badgerDB.NewWriteBatch()
-	defer batch.Cancel() // 函数退出时确保取消未提交的批次
-
-	// 4. 遍历数据，多key写入
-	for dataIdx, value := range datas {
-		// 序列化value（多个key共用同一个value）
-		valueBytes := jsonutil.MarshalJsonBytes(value)
-		if valueBytes == nil {
-			belogs.Error("BatchUpdateKeyFunc(): MarshalGob fail, value:", value)
-			return errors.New("failed to marshal value to JSON bytes")
-		}
-
-		// 遍历所有keyFunc，生成多个key，写入同一个value
-
-		keys := keyFunc(value)
-		for _, key := range keys {
-			// 构建badger条目
-			entry := &badger.Entry{
-				Key:       []byte(key),
-				Value:     valueBytes,
-				ExpiresAt: expireAt,
-			}
-			// 设置条目到批次
-			if err := batch.SetEntry(entry); err != nil {
-				belogs.Error("BatchUpdateKeyFunc(): SetEntry fail, key:", key,
-					"value", value, err)
-				return err
-			}
-		}
-
-		// 达到批次大小，提交并重建批次
-		if (dataIdx+1)%batchSize == 0 {
-			if err := batch.Flush(); err != nil {
-				belogs.Error("BatchUpdateKeyFunc(): Flush every batchSize fail, err:", err)
-				return err
-			}
-			batch.Cancel()                   // 释放旧批次资源
-			batch = badgerDB.NewWriteBatch() // 新建批次
-		}
-	}
-
-	// 5. 刷新最后一批不足batchSize的数据
-	if err := batch.Flush(); err != nil {
-		belogs.Error("BatchUpdateKeyFunc(): Flush final batch fail, err:", err)
-		return err
-	}
-
-	return nil
-}
-
-/*
-func BatchUpdateMap[T any](datas map[string]T, expire time.Duration) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
-	}
-
-	batch := badgerDB.NewWriteBatch()
-	defer batch.Cancel() // 确保在出错时取消
-	expireAt := uint64(0)
-	if expire > 0 {
-		expireAt = uint64(time.Now().Add(expire).Unix())
-	}
-	i := 0
-	for key, value := range datas {
-		valueBytes := jsonutil.MarshalJsonBytes(value)
-		if valueBytes == nil {
-			belogs.Error("BatchUpdateMap(): MarshalJsonBytes fail, value:", value)
-			return errors.New("failed to marshal value to JSON bytes")
-		}
-		entry := &badger.Entry{
-			Key:       []byte(key),
-			Value:     valueBytes,
-			ExpiresAt: expireAt,
-		}
-		if err := batch.SetEntry(entry); err != nil {
-			belogs.Error("BatchUpdateMap(): SetEntry fail, entry:", entry, err)
+	return badgerDB.Update(func(txn *badger.Txn) error {
+		var values []T
+		// 1. 查询key是否存在
+		item, err := txn.Get([]byte(key))
+		if err != nil && err != badger.ErrKeyNotFound {
+			belogs.Error("Append(): get key fail, key:", key, err)
 			return err
 		}
-		// 达到批次大小，提交Batch
-		if (i+1)%batchSize == 0 {
-			if err := batch.Flush(); err != nil {
-				belogs.Error("BatchUpdateMap(): Flush every batchSize fail, entry:", entry, err)
+
+		// 2. 存在则读取原有数据
+		if err == nil {
+			valCopy, err := item.ValueCopy(nil)
+			if err != nil {
+				belogs.Error("Append(): ValueCopy fail, key:", key, err)
 				return err
 			}
-			batch.Cancel()                   // 释放当前批次资源
-			batch = badgerDB.NewWriteBatch() // 创建新批次
+			// 反序列化为数组
+			if err := jsonutil.UnmarshalJsonBytes(valCopy, &values); err != nil {
+				belogs.Error("Append(): Unmarshal existing value fail, key:", key, err)
+				return err
+			}
 		}
-		i++
-	}
-	// 刷新批量写入
-	return batch.Flush()
-}
 
-func BatchUpdateKeyFunc[T any](datas []T, expire time.Duration, keyFunc func(T) string) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
-	}
-
-	batch := badgerDB.NewWriteBatch()
-	defer batch.Cancel() // 确保在出错时取消
-	expireAt := uint64(0)
-	if expire > 0 {
-		expireAt = uint64(time.Now().Add(expire).Unix())
-	}
-	for i, value := range datas {
-		key := keyFunc(value)
-		valueBytes := jsonutil.MarshalJsonBytes(value)
-		if valueBytes == nil {
-			belogs.Error("BatchUpdateKeyFunc(): MarshalJsonBytes fail, value:", value)
-			return errors.New("failed to marshal value to JSON bytes")
+		// 3. 追加新数据
+		values = append(values, value)
+		// 4. 序列化新数组
+		newValueBytes := jsonutil.MarshalJsonBytes(values)
+		if newValueBytes == nil {
+			return errors.New("failed to marshal appended value to JSON bytes")
 		}
+
+		// 5. 写入数据库
 		entry := &badger.Entry{
 			Key:       []byte(key),
-			Value:     valueBytes,
+			Value:     newValueBytes,
 			ExpiresAt: expireAt,
 		}
-		if err := batch.SetEntry(entry); err != nil {
-			belogs.Error("BatchUpdateKeyFunc(): SetEntry fail, entry:", jsonutil.MarshalJson(entry), err)
-			return err
-		}
-		// 达到批次大小，提交Batch
-		if (i+1)%batchSize == 0 {
-			if err := batch.Flush(); err != nil {
-				belogs.Error("BatchUpdateKeyFunc(): Flush every batchSize fail, entry:", jsonutil.MarshalJson(entry), err)
-				return err
-			}
-			batch.Cancel()                   // 释放当前批次资源
-			batch = badgerDB.NewWriteBatch() // 创建新批次
-		}
-	}
-	// 刷新批量写入
-	return batch.Flush()
+		return txn.SetEntry(entry)
+	})
 }
-*/
 
 // 返回值：value、是否找到、错误
 func View[T any](key string) (T, bool, error) {
@@ -286,6 +177,238 @@ func View[T any](key string) (T, bool, error) {
 		return zero, false, err
 	}
 	return result, true, err
+}
+
+// Exists 判断key是否存在，不读取value，高性能
+func Exists(key string) (bool, error) {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return false, errors.New("badgerDB is not initialized")
+	}
+
+	var exists bool
+	err := badgerDB.View(func(txn *badger.Txn) error {
+		_, err := txn.Get([]byte(key))
+		if err != nil {
+			if err == badger.ErrKeyNotFound {
+				exists = false
+				return nil
+			}
+			belogs.Error("Exists(): check key fail, key:", key, err)
+			return err
+		}
+		exists = true
+		return nil
+	})
+	return exists, err
+}
+
+func Delete(key string) error {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+	return badgerDB.Update(func(txn *badger.Txn) error {
+		return txn.Delete([]byte(key))
+	})
+}
+
+////////////////////////////////////////////////////
+// advance funcs
+/////////////////////////////////////////////////////
+
+const (
+	MAINKEY_TO_VALUE    = "_value"
+	MAINKEY_TO_OUTERKEY = "_outerkey"
+)
+
+// BatchUpdateKeyFunc
+// T: 泛型数据类型
+// datas: 待批量写入的数据切片
+// expire: 过期时间，<=0表示永不过期
+// batchSize: 每批次写入的数量，必须大于0
+// mainKeyFunc，outerKeyFunc:
+//
+//	outerKey1, outerKey2, subk3 --> mainKey --> value
+//	mainKey --> [outerKey1,outerKey2,outerKey3...]
+//
+// 方便当del时，传入一个outerKey1，找到对应mainKey，删除value外，还能根据maiKey找到其他的outerKey对应
+func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int,
+	mainKeyFunc func(T) string, outerKeyFunc func(T) []string) error {
+	// 1. 基础校验
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+	// 校验批次大小合法性
+	if batchSize <= 0 {
+		return errors.New("batchSize must be greater than 0")
+	}
+	// 校验keyFuncs不能为空
+	if mainKeyFunc == nil {
+		return errors.New("mainKeyFunc cannot be empty")
+	}
+	if outerKeyFunc == nil {
+		return errors.New("outerKeyFunc cannot be empty")
+	}
+	// 空数据直接返回
+	if len(datas) == 0 {
+		return nil
+	}
+
+	// 2. 计算过期时间
+	expireAt := uint64(0)
+	if expire > 0 {
+		expireAt = uint64(time.Now().Add(expire).Unix())
+	}
+
+	// 3. 创建批量写入对象
+	batch := badgerDB.NewWriteBatch()
+	defer batch.Cancel() // 函数退出时确保取消未提交的批次
+
+	// 4. 遍历数据，多key写入
+	for dataIdx, value := range datas {
+		// 序列化value（多个key共用同一个value）
+		valueBytes := jsonutil.MarshalJsonBytes(value)
+		if valueBytes == nil {
+			belogs.Error("BatchUpdateKeyFunc(): MarshalGob fail, value:", value)
+			return errors.New("failed to marshal value to JSON bytes")
+		}
+
+		// mainKey --> ValueBytes
+		// outerKey1, outerKey2,... --> mainKey
+		mainKey := mainKeyFunc(value)
+		mainEntry := &badger.Entry{
+			Key:       []byte(mainKey + MAINKEY_TO_VALUE),
+			Value:     valueBytes,
+			ExpiresAt: expireAt,
+		}
+		// mainKey --> value
+		if err := batch.SetEntry(mainEntry); err != nil {
+			belogs.Error("BatchUpdateKeyFunc(): SetEntry mainEntry fail, mainKey:", mainKey,
+				"mainEntry", jsonutil.MarshalJson(mainEntry), err)
+			return err
+		}
+
+		// outerKeys --> mainKey
+		outerKeys := outerKeyFunc(value)
+		for _, outerKey := range outerKeys {
+			outerEntry := &badger.Entry{
+				Key:       []byte(outerKey),
+				Value:     []byte(mainKey),
+				ExpiresAt: expireAt,
+			}
+			if err := batch.SetEntry(outerEntry); err != nil {
+				belogs.Error("BatchUpdateKeyFunc(): range outerKeys, SetEntry outerEntry fail, outerKey:", outerKey,
+					"mainKey", mainKey, err)
+				return err
+			}
+		}
+		// mainKey --> []outerKeys
+		mainOuterEntry := &badger.Entry{
+			Key:       []byte(mainKey + MAINKEY_TO_OUTERKEY),
+			Value:     []byte(jsonutil.MarshalJson(outerKeys)),
+			ExpiresAt: expireAt,
+		}
+		if err := batch.SetEntry(mainOuterEntry); err != nil {
+			belogs.Error("BatchUpdateKeyFunc(): SetEntry mainOuterEntry fail, mainKey:", mainKey,
+				"mainOuterEntry", jsonutil.MarshalJson(mainOuterEntry), err)
+			return err
+		}
+
+		// 达到批次大小，提交并重建批次
+		if (dataIdx+1)%batchSize == 0 {
+			if err := batch.Flush(); err != nil {
+				belogs.Error("BatchUpdateKeyFunc(): Flush every batchSize fail, err:", err)
+				return err
+			}
+			batch.Cancel()                   // 释放旧批次资源
+			batch = badgerDB.NewWriteBatch() // 新建批次
+		}
+	}
+
+	// 5. 刷新最后一批不足batchSize的数据
+	if err := batch.Flush(); err != nil {
+		belogs.Error("BatchUpdateKeyFunc(): Flush final batch fail, err:", err)
+		return err
+	}
+
+	return nil
+}
+
+// DeleteByOuterKey：通过 outerKey 删除整条数据（含清理所有关联 outerKey）
+// 执行流程：
+// 1. 根据 outerKey 获取 mainKey
+// 2. 删除 mainKey 对应的真实 value 数据
+// 3. 遍历并删除所有 value = mainKey 的 outerKey（完整清理）
+func DeleteByOuterKey(outerKey string) error {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+
+	return badgerDB.Update(func(txn *badger.Txn) error {
+		// 1. 根据 outerKey 获取 mainKey
+		mainKeyItem, err := txn.Get([]byte(outerKey))
+		if err != nil {
+			if err == badger.ErrKeyNotFound {
+				belogs.Debug("DeleteByOuterKey(): outerKey not found, outerKey:", outerKey)
+				return nil
+			}
+			belogs.Error("DeleteByOuterKey(): get mainKey by outerKey fail, outerKey:", outerKey, err)
+			return err
+		}
+
+		// 读取 mainKey 字符串
+		mainKeyBytes, err := mainKeyItem.ValueCopy(nil)
+		if err != nil {
+			belogs.Error("DeleteByOuterKey(): ValueCopy mainKey fail, outerKey:", outerKey, err)
+			return err
+		}
+		mainKey := string(mainKeyBytes)
+
+		// 2. 删除 mainKey --> value
+		err = txn.Delete([]byte(mainKey + MAINKEY_TO_VALUE))
+		if err != nil {
+			belogs.Error("DeleteByOuterKey(): delete mainKey+MAINKEY_TO_VALUE fail, mainKey+MAINKEY_TO_VALUE:", mainKey+MAINKEY_TO_VALUE, err)
+			return err
+		}
+
+		// 2. 根据 mainKey 找到 outerKeys ，然后删除 outerKeys --> mainKey
+		outerKeysItems, err := txn.Get([]byte(mainKey + MAINKEY_TO_OUTERKEY))
+		if err != nil {
+			if err == badger.ErrKeyNotFound {
+				return nil // 键不存在返回nil，不抛错
+			}
+			belogs.Error("DeleteByOuterKey(): Get fail, key:", mainKey+MAINKEY_TO_OUTERKEY, err)
+			return err
+		}
+		vals, err := outerKeysItems.ValueCopy(nil)
+		if err != nil {
+			belogs.Error("DeleteByOuterKey(): ValueCopy fail, outerKeysItems:", outerKeysItems, err)
+			return err
+		}
+		outKeys := make([]string, 0)
+		err = jsonutil.UnmarshalJson(string(vals), &outKeys)
+		if err != nil {
+			belogs.Error("DeleteByOuterKey(): UnmarshalJson outKeys fail, vals:", vals, err)
+			return err
+		}
+		for _, outKey := range outKeys {
+			err = txn.Delete([]byte(outKey))
+			if err != nil {
+				belogs.Error("DeleteByOuterKey(): delete outKey fail, outKey:", outKey, err)
+				return err
+			}
+		}
+
+		// 3. 删除 mainKey-->outKeys,
+		err = txn.Delete([]byte(mainKey + MAINKEY_TO_VALUE))
+		if err != nil {
+			belogs.Error("DeleteByOuterKey(): delete mainKey+MAINKEY_TO_VALUE fail, mainKey+MAINKEY_TO_VALUE:", mainKey, err)
+			return err
+		}
+
+		belogs.Info("DeleteByOuterKey(): success, outerKey:", outerKey,
+			"deleted mainKey:", mainKey, " deete outKeys:", outKeys)
+		return nil
+	})
 }
 
 // limit: <=0表示不限制返回数量
@@ -336,12 +459,4 @@ func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
 		return nil
 	})
 	return results, err
-}
-func Delete(key string) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
-	}
-	return badgerDB.Update(func(txn *badger.Txn) error {
-		return txn.Delete([]byte(key))
-	})
 }
