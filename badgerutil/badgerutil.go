@@ -431,10 +431,13 @@ func ViewByMultiKeys[T any](outerKey string) (*T, error) {
 
 		// 3.2 根据 mainKey + MAINKEY_TO_VALUE 获取真实 Value 数据
 		valueKey := mainKey + MAINKEY_TO_VALUE
+		belogs.Debug("ViewByMultiKeys(): get valueKey:", valueKey, jsonutil.MarshalJson(valueKey))
+
 		valueItem, err := txn.Get([]byte(valueKey))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
-				belogs.Debug("ViewByMultiKeys(): value not found by mainKey, mainKey:", mainKey)
+				belogs.Debug("ViewByMultiKeys(): value not found by mainKey, mainKey:", mainKey,
+					"valueKey:", valueKey, jsonutil.MarshalJson(valueKey))
 				return badger.ErrKeyNotFound
 			}
 			belogs.Error("ViewByMultiKeys(): get value by mainKey fail, valueKey:", valueKey, err)
