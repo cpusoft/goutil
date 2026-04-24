@@ -291,7 +291,7 @@ func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int,
 		for _, outerKey := range outerKeys {
 			outerEntry := &badger.Entry{
 				Key:       []byte(outerKey),
-				Value:     jsonutil.MarshalJsonBytes(mainKey),
+				Value:     []byte(mainKey), //jsonutil.MarshalJsonBytes(mainKey),
 				ExpiresAt: expireAt,
 			}
 			if err := batch.SetEntry(outerEntry); err != nil {
@@ -313,7 +313,7 @@ func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int,
 				"mainOuterEntry", jsonutil.MarshalJson(mainOuterEntry), err)
 			return err
 		}
-		belogs.Error("BatchUpdateKeyFunc(): SetEntry mainOuterEntry, mainKey:", mainKey,
+		belogs.Debug("BatchUpdateKeyFunc(): SetEntry mainOuterEntry, mainKey:", mainKey,
 			"mainOuterEntry", jsonutil.MarshalJson(mainOuterEntry))
 
 		// 达到批次大小，提交并重建批次
@@ -402,7 +402,7 @@ func DeleteByOuterKey(outerKey string) error {
 		}
 
 		// 3. 删除 mainKey-->outKeys,
-		err = txn.Delete([]byte(mainKey + MAINKEY_TO_VALUE))
+		err = txn.Delete([]byte(mainKey + MAINKEY_TO_OUTERKEY))
 		if err != nil {
 			belogs.Error("DeleteByOuterKey(): delete mainKey+MAINKEY_TO_VALUE fail, mainKey+MAINKEY_TO_VALUE:", mainKey, err)
 			return err
