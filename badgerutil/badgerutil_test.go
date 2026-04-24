@@ -333,6 +333,180 @@ func TestConcurrentPerformance(t *testing.T) {
 }
 
 // ------------------------------
+// 四、BatchUpdateByKey 单主键批量测试
+// ------------------------------
+
+// TestBatchUpdateByKey 测试单主键批量写入（临界值全覆盖）
+func TestBatchUpdateByKey(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		datas     []TestModel
+		batchSize int
+		expire    time.Duration
+		wantErr   bool
+	}{
+		{"空数据", []TestModel{}, 10, 0, false},
+		{"批次大小1", genTestData(5), 1, 0, false},
+		{"正常批次", genTestData(10), 5, 0, false},
+		{"batchSize大于数据量", genTestData(3), 100, 0, false},
+		{"带过期时间", genTestData(3), 5, 1 * time.Second, false},
+		{"非法batchSize=0", genTestData(2), 0, 0, true},
+		{"非法batchSize负数", genTestData(2), -5, 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := BatchUpdateByKey(tt.datas, tt.expire, tt.batchSize, func(data TestModel) string {
+				return "batch:single:" + data.ID
+			})
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("BatchUpdateByKey error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	belogs.Info("TestBatchUpdateByKey success")
+}
+
+// TestBatchUpdateByKey_FuncCheck 测试写入后可正常读取
+func TestBatchUpdateByKey_FuncCheck(t *testing.T) {
+	t.Parallel()
+	// 写入测试数据
+	datas := genTestData(5)
+	batchSize := 2
+	keyPrefix := "batch:check:"
+
+	err := BatchUpdateByKey(datas, 0, batchSize, func(data TestModel) string {
+		return keyPrefix + data.ID
+	})
+	if err != nil {
+		t.Fatalf("BatchUpdateByKey fail: %v", err)
+	}
+
+	// 验证每条数据都能正常 View 读取
+	for _, data := range datas {
+		key := keyPrefix + data.ID
+		res, found, err := View[TestModel](key)
+		if err != nil || !found || res.ID != data.ID {
+			t.Fatalf("check key=%s fail: err=%v, found=%v, id=%s",
+				key, err, found, res.ID)
+		}
+	}
+	belogs.Info("TestBatchUpdateByKey_FuncCheck success")
+}
+
+// TestBatchUpdateByKey_Expire 测试批量过期
+func TestBatchUpdateByKey_Expire(t *testing.T) {
+	t.Parallel()
+	datas := genTestData(2)
+	keyPrefix := "batch:expire:"
+
+	// 写入 100ms 过期
+	err := BatchUpdateByKey(datas, 100*time.Millisecond, 10, func(data TestModel) string {
+		return keyPrefix + data.ID
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 等待过期
+	time.Sleep(150 * time.Millisecond)
+
+	// 验证全部过期
+	for _, data := range datas {
+		key := keyPrefix + data.ID
+		_, found, _ := View[TestModel](key)
+		if found {
+			t.Fatalf("key %s should be expired", key)
+		}
+	}
+	belogs.Info("TestBatchUpdateByKey_Expire success")
+}
+
+// TestBatchUpdateByKey_Performance 单主键批量写入压力测试
+func TestBatchUpdateByKey_Performance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("跳过压力测试")
+	}
+	t.Parallel()
+
+	const count = 100000
+	datas := genTestData(count)
+	batchSize := 1000
+	keyPrefix := "batch:perf:"
+
+	start := time.Now()
+	err := BatchUpdateByKey(datas, 0, batchSize, func(data TestModel) string {
+		return keyPrefix + data.ID
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cost := time.Since(start)
+	t.Logf("单主键批量写入 %d 条, 耗时: %v, 平均: %.2f op/s",
+		count, cost, float64(count)/cost.Seconds())
+	belogs.Info("TestBatchUpdateByKey_Performance success")
+}
+
+// TestBatchUpdateByKey_Concurrent 单主键并发读写测试
+func TestBatchUpdateByKey_Concurrent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("跳过压力测试")
+	}
+	t.Parallel()
+
+	const (
+		writeCount       = 1000
+		readGoroutine    = 100
+		readPerGoroutine = 100
+	)
+	keyPrefix := "batch:concurrent:"
+	datas := genTestData(writeCount)
+
+	// 先批量写入
+	err := BatchUpdateByKey(datas, 0, 100, func(data TestModel) string {
+		return keyPrefix + data.ID
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 并发读取
+	start := time.Now()
+	var wg sync.WaitGroup
+	errCh := make(chan error, readGoroutine)
+	wg.Add(readGoroutine)
+
+	for i := 0; i < readGoroutine; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			data := datas[idx%writeCount]
+			key := keyPrefix + data.ID
+			for j := 0; j < readPerGoroutine; j++ {
+				_, found, err := View[TestModel](key)
+				if err != nil || !found {
+					errCh <- fmt.Errorf("read fail key=%s, err=%v, found=%v", key, err, found)
+					return
+				}
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errCh)
+	for e := range errCh {
+		t.Fatal(e)
+	}
+
+	totalRead := readGoroutine * readPerGoroutine
+	cost := time.Since(start)
+	t.Logf("单主键并发读取 %d 次, %d 协程, 耗时: %v, 平均: %.2f op/s",
+		totalRead, readGoroutine, cost, float64(totalRead)/cost.Seconds())
+	belogs.Info("TestBatchUpdateByKey_Concurrent success")
+}
+
+// ------------------------------
 // 工具函数
 // ------------------------------
 

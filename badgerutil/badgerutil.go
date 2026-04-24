@@ -87,6 +87,69 @@ func Update[T any](key string, value T, expire time.Duration) error {
 	})
 
 }
+func BatchUpdateByKey[T any](datas []T, expire time.Duration, batchSize int,
+	mainKeyFunc func(T) string) error {
+	// 校验 DB 初始化
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+
+	// 空数据直接返回
+	if len(datas) == 0 {
+		return nil
+	}
+
+	// 批次必须大于 0
+	if batchSize <= 0 {
+		return errors.New("batchSize must be greater than 0")
+	}
+
+	// 统一计算过期时间
+	expireAt := uint64(0)
+	if expire > 0 {
+		expireAt = uint64(time.Now().Add(expire).Unix())
+	}
+
+	// 按批次写入
+	total := len(datas)
+	for i := 0; i < total; i += batchSize {
+		end := i + batchSize
+		if end > total {
+			end = total
+		}
+		batch := datas[i:end]
+
+		// 单个批次事务
+		err := badgerDB.Update(func(txn *badger.Txn) error {
+			for _, data := range batch {
+				key := mainKeyFunc(data)
+				if key == "" {
+					return errors.New("generated key cannot be empty")
+				}
+
+				valueBytes := jsonutil.MarshalJsonBytes(data)
+				if valueBytes == nil {
+					return errors.New("failed to marshal value to JSON bytes")
+				}
+
+				entry := &badger.Entry{
+					Key:       []byte(key),
+					Value:     valueBytes,
+					ExpiresAt: expireAt,
+				}
+				if err := txn.SetEntry(entry); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // Append 追加功能：key存在则将value追加到列表，不存在则直接存储（自动转为数组）
 // expire: 过期时间（<=0表示永不过期）
