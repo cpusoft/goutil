@@ -216,8 +216,9 @@ func TestViewByMultiKeys(t *testing.T) {
 	_ = BatchUpdateByMultiKeys(datas, 0, 10, getMainKey, getOuterKeys)
 	testData := datas[0]
 	outerKey := "outer:name:" + testData.Name
+	t.Log("outerKey", outerKey)
 
-	// 2. 通过outerKey查询
+	// 2. 通过outerKey查询``
 	res, err := ViewByMultiKeys[TestModel](outerKey)
 	if err != nil || res.ID != testData.ID {
 		t.Fatalf("ViewByMultiKeys fail: err=%v, res=%+v", err, res)
