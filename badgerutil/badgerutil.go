@@ -116,7 +116,7 @@ func Append[T any](key string, value T, expire time.Duration) error {
 				belogs.Error("Append(): ValueCopy fail, key:", key, err)
 				return err
 			}
-			belogs.Debug("Append(): get valCopy:", string(valCopy))
+			//belogs.Debug("("Append(): get valCopy:", string(valCopy))
 			// 反序列化为数组
 			if err := jsonutil.UnmarshalJsonBytes(valCopy, &values); err != nil {
 				belogs.Error("Append(): Unmarshal existing value fail, key:", key, err)
@@ -126,7 +126,7 @@ func Append[T any](key string, value T, expire time.Duration) error {
 
 		// 3. 追加新数据
 		values = append(values, value)
-		belogs.Debug("Append(): new values:", jsonutil.MarshalJson(values))
+		//belogs.Debug("Append(): new values:", jsonutil.MarshalJson(values))
 		// 4. 序列化新数组
 		newValueBytes := jsonutil.MarshalJsonBytes(values)
 		if newValueBytes == nil {
@@ -172,7 +172,7 @@ func View[T any](key string) (T, bool, error) {
 	if value == nil {
 		return zero, false, err
 	}
-	belogs.Debug("View(): get value", string(value))
+	//belogs.Debug("("View(): get value", string(value))
 	var result T
 	err = jsonutil.UnmarshalJsonBytes(value, &result)
 	if err != nil {
@@ -245,7 +245,7 @@ func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
 			result := make([]T, 0)
 			err = jsonutil.UnmarshalJsonBytes(val, &result)
 			if err != nil {
-				belogs.Debug("PrefixView(): UnmarshalJsonBytes list fail, will try single model again, value:", string(val), err)
+				//belogs.Debug("("PrefixView(): UnmarshalJsonBytes list fail, will try single model again, value:", string(val), err)
 				var resultOne T
 				err = jsonutil.UnmarshalJsonBytes(val, &resultOne)
 				if err != nil {
@@ -321,7 +321,7 @@ func BatchUpdateByMultiKeys[T any](datas []T, expire time.Duration, batchSize in
 			belogs.Error("BatchUpdateKeyFunc(): SetEntry mainEntry fail, mainKey:", mainKey, err)
 			return err
 		}
-		belogs.Debug("BatchUpdateKeyFunc(): SetEntry mainEntry, mainKey:", mainKey)
+		//belogs.Debug("BatchUpdateKeyFunc(): SetEntry mainEntry, mainKey:", mainKey)
 
 		outerKeys := outerKeyFunc(value)
 		for _, outerKey := range outerKeys {
@@ -334,7 +334,7 @@ func BatchUpdateByMultiKeys[T any](datas []T, expire time.Duration, batchSize in
 				belogs.Error("BatchUpdateKeyFunc(): SetEntry outerEntry fail, outerKey:", outerKey, err)
 				return err
 			}
-			belogs.Debug("BatchUpdateKeyFunc(): SetEntry outerEntry, outerKey:", outerKey)
+			//belogs.Debug("("BatchUpdateKeyFunc(): SetEntry outerEntry, outerKey:", outerKey)
 		}
 
 		mainOuterEntry := &badger.Entry{
@@ -346,7 +346,7 @@ func BatchUpdateByMultiKeys[T any](datas []T, expire time.Duration, batchSize in
 			belogs.Error("BatchUpdateKeyFunc(): SetEntry mainOuterEntry fail, mainKey:", mainKey, err)
 			return err
 		}
-		belogs.Debug("BatchUpdateKeyFunc(): SetEntry mainOuterEntry, mainKey:", mainKey)
+		//belogs.Debug("BatchUpdateKeyFunc(): SetEntry mainOuterEntry, mainKey:", mainKey)
 
 		if (dataIdx+1)%batchSize == 0 {
 			if err := batch.Flush(); err != nil {
@@ -387,7 +387,7 @@ func ViewByMultiKeys[T any](outerKey string) (*T, error) {
 		mainKeyItem, err := txn.Get([]byte(outerKey))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
-				belogs.Debug("ViewByMultiKeys(): outerKey not found, outerKey:", outerKey)
+				//belogs.Debug("("ViewByMultiKeys(): outerKey not found, outerKey:", outerKey)
 				return badger.ErrKeyNotFound
 			}
 			belogs.Error("ViewByMultiKeys(): get mainKey by outerKey fail, outerKey:", outerKey, err)
@@ -400,13 +400,13 @@ func ViewByMultiKeys[T any](outerKey string) (*T, error) {
 			return err
 		}
 		mainKey := string(mainKeyBytes) // ✅ 修复：直接转字符串，无引号
-		belogs.Debug("ViewByMultiKeys(): get mainKey by outerKey success, outerKey:", outerKey, "mainKey:", mainKey)
+		//belogs.Debug("ViewByMultiKeys(): get mainKey by outerKey success, outerKey:", outerKey, "mainKey:", mainKey)
 
 		valueKey := mainKey + MAINKEY_TO_VALUE
 		valueItem, err := txn.Get([]byte(valueKey))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
-				belogs.Debug("ViewByMultiKeys(): value not found by mainKey, mainKey:", mainKey)
+				//belogs.Debug("("ViewByMultiKeys(): value not found by mainKey, mainKey:", mainKey)
 				return badger.ErrKeyNotFound
 			}
 			belogs.Error("ViewByMultiKeys(): get value by mainKey fail, valueKey:", valueKey, err)
@@ -447,7 +447,7 @@ func DeleteByMultiKeys(outerKey string) error {
 		mainKeyItem, err := txn.Get([]byte(outerKey))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
-				belogs.Debug("DeleteByMultiKeys(): outerKey not found, outerKey:", outerKey)
+				//belogs.Debug("("DeleteByMultiKeys(): outerKey not found, outerKey:", outerKey)
 				return nil
 			}
 			belogs.Error("DeleteByMultiKeys(): get mainKey by outerKey fail, outerKey:", outerKey, err)
@@ -501,7 +501,7 @@ func DeleteByMultiKeys(outerKey string) error {
 			return err
 		}
 
-		belogs.Info("DeleteByMultiKeys(): success, outerKey:", outerKey, "mainKey:", mainKey)
+		//belogs.Debug("("DeleteByMultiKeys(): success, outerKey:", outerKey, "mainKey:", mainKey)
 		return nil
 	})
 }
