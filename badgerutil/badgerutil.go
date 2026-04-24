@@ -269,18 +269,12 @@ func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int,
 	// 4. 遍历数据，多key写入
 	for dataIdx, value := range datas {
 		// 序列化value（多个key共用同一个value）
-		valueBytes := jsonutil.MarshalJsonBytes(value)
-		if valueBytes == nil {
-			belogs.Error("BatchUpdateKeyFunc(): MarshalGob fail, value:", value)
-			return errors.New("failed to marshal value to JSON bytes")
-		}
-
 		// mainKey --> ValueBytes
 		// outerKey1, outerKey2,... --> mainKey
 		mainKey := mainKeyFunc(value)
 		mainEntry := &badger.Entry{
 			Key:       []byte(mainKey + MAINKEY_TO_VALUE),
-			Value:     valueBytes,
+			Value:     jsonutil.MarshalJsonBytes(value),
 			ExpiresAt: expireAt,
 		}
 		// mainKey --> value
@@ -295,7 +289,7 @@ func BatchUpdateKeyFuncs[T any](datas []T, expire time.Duration, batchSize int,
 		for _, outerKey := range outerKeys {
 			outerEntry := &badger.Entry{
 				Key:       []byte(outerKey),
-				Value:     []byte(mainKey),
+				Value:     jsonutil.MarshalJsonBytes(mainKey),
 				ExpiresAt: expireAt,
 			}
 			if err := batch.SetEntry(outerEntry); err != nil {
