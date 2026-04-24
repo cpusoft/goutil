@@ -286,98 +286,78 @@ const (
 // 方便当del时，传入一个outerKey1，找到对应mainKey，删除value外，还能根据maiKey找到其他的outerKey对应
 func BatchUpdateByMultiKeys[T any](datas []T, expire time.Duration, batchSize int,
 	mainKeyFunc func(T) string, outerKeyFunc func(T) []string) error {
-	// 1. 基础校验
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
 		return errors.New("badgerDB is not initialized")
 	}
-	// 校验批次大小合法性
 	if batchSize <= 0 {
 		return errors.New("batchSize must be greater than 0")
 	}
-	// 校验keyFuncs不能为空
 	if mainKeyFunc == nil {
 		return errors.New("mainKeyFunc cannot be empty")
 	}
 	if outerKeyFunc == nil {
 		return errors.New("outerKeyFunc cannot be empty")
 	}
-	// 空数据直接返回
 	if len(datas) == 0 {
 		return nil
 	}
 
-	// 2. 计算过期时间
 	expireAt := uint64(0)
 	if expire > 0 {
 		expireAt = uint64(time.Now().Add(expire).Unix())
 	}
 
-	// 3. 创建批量写入对象
 	batch := badgerDB.NewWriteBatch()
-	defer batch.Cancel() // 函数退出时确保取消未提交的批次
+	defer batch.Cancel()
 
-	// 4. 遍历数据，多key写入
 	for dataIdx, value := range datas {
-		// 序列化value（多个key共用同一个value）
-		// mainKey --> ValueBytes
-		// outerKey1, outerKey2,... --> mainKey
 		mainKey := mainKeyFunc(value)
 		mainEntry := &badger.Entry{
 			Key:       []byte(mainKey + MAINKEY_TO_VALUE),
 			Value:     jsonutil.MarshalJsonBytes(value),
 			ExpiresAt: expireAt,
 		}
-		// mainKey --> value
 		if err := batch.SetEntry(mainEntry); err != nil {
-			belogs.Error("BatchUpdateKeyFunc(): SetEntry mainEntry fail, mainKey:", mainKey,
-				"mainEntry", jsonutil.MarshalJson(mainEntry), err)
+			belogs.Error("BatchUpdateKeyFunc(): SetEntry mainEntry fail, mainKey:", mainKey, err)
 			return err
 		}
-		belogs.Debug("BatchUpdateKeyFunc(): SetEntry mainEntry, mainKey:", mainKey,
-			"mainEntry", jsonutil.MarshalJson(mainEntry))
+		belogs.Debug("BatchUpdateKeyFunc(): SetEntry mainEntry, mainKey:", mainKey)
 
-		// outerKeys --> mainKey
 		outerKeys := outerKeyFunc(value)
 		for _, outerKey := range outerKeys {
 			outerEntry := &badger.Entry{
 				Key:       []byte(outerKey),
-				Value:     jsonutil.MarshalJsonBytes(mainKey),
+				Value:     []byte(mainKey), // ✅ 修复：直接存字符串字节，不要JSON序列化（去掉双引号）
 				ExpiresAt: expireAt,
 			}
 			if err := batch.SetEntry(outerEntry); err != nil {
-				belogs.Error("BatchUpdateKeyFunc(): range outerKeys, SetEntry outerEntry fail, outerKey:", outerKey,
-					"outerEntry", jsonutil.MarshalJson(outerEntry), err)
+				belogs.Error("BatchUpdateKeyFunc(): SetEntry outerEntry fail, outerKey:", outerKey, err)
 				return err
 			}
-			belogs.Debug("BatchUpdateKeyFunc(): range outerKeys, SetEntry outerEntry, outerKey:", outerKey,
-				"outerEntry", jsonutil.MarshalJson(outerEntry))
+			belogs.Debug("BatchUpdateKeyFunc(): SetEntry outerEntry, outerKey:", outerKey)
 		}
-		// mainKey --> []outerKeys
+
 		mainOuterEntry := &badger.Entry{
 			Key:       []byte(mainKey + MAINKEY_TO_OUTERKEY),
-			Value:     jsonutil.MarshalJsonBytes(outerKeys),
+			Value:     jsonutil.MarshalJsonBytes(outerKeys), // 切片必须JSON序列化，保留
 			ExpiresAt: expireAt,
 		}
 		if err := batch.SetEntry(mainOuterEntry); err != nil {
-			belogs.Error("BatchUpdateKeyFunc(): SetEntry mainOuterEntry fail, mainKey:", mainKey,
-				"mainOuterEntry", jsonutil.MarshalJson(mainOuterEntry), err)
+			belogs.Error("BatchUpdateKeyFunc(): SetEntry mainOuterEntry fail, mainKey:", mainKey, err)
 			return err
 		}
-		belogs.Debug("BatchUpdateKeyFunc(): SetEntry mainOuterEntry, mainKey:", mainKey,
-			"mainOuterEntry", jsonutil.MarshalJson(mainOuterEntry))
+		belogs.Debug("BatchUpdateKeyFunc(): SetEntry mainOuterEntry, mainKey:", mainKey)
 
-		// 达到批次大小，提交并重建批次
 		if (dataIdx+1)%batchSize == 0 {
 			if err := batch.Flush(); err != nil {
 				belogs.Error("BatchUpdateKeyFunc(): Flush every batchSize fail, err:", err)
 				return err
 			}
-			batch.Cancel()                   // 释放旧批次资源
-			batch = badgerDB.NewWriteBatch() // 新建批次
+			batch.Cancel()
+			batch = badgerDB.NewWriteBatch()
 		}
 	}
 
-	// 5. 刷新最后一批不足batchSize的数据
 	if err := batch.Flush(); err != nil {
 		belogs.Error("BatchUpdateKeyFunc(): Flush final batch fail, err:", err)
 		return err
@@ -395,21 +375,15 @@ func BatchUpdateByMultiKeys[T any](datas []T, expire time.Duration, batchSize in
 // outerKey: 外部查询键
 // 返回值：查询到的Value指针、错误信息
 func ViewByMultiKeys[T any](outerKey string) (*T, error) {
-	// 1. 基础校验
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
 		return nil, errors.New("badgerDB is not initialized")
 	}
-	// 校验 outerKey 非空
 	if outerKey == "" {
 		return nil, errors.New("outerKey cannot be empty")
 	}
 
-	// 2. 定义返回结果
 	var result T
-
-	// 3. 开启 Badger 只读事务（读操作使用 View，性能更优）
 	err := badgerDB.View(func(txn *badger.Txn) error {
-		// 3.1 根据 outerKey 获取 mainKey
 		mainKeyItem, err := txn.Get([]byte(outerKey))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
@@ -420,44 +394,35 @@ func ViewByMultiKeys[T any](outerKey string) (*T, error) {
 			return err
 		}
 
-		// 读取 mainKey 字符串
 		mainKeyBytes, err := mainKeyItem.ValueCopy(nil)
 		if err != nil {
 			belogs.Error("ViewByMultiKeys(): ValueCopy mainKey fail, outerKey:", outerKey, err)
 			return err
 		}
-		mainKey := string(mainKeyBytes)
+		mainKey := string(mainKeyBytes) // ✅ 修复：直接转字符串，无引号
 		belogs.Debug("ViewByMultiKeys(): get mainKey by outerKey success, outerKey:", outerKey, "mainKey:", mainKey)
 
-		// 3.2 根据 mainKey + MAINKEY_TO_VALUE 获取真实 Value 数据
 		valueKey := mainKey + MAINKEY_TO_VALUE
-		belogs.Debug("ViewByMultiKeys(): get valueKey:", valueKey, jsonutil.MarshalJson(valueKey))
-
 		valueItem, err := txn.Get([]byte(valueKey))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
-				belogs.Debug("ViewByMultiKeys(): value not found by mainKey, mainKey:", mainKey,
-					"valueKey:", valueKey, jsonutil.MarshalJson(valueKey))
+				belogs.Debug("ViewByMultiKeys(): value not found by mainKey, mainKey:", mainKey)
 				return badger.ErrKeyNotFound
 			}
 			belogs.Error("ViewByMultiKeys(): get value by mainKey fail, valueKey:", valueKey, err)
 			return err
 		}
 
-		// 读取 Value 字节数据
 		valueBytes, err := valueItem.ValueCopy(nil)
 		if err != nil {
 			belogs.Error("ViewByMultiKeys(): ValueCopy value fail, valueKey:", valueKey, err)
 			return err
 		}
 
-		// 3.3 反序列化字节数据为泛型 T 类型
 		if err := jsonutil.UnmarshalJsonBytes(valueBytes, &result); err != nil {
-			belogs.Error("ViewByMultiKeys(): UnmarshalJson value to T fail, valueKey:", valueKey, "valueBytes:", string(valueBytes), err)
+			belogs.Error("ViewByMultiKeys(): UnmarshalJson value to T fail, valueKey:", valueKey, err)
 			return err
 		}
-		belogs.Debug("ViewByMultiKeys(): unmarshal value success, valueKey:", valueKey)
-
 		return nil
 	})
 
@@ -479,7 +444,6 @@ func DeleteByMultiKeys(outerKey string) error {
 	}
 
 	return badgerDB.Update(func(txn *badger.Txn) error {
-		// 1. 根据 outerKey 获取 mainKey
 		mainKeyItem, err := txn.Get([]byte(outerKey))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
@@ -490,58 +454,54 @@ func DeleteByMultiKeys(outerKey string) error {
 			return err
 		}
 
-		// 读取 mainKey 字符串
 		mainKeyBytes, err := mainKeyItem.ValueCopy(nil)
 		if err != nil {
 			belogs.Error("DeleteByMultiKeys(): ValueCopy mainKey fail, outerKey:", outerKey, err)
 			return err
 		}
-		mainKey := string(mainKeyBytes)
+		mainKey := string(mainKeyBytes) // ✅ 修复：直接转字符串，无引号
 
-		// 2. 删除 mainKey --> value
+		// 删除 value
 		err = txn.Delete([]byte(mainKey + MAINKEY_TO_VALUE))
 		if err != nil {
-			belogs.Error("DeleteByMultiKeys(): delete mainKey+MAINKEY_TO_VALUE fail, mainKey+MAINKEY_TO_VALUE:", mainKey+MAINKEY_TO_VALUE, err)
+			belogs.Error("DeleteByMultiKeys(): delete main value fail, key:", mainKey+MAINKEY_TO_VALUE, err)
 			return err
 		}
 
-		// 2. 根据 mainKey 找到 outerKeys ，然后删除 outerKeys --> mainKey
+		// 获取并删除所有 outerKeys
 		outerKeysItems, err := txn.Get([]byte(mainKey + MAINKEY_TO_OUTERKEY))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
-				return nil // 键不存在返回nil，不抛错
+				return nil
 			}
-			belogs.Error("DeleteByMultiKeys(): Get fail, key:", mainKey+MAINKEY_TO_OUTERKEY, err)
+			belogs.Error("DeleteByMultiKeys(): Get outerKeys fail, key:", mainKey+MAINKEY_TO_OUTERKEY, err)
 			return err
 		}
 		vals, err := outerKeysItems.ValueCopy(nil)
 		if err != nil {
-			belogs.Error("DeleteByMultiKeys(): ValueCopy fail, outerKeysItems:", outerKeysItems, err)
+			belogs.Error("DeleteByMultiKeys(): ValueCopy fail", err)
 			return err
 		}
-		outKeys := make([]string, 0)
-		err = jsonutil.UnmarshalJson(string(vals), &outKeys)
-		if err != nil {
-			belogs.Error("DeleteByMultiKeys(): UnmarshalJson outKeys fail, vals:", vals, err)
+		var outKeys []string
+		if err = jsonutil.UnmarshalJsonBytes(vals, &outKeys); err != nil {
+			belogs.Error("DeleteByMultiKeys(): Unmarshal outerKeys fail", err)
 			return err
 		}
 		for _, outKey := range outKeys {
-			err = txn.Delete([]byte(outKey))
-			if err != nil {
+			if err = txn.Delete([]byte(outKey)); err != nil {
 				belogs.Error("DeleteByMultiKeys(): delete outKey fail, outKey:", outKey, err)
 				return err
 			}
 		}
 
-		// 3. 删除 mainKey-->outKeys,
+		// 删除 outerKeys 映射
 		err = txn.Delete([]byte(mainKey + MAINKEY_TO_OUTERKEY))
 		if err != nil {
-			belogs.Error("DeleteByMultiKeys(): delete mainKey+MAINKEY_TO_VALUE fail, mainKey+MAINKEY_TO_VALUE:", mainKey, err)
+			belogs.Error("DeleteByMultiKeys(): delete main outerKey fail", err)
 			return err
 		}
 
-		belogs.Info("DeleteByMultiKeys(): success, outerKey:", outerKey,
-			"deleted mainKey:", mainKey, " deete outKeys:", outKeys)
+		belogs.Info("DeleteByMultiKeys(): success, outerKey:", outerKey, "mainKey:", mainKey)
 		return nil
 	})
 }
