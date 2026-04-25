@@ -28,10 +28,10 @@ func Init(dbPath string) error {
 	}
 	var err error
 	// 优化配置以适应高并发场景
-	opts := badger.DefaultOptions(dbPath)
 	// 如果 dbPath 是关键字 "memory"，则切换为纯内存模式
+	var opts badger.Options
 	if dbPath == "memory" {
-		opts = opts.WithInMemory(true) // 开启内存模式
+		opts = badger.DefaultOptions("").WithInMemory(true) // 开启内存模式
 	} else {
 		err = os.MkdirAll(dbPath, os.ModePerm)
 		if err != nil {
@@ -40,6 +40,7 @@ func Init(dbPath string) error {
 			badgerDB = nil
 			return err
 		}
+		opts = badger.DefaultOptions(dbPath)
 	}
 	opts = opts.WithMemTableSize(256 * 1024 * 1024) // 128MB内存表, <=小于系统内存/4
 	opts = opts.WithNumMemtables(runtime.NumCPU())  // cpunum个内存表
