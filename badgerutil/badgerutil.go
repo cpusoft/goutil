@@ -2,6 +2,7 @@ package badgerutil
 
 import (
 	"errors"
+	"os"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -31,6 +32,14 @@ func Init(dbPath string) error {
 	// 如果 dbPath 是关键字 "memory"，则切换为纯内存模式
 	if dbPath == "memory" {
 		opts = opts.WithInMemory(true) // 开启内存模式
+	} else {
+		err = os.MkdirAll(dbPath, os.ModePerm)
+		if err != nil {
+			belogs.Error("Init(): MkdirAll fail, dbPath:", dbPath, err)
+			atomic.StoreUint32(&initialized, 0)
+			badgerDB = nil
+			return err
+		}
 	}
 	opts = opts.WithMemTableSize(256 * 1024 * 1024) // 128MB内存表, <=小于系统内存/4
 	opts = opts.WithNumMemtables(runtime.NumCPU())  // cpunum个内存表
