@@ -157,6 +157,35 @@ func JoinPathFile(pathName, fileName string) string {
 	return filepath.Join(pathName, fileName)
 }
 
+// GetRepoHostPathFromFilePath
+// fullPath: 完整路径 如 /root/rpki/data/rrdprepo/www.apnic.net/a/b/c
+// baseDir: 配置的基础目录 如 /root/rpki/data/rrdprepo/
+// return: 截取到域名一级的路径 如 /root/rpki/data/rrdprepo/www.apnic.net
+func GetRepoHostPathFromFilePath(filePath, rrdpDir string) string {
+	// 清理路径，统一格式（去掉多余的 /）
+	fullPath := filepath.Clean(filePath)
+	baseDir := filepath.Clean(rrdpDir)
+
+	// 确保 baseDir 是 fullPath 的前缀
+	if !strings.HasPrefix(fullPath, baseDir) {
+		return "" // 不匹配则返回空
+	}
+
+	// 去掉基础目录，拿到剩余部分
+	relativePath := strings.TrimPrefix(fullPath, baseDir)
+	relativePath = filepath.Clean(relativePath)
+
+	// 分割路径，取第一部分（就是域名 www.apnic.net）
+	parts := strings.Split(relativePath, string(filepath.Separator))
+	if len(parts) == 0 {
+		return baseDir
+	}
+	domainPart := parts[0]
+
+	// 拼接最终路径
+	return filepath.Join(baseDir, domainPart)
+}
+
 func CloseAndRemoveFile(file *os.File) error {
 	if file == nil {
 		return nil
