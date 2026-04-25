@@ -9,8 +9,6 @@ import (
 )
 
 func TestAll(t *testing.T) {
-	// 先确保关闭之前实例
-	Close()
 	// 测试内存模式（速度最快）
 	err := Init("memory")
 	assert.NoError(t, err)
@@ -36,6 +34,7 @@ func TestAll(t *testing.T) {
 	t.Run("PrefixView", TestPrefixView)
 
 	// 边界 & 异常
+	t.Run("EmptyKey", TestEmptyKey)
 	t.Run("NotFoundView", TestNotFoundView)
 
 	// 组合 & 压力
@@ -104,13 +103,13 @@ func TestAppend(t *testing.T) {
 // TestExpire 测试过期
 func TestExpire(t *testing.T) {
 	key := "test:expire"
-	_ = Update(key, "will expire", 1*time.Second)
+	_ = Update(key, "will expire", 100*time.Millisecond)
 
 	// 存在
 	_, found, _ := View[string](key)
 	assert.True(t, found)
 
-	time.Sleep(1200 * time.Millisecond)
+	time.Sleep(120 * time.Millisecond)
 
 	// 已过期
 	_, found, _ = View[string](key)
@@ -186,33 +185,22 @@ func TestUpdateWithBatch(t *testing.T) {
 	assert.Equal(t, "batch value", val)
 }
 
-// TestAppendWithBatch 批量追加
+// TestAppendWithBatch 批量 Append
 func TestAppendWithBatch(t *testing.T) {
 	key := "test:batch:append"
-
-	// 必须：每次读都用新的只读事务
-	readTxn1 := badgerDB.NewTransaction(false)
-	readTxn1.Discard()
-	readTxn2 := badgerDB.NewTransaction(false)
-	defer readTxn2.Discard()
-
 	batch := badgerDB.NewWriteBatch()
 	defer batch.Cancel()
 
+	txn := badgerDB.NewTransaction(false)
+	defer txn.Discard()
+
 	expireAt := uint64(time.Now().Add(time.Minute).Unix())
-
-	// 第一次 append
-	err := AppendWithBatch(readTxn1, batch, key, "x", expireAt)
+	err := AppendWithBatch(txn, batch, key, "x", expireAt)
 	assert.NoError(t, err)
+	err = AppendWithBatch(txn, batch, key, "y", expireAt)
+	assert.NoError(t, err)
+
 	err = batch.Flush()
-	assert.NoError(t, err)
-
-	// 第二次 append 必须重新开 batch + 新开读事务
-	batch2 := badgerDB.NewWriteBatch()
-	defer batch2.Cancel()
-	err = AppendWithBatch(readTxn2, batch2, key, "y", expireAt)
-	assert.NoError(t, err)
-	err = batch2.Flush()
 	assert.NoError(t, err)
 
 	arr, found, _ := View[[]string](key)
@@ -254,6 +242,16 @@ func TestNotFoundView(t *testing.T) {
 	assert.False(t, found)
 }
 
+// TestEmptyKey 空 key 测试
+func TestEmptyKey(t *testing.T) {
+	err := Update("", "empty key test", 0)
+	assert.NoError(t, err)
+
+	val, found, _ := View[string]("")
+	assert.True(t, found)
+	assert.Equal(t, "empty key test", val)
+}
+
 // TestBatchMixed 组合批量：update + append + delete
 func TestBatchMixed(t *testing.T) {
 	batch := badgerDB.NewWriteBatch()
@@ -284,8 +282,8 @@ func TestBatchMixed(t *testing.T) {
 
 // TestStressTest 高并发压力测试
 func TestStressTest(t *testing.T) {
-	const n = 1000
-	done := make(chan bool, n)
+	const n = 5000
+	done := make(chan bool)
 
 	// 并发写入
 	for i := 0; i < n; i++ {
@@ -306,7 +304,7 @@ func TestStressTest(t *testing.T) {
 	assert.True(t, len(arr) > 0)
 }
 
-// TestFileMode 测试文件 DB
+// TestFileMode 测试文件 DB（可选）
 func TestFileMode(t *testing.T) {
 	path := "./tmp_badger_test"
 	_ = os.RemoveAll(path)
