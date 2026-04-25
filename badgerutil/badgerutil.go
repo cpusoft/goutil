@@ -257,15 +257,24 @@ func AppendWithTxn[T any](txn *badger.Txn,
 
 // AppendWithBatch 内部方法：使用 WriteBatch 进行追加
 // 注意：WriteBatch 不支持读取，必须先手动读一遍
-func AppendWithBatch[T any](txn *badger.Txn, batch *badger.WriteBatch,
+// AppendWithBatch 内部方法：使用 WriteBatch 进行追加
+// 🔥 重点：不再需要外部传入 txn，内部自动创建/销毁
+func AppendWithBatch[T any](batch *badger.WriteBatch,
 	key string, value T, expireAt uint64) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || txn == nil || batch == nil {
+
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || batch == nil {
 		return errors.New("badgerDB is not initialized")
 	}
 
 	var values []T
 
-	// 1. 查询 key 是否存在（必须用 txn 读）
+	// ==============================================
+	// 🔥 内部自动创建只读事务，外部完全不用传！
+	// ==============================================
+	txn := badgerDB.NewTransaction(false)
+	defer txn.Discard()
+
+	// 1. 查询 key 是否存在（内部 txn 读取）
 	item, err := txn.Get([]byte(key))
 	if err != nil && err != badger.ErrKeyNotFound {
 		belogs.Error("AppendWithBatch(): get key fail, key:", key, err)

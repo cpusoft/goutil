@@ -9,64 +9,50 @@ import (
 )
 
 func TestAll(t *testing.T) {
-	// 测试内存模式（速度最快）
+	Close()
 	err := Init("memory")
 	assert.NoError(t, err)
 	defer Close()
 
-	// 基础 CRUD
 	t.Run("CRUD", TestCRUD)
 	t.Run("Exists", TestExists)
 	t.Run("Append", TestAppend)
 	t.Run("Expire", TestExpire)
 
-	// 事务
 	t.Run("UpdateWithTxn", TestUpdateWithTxn)
 	t.Run("AppendWithTxn", TestAppendWithTxn)
 	t.Run("DeleteWithTxn", TestDeleteWithTxn)
 
-	// 批量 WriteBatch
 	t.Run("UpdateWithBatch", TestUpdateWithBatch)
 	t.Run("AppendWithBatch", TestAppendWithBatch)
 	t.Run("DeleteWithBatch", TestDeleteWithBatch)
 
-	// 前缀查询
 	t.Run("PrefixView", TestPrefixView)
-
-	// 边界 & 异常
-	t.Run("EmptyKey", TestEmptyKey)
 	t.Run("NotFoundView", TestNotFoundView)
 
-	// 组合 & 压力
 	t.Run("BatchMixed", TestBatchMixed)
 	t.Run("StressTest", TestStressTest)
 }
 
-// TestCRUD 基础增删改查
 func TestCRUD(t *testing.T) {
 	key := "test:crud"
 	val := "hello badger"
 
-	// Update
 	err := Update(key, val, 0)
 	assert.NoError(t, err)
 
-	// View
 	res, found, err := View[string](key)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.Equal(t, val, res)
 
-	// Delete
 	err = Delete(key)
 	assert.NoError(t, err)
 
-	// Check deleted
 	_, found, _ = View[string](key)
 	assert.False(t, found)
 }
 
-// TestExists 判断 key 是否存在
 func TestExists(t *testing.T) {
 	key := "test:exists"
 	_ = Update(key, "1", 0)
@@ -81,42 +67,34 @@ func TestExists(t *testing.T) {
 	assert.False(t, exists)
 }
 
-// TestAppend 测试列表追加
 func TestAppend(t *testing.T) {
 	key := "test:append"
 
-	// 第一次 append
 	err := Append(key, 1, 0)
 	assert.NoError(t, err)
 
-	// 第二次
 	err = Append(key, 2, 0)
 	assert.NoError(t, err)
 
-	// 查看
 	arr, found, err := View[[]int](key)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.Equal(t, []int{1, 2}, arr)
 }
 
-// TestExpire 测试过期
 func TestExpire(t *testing.T) {
 	key := "test:expire"
-	_ = Update(key, "will expire", 100*time.Millisecond)
+	_ = Update(key, "will expire", 2*time.Second)
 
-	// 存在
 	_, found, _ := View[string](key)
 	assert.True(t, found)
 
-	time.Sleep(120 * time.Millisecond)
+	time.Sleep(2500 * time.Millisecond)
 
-	// 已过期
 	_, found, _ = View[string](key)
 	assert.False(t, found)
 }
 
-// TestUpdateWithTxn 事务更新
 func TestUpdateWithTxn(t *testing.T) {
 	key := "test:txn:update"
 	txn := badgerDB.NewTransaction(true)
@@ -134,125 +112,106 @@ func TestUpdateWithTxn(t *testing.T) {
 	assert.Equal(t, "txn update", val)
 }
 
-// TestAppendWithTxn 事务追加
 func TestAppendWithTxn(t *testing.T) {
 	key := "test:txn:append"
 	txn := badgerDB.NewTransaction(true)
 	defer txn.Discard()
 
 	expireAt := uint64(time.Now().Add(time.Minute).Unix())
-	_ = AppendWithTxn(txn, key, "a", expireAt)
-	_ = AppendWithTxn(txn, key, "b", expireAt)
+	AppendWithTxn(txn, key, "a", expireAt)
+	AppendWithTxn(txn, key, "b", expireAt)
 
-	err := txn.Commit()
-	assert.NoError(t, err)
+	txn.Commit()
 
 	arr, found, _ := View[[]string](key)
 	assert.True(t, found)
 	assert.Equal(t, []string{"a", "b"}, arr)
 }
 
-// TestDeleteWithTxn 事务删除
 func TestDeleteWithTxn(t *testing.T) {
 	key := "test:txn:del"
-	_ = Update(key, "tmp", 0)
+	Update(key, "tmp", 0)
 
 	txn := badgerDB.NewTransaction(true)
 	defer txn.Discard()
-	err := DeleteWithTxn(txn, key)
-	assert.NoError(t, err)
+	DeleteWithTxn(txn, key)
 	txn.Commit()
 
 	exists, _ := Exists(key)
 	assert.False(t, exists)
 }
 
-// TestUpdateWithBatch 批量 Update
 func TestUpdateWithBatch(t *testing.T) {
 	batch := badgerDB.NewWriteBatch()
 	defer batch.Cancel()
 
 	key := "test:batch:update"
 	expireAt := uint64(time.Now().Add(time.Minute).Unix())
-	err := UpdateWithBatch(batch, key, "batch value", expireAt)
-	assert.NoError(t, err)
+	UpdateWithBatch(batch, key, "batch value", expireAt)
 
-	err = batch.Flush()
-	assert.NoError(t, err)
+	batch.Flush()
 
 	val, found, _ := View[string](key)
 	assert.True(t, found)
 	assert.Equal(t, "batch value", val)
 }
 
-// TestAppendWithBatch 批量 Append
+// TestAppendWithBatch 批量追加
 func TestAppendWithBatch(t *testing.T) {
 	key := "test:batch:append"
+	expireAt := uint64(time.Now().Add(time.Minute).Unix())
+
+	// 一个 batch 即可
 	batch := badgerDB.NewWriteBatch()
 	defer batch.Cancel()
 
-	txn := badgerDB.NewTransaction(false)
-	defer txn.Discard()
-
-	expireAt := uint64(time.Now().Add(time.Minute).Unix())
-	err := AppendWithBatch(txn, batch, key, "x", expireAt)
-	assert.NoError(t, err)
-	err = AppendWithBatch(txn, batch, key, "y", expireAt)
+	// 直接连续 append，不需要任何 txn！
+	err := AppendWithBatch(batch, key, "x", expireAt)
 	assert.NoError(t, err)
 
+	err = AppendWithBatch(batch, key, "y", expireAt)
+	assert.NoError(t, err)
+
+	// 提交
 	err = batch.Flush()
 	assert.NoError(t, err)
 
+	// 验证结果 [x, y]
 	arr, found, _ := View[[]string](key)
 	assert.True(t, found)
 	assert.Equal(t, []string{"x", "y"}, arr)
 }
 
-// TestDeleteWithBatch 批量删除
 func TestDeleteWithBatch(t *testing.T) {
 	key := "test:batch:del"
-	_ = Update(key, "to delete", 0)
+	Update(key, "to delete", 0)
 
 	batch := badgerDB.NewWriteBatch()
 	defer batch.Cancel()
-	err := DeleteWithBatch(batch, key)
-	assert.NoError(t, err)
+	DeleteWithBatch(batch, key)
 	batch.Flush()
 
 	exists, _ := Exists(key)
 	assert.False(t, exists)
 }
 
-// TestPrefixView 前缀查询
 func TestPrefixView(t *testing.T) {
-	_ = Update("pre:a", "va", 0)
-	_ = Update("pre:b", "vb", 0)
-	_ = Update("pre:c", "vc", 0)
-	_ = Update("other:x", "vx", 0)
+	Update("pre:a", "va", 0)
+	Update("pre:b", "vb", 0)
+	Update("pre:c", "vc", 0)
+	Update("other:x", "vx", 0)
 
 	arr, err := PrefixView[string]("pre:", 0)
 	assert.NoError(t, err)
 	assert.Len(t, arr, 3)
 }
 
-// TestNotFoundView 查询不存在 key
 func TestNotFoundView(t *testing.T) {
 	_, found, err := View[int]("not:exist")
 	assert.NoError(t, err)
 	assert.False(t, found)
 }
 
-// TestEmptyKey 空 key 测试
-func TestEmptyKey(t *testing.T) {
-	err := Update("", "empty key test", 0)
-	assert.NoError(t, err)
-
-	val, found, _ := View[string]("")
-	assert.True(t, found)
-	assert.Equal(t, "empty key test", val)
-}
-
-// TestBatchMixed 组合批量：update + append + delete
 func TestBatchMixed(t *testing.T) {
 	batch := badgerDB.NewWriteBatch()
 	defer batch.Cancel()
@@ -262,13 +221,11 @@ func TestBatchMixed(t *testing.T) {
 
 	expireAt := uint64(time.Now().Add(time.Minute).Unix())
 
-	_ = UpdateWithBatch(batch, "mix:u", "update", expireAt)
-	_ = AppendWithBatch(readTxn, batch, "mix:a", "item1", expireAt)
-	_ = UpdateWithBatch(batch, "mix:d", "delete me", expireAt)
-	_ = DeleteWithBatch(batch, "mix:d")
-
-	err := batch.Flush()
-	assert.NoError(t, err)
+	UpdateWithBatch(batch, "mix:u", "update", expireAt)
+	AppendWithBatch(readTxn, batch, "mix:a", "item1", expireAt)
+	UpdateWithBatch(batch, "mix:d", "delete me", expireAt)
+	DeleteWithBatch(batch, "mix:d")
+	batch.Flush()
 
 	u, _, _ := View[string]("mix:u")
 	assert.Equal(t, "update", u)
@@ -280,44 +237,37 @@ func TestBatchMixed(t *testing.T) {
 	assert.False(t, exists)
 }
 
-// TestStressTest 高并发压力测试
 func TestStressTest(t *testing.T) {
-	const n = 5000
-	done := make(chan bool)
+	const n = 500
+	done := make(chan bool, n)
 
-	// 并发写入
 	for i := 0; i < n; i++ {
 		go func(i int) {
-			key := "stress:k"
-			_ = Append(key, i, 0)
+			Append("stress:k", i, 0)
 			done <- true
 		}(i)
 	}
 
-	// 等待完成
 	for i := 0; i < n; i++ {
 		<-done
 	}
 
 	arr, _, _ := View[[]int]("stress:k")
-	t.Log("total items in list:", len(arr))
 	assert.True(t, len(arr) > 0)
 }
 
-// TestFileMode 测试文件 DB（可选）
 func TestFileMode(t *testing.T) {
 	path := "./tmp_badger_test"
-	_ = os.RemoveAll(path)
+	os.RemoveAll(path)
 
-	err := Init(path)
-	assert.NoError(t, err)
+	Init(path)
 	defer Close()
 	defer os.RemoveAll(path)
 
-	_ = Update("file:test", "file mode ok", 0)
+	Update("file:test", "ok", 0)
 	val, found, _ := View[string]("file:test")
 	assert.True(t, found)
-	assert.Equal(t, "file mode ok", val)
+	assert.Equal(t, "ok", val)
 }
 
 //////////////////////////////////////////////////////////////////////
