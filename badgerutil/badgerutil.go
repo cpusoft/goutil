@@ -59,6 +59,13 @@ func Close() {
 	atomic.StoreUint32(&initialized, 0)
 }
 
+func DropAll() error {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+	return badgerDB.DropAll()
+}
+
 ////////////////////////////////////////////////////
 // base funcs
 /////////////////////////////////////////////////////
