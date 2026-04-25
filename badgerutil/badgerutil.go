@@ -18,6 +18,9 @@ var (
 	batchSize   = 1000 // 批量写入的大小
 )
 
+// if dbPath=="memory"，则使用内存模式;
+//
+// if dbPath!="memory"，则使用文件模式，路径为绝对路径dbPath
 func Init(dbPath string) error {
 	if !atomic.CompareAndSwapUint32(&initialized, 0, 1) {
 		return errors.New("badgerDB is already initialized")
@@ -25,7 +28,10 @@ func Init(dbPath string) error {
 	var err error
 	// 优化配置以适应高并发场景
 	opts := badger.DefaultOptions(dbPath)
-
+	// 如果 dbPath 是关键字 "memory"，则切换为纯内存模式
+	if dbPath == "memory" {
+		opts = opts.WithInMemory(true) // 开启内存模式
+	}
 	opts = opts.WithMemTableSize(256 * 1024 * 1024) // 128MB内存表, <=小于系统内存/4
 	opts = opts.WithNumMemtables(runtime.NumCPU())  // cpunum个内存表
 	opts = opts.WithValueLogFileSize(1 << 30)       // 1G日志文件
