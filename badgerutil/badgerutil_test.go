@@ -216,13 +216,10 @@ func TestBatchMixed(t *testing.T) {
 	batch := badgerDB.NewWriteBatch()
 	defer batch.Cancel()
 
-	readTxn := badgerDB.NewTransaction(false)
-	defer readTxn.Discard()
-
 	expireAt := uint64(time.Now().Add(time.Minute).Unix())
 
 	UpdateWithBatch(batch, "mix:u", "update", expireAt)
-	AppendWithBatch(readTxn, batch, "mix:a", "item1", expireAt)
+	AppendWithBatch(batch, "mix:a", "item1", expireAt)
 	UpdateWithBatch(batch, "mix:d", "delete me", expireAt)
 	DeleteWithBatch(batch, "mix:d")
 	batch.Flush()
