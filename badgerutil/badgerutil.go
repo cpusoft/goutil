@@ -450,6 +450,29 @@ func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
 	return results, err
 }
 
+func NewBatch() (*badger.WriteBatch, error) {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return nil, errors.New("badgerDB is not initialized")
+	}
+	return badgerDB.NewWriteBatch(), nil
+}
+func BatchCacel(batch *badger.WriteBatch) {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return
+	}
+	batch.Cancel()
+}
+func BatchFlush(batch *badger.WriteBatch) error {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+	if err := batch.Flush(); err != nil {
+		//	belogs.Error("Flush(): Flush final batch fail, err:", err)
+		return err
+	}
+	return nil
+}
+
 ////////////////////////////////////////////////////
 // advance funcs
 /////////////////////////////////////////////////////
