@@ -287,6 +287,33 @@ func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
 	return results, err
 }
 
+// limit: <=0表示不限制返回数量
+func ViewKeyByPrefix(prefixStr string, limit int) ([]string, error) {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return nil, errors.New("badgerDB is not initialized")
+	}
+	keys := make([]string, 0)
+	prefix := []byte(prefixStr)
+	err := badgerDB.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false // 关键优化：不读Value
+		opts.AllVersions = false    // 不读历史版本
+		count := 0
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			if limit > 0 && count >= limit {
+				break
+			}
+			key := it.Item().KeyCopy(nil) // 安全拷贝
+			keys = append(keys, string(key))
+			count++
+		}
+		return nil
+	})
+	return keys, err
+}
+
 func HandleKeyByPrefix(prefix []byte, handler func(key []byte, index int)) error {
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
 		return errors.New("badgerDB is not initialized")
