@@ -82,9 +82,9 @@ func DropAll() error {
 	return badgerDB.DropAll()
 }
 
-////////////////////////////////////////////////////
+// //////////////////////////////////////////////////
 // base funcs
-/////////////////////////////////////////////////////
+// ///////////////////////////////////////////////////
 
 // expire: 过期时间（<=0表示永不过期）
 func Update[T any](key string, value T, expire time.Duration) error {
@@ -151,6 +151,190 @@ func UpdateWithBatch[T any](batch *badger.WriteBatch, key string, value T, expir
 	return batch.SetEntry(entry)
 }
 
+// 返回值：value、是否找到、错误
+func View[T any](key string) (T, bool, error) {
+	var zero T
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return zero, false, errors.New("badgerDB is not initialized")
+	}
+	var value []byte
+	err := badgerDB.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(key))
+		if err != nil {
+			if err == badger.ErrKeyNotFound {
+				return nil // 键不存在返回nil，不抛错
+			}
+			belogs.Error("View(): Get fail, key:", key, err)
+			return err
+		}
+		// 复制value（避免引用底层内存），并释放资源
+		val, err := item.ValueCopy(nil)
+		if err != nil {
+			belogs.Error("View(): ValueCopy fail, item:", item, err)
+			return err
+		}
+		value = val
+		return nil
+	})
+
+	if value == nil {
+		return zero, false, err
+	}
+	//belogs.Debug("("View(): get value", string(value))
+	var result T
+	err = jsonutil.UnmarshalJsonBytes(value, &result)
+	if err != nil {
+		belogs.Error("View(): UnmarshalJsonBytes fail, value:", string(value), err)
+		return zero, false, err
+	}
+	return result, true, err
+}
+
+// Exists 判断key是否存在，不读取value，高性能
+func Exists(key string) (bool, error) {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return false, errors.New("badgerDB is not initialized")
+	}
+
+	var exists bool
+	err := badgerDB.View(func(txn *badger.Txn) error {
+		_, err := txn.Get([]byte(key))
+		if err != nil {
+			if err == badger.ErrKeyNotFound {
+				exists = false
+				return nil
+			}
+			belogs.Error("Exists(): check key fail, key:", key, err)
+			return err
+		}
+		exists = true
+		return nil
+	})
+	return exists, err
+}
+
+func Delete(key string) error {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+	return badgerDB.Update(func(txn *badger.Txn) error {
+		return txn.Delete([]byte(key))
+	})
+}
+func DeleteWithTxn(txn *badger.Txn, key string) error {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || txn == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+	return txn.Delete([]byte(key))
+}
+
+// DeleteWithBatch 内部方法：使用 WriteBatch 进行删除
+func DeleteWithBatch(batch *badger.WriteBatch, key string) error {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || batch == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+
+	return batch.Delete([]byte(key))
+}
+
+// limit: <=0表示不限制返回数量
+func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return nil, errors.New("badgerDB is not initialized")
+	}
+	results := make([]T, 0)
+	prefix := []byte(prefixStr)
+	err := badgerDB.View(func(txn *badger.Txn) error {
+		// 构建前缀迭代器
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = 100 // 预取大小，优化性能
+		opts.Prefix = prefix
+		it := txn.NewIterator(opts)
+		defer it.Close() // 确保迭代器关闭
+
+		count := 0
+		// 遍历前缀匹配的KV
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			if limit > 0 && count >= limit {
+				break
+			}
+			item := it.Item()
+			val, err := item.ValueCopy(nil)
+			if err != nil {
+				belogs.Error("PrefixView(): ValueCopy fail, item:", item, err)
+				return err
+			}
+
+			result := make([]T, 0)
+			err = jsonutil.UnmarshalJsonBytes(val, &result)
+			if err != nil {
+				//belogs.Debug("("PrefixView(): UnmarshalJsonBytes list fail, will try single model again, value:", string(val), err)
+				var resultOne T
+				err = jsonutil.UnmarshalJsonBytes(val, &resultOne)
+				if err != nil {
+					belogs.Error("PrefixView(): UnmarshalJsonBytes single and list both fail, value:", string(val), err)
+					results = nil
+					return err
+				}
+				results = append(results, resultOne)
+			} else {
+				results = append(results, result...)
+			}
+			count++
+		}
+		return nil
+	})
+	return results, err
+}
+
+func HandleKeyByPrefix(prefix []byte, handler func(key []byte, index int)) error {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+
+	return badgerDB.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false // 关键优化：不读Value
+		opts.AllVersions = false    // 不读历史版本
+		index := 0
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			key := it.Item().KeyCopy(nil) // 安全拷贝
+			handler(key, index)           // 把 key 交给业务层处理
+			index++
+		}
+		return nil
+	})
+}
+
+func NewBatch() (*badger.WriteBatch, error) {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return nil, errors.New("badgerDB is not initialized")
+	}
+	return badgerDB.NewWriteBatch(), nil
+}
+func BatchCacel(batch *badger.WriteBatch) {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return
+	}
+	batch.Cancel()
+}
+func BatchFlush(batch *badger.WriteBatch) error {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+	if err := batch.Flush(); err != nil {
+		//	belogs.Error("Flush(): Flush final batch fail, err:", err)
+		return err
+	}
+	return nil
+}
+
+////////////////////////////////////////////////////
+// advance funcs
+/////////////////////////////////////////////////////
+/*
 // Append 追加功能：key存在则将value追加到列表，不存在则直接存储（自动转为数组）
 // expire: 过期时间（<=0表示永不过期）
 func Append[T any](key string, value T, expire time.Duration) error {
@@ -314,169 +498,6 @@ func AppendWithBatch[T any](batch *badger.WriteBatch,
 	return batch.SetEntry(entry)
 }
 
-// 返回值：value、是否找到、错误
-func View[T any](key string) (T, bool, error) {
-	var zero T
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return zero, false, errors.New("badgerDB is not initialized")
-	}
-	var value []byte
-	err := badgerDB.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(key))
-		if err != nil {
-			if err == badger.ErrKeyNotFound {
-				return nil // 键不存在返回nil，不抛错
-			}
-			belogs.Error("View(): Get fail, key:", key, err)
-			return err
-		}
-		// 复制value（避免引用底层内存），并释放资源
-		val, err := item.ValueCopy(nil)
-		if err != nil {
-			belogs.Error("View(): ValueCopy fail, item:", item, err)
-			return err
-		}
-		value = val
-		return nil
-	})
-
-	if value == nil {
-		return zero, false, err
-	}
-	//belogs.Debug("("View(): get value", string(value))
-	var result T
-	err = jsonutil.UnmarshalJsonBytes(value, &result)
-	if err != nil {
-		belogs.Error("View(): UnmarshalJsonBytes fail, value:", string(value), err)
-		return zero, false, err
-	}
-	return result, true, err
-}
-
-// Exists 判断key是否存在，不读取value，高性能
-func Exists(key string) (bool, error) {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return false, errors.New("badgerDB is not initialized")
-	}
-
-	var exists bool
-	err := badgerDB.View(func(txn *badger.Txn) error {
-		_, err := txn.Get([]byte(key))
-		if err != nil {
-			if err == badger.ErrKeyNotFound {
-				exists = false
-				return nil
-			}
-			belogs.Error("Exists(): check key fail, key:", key, err)
-			return err
-		}
-		exists = true
-		return nil
-	})
-	return exists, err
-}
-
-func Delete(key string) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
-	}
-	return badgerDB.Update(func(txn *badger.Txn) error {
-		return txn.Delete([]byte(key))
-	})
-}
-func DeleteWithTxn(txn *badger.Txn, key string) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || txn == nil {
-		return errors.New("badgerDB is not initialized")
-	}
-	return txn.Delete([]byte(key))
-}
-
-// DeleteWithBatch 内部方法：使用 WriteBatch 进行删除
-func DeleteWithBatch(batch *badger.WriteBatch, key string) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || batch == nil {
-		return errors.New("badgerDB is not initialized")
-	}
-
-	return batch.Delete([]byte(key))
-}
-
-// limit: <=0表示不限制返回数量
-func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return nil, errors.New("badgerDB is not initialized")
-	}
-	results := make([]T, 0)
-	prefix := []byte(prefixStr)
-	err := badgerDB.View(func(txn *badger.Txn) error {
-		// 构建前缀迭代器
-		opts := badger.DefaultIteratorOptions
-		opts.PrefetchSize = 100 // 预取大小，优化性能
-		opts.Prefix = prefix
-		it := txn.NewIterator(opts)
-		defer it.Close() // 确保迭代器关闭
-
-		count := 0
-		// 遍历前缀匹配的KV
-		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-			if limit > 0 && count >= limit {
-				break
-			}
-			item := it.Item()
-			val, err := item.ValueCopy(nil)
-			if err != nil {
-				belogs.Error("PrefixView(): ValueCopy fail, item:", item, err)
-				return err
-			}
-
-			result := make([]T, 0)
-			err = jsonutil.UnmarshalJsonBytes(val, &result)
-			if err != nil {
-				//belogs.Debug("("PrefixView(): UnmarshalJsonBytes list fail, will try single model again, value:", string(val), err)
-				var resultOne T
-				err = jsonutil.UnmarshalJsonBytes(val, &resultOne)
-				if err != nil {
-					belogs.Error("PrefixView(): UnmarshalJsonBytes single and list both fail, value:", string(val), err)
-					results = nil
-					return err
-				}
-				results = append(results, resultOne)
-			} else {
-				results = append(results, result...)
-			}
-			count++
-		}
-		return nil
-	})
-	return results, err
-}
-
-func NewBatch() (*badger.WriteBatch, error) {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return nil, errors.New("badgerDB is not initialized")
-	}
-	return badgerDB.NewWriteBatch(), nil
-}
-func BatchCacel(batch *badger.WriteBatch) {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return
-	}
-	batch.Cancel()
-}
-func BatchFlush(batch *badger.WriteBatch) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
-	}
-	if err := batch.Flush(); err != nil {
-		//	belogs.Error("Flush(): Flush final batch fail, err:", err)
-		return err
-	}
-	return nil
-}
-
-////////////////////////////////////////////////////
-// advance funcs
-/////////////////////////////////////////////////////
-/*
 const (
 	MAINKEY_TO_VALUE    = "_value"
 	MAINKEY_TO_OUTERKEY = "_outerkey"
