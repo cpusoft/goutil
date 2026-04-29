@@ -186,7 +186,7 @@ func GetRepoHostPathFromFilePath(filePath, rrdpDir string) string {
 	}
 	domainPart := parts[0]
 	belogs.Debug("GetRepoHostPathFromFilePath():split relativePath:", relativePath,
-		"filepath.Separator", string(filepath.Separator), " parts:", parts)
+		"filepath.Separator", string(filepath.Separator), " parts:", parts, "domainPart", domainPart)
 
 	// 拼接最终路径
 	r := filepath.Join(baseDir, domainPart)
