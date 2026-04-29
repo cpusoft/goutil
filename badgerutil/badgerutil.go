@@ -314,30 +314,6 @@ func ViewKeyByPrefix(prefixStr string, limit int) ([]string, error) {
 	return keys, err
 }
 
-func HandleKeyByPrefix(prefix []byte, handler func(key []byte, index int)) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
-	}
-	belogs.Debug("HandleKeyByPrefix():  prefix:", string(prefix))
-	return badgerDB.View(func(txn *badger.Txn) error {
-		opts := badger.DefaultIteratorOptions
-		opts.PrefetchValues = false // 关键优化：不读Value
-		opts.AllVersions = false    // 不读历史版本
-		index := 0
-		it := txn.NewIterator(opts)
-		defer it.Close()
-		belogs.Debug("HandleKeyByPrefix():  prefix:", string(prefix), "  it:", it)
-		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-			key := it.Item().KeyCopy(nil) // 安全拷贝
-			belogs.Debug("HandleKeyByPrefix(): handle key, key:", string(key), "  index:", index)
-			handler(key, index) // 把 key 交给业务层处理
-			index++
-		}
-		belogs.Debug("HandleKeyByPrefix(): it.Next() end, prefix:", string(prefix), "  index:", index)
-		return nil
-	})
-}
-
 func NewBatch() (*badger.WriteBatch, error) {
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
 		return nil, errors.New("badgerDB is not initialized")

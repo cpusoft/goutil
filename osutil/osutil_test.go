@@ -389,3 +389,11 @@ func TestGetAllFilesInDirectoryBySuffixs(t *testing.T) {
 func TestGetNewLineSep(t *testing.T) {
 	fmt.Println(GetNewLineSep())
 }
+
+func TestGetRepoHostPathFromFilePath(t *testing.T) {
+	fullPath := "/root/rpki/data/rrdprepo/www.apnic.net/a/b/c"
+	rrdpDir := `/root/rpki/data/rrdprepo/`
+	// return: 截取到域名一级的路径 如 /root/rpki/data/rrdprepo/www.apnic.net
+	r := GetRepoHostPathFromFilePath(fullPath, rrdpDir)
+	assert.Equal(t, "/root/rpki/data/rrdprepo/www.apnic.net", r)
+}
