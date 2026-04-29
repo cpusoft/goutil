@@ -165,33 +165,33 @@ func GetRepoHostPathFromFilePath(filePath, rrdpDir string) string {
 	// 清理路径，统一格式（去掉多余的 /）
 	fullPath := filepath.Clean(filePath)
 	baseDir := filepath.Clean(rrdpDir)
-	belogs.Debug("GetRepoHostPathFromFilePath(): fullPath:", fullPath, " baseDir:", baseDir)
+	//	belogs.Debug("GetRepoHostPathFromFilePath(): fullPath:", fullPath, " baseDir:", baseDir)
 	// 确保 baseDir 是 fullPath 的前缀
 	if !strings.HasPrefix(fullPath, baseDir) {
-		belogs.Debug("GetRepoHostPathFromFilePath(): fullPath does not have prefix baseDir")
+		belogs.Error("GetRepoHostPathFromFilePath(): fullPath does not have prefix baseDir")
 		return "" // 不匹配则返回空
 	}
-	belogs.Debug("GetRepoHostPathFromFilePath(): fullPath has prefix baseDir, continue processing")
+	//	belogs.Debug("GetRepoHostPathFromFilePath(): fullPath has prefix baseDir, continue processing")
 
-	// 去掉基础目录，拿到剩余部分
+	// 去掉基础目录，拿到剩余部分, 去掉relativePath开头的/，并清理路径
 	relativePath := strings.TrimPrefix(fullPath, baseDir)
 	relativePath = strings.TrimPrefix(relativePath, string(filepath.Separator))
 	relativePath = filepath.Clean(relativePath)
-	belogs.Debug("GetRepoHostPathFromFilePath(): relativePath after trim and clean:", relativePath)
+	//	belogs.Debug("GetRepoHostPathFromFilePath(): relativePath after trim and clean:", relativePath)
 
 	// 分割路径，取第一部分（就是域名 www.apnic.net）
 	parts := strings.Split(relativePath, string(filepath.Separator))
 	if len(parts) == 0 {
-		belogs.Debug("GetRepoHostPathFromFilePath(): relativePath is empty")
+		belogs.Error("GetRepoHostPathFromFilePath(): relativePath is empty")
 		return baseDir
 	}
 	domainPart := parts[0]
-	belogs.Debug("GetRepoHostPathFromFilePath():split relativePath:", relativePath,
-		"filepath.Separator", string(filepath.Separator), " parts:", parts, "domainPart", domainPart)
+	//	belogs.Debug("GetRepoHostPathFromFilePath():split relativePath:", relativePath,
+	//		"filepath.Separator", string(filepath.Separator), " parts:", parts, "domainPart", domainPart)
 
 	// 拼接最终路径
 	r := filepath.Join(baseDir, domainPart)
-	belogs.Debug("GetRepoHostPathFromFilePath(): final path:", r)
+	//	belogs.Debug("GetRepoHostPathFromFilePath(): final path:", r)
 	return r
 }
 
