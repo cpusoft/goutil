@@ -175,6 +175,7 @@ func GetRepoHostPathFromFilePath(filePath, rrdpDir string) string {
 
 	// 去掉基础目录，拿到剩余部分
 	relativePath := strings.TrimPrefix(fullPath, baseDir)
+	relativePath = strings.TrimPrefix(relativePath, string(filepath.Separator))
 	relativePath = filepath.Clean(relativePath)
 	belogs.Debug("GetRepoHostPathFromFilePath(): relativePath after trim and clean:", relativePath)
 
