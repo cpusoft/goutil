@@ -18,7 +18,7 @@ require (
 	github.com/guregu/null/v6 v6.0.0
 	github.com/lib/pq v1.12.3
 	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260429041736-4dd0a1e00679
-	github.com/mattn/go-sqlite3 v1.14.42
+	github.com/mattn/go-sqlite3 v1.14.43
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/orisano/gosax v1.1.4
 	github.com/panjf2000/ants/v2 v2.12.0
