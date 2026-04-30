@@ -175,6 +175,7 @@ func TestInitPostgreSQLParameter_Normal(t *testing.T) {
 		"rpki",            // database
 		8,                 // maxidleconns
 		16,                // maxopenconns
+		0, 0,
 	)
 	assert.NoError(t, err, "InitPostgreSQLParameter正常参数校验失败")
 	assert.NotNil(t, engine, "engine应为非nil")
@@ -189,43 +190,43 @@ func TestInitPostgreSQLParameter_Normal(t *testing.T) {
 // 临界值测试：空参数、负数连接数、非法地址格式等场景
 func TestInitPostgreSQLParameter_Critical(t *testing.T) {
 	// 测试1：空用户名
-	engine, err := InitPostgreSQLParameter("", "postgres", "127.0.0.1:15432", "test", 8, 16)
+	engine, err := InitPostgreSQLParameter("", "postgres", "127.0.0.1:15432", "test", 8, 16, 0, 0)
 	assert.Error(t, err, "空用户名应返回错误")
 	assert.Nil(t, engine, "空用户名时engine应为nil")
 	assert.Contains(t, err.Error(), "user or password or server or database is empty")
 
 	// 测试2：空密码
-	engine, err = InitPostgreSQLParameter("postgres", "", "127.0.0.1:15432", "test", 8, 16)
+	engine, err = InitPostgreSQLParameter("postgres", "", "127.0.0.1:15432", "test", 8, 16, 0, 0)
 	assert.Error(t, err, "空密码应返回错误")
 	assert.Nil(t, engine, "空密码时engine应为nil")
 	assert.Contains(t, err.Error(), "user or password or server or database is empty")
 
 	// 测试3：空服务器地址
-	engine, err = InitPostgreSQLParameter("postgres", "postgres", "", "test", 8, 16)
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "", "test", 8, 16, 0, 0)
 	assert.Error(t, err, "空服务器地址应返回错误")
 	assert.Nil(t, engine, "空服务器地址时engine应为nil")
 	assert.Contains(t, err.Error(), "user or password or server or database is empty")
 
 	// 测试4：空数据库名
-	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "", 8, 16)
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "", 8, 16, 0, 0)
 	assert.Error(t, err, "空数据库名应返回错误")
 	assert.Nil(t, engine, "空数据库名时engine应为nil")
 	assert.Contains(t, err.Error(), "user or password or server or database is empty")
 
 	// 测试5：负数maxidleconns
-	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "test", -8, 16)
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "test", -8, 16, 0, 0)
 	assert.Error(t, err, "负数maxidleconns应返回错误")
 	assert.Nil(t, engine, "负数maxidleconns时engine应为nil")
 	assert.Contains(t, err.Error(), "maxidleconns or maxopenconns is negative")
 
 	// 测试6：负数maxopenconns
-	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "test", 8, -16)
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1:15432", "test", 8, -16, 0, 0)
 	assert.Error(t, err, "负数maxopenconns应返回错误")
 	assert.Nil(t, engine, "负数maxopenconns时engine应为nil")
 	assert.Contains(t, err.Error(), "maxidleconns or maxopenconns is negative")
 
 	// 测试7：非法服务器地址（无端口）
-	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1", "test", 8, 16)
+	engine, err = InitPostgreSQLParameter("postgres", "postgres", "127.0.0.1", "test", 8, 16, 0, 0)
 	assert.Error(t, err, "无端口地址应返回错误")
 	assert.Nil(t, engine, "无端口地址时engine应为nil")
 }

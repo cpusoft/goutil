@@ -34,7 +34,7 @@ func SearchIp2Region(ipv4DataFilePathName, ip string) (Ip2RegionModel, error) {
 	defer searcher.Close()
 
 	// do the search
-	region, err := searcher.SearchByStr(ip)
+	region, err := searcher.Search(ip)
 	if err != nil {
 		belogs.Error("SearchIp2Region(): SearchByStr fail, ip:", ip, err, "  time(s):", time.Since(start))
 		return Ip2RegionModel{}, err

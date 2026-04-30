@@ -9,7 +9,7 @@ require (
 	github.com/bytedance/sonic v1.15.1
 	github.com/dgraph-io/badger/v4 v4.9.1
 	github.com/gin-gonic/gin v1.12.0
-	github.com/go-sql-driver/mysql v1.9.3
+	github.com/go-sql-driver/mysql v1.10.0
 	github.com/goccy/go-json v0.10.6
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
@@ -17,8 +17,8 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
 	github.com/lib/pq v1.12.3
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260429041736-4dd0a1e00679
-	github.com/mattn/go-sqlite3 v1.14.43
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260429094108-593e02867796
+	github.com/mattn/go-sqlite3 v1.14.44
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/orisano/gosax v1.1.4
 	github.com/panjf2000/ants/v2 v2.12.0
@@ -46,7 +46,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elazarl/goproxy v1.8.3 // indirect
-	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/fsnotify/fsnotify v1.10.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/gin-contrib/sse v1.1.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
