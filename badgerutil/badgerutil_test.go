@@ -19,7 +19,7 @@ func TestKey(t *testing.T) {
 
 	keys, err := ViewKeyByPrefix("aki:", 0)
 	if err != nil {
-		fmt.Println("UpdateCrlRevocationToCache(): ViewKeyByPrefix fail",
+		fmt.Println("TestKey(): ViewKeyByPrefix fail",
 			err)
 		return
 	}
@@ -30,11 +30,13 @@ func TestKey(t *testing.T) {
 		it := txn.NewIterator(opts)
 		defer it.Close()
 
+		count := 0
 		fmt.Println("=== 开始遍历 ===")
 		for it.Rewind(); it.Valid(); it.Next() {
 			k := it.Item().KeyCopy(nil)
 			v, err := it.Item().ValueCopy(nil)
 			if err != nil {
+				fmt.Println("TestKey(): ValueCopy fail", err)
 				return err
 			}
 			kStr := string(k)
@@ -42,7 +44,8 @@ func TestKey(t *testing.T) {
 			if strings.HasPrefix(kStr, "aki:") {
 				fmt.Printf("KEY: %s\nVALUE: %s\n---\n", kStr, vStr)
 			}
-			//fmt.Printf("KEY: %s\nVALUE: %s\n---\n", string(k), string(v))
+			fmt.Printf("count:%d\nKEY: %s\nVALUE: %s\n---\n", count, string(k), string(v))
+			count++
 		}
 		return nil
 	})
