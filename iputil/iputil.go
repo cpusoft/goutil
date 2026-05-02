@@ -581,7 +581,7 @@ func IsAddressPrefixRangeContains(parentAddressPrefix string, childAddressPrefix
 // 192.168.5/24 -->  192.168.5.0/24 --> [min: c0.a8.05.00  max: c0.a8.05.ff]
 // 2803:d380/28 --> 2803:d380::/28 --> [min: 2803:d380:0000:0000:0000:0000:0000:0000  max: 2803:d38f:ffff:ffff:ffff:ffff:ffff:ffff]
 func AddressPrefixToHexRange(addressPrefix string, ipType int) (minHex string, maxHex string, err error) {
-	belogs.Debug("AddressPrefixToHexRange(): addressPrefix:", addressPrefix, "  ipType:", ipType)
+	//belogs.Debug("AddressPrefixToHexRange(): addressPrefix:", addressPrefix, "  ipType:", ipType)
 	addressPrefixFill, err := FillAddressPrefixWithZero(addressPrefix, ipType)
 	if err != nil {
 		belogs.Error("AddressPrefixToHexRange(): FillAddressPrefixWithZero fail,  addressPrefix:", addressPrefix, " ipTye :", ipType, err)

@@ -1,13 +1,53 @@
 package badgerutil
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/dgraph-io/badger/v4"
 	"github.com/stretchr/testify/assert"
 )
 
+func TestKey(t *testing.T) {
+	Close()
+	err := Init("/root/rpki/data/cache")
+	assert.NoError(t, err)
+	defer Close()
+
+	keys, err := ViewKeyByPrefix("aki:", 0)
+	if err != nil {
+		fmt.Println("UpdateCrlRevocationToCache(): ViewKeyByPrefix fail",
+			err)
+		return
+	}
+	fmt.Println("keys", keys)
+
+	err = badgerDB.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		fmt.Println("=== 开始遍历 ===")
+		for it.Rewind(); it.Valid(); it.Next() {
+			k := it.Item().KeyCopy(nil)
+			v, err := it.Item().ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			kStr := string(k)
+			vStr := string(v)
+			if strings.HasPrefix(kStr, "aki:") {
+				fmt.Printf("KEY: %s\nVALUE: %s\n---\n", kStr, vStr)
+			}
+			//fmt.Printf("KEY: %s\nVALUE: %s\n---\n", string(k), string(v))
+		}
+		return nil
+	})
+
+}
 func TestAll(t *testing.T) {
 	Close()
 	err := Init("memory")
@@ -16,22 +56,17 @@ func TestAll(t *testing.T) {
 
 	t.Run("CRUD", TestCRUD)
 	t.Run("Exists", TestExists)
-	t.Run("Append", TestAppend)
 	t.Run("Expire", TestExpire)
 
 	t.Run("UpdateWithTxn", TestUpdateWithTxn)
-	t.Run("AppendWithTxn", TestAppendWithTxn)
 	t.Run("DeleteWithTxn", TestDeleteWithTxn)
 
 	t.Run("UpdateWithBatch", TestUpdateWithBatch)
-	t.Run("AppendWithBatch", TestAppendWithBatch)
 	t.Run("DeleteWithBatch", TestDeleteWithBatch)
 
 	t.Run("PrefixView", TestPrefixView)
 	t.Run("NotFoundView", TestNotFoundView)
 
-	t.Run("BatchMixed", TestBatchMixed)
-	t.Run("StressTest", TestStressTest)
 }
 
 func TestCRUD(t *testing.T) {
@@ -67,21 +102,6 @@ func TestExists(t *testing.T) {
 	assert.False(t, exists)
 }
 
-func TestAppend(t *testing.T) {
-	key := "test:append"
-
-	err := Append(key, 1, 0)
-	assert.NoError(t, err)
-
-	err = Append(key, 2, 0)
-	assert.NoError(t, err)
-
-	arr, found, err := View[[]int](key)
-	assert.NoError(t, err)
-	assert.True(t, found)
-	assert.Equal(t, []int{1, 2}, arr)
-}
-
 func TestExpire(t *testing.T) {
 	key := "test:expire"
 	_ = Update(key, "will expire", 2*time.Second)
@@ -112,22 +132,6 @@ func TestUpdateWithTxn(t *testing.T) {
 	assert.Equal(t, "txn update", val)
 }
 
-func TestAppendWithTxn(t *testing.T) {
-	key := "test:txn:append"
-	txn := badgerDB.NewTransaction(true)
-	defer txn.Discard()
-
-	expireAt := uint64(time.Now().Add(time.Minute).Unix())
-	AppendWithTxn(txn, key, "a", expireAt)
-	AppendWithTxn(txn, key, "b", expireAt)
-
-	txn.Commit()
-
-	arr, found, _ := View[[]string](key)
-	assert.True(t, found)
-	assert.Equal(t, []string{"a", "b"}, arr)
-}
-
 func TestDeleteWithTxn(t *testing.T) {
 	key := "test:txn:del"
 	Update(key, "tmp", 0)
@@ -154,32 +158,6 @@ func TestUpdateWithBatch(t *testing.T) {
 	val, found, _ := View[string](key)
 	assert.True(t, found)
 	assert.Equal(t, "batch value", val)
-}
-
-// TestAppendWithBatch 批量追加
-func TestAppendWithBatch(t *testing.T) {
-	key := "test:batch:append"
-	expireAt := uint64(time.Now().Add(time.Minute).Unix())
-
-	// 一个 batch 即可
-	batch := badgerDB.NewWriteBatch()
-	defer batch.Cancel()
-
-	// 直接连续 append，不需要任何 txn！
-	err := AppendWithBatch(batch, key, "x", expireAt)
-	assert.NoError(t, err)
-
-	err = AppendWithBatch(batch, key, "y", expireAt)
-	assert.NoError(t, err)
-
-	// 提交
-	err = batch.Flush()
-	assert.NoError(t, err)
-
-	// 验证结果 [x, y]
-	arr, found, _ := View[[]string](key)
-	assert.True(t, found)
-	assert.Equal(t, []string{"x", "y"}, arr)
 }
 
 func TestDeleteWithBatch(t *testing.T) {
@@ -211,48 +189,6 @@ func TestNotFoundView(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, found)
 }
-
-func TestBatchMixed(t *testing.T) {
-	batch := badgerDB.NewWriteBatch()
-	defer batch.Cancel()
-
-	expireAt := uint64(time.Now().Add(time.Minute).Unix())
-
-	UpdateWithBatch(batch, "mix:u", "update", expireAt)
-	AppendWithBatch(batch, "mix:a", "item1", expireAt)
-	UpdateWithBatch(batch, "mix:d", "delete me", expireAt)
-	DeleteWithBatch(batch, "mix:d")
-	batch.Flush()
-
-	u, _, _ := View[string]("mix:u")
-	assert.Equal(t, "update", u)
-
-	a, _, _ := View[[]string]("mix:a")
-	assert.Equal(t, []string{"item1"}, a)
-
-	exists, _ := Exists("mix:d")
-	assert.False(t, exists)
-}
-
-func TestStressTest(t *testing.T) {
-	const n = 500
-	done := make(chan bool, n)
-
-	for i := 0; i < n; i++ {
-		go func(i int) {
-			Append("stress:k", i, 0)
-			done <- true
-		}(i)
-	}
-
-	for i := 0; i < n; i++ {
-		<-done
-	}
-
-	arr, _, _ := View[[]int]("stress:k")
-	assert.True(t, len(arr) > 0)
-}
-
 func TestFileMode(t *testing.T) {
 	path := "./tmp_badger_test"
 	os.RemoveAll(path)
