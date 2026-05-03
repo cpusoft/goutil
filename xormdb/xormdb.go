@@ -268,6 +268,7 @@ func CloseXormEngine() error {
 	if XormEngine != nil {
 		XormEngine.Close()
 		XormEngine = nil
+		belogs.Info("CloseXormEngine(): xorm engine close")
 	}
 	return nil
 }
