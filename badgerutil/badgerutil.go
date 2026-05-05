@@ -320,7 +320,7 @@ func NewBatch() (*badger.WriteBatch, error) {
 	}
 	return badgerDB.NewWriteBatch(), nil
 }
-func BatchCacel(batch *badger.WriteBatch) {
+func BatchCancel(batch *badger.WriteBatch) {
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
 		return
 	}
