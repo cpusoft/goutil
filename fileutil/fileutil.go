@@ -182,7 +182,8 @@ func CreateAndWriteBase64ToFile(filePathName, base64 string) (err error) {
 
 	// 严格拆分并校验文件名长度
 	filePath, fileName := osutil.Split(filePathName)
-	belogs.Debug("CreateAndWriteBase64ToFile(): Split filePathName:", filePathName, " len(base64):", len(base64))
+	belogs.Debug("CreateAndWriteBase64ToFile(): Split filePathName:", filePathName, "fileName", fileName,
+		"fileName", fileName, "len(base64):", len(base64))
 	err = os.MkdirAll(filePath, os.ModePerm)
 	if err != nil {
 		belogs.Error("CreateAndWriteBase64ToFile(): MkdirAll fail, filePathName:", filePathName, err)
