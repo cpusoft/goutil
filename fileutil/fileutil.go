@@ -106,10 +106,6 @@ func WriteBytesToFile(file string, bytes []byte) (err error) {
 		return errors.New("file name too long (Linux): " + fileName)
 	}
 
-	if _, err := os.Stat(file); err != nil {
-		return errors.New("file name too long (Linux): " + fileName)
-	}
-
 	return os.WriteFile(file, bytes, FileModeReadWrite)
 }
 
