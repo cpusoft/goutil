@@ -3,16 +3,27 @@ package fileutil
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/cpusoft/goutil/osutil"
 	"github.com/stretchr/testify/assert"
 )
 
 const testTempDir = "./test_temp_fileutil_linux"
+
+func TestFileMaxlength(t *testing.T) {
+	f := `/root/rpki/data/rrdprepo/rpki-rps.cnnic.cn/repo/A1065588335524839425/0/B7CD3069B4897C94D73E4A5156A5BB580263686D.crl`
+	filePath, fileName := osutil.Split(f)
+	if len(fileName) > FileNameMaxLength {
+		fmt.Println(errors.New("file name too long (Linux): " + fileName))
+	}
+	fmt.Println(filePath, fileName, len(fileName), FileNameMaxLength)
+}
 
 func TestMain(m *testing.M) {
 	if err := os.MkdirAll(testTempDir, 0755); err != nil {

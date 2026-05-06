@@ -103,6 +103,8 @@ func WriteBytesToFile(file string, bytes []byte) (err error) {
 	// 严格校验单个文件名长度
 	_, fileName := filepath.Split(file)
 	if len(fileName) > FileNameMaxLength {
+		belogs.Error("WriteBytesToFile(): file name too long, filePathName:", file,
+			"fileName:", fileName, "len(fileName):", len(fileName))
 		return errors.New("file name too long (Linux): " + fileName)
 	}
 
@@ -165,6 +167,8 @@ func WriteBase64ToFile(filePathName, base64 string) (err error) {
 	// 严格校验单个文件名长度
 	_, fileName := filepath.Split(filePathName)
 	if len(fileName) > FileNameMaxLength {
+		belogs.Error("WriteBase64ToFile(): file name too long, filePathName:", filePathName,
+			"fileName:", fileName, "len(fileName):", len(fileName))
 		return errors.New("file name too long (Linux): " + fileName)
 	}
 
@@ -196,6 +200,8 @@ func CreateAndWriteBase64ToFile(filePathName, base64 string) (err error) {
 	// 严格拆分并校验文件名长度
 	filePath, fileName := osutil.Split(filePathName)
 	if len(fileName) > FileNameMaxLength {
+		belogs.Error("CreateAndWriteBase64ToFile(): file name too long, filePathName:", filePathName,
+			"fileName:", fileName, "len(fileName):", len(fileName))
 		return errors.New("file name too long (Linux): " + fileName)
 	}
 
