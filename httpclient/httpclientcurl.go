@@ -1,6 +1,7 @@
 package httpclient
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -29,10 +30,17 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 	if httpClientConfig == nil {
 		httpClientConfig = NewHttpClientConfig()
 	}
+
+	// -------------------------- 新增1：Go 层面的超时兜底（双保险） --------------------------
+	// 超时时间 = curl 配置的超时 + 30秒缓冲（确保 Go 兜底在 curl 之后生效）
+	goTimeout := time.Duration(httpClientConfig.TimeoutMins)*time.Minute + 30*time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), goTimeout)
+	defer cancel() // 确保释放资源
+	// -----------------------------------------------------------------------------------------
+
 	// mins --> seconds
 	timeout := convert.ToString(httpClientConfig.TimeoutMins * 60)
 	retryCount := convert.ToString(httpClientConfig.RetryCount)
-	//	tmpFile := os.TempDir() + string(os.PathSeparator) + uuidutil.GetUuid()
 	tmpFile, err := os.CreateTemp("", "_tmp_") // temp file
 	if err != nil {
 		belogs.Error("GetByCurlWithConfig(): TempFile fail", err)
@@ -66,10 +74,9 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 		cmd := exec.Command("curl", "-4",  "-o", tmpFile, url)
 	*/
 	// minute-->second
-	var args []string
+	args := make([]string, 0)
 	args = append(args, "--connect-timeout", timeout, "--keepalive-time", timeout, "-m", timeout)
 
-	// curl high version warning:  should  filter ipType null
 	if ipType != "" {
 		args = append(args, ipType)
 	}
@@ -79,9 +86,20 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 	args = append(args, "--retry", retryCount, "--compressed", "-o", tmpFile.Name(), url)
 
 	start := time.Now()
-	cmd := exec.Command("curl", args...)
+	// -------------------------- 新增2：用 CommandContext 替代 Command --------------------------
+	cmd := exec.CommandContext(ctx, "curl", args...)
+	// -----------------------------------------------------------------------------------------
 	output, err := cmd.CombinedOutput()
 	outputStr := GetOutputStr(output)
+
+	// -------------------------- 新增3：判断是否是 Go 层面的超时 --------------------------
+	if ctx.Err() == context.DeadlineExceeded {
+		belogs.Error("GetByCurlWithConfig(): CURL fail, timeout, is killed, url:", url, "  goTimeout:", goTimeout,
+			"  tmpFile:", tmpFile.Name(), "  time(s):", time.Since(start))
+		return "", errors.New("curl " + url + " timeout")
+	}
+	// -----------------------------------------------------------------------------------------
+
 	if err != nil {
 		belogs.Error("GetByCurlWithConfig(): exec.Command fail, curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
 			"  tmpFile:", tmpFile.Name(), "  timeout:", timeout, "  retryCount:", retryCount, "  ipType:", ipType,
