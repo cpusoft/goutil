@@ -74,7 +74,7 @@ func ReadFileAndDecodeCertBase64(file string) (fileByte []byte, fileDecodeBase64
 		return nil, nil, errors.New("file path is empty")
 	}
 
-	belogs.Debug("ReadFileAndDecodeCertBase64(): file:", file)
+	//belogs.Debug("ReadFileAndDecodeCertBase64(): file:", file)
 	fileByte, err = os.ReadFile(file)
 	if err != nil {
 		belogs.Error("ReadFileAndDecodeCertBase64(): ReadFile err:", file, err)
@@ -155,20 +155,20 @@ func WriteBase64ToFile(filePathName, base64 string) (err error) {
 		return errors.New("base64 string is empty")
 	}
 
-	belogs.Debug("WriteBase64ToFile(): filePathName:", filePathName, " len(base64):", len(base64))
+	//belogs.Debug("WriteBase64ToFile(): filePathName:", filePathName, " len(base64):", len(base64))
 	bytes, err := base64util.DecodeBase64(strings.TrimSpace(base64))
 	if err != nil {
 		belogs.Error("WriteBase64ToFile(): DecodeBase64 fail, base64:", base64, err)
 		return err
 	}
 
-	belogs.Debug("WriteBase64ToFile(): DecodeBase64, filePathName:", filePathName, " len(bytes):", len(bytes))
+	//belogs.Debug("WriteBase64ToFile(): DecodeBase64, filePathName:", filePathName, " len(bytes):", len(bytes))
 	err = WriteBytesToFile(filePathName, bytes)
 	if err != nil {
 		belogs.Error("WriteBase64ToFile(): WriteBytesToFile fail:", filePathName, "  len(bytes):", len(bytes), err)
 		return err
 	}
-	belogs.Debug("WriteBase64ToFile(): save filePathName ", filePathName, "  ok")
+	//belogs.Debug("WriteBase64ToFile(): save filePathName ", filePathName, "  ok")
 	return nil
 }
 
@@ -181,9 +181,9 @@ func CreateAndWriteBase64ToFile(filePathName, base64 string) (err error) {
 	}
 
 	// 严格拆分并校验文件名长度
-	filePath, fileName := osutil.Split(filePathName)
-	belogs.Debug("CreateAndWriteBase64ToFile(): Split filePathName:", filePathName, "fileName", fileName,
-		"fileName", fileName, "len(base64):", len(base64))
+	filePath, _ := osutil.Split(filePathName)
+	//belogs.Debug("CreateAndWriteBase64ToFile(): Split filePathName:", filePathName, "fileName", fileName,
+	//	"fileName", fileName, "len(base64):", len(base64))
 	err = os.MkdirAll(filePath, os.ModePerm)
 	if err != nil {
 		belogs.Error("CreateAndWriteBase64ToFile(): MkdirAll fail, filePathName:", filePathName, err)
@@ -328,7 +328,7 @@ func Copy(srcFilePathName, dstFilePathName string) error {
 		return errors.New("invalid path (contains ../): " + dstFilePathName)
 	}
 
-	belogs.Debug("Copy(): srcFilePathName:", srcFilePathName, "  dstFilePathName:", dstFilePathName)
+	//belogs.Debug("Copy(): srcFilePathName:", srcFilePathName, "  dstFilePathName:", dstFilePathName)
 	srcFile, err := os.Open(srcFilePathName)
 	if err != nil {
 		belogs.Error("Copy(): Open fail, srcFilePathName:", srcFilePathName, err)
