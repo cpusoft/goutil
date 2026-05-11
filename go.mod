@@ -17,7 +17,7 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
 	github.com/lib/pq v1.12.3
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260508022336-3147144a7f1c
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260509115213-59cf54710765
 	github.com/mattn/go-sqlite3 v1.14.44
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/orisano/gosax v1.1.4
@@ -76,7 +76,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/shoenig/go-m1cpu v0.2.1 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
