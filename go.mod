@@ -8,6 +8,7 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/bytedance/sonic v1.15.1
 	github.com/dgraph-io/badger/v4 v4.9.1
+	github.com/edsrzf/mmap-go v1.2.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/goccy/go-json v0.10.6
