@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"singleinstance" // 替换为你实际的包导入路径
 	"testing"
 	"time"
 )
@@ -18,14 +17,14 @@ func TestSingleInstance_Normal(t *testing.T) {
 	fmt.Println("=== 测试1：正常单进程加锁/解锁 ===")
 
 	// 1. 第一次获取锁：成功
-	lock, err := singleinstance.AcquireSingleInstance(testLockFile)
+	lock, err := AcquireSingleInstance(testLockFile)
 	if err != nil {
 		t.Fatalf("首次获取锁失败: %v", err)
 	}
 	fmt.Println("✅ 进程1：成功获取单实例锁")
 
 	// 2. 同一进程再次获取锁：会失败（文件已被锁定）
-	_, err2 := singleinstance.AcquireSingleInstance(testLockFile)
+	_, err2 := AcquireSingleInstance(testLockFile)
 	if err2 == nil {
 		t.Fatal("同一进程重复获取锁，预期失败，实际成功")
 	}
@@ -39,7 +38,7 @@ func TestSingleInstance_Normal(t *testing.T) {
 	fmt.Println("✅ 成功释放单实例锁")
 
 	// 4. 释放后再次获取锁：成功
-	lock2, err3 := singleinstance.AcquireSingleInstance(testLockFile)
+	lock2, err3 := AcquireSingleInstance(testLockFile)
 	if err3 != nil {
 		t.Fatalf("释放锁后重新获取失败: %v", err3)
 	}
@@ -53,7 +52,7 @@ func TestSingleInstance_MultiProcess(t *testing.T) {
 	fmt.Println("=== 测试2：多进程禁止重复启动 ===")
 
 	// 1. 主进程先获取锁
-	lock, err := singleinstance.AcquireSingleInstance(testLockFile)
+	lock, err := AcquireSingleInstance(testLockFile)
 	if err != nil {
 		t.Fatalf("主进程获取锁失败: %v", err)
 	}
@@ -84,7 +83,7 @@ func TestSingleInstance_MultiProcess(t *testing.T) {
 // TestSingleInstance_ChildProcess 子进程测试函数（被多进程测试调用）
 func TestSingleInstance_ChildProcess(t *testing.T) {
 	// 子进程尝试获取锁，预期失败
-	_, err := singleinstance.AcquireSingleInstance(testLockFile)
+	_, err := AcquireSingleInstance(testLockFile)
 	if err != nil {
 		fmt.Printf("❌ 子进程：获取锁失败，原因: %v\n", err)
 		os.Exit(1)
@@ -105,7 +104,7 @@ func TestSingleInstance_AutoRelease(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// 2. 主进程重新获取锁：成功
-	lock, err := singleinstance.AcquireSingleInstance(testLockFile)
+	lock, err := AcquireSingleInstance(testLockFile)
 	if err != nil {
 		t.Fatalf("异常进程退出后，获取锁失败: %v", err)
 	}
@@ -116,7 +115,7 @@ func TestSingleInstance_AutoRelease(t *testing.T) {
 
 // TestSingleInstance_CrashProcess 崩溃进程：获取锁后直接退出（不手动释放）
 func TestSingleInstance_CrashProcess(t *testing.T) {
-	lock, err := singleinstance.AcquireSingleInstance(testLockFile)
+	lock, err := AcquireSingleInstance(testLockFile)
 	if err != nil {
 		fmt.Printf("崩溃进程获取锁失败: %v\n", err)
 		os.Exit(1)
