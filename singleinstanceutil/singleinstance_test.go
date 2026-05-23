@@ -1,4 +1,4 @@
-package singleinstance
+package singleinstanceutil
 
 import (
 	"errors"
