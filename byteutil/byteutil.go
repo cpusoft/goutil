@@ -40,7 +40,7 @@ func IndexStartAndEnd(data, subData []byte) (startIndex, endIndex int, err error
 		if match {
 			startIndex = i
 			endIndex = i + subLen
-			belogs.Debug("IndexStartAndEnd(): found subData, startIndex:", startIndex, " endIndex:", endIndex)
+			//	belogs.Debug("IndexStartAndEnd(): found subData, startIndex:", startIndex, " endIndex:", endIndex)
 			return startIndex, endIndex, nil
 		}
 	}
