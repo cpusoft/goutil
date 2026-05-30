@@ -410,11 +410,11 @@ func TestTCP_NoTLS(t *testing.T) {
 
 	// 测试主动关闭连接
 	t.Log("尝试关闭客户端连接:", clientRealAddr)
-	ok, err := server.CloseConnByAddr(clientRealAddr)
+	count, err := server.CloseConnByIP(clientRealAddr)
 	if err != nil {
 		t.Fatal("关闭连接失败:", err)
 	}
-	if !ok {
+	if count == 0 {
 		t.Error("未找到要关闭的客户端连接")
 	}
 	time.Sleep(1 * time.Second)
