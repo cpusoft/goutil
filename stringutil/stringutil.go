@@ -2,10 +2,9 @@ package stringutil
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/cpusoft/goutil/convert"
 )
 
 // ContainInSlice 判断字符串是否存在于切片中
@@ -96,20 +95,45 @@ func OmitString(str string, end uint64) string {
 }
 
 // Int64sToInString 将 int64 切片转为 "(1,2,3)" 格式的字符串
-func Int64sToInString(s []int64) string {
+type Integer interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
+}
+
+func IntsToInString[T Integer](s []T) string {
 	if len(s) == 0 {
 		return ""
 	}
-	var buffer bytes.Buffer
-	buffer.WriteString("(")
-	for i := 0; i < len(s); i++ {
-		buffer.WriteString(convert.ToString(s[i]))
-		if i < len(s)-1 {
-			buffer.WriteString(",")
+	var b strings.Builder
+	b.WriteString("(")
+	for i, v := range s {
+		if i > 0 {
+			b.WriteByte(',')
 		}
+		fmt.Fprintf(&b, "%d", v)
 	}
-	buffer.WriteString(")")
-	return buffer.String()
+	b.WriteString(")")
+	return b.String()
+}
+
+// Derpecated: Int64sToInString 已废弃，请使用 IntsToInString 替代
+func Int64sToInString(s []int64) string {
+	return IntsToInString(s)
+	/*
+		if len(s) == 0 {
+			return ""
+		}
+		var buffer bytes.Buffer
+		buffer.WriteString("(")
+		for i := 0; i < len(s); i++ {
+			buffer.WriteString(convert.ToString(s[i]))
+			if i < len(s)-1 {
+				buffer.WriteString(",")
+			}
+		}
+		buffer.WriteString(")")
+		return buffer.String()
+	*/
 }
 
 // StringsToInString 将字符串切片转为 "("a","b","c")" 格式的字符串
