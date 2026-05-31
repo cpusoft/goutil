@@ -100,6 +100,7 @@ type Integer interface {
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
 }
 
+// IntsToInString 将数字切片转为 "(1,2,3,4,5)" 格式的字符串，用于sql等场景
 func IntsToInString[T Integer](s []T) string {
 	if len(s) == 0 {
 		return ""
