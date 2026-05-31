@@ -42,19 +42,22 @@ func Init(dbPath string) error {
 		}
 		opts = badger.DefaultOptions(dbPath)
 	}
+	opts = opts.WithNumVersionsToKeep(1)
+	opts = opts.WithValueLogFileSize(256 << 20) // 256MB 单个文件日志文件 缩小 vlog 文件大小，便于后续 GC 回收
+	opts = opts.WithCompactL0OnClose(true)
+	opts = opts.WithCompression(options.ZSTD) // 开启高压缩（省80%+空间）
+	opts = opts.WithValueThreshold(64 * 1024) // 64KB以下的值内联存储
+
 	opts = opts.WithMemTableSize(256 * 1024 * 1024) // 128MB内存表, <=小于系统内存/4
 	opts = opts.WithNumMemtables(runtime.NumCPU())  // cpunum个内存表
-	opts = opts.WithValueLogFileSize(1 << 30)       // 1G日志文件
 	opts = opts.WithNumCompactors(runtime.NumCPU()) // 增加压缩器数量
 	opts = opts.WithSyncWrites(false)               // 关闭同步写，提升性能
-	opts = opts.WithCompression(options.None)       // 关闭压缩，减少CPU开销
 	opts = opts.WithNumLevelZeroTables(10)          // 增大L0表阈值，减少压缩触发
 	opts = opts.WithNumLevelZeroTablesStall(20)     // 增大stall阈值，避免写阻塞
 
 	opts = opts.WithNumGoroutines(runtime.NumCPU()) // 增加并发goroutine数量
 	opts = opts.WithBlockCacheSize(100 << 20)       // 100MB块缓存
 	opts = opts.WithIndexCacheSize(50 << 20)        // 50MB索引缓存
-	opts = opts.WithValueThreshold(1024)            // 1KB以下的值内联存储
 
 	badgerDB, err = badger.Open(opts)
 	if err != nil {
@@ -63,6 +66,32 @@ func Init(dbPath string) error {
 		badgerDB = nil
 		return err
 	}
+
+	go func() {
+		ticker := time.NewTicker(30 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			if atomic.LoadUint32(&initialized) == 0 {
+				//return ticker
+				belogs.Info("badgerDB.init(): close RunValueLogGC ticker")
+				return
+			}
+			if badgerDB == nil {
+				continue
+			}
+			// 循环 GC 直到没有可回收文件
+			for {
+				err := badgerDB.RunValueLogGC(0.5) // 丢弃率 50%
+				if err == badger.ErrNoRewrite {
+					break // 无文件可GC
+				}
+				if err != nil {
+					belogs.Error("badgerDB.init(): RunValueLogGC fail", err)
+					break
+				}
+			}
+		}
+	}()
 
 	return nil
 }
