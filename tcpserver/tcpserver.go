@@ -366,7 +366,7 @@ func (ts *TcpServer) GetConnCount() int {
 	return len(ts.tcpConns)
 }
 
-// 新增方法：获取所有客户端连接
+// 获取所有连接的客户端TcpConn（不去重）
 func (ts *TcpServer) GetAllConns() []*net.TCPConn {
 	ts.tcpConnsMutex.RLock()
 	defer ts.tcpConnsMutex.RUnlock()
@@ -378,8 +378,8 @@ func (ts *TcpServer) GetAllConns() []*net.TCPConn {
 	return conns
 }
 
-// 新增方法：获取所有客户端连接
-func (ts *TcpServer) GetAllConnIps() []string {
+// 获取所有连接的客户端IP地址（去重）
+func (ts *TcpServer) GetDistinctConnIps() []string {
 	ipMap := make(map[string]string)
 	ts.tcpConnsMutex.RLock()
 	for _, conn := range ts.tcpConns {
@@ -401,7 +401,7 @@ func (ts *TcpServer) GetAllConnIps() []string {
 	return ips
 }
 
-/* use GetAllConnIps
+/* use GetDistinctConnIps
 func (ts *TcpServer) GetAllClientIPs() []string {
 	ts.tcpConnsMutex.RLock()
 	defer ts.tcpConnsMutex.RUnlock()
