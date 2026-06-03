@@ -1,7 +1,9 @@
 package jsonutil
 
 import (
+	"bytes"
 	"errors"
+	"sync"
 
 	"github.com/bytedance/sonic"
 )
@@ -14,12 +16,48 @@ func MarshalJson(f interface{}) string {
 	}
 	return string(body)
 }
-func MarshalJsonBytes(f interface{}) []byte {
-	body, err := sonic.Marshal(f)
-	if err != nil {
+
+/*
+	func MarshalJsonBytes(f interface{}) []byte {
+		body, err := sonic.Marshal(f)
+		if err != nil {
+			return nil
+		}
+		return body
+	}
+*/
+var encBufPool = sync.Pool{
+	New: func() interface{} {
+		// 预分配 64KB，覆盖大部分场景
+		return bytes.NewBuffer(make([]byte, 0, 64*1024))
+	},
+}
+
+func MarshalJsonBytes(v interface{}) []byte {
+	if v == nil {
 		return nil
 	}
-	return body
+
+	buf := encBufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+
+	enc := sonic.ConfigStd.NewEncoder(buf)
+	if err := enc.Encode(v); err != nil {
+		encBufPool.Put(buf)
+		return nil
+	}
+
+	data := buf.Bytes()
+	if n := len(data); n > 0 && data[n-1] == '\n' {
+		data = data[:n-1]
+	}
+
+	// 必须显式拷贝，不能返回 buf.Bytes() 的引用
+	out := make([]byte, len(data))
+	copy(out, data)
+
+	encBufPool.Put(buf)
+	return out
 }
 
 func MarshalJsonIndent(f interface{}) string {

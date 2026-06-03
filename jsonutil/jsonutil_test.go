@@ -59,15 +59,18 @@ func TestMarshalJsonBytes(t *testing.T) {
 	// 场景1：正常结构体序列化
 	user := TestUser{ID: 1002, Name: "李四"}
 	expected := []byte(`{"id":1002,"name":"李四"}`)
-	assert.Equal(t, expected, MarshalJsonBytes(user))
+	b := MarshalJsonBytes(user)
+	assert.Equal(t, expected, b)
 
 	// 场景2：不支持的类型（func）序列化（失败返回nil）
 	fn := func() {}
-	assert.Nil(t, MarshalJsonBytes(fn))
+	f := MarshalJsonBytes(fn)
+	assert.Nil(t, f)
 
 	// 场景3：空切片序列化（返回合法JSON）
 	emptySlice := []int{}
-	assert.Equal(t, []byte("[]"), MarshalJsonBytes(emptySlice))
+	e := MarshalJsonBytes(emptySlice)
+	assert.Equal(t, []byte("[]"), e)
 }
 
 // TestMarshalJsonIndent 测试带缩进的JSON序列化
