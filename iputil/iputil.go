@@ -392,28 +392,52 @@ func AddressToRtrFormatByte(address string) (ipHex []byte, ipType int, err error
 //
 //	2c0f:ea60::/32 --> 2c0f:ea60/32
 func TrimAddressPrefixZero(ip string, ipType int) (string, error) {
-	if ipType == Ipv4Type {
-		split := strings.Split(ip, "/")
-		if len(split) == 1 {
-			return stringutil.TrimSuffixAll(ip, ".0"), nil
-		} else if len(split) == 2 {
-			return stringutil.TrimSuffixAll(split[0], ".0") + "/" + split[1], nil
-		} else {
-			return "", errors.New("illegal address prefix")
-		}
+	/*
+		if ipType == Ipv4Type {
+			split := strings.Split(ip, "/")
+			if len(split) == 1 {
+				return stringutil.TrimSuffixAll(ip, ".0"), nil
+			} else if len(split) == 2 {
+				return stringutil.TrimSuffixAll(split[0], ".0") + "/" + split[1], nil
+			} else {
+				return "", errors.New("illegal address prefix")
+			}
 
-	} else if ipType == Ipv6Type {
-		split := strings.Split(ip, "/")
-		if len(split) == 1 {
-			return stringutil.TrimSuffixAll(ip, "::"), nil
-		} else if len(split) == 2 {
-			return stringutil.TrimSuffixAll(split[0], "::") + "/" + split[1], nil
+		} else if ipType == Ipv6Type {
+			split := strings.Split(ip, "/")
+			if len(split) == 1 {
+				return stringutil.TrimSuffixAll(ip, "::"), nil
+			} else if len(split) == 2 {
+				return stringutil.TrimSuffixAll(split[0], "::") + "/" + split[1], nil
+			} else {
+				return "", errors.New("illegal address prefix")
+			}
 		} else {
-			return "", errors.New("illegal address prefix")
+			return "", errors.New("illegal ipType")
 		}
-	} else {
+	*/
+	var trim string
+	switch ipType {
+	case Ipv4Type:
+		trim = ".0"
+	case Ipv6Type:
+		trim = "::"
+	default:
 		return "", errors.New("illegal ipType")
 	}
+
+	// 用 Cut 替代 Split：零分配，只扫描到第一个 /
+	prefix, suffix, hasMask := strings.Cut(ip, "/")
+	if hasMask && strings.Contains(suffix, "/") {
+		return "", errors.New("illegal address prefix")
+	}
+
+	prefix = stringutil.TrimSuffixAll(prefix, trim)
+	if hasMask {
+		return prefix + "/" + suffix, nil
+	}
+	return prefix, nil
+
 }
 
 // fill addressprefix with zero:

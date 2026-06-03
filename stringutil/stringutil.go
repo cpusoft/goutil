@@ -48,12 +48,19 @@ func TrimSuffixAll(str, trim string) (s string) {
 	if len(str) == 0 || len(trim) == 0 {
 		return str
 	}
-	s = str
+	//s = str
 	// 循环移除后缀（替代递归，避免栈溢出）
-	for strings.HasSuffix(s, trim) {
-		s = strings.TrimSuffix(s, trim)
+	//for strings.HasSuffix(s, trim) {
+	//	s = strings.TrimSuffix(s, trim)
+	//}
+	//return s
+	n := len(trim)
+	result := str
+	// 循环去除所有后缀
+	for len(result) >= n && result[len(result)-n:] == trim {
+		result = result[:len(result)-n]
 	}
-	return s
+	return result
 }
 
 // GetValueFromJointStr 从拼接字符串中提取指定 key 的值
