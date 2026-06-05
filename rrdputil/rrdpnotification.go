@@ -28,7 +28,7 @@ func GetRrdpNotificationWithConfig(notificationUrl string, httpClientConfig *htt
 	start := time.Now()
 	// get notification.xml
 	// "https://rrdp.apnic.net/notification.xml"
-	belogs.Info("GetRrdpNotificationWithConfig(): will notificationUrl:", notificationUrl, "   httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	belogs.Debug("GetRrdpNotificationWithConfig(): will notificationUrl:", notificationUrl, "   httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	notificationModel, err = getRrdpNotificationImplWithConfig(notificationUrl, httpClientConfig)
 	if err != nil {
 		belogs.Error("GetRrdpNotificationWithConfig():getRrdpNotificationImplWithConfig fail:", notificationUrl, err)
@@ -55,7 +55,7 @@ func GetRrdpNotificationWithConfig(notificationUrl string, httpClientConfig *htt
 	}
 	notificationModel.MaxSerial = max
 	notificationModel.MinSerial = min
-	belogs.Info("GetRrdpNotificationWithConfig(): notificationUrl ok:", notificationUrl, " notificationModel.MaxSerial:", notificationModel.MaxSerial,
+	belogs.Debug("GetRrdpNotificationWithConfig(): notificationUrl ok:", notificationUrl, " notificationModel.MaxSerial:", notificationModel.MaxSerial,
 		"   notificationModel.MinSerial:", notificationModel.MinSerial, "  time(s):", time.Since(start))
 	return notificationModel, nil
 }
@@ -123,7 +123,7 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 		return notificationModel, errors.New("response of " + notificationUrl + " is not a legal rrdp file")
 	}
 	notificationModel.NotificationUrl = notificationUrl
-	belogs.Info("getRrdpNotificationImplWithConfig(): get from notificationUrl ok", notificationUrl, "  time(s):", time.Since(start))
+	belogs.Debug("getRrdpNotificationImplWithConfig(): get from notificationUrl ok", notificationUrl, "  time(s):", time.Since(start))
 	return notificationModel, nil
 }
 
@@ -155,7 +155,7 @@ func RrdpNotificationTestConnectWithConfig(notificationUrl string, httpClientCon
 			"     body:", body, err, "   time(s):", time.Since(start))
 		return errors.New("response of " + notificationUrl + " is not a legal rrdp file")
 	}
-	belogs.Info("RrdpNotificationTestConnectWithConfig(): get notificationModel ok, notificationUrl:", notificationUrl,
+	belogs.Debug("RrdpNotificationTestConnectWithConfig(): get notificationModel ok, notificationUrl:", notificationUrl,
 		"   time(s):", time.Since(start))
 	return nil
 }
@@ -201,6 +201,6 @@ func GetAndCheckRrdpNotificationWithConfig(notifyUrl string, httpClientConfig *h
 		return notificationModel, err
 	}
 	belogs.Debug("GetAndCheckRrdpNotificationWithConfig(): ok, notifyUrl :", notifyUrl, "  notificationModel:", jsonutil.MarshalJson(notificationModel), "  time(s):", time.Since(start))
-	belogs.Info("GetAndCheckRrdpNotificationWithConfig(): ok, notifyUrl :", notifyUrl, "  time(s):", time.Since(start))
+	belogs.Debug("GetAndCheckRrdpNotificationWithConfig(): ok, notifyUrl :", notifyUrl, "  time(s):", time.Since(start))
 	return notificationModel, nil
 }

@@ -52,7 +52,7 @@ func NewTcpClient(tcpClientProcess TcpClientProcess,
 	tc.connToBusinessMsgCh = make(chan ConnToBusinessMsg)
 	tc.tcptlsLengthDeclaration = tcptlsLengthDeclaration
 	tc.receiveOnePacketLength = receiveOnePacketLength
-	belogs.Info("NewTcpClient():tc:", tc, "  tc.connToBusinessMsgCh:", tc.connToBusinessMsgCh)
+	belogs.Debug("NewTcpClient():tc:", tc, "  tc.connToBusinessMsgCh:", tc.connToBusinessMsgCh)
 	return tc
 }
 
@@ -91,7 +91,7 @@ func NewTlsClient(tlsRootCrtFileName, tlsPublicCrtFileName, tlsPrivateKeyFileNam
 	tc.tlsRootCrtFileName = tlsRootCrtFileName
 	tc.tlsPublicCrtFileName = tlsPublicCrtFileName
 	tc.tlsPrivateKeyFileName = tlsPrivateKeyFileName
-	belogs.Info("NewTlsClient():tc:", &tc)
+	belogs.Debug("NewTlsClient():tc:", &tc)
 	return tc, nil
 }
 
@@ -123,7 +123,7 @@ func (tc *TcpClient) StartTcpClient(server string) (err error) {
 	// onReceive
 	go tc.onReceive()
 
-	belogs.Info("TcpClient.StartTcpClient(): ok, server is  ", server, "  tcpConn:", tc.tcpConn.RemoteAddr().String())
+	belogs.Debug("TcpClient.StartTcpClient(): ok, server is  ", server, "  tcpConn:", tc.tcpConn.RemoteAddr().String())
 	return nil
 }
 
@@ -195,7 +195,7 @@ func (tc *TcpClient) StartTlsClient(server string) (err error) {
 	// onReceive
 	go tc.onReceive()
 
-	belogs.Info("TcpClient.StartTlsClient(): onReceive, server is  ", server, "  tcpConn:", tc.tcpConn.RemoteAddr().String())
+	belogs.Debug("TcpClient.StartTlsClient(): onReceive, server is  ", server, "  tcpConn:", tc.tcpConn.RemoteAddr().String())
 
 	return nil
 }
@@ -234,14 +234,14 @@ func (tc *TcpClient) onReceive() (err error) {
 		belogs.Debug("TcpClient.onReceive(): Read n :", n, "  length:", length, " from tcpConn: ", tc.tcpConn.RemoteAddr().String(),
 			"  time(s):", time.Since(start))
 		nextRwPolicy, leftData, connToBusinessMsg, err := tc.tcpClientProcess.OnReceiveProcess(tc.tcpConn, append(leftData, buffer[:n]...))
-		belogs.Info("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, tcpConn: ", tc.tcpConn.RemoteAddr().String(), " receive n: ", n,
+		belogs.Debug("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess, tcpConn: ", tc.tcpConn.RemoteAddr().String(), " receive n: ", n,
 			"  len(leftData):", len(leftData), "  nextRwPolicy:", nextRwPolicy, "  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg), "  time(s):", time.Since(start))
 		if err != nil {
 			belogs.Error("TcpClient.onReceive(): tcpClientProcess.OnReceiveProcess  fail ,will close this tcpConn : ", tc.tcpConn.RemoteAddr().String(), err)
 			return err
 		}
 		if nextRwPolicy == NEXT_RW_POLICY_END_READ {
-			belogs.Info("TcpClient.onReceive():  nextRwPolicy is NEXT_RW_POLICY_END_READ, will close connect: ", tc.tcpConn.RemoteAddr().String())
+			belogs.Debug("TcpClient.onReceive():  nextRwPolicy is NEXT_RW_POLICY_END_READ, will close connect: ", tc.tcpConn.RemoteAddr().String())
 			return nil
 		}
 
@@ -264,31 +264,31 @@ func (tc *TcpClient) onReceive() (err error) {
 func (tc *TcpClient) onConnect() {
 	// call process func onConnect
 	tc.tcpClientProcess.OnConnectProcess(tc.tcpConn)
-	belogs.Info("TcpClient.onConnect(): after OnConnectProcess, tcpConn: ", tc.tcpConn.RemoteAddr().String())
+	belogs.Debug("TcpClient.onConnect(): after OnConnectProcess, tcpConn: ", tc.tcpConn.RemoteAddr().String())
 }
 
 func (tc *TcpClient) onClose() {
 	// close in the end
-	belogs.Info("TcpClient.onClose(): tcpConn: ", tc.tcpConn.RemoteAddr().String())
+	belogs.Debug("TcpClient.onClose(): tcpConn: ", tc.tcpConn.RemoteAddr().String())
 	tc.tcpClientProcess.OnCloseProcess(tc.tcpConn)
 	tc.tcpConn.Close()
 
 }
 
 func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (connToBusinessMsg *ConnToBusinessMsg, err error) {
-	belogs.Info("TcpClient.SendAndReceiveMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg),
+	belogs.Debug("TcpClient.SendAndReceiveMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg),
 		"  tcpConn: ", tc.tcpConn.RemoteAddr().String())
 
 	switch businessToConnMsg.BusinessToConnMsgType {
 	case BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT:
-		belogs.Info("TcpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT,",
+		belogs.Debug("TcpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT,",
 			" will close for tcpConn: ", tc.tcpConn.RemoteAddr().String(), " will return, close SendAndReceiveMsg")
 		tc.onClose()
 		// end for/select
 		// will return, close SendAndReceiveMsg
 		return nil, nil
 	case BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA:
-		belogs.Info("TcpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,",
+		belogs.Debug("TcpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,",
 			" will send to tcpConn: ", tc.tcpConn.RemoteAddr().String(), "  tcptlsLengthDeclaration:", tc.tcptlsLengthDeclaration)
 
 		var n int
@@ -297,7 +297,7 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 		belogs.Debug("TcpClient.SendAndReceiveMsg(): send to server with LengthDeclaration:", tc.tcpConn.RemoteAddr().String(),
 			"   tcptlsLengthDeclaration:", tc.tcptlsLengthDeclaration,
 			"   len(sendDataNew):", length, "   sendDataNew:", convert.PrintBytesOneLine(sendDataNew))
-		belogs.Info("TcpClient.SendAndReceiveMsg(): send to server with LengthDeclaration:", tc.tcpConn.RemoteAddr().String(),
+		belogs.Debug("TcpClient.SendAndReceiveMsg(): send to server with LengthDeclaration:", tc.tcpConn.RemoteAddr().String(),
 			"   tcptlsLengthDeclaration:", tc.tcptlsLengthDeclaration,
 			"   len(sendDataNew):", length)
 		start := time.Now()
@@ -307,7 +307,7 @@ func (tc *TcpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 			tc.onClose()
 			return nil, err
 		}
-		belogs.Info("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
+		belogs.Debug("TcpClient.SendAndReceiveMsg(): Write to tcpConn:", tc.tcpConn.RemoteAddr().String(),
 			"  tcptlsLengthDeclaration:", tc.tcptlsLengthDeclaration, "  len(sendDataNew):", length,
 			"  write n:", n, ",  and wait for receive connToBusinessMsg",
 			"  time(s):", time.Since(start))

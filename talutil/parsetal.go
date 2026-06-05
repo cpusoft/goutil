@@ -56,7 +56,7 @@ func ParseTalInfos(files []string) ([]TalInfo, error) {
 }
 
 func parseTalInfo(file string) (TalInfo, error) {
-	belogs.Info("ParseTalInfo(): file:", file)
+	belogs.Debug("ParseTalInfo(): file:", file)
 
 	talInfo := TalInfo{}
 	f, err := os.Open(file)
@@ -97,6 +97,6 @@ func parseTalInfo(file string) (TalInfo, error) {
 	}
 
 	talInfo.PubKey = buffer.String()
-	belogs.Info("ParseTalInfo(): talInfo:", talInfo)
+	belogs.Debug("ParseTalInfo(): talInfo:", talInfo)
 	return talInfo, nil
 }

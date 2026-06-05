@@ -156,7 +156,7 @@ func (tc *TcpClient) Start(addr string) error {
 	}
 	tc.conn = tcpConn
 
-	belogs.Info("Client connected to:", addr)
+	belogs.Info("TcpClient.Start(): connected to:", addr)
 
 	// 启动独立goroutine处理读循环和stopChan（核心修复：避免Start阻塞）
 	go func() {
@@ -166,7 +166,7 @@ func (tc *TcpClient) Start(addr string) error {
 			tc.conn.Close()
 			tc.conn = nil
 			tc.mu.Unlock()
-			belogs.Info("Client disconnected from:", addr)
+			belogs.Info("TcpClient.Start(): Client disconnected from:", addr)
 		}()
 
 		// 启动读循环

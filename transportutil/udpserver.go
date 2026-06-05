@@ -80,14 +80,14 @@ func (us *UdpServer) receiveAndSend() {
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
-				belogs.Info("UdpServer.receiveAndSend(): Read io.EOF, client close, receiveOnePacketLength:", us.receiveOnePacketLength,
+				belogs.Debug("UdpServer.receiveAndSend(): Read io.EOF, client close, receiveOnePacketLength:", us.receiveOnePacketLength,
 					"  clientUdpAddr:", clientUdpAddr, err)
 				return
 			}
 			belogs.Error("UdpServer.receiveAndSend(): Read remote fail: ", err)
 			continue
 		}
-		belogs.Info("UdpServer.receiveAndSend():  Accept remote, clientAddrKey: ", clientUdpAddr, "  len:", len)
+		belogs.Debug("UdpServer.receiveAndSend():  Accept remote, clientAddrKey: ", clientUdpAddr, "  len:", len)
 		// no onConnect
 		go func() {
 			err := us.udpServerProcess.OnReceiveAndSendProcess(us.udpConn, clientUdpAddr, buffer[:len])
@@ -120,18 +120,18 @@ func (us *UdpServer) waitBusinessToConnMsg() {
 	for {
 		select {
 		case businessToConnMsg := <-us.businessToConnMsg:
-			belogs.Info("UdpServer.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))
+			belogs.Debug("UdpServer.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))
 
 			switch businessToConnMsg.BusinessToConnMsgType {
 			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE:
 				// ignore conns's writing/reading, just close
-				belogs.Info("UdpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE")
+				belogs.Debug("UdpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE")
 				fallthrough
 			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_GRACEFUL:
 				// close and wait connect.Read and Accept
 				us.state = SERVER_STATE_CLOSING
 				us.onClose()
-				belogs.Info("UdpServer.waitBusinessToConnMsg(): will close server graceful, will return waitBusinessToConnMsg:")
+				belogs.Debug("UdpServer.waitBusinessToConnMsg(): will close server graceful, will return waitBusinessToConnMsg:")
 				// end for/select
 				us.state = SERVER_STATE_CLOSED
 				// will return, close waitBusinessToConnMsg
@@ -141,7 +141,7 @@ func (us *UdpServer) waitBusinessToConnMsg() {
 
 				serverConnKey := businessToConnMsg.ServerConnKey
 				sendData := businessToConnMsg.SendData
-				belogs.Info("UdpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
+				belogs.Debug("UdpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
 					"  len(sendData):", len(sendData))
 				start := time.Now()
 				n, err := us.udpConn.WriteToClient(sendData, serverConnKey)
@@ -151,7 +151,7 @@ func (us *UdpServer) waitBusinessToConnMsg() {
 					// err, no return
 					// return
 				} else {
-					belogs.Info("UdpServer.waitBusinessToConnMsg(): activeSend ok, serverConnKey:", serverConnKey,
+					belogs.Debug("UdpServer.waitBusinessToConnMsg(): activeSend ok, serverConnKey:", serverConnKey,
 						"  len(sendData):", len(sendData), " write n:", n,
 						"  time(s):", time.Since(start))
 				}

@@ -38,7 +38,7 @@ func NewUdpClient(udpClientProcess UdpClientProcess, businessToConnMsgCh chan Bu
 	uc.businessToConnMsgCh = businessToConnMsgCh
 	uc.connToBusinessMsgCh = make(chan ConnToBusinessMsg)
 	uc.receiveOnePacketLength = receiveOnePacketLength
-	belogs.Info("NewUdpClient():tc:", uc)
+	belogs.Debug("NewUdpClient():tc:", uc)
 	return uc
 }
 
@@ -57,7 +57,7 @@ func (uc *UdpClient) StartUdpClient(server string) (err error) {
 	uc.udpConn = NewFromUdpConn(udpConn)
 	uc.udpConn.SetServerUdpAddr(serverUdpAddr)
 	//active send to server, and receive from server, loop
-	belogs.Info("UdpClient.StartUdpClient(): NewFromUdpConn ok, server:", server, "   udpConn:", uc.udpConn.serverUdpAddr)
+	belogs.Debug("UdpClient.StartUdpClient(): NewFromUdpConn ok, server:", server, "   udpConn:", uc.udpConn.serverUdpAddr)
 	// onReceive
 	go uc.onReceive()
 
@@ -89,7 +89,7 @@ func (uc *UdpClient) onReceive() (err error) {
 			belogs.Error("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess  fail ,will close this udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, err)
 			return err
 		}
-		belogs.Info("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess, udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, " receive n: ", n,
+		belogs.Debug("UdpClient.onReceive(): udpClientProcess.OnReceiveProcess, udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, " receive n: ", n,
 			"  connToBusinessMsg:", jsonutil.MarshalJson(connToBusinessMsg), "  time(s):", time.Since(start))
 		go func() {
 			if !connToBusinessMsg.IsActiveSendFromServer {
@@ -104,7 +104,7 @@ func (uc *UdpClient) onReceive() (err error) {
 
 func (uc *UdpClient) onClose() {
 	// close in the end
-	belogs.Info("UdpClient.onClose(): udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr)
+	belogs.Debug("UdpClient.onClose(): udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr)
 	uc.udpConn.Close()
 }
 func (uc *UdpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (connToBusinessMsg *ConnToBusinessMsg, err error) {
@@ -114,19 +114,19 @@ func (uc *UdpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 
 	switch businessToConnMsg.BusinessToConnMsgType {
 	case BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT:
-		belogs.Info("UdpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT,",
+		belogs.Debug("UdpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_CLIENT_CLOSE_CONNECT,",
 			" will close for udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr, " will return, close SendAndReceiveMsg")
 		// end for/select
 		// will return, close SendAndReceiveMsg
 		uc.onClose()
 		return nil, nil
 	case BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_AND_RECEIVE_DATA:
-		belogs.Info("UdpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,",
+		belogs.Debug("UdpClient.SendAndReceiveMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA,",
 			" will send to udpConn.serverUdpAddr: ", uc.udpConn.serverUdpAddr)
 		sendData := businessToConnMsg.SendData
 		belogs.Debug("UdpClient.SendAndReceiveMsg(): send to server:", uc.udpConn.serverUdpAddr,
 			"   sendData:", convert.PrintBytesOneLine(sendData))
-		belogs.Info("UdpClient.SendAndReceiveMsg(): send to server:", uc.udpConn.serverUdpAddr,
+		belogs.Debug("UdpClient.SendAndReceiveMsg(): send to server:", uc.udpConn.serverUdpAddr,
 			"   len(sendData):", len(sendData))
 
 		// send data
@@ -136,7 +136,7 @@ func (uc *UdpClient) SendAndReceiveMsg(businessToConnMsg *BusinessToConnMsg) (co
 			belogs.Error("UdpClient.SendAndReceiveMsg(): Write fail, will close  udpConn.serverUdpAddr:", uc.udpConn.serverUdpAddr, err)
 			return nil, err
 		}
-		belogs.Info("UdpClient.SendAndReceiveMsg(): Write to udpConn.serverUdpAddr:", uc.udpConn.serverUdpAddr,
+		belogs.Debug("UdpClient.SendAndReceiveMsg(): Write to udpConn.serverUdpAddr:", uc.udpConn.serverUdpAddr,
 			"  len(sendData):", len(sendData), "  write n:", n,
 			"  time(s):", time.Since(start))
 		if !businessToConnMsg.NeedClientWaitForServerResponse {

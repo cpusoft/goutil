@@ -250,7 +250,7 @@ func TestBatchUpdateByMultiKeys(t *testing.T) {
 			}
 		})
 	}
-	belogs.Info("TestBatchUpdateByMultiKeys success")
+	belogs.Debug("TestBatchUpdateByMultiKeys success")
 }
 
 // TestViewByMultiKeys 测试多键查询（通过任意outerKey查value）
@@ -274,7 +274,7 @@ func TestViewByMultiKeys(t *testing.T) {
 	if err == nil {
 		t.Fatal("query not exist outerKey should return error")
 	}
-	belogs.Info("TestViewByMultiKeys success")
+	belogs.Debug("TestViewByMultiKeys success")
 }
 
 // TestDeleteByMultiKeys 测试多键删除（删除所有关联数据）
@@ -297,7 +297,7 @@ func TestDeleteByMultiKeys(t *testing.T) {
 	if err == nil {
 		t.Fatal("delete fail, key still exists")
 	}
-	belogs.Info("TestDeleteByMultiKeys success")
+	belogs.Debug("TestDeleteByMultiKeys success")
 }
 
 // ------------------------------
@@ -325,7 +325,7 @@ func TestBatchPerformance(t *testing.T) {
 	cost := time.Since(start)
 	t.Logf("批量写入 %d 条数据，耗时: %v, 平均: %.2f op/s",
 		count, cost, float64(count)/cost.Seconds())
-	belogs.Info("TestBatchPerformance success")
+	belogs.Debug("TestBatchPerformance success")
 }
 
 // TestConcurrentPerformance 并发读写压力测试
@@ -374,7 +374,7 @@ func TestConcurrentPerformance(t *testing.T) {
 	totalRead := readGoroutine * (readCount / readGoroutine)
 	t.Logf("并发读取 %d 次，%d协程，耗时: %v, 平均: %.2f op/s",
 		totalRead, readGoroutine, cost, float64(totalRead)/cost.Seconds())
-	belogs.Info("TestConcurrentPerformance success")
+	belogs.Debug("TestConcurrentPerformance success")
 }
 
 // ------------------------------
@@ -410,7 +410,7 @@ func TestBatchUpdateByKey(t *testing.T) {
 			}
 		})
 	}
-	belogs.Info("TestBatchUpdateByKey success")
+	belogs.Debug("TestBatchUpdateByKey success")
 }
 
 // TestBatchUpdateByKey_FuncCheck 测试写入后可正常读取
@@ -437,7 +437,7 @@ func TestBatchUpdateByKey_FuncCheck(t *testing.T) {
 				key, err, found, res.ID)
 		}
 	}
-	belogs.Info("TestBatchUpdateByKey_FuncCheck success")
+	belogs.Debug("TestBatchUpdateByKey_FuncCheck success")
 }
 
 // TestBatchUpdateByKey_Expire 测试批量过期
@@ -465,7 +465,7 @@ func TestBatchUpdateByKey_Expire(t *testing.T) {
 			t.Fatalf("key %s should be expired", key)
 		}
 	}
-	belogs.Info("TestBatchUpdateByKey_Expire success")
+	belogs.Debug("TestBatchUpdateByKey_Expire success")
 }
 
 // TestBatchUpdateByKey_Performance 单主键批量写入压力测试
@@ -491,7 +491,7 @@ func TestBatchUpdateByKey_Performance(t *testing.T) {
 	cost := time.Since(start)
 	t.Logf("单主键批量写入 %d 条, 耗时: %v, 平均: %.2f op/s",
 		count, cost, float64(count)/cost.Seconds())
-	belogs.Info("TestBatchUpdateByKey_Performance success")
+	belogs.Debug("TestBatchUpdateByKey_Performance success")
 }
 
 // TestBatchUpdateByKey_Concurrent 单主键并发读写测试
@@ -548,7 +548,7 @@ func TestBatchUpdateByKey_Concurrent(t *testing.T) {
 	cost := time.Since(start)
 	t.Logf("单主键并发读取 %d 次, %d 协程, 耗时: %v, 平均: %.2f op/s",
 		totalRead, readGoroutine, cost, float64(totalRead)/cost.Seconds())
-	belogs.Info("TestBatchUpdateByKey_Concurrent success")
+	belogs.Debug("TestBatchUpdateByKey_Concurrent success")
 }
 
 // ------------------------------

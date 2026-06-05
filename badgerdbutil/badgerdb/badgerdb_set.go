@@ -358,7 +358,7 @@ func (b *BadgeDBImpl) ClearSetWithPrefixBatched(prefix string, batchSize int) er
 		if totalDeleted%50000 == 0 && totalDeleted > 0 {
 			elapsed := time.Since(startTime)
 			rate := float64(totalDeleted) / elapsed.Seconds()
-			belogs.Info("ClearSetWithPrefixBatched: deleted", totalDeleted, "keys so far, rate:",
+			belogs.Debug("ClearSetWithPrefixBatched: deleted", totalDeleted, "keys so far, rate:",
 				fmt.Sprintf("%.2f keys/sec", rate), "elapsed:", elapsed)
 		}
 
@@ -370,7 +370,7 @@ func (b *BadgeDBImpl) ClearSetWithPrefixBatched(prefix string, batchSize int) er
 
 	elapsed := time.Since(startTime)
 	rate := float64(totalDeleted) / elapsed.Seconds()
-	belogs.Info("ClearSetWithPrefixBatched: completed, deleted", totalDeleted, "keys, rate:",
+	belogs.Debug("ClearSetWithPrefixBatched: completed, deleted", totalDeleted, "keys, rate:",
 		fmt.Sprintf("%.2f keys/sec", rate), "total time:", elapsed)
 
 	return nil

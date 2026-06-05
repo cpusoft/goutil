@@ -52,7 +52,7 @@ func (c *TcpListener) Accept() (tcpConn *TcpConn, err error) {
 		conn.SetKeepAlive(true)
 		conn.SetKeepAlivePeriod(time.Second * 300)
 		tcpConn = NewFromTcpConn(conn)
-		belogs.Info("Accept(): TcpListener Accept TCP tcpConn remote: ", tcpConn.RemoteAddr().String())
+		belogs.Debug("Accept(): TcpListener Accept TCP tcpConn remote: ", tcpConn.RemoteAddr().String())
 		return tcpConn, nil
 	}
 	if c.connType == "tls" && c.tlsListener != nil {
@@ -68,7 +68,7 @@ func (c *TcpListener) Accept() (tcpConn *TcpConn, err error) {
 			return nil, err
 		}
 		tcpConn = NewFromTlsConn(tlsConn)
-		belogs.Info("Accept(): TcpListener Accept Tls tcpConn remote: ", tcpConn.RemoteAddr().String())
+		belogs.Debug("Accept(): TcpListener Accept Tls tcpConn remote: ", tcpConn.RemoteAddr().String())
 		return tcpConn, nil
 	}
 

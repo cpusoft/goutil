@@ -113,7 +113,7 @@ func LoadZoneFile(zoneFileName string) (originModel *dnsutil.OriginModel, err er
 		return nil, errors.New("Origin must be exist")
 	}
 
-	belogs.Info("LoadZoneFile(): originModel:", jsonutil.MarshalJson(originModel))
+	belogs.Debug("LoadZoneFile(): originModel:", jsonutil.MarshalJson(originModel))
 	return originModel, nil
 }
 

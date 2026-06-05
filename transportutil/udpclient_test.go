@@ -42,7 +42,7 @@ func StartDnsUdpClient(serverProtocol string, serverHost string, serverPort stri
 	if serverProtocol == "udp" {
 		err = dnsUdpClient.udpClient.StartUdpClient(serverHost + ":" + serverPort)
 	}
-	belogs.Info("StartDnsUdpClient(): start serverHost:", serverHost, "   serverPort:", serverPort, " serverProtocol:", serverProtocol)
+	belogs.Debug("StartDnsUdpClient(): start serverHost:", serverHost, "   serverPort:", serverPort, " serverProtocol:", serverProtocol)
 
 	return nil
 

@@ -366,7 +366,7 @@ func parseToRsyncResults(rsyncUrl string, rsyncDestPath string, results []string
 		}
 		rsyncResult.IsDir = isDir
 
-		belogs.Info("parseToRsyncResults():rsyncResult:", jsonutil.MarshalJson(rsyncResult))
+		belogs.Debug("parseToRsyncResults():rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 		// 关键修复：MKDIR类型允许FileName为空（因为是目录）
 		if rsyncResult.RsyncType == RSYNC_TYPE_IGNORE ||
 			(rsyncResult.RsyncType != RSYNC_TYPE_MKDIR && (len(rsyncResult.FileName) == 0 || len(rsyncResult.FilePath) == 0)) {
@@ -417,7 +417,7 @@ func AddCerToRsyncResults(rsyncDestPath string, rsyncResults *[]RsyncResult) (er
 			}
 			rsyncResult.IsDir = isDir
 			*rsyncResults = append(*rsyncResults, rsyncResult) // 指针解引用append
-			belogs.Info("addCerToRsyncResults(): manual add rsyncResult:", jsonutil.MarshalJson(rsyncResult))
+			belogs.Debug("addCerToRsyncResults(): manual add rsyncResult:", jsonutil.MarshalJson(rsyncResult))
 		}
 	}
 	belogs.Debug("addCerToRsyncResults(): after add cer, rsyncResults:", jsonutil.MarshalJson(*rsyncResults))
@@ -454,7 +454,7 @@ func GetFilesHashFromDisk(destPath string) (files map[string]RsyncFileHash, err 
 		files[osutil.JoinPathFile(fileStats[i].FilePath, fileStats[i].FileName)] = fileHash
 	}
 
-	belogs.Info("GetFilesHashFromDisk(): len(files):", len(files), "  time(s):", time.Since(start))
+	belogs.Debug("GetFilesHashFromDisk(): len(files):", len(files), "  time(s):", time.Since(start))
 	return files, nil
 }
 
@@ -511,7 +511,7 @@ func DiffFiles(filesFromDb, filesFromDisk map[string]RsyncFileHash) (addFiles,
 	belogs.Debug("DiffFiles(): len(delFiles):", len(delFiles), jsonutil.MarshalJson(delFiles))
 	belogs.Debug("DiffFiles(): len(updateFiles):", len(updateFiles), jsonutil.MarshalJson(updateFiles))
 	belogs.Debug("DiffFiles(): len(noChangeFiles):", len(noChangeFiles), jsonutil.MarshalJson(noChangeFiles))
-	belogs.Info("DiffFiles(): len(addFiles):", len(addFiles), "  len(delFiles):", len(delFiles),
+	belogs.Debug("DiffFiles(): len(addFiles):", len(addFiles), "  len(delFiles):", len(delFiles),
 		"  len(updateFiles):", len(updateFiles), "  len(noChangeFiles):", len(noChangeFiles), "  time(s):", time.Since(start))
 
 	return addFiles, delFiles, updateFiles, noChangeFiles, nil

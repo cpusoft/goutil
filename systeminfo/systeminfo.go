@@ -168,7 +168,7 @@ func GetSystemInfoUniqueId() (systemInfoUniqueId SystemInfoUniqueId, err error) 
 		MemoryTotal:    convert.ToString(memoryInfo.Total),
 	}
 	// 改用jsonutil.MarshalJson，不校验返回值
-	belogs.Info("GetSystemInfoUniqueId(): systemInfoUniqueId: ", jsonutil.MarshalJson(systemInfoUniqueId))
+	belogs.Debug("GetSystemInfoUniqueId(): systemInfoUniqueId: ", jsonutil.MarshalJson(systemInfoUniqueId))
 	return systemInfoUniqueId, nil
 }
 

@@ -73,7 +73,7 @@ func Init(dbPath string) error {
 		for range ticker.C {
 			if atomic.LoadUint32(&initialized) == 0 {
 				//return ticker
-				belogs.Info("badgerDB.init(): close RunValueLogGC ticker")
+				belogs.Debug("badgerDB.init(): close RunValueLogGC ticker")
 				return
 			}
 			if badgerDB == nil {

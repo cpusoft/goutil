@@ -83,7 +83,7 @@ func GetAsnOwnerByCymru(asn int) (string, error) {
 
 	// 3. 空结果处理：明确返回空字符串（无错误）
 	if len(txt) == 0 || strings.TrimSpace(txt[0]) == "" {
-		belogs.Info("GetAsnOwnerByCymru(): lookupUrl txt is empty:", asn, txt)
+		belogs.Debug("GetAsnOwnerByCymru(): lookupUrl txt is empty:", asn, txt)
 		return "", nil
 	}
 

@@ -29,7 +29,7 @@ func init() {
 	gMmapConfig.TotalSize = gMmapConfig.HeaderSize + gMmapConfig.MaxBufSize*2
 	gMmapConfig.BufAStart = gMmapConfig.HeaderSize
 	gMmapConfig.BufBStart = gMmapConfig.HeaderSize + gMmapConfig.MaxBufSize
-	belogs.Info("mmap.init(): gMmapConfig", jsonutil.MarshalJson(gMmapConfig))
+	belogs.Debug("mmap.init(): gMmapConfig", jsonutil.MarshalJson(gMmapConfig))
 }
 
 type MmapHeader struct {

@@ -103,7 +103,7 @@ func DelResourceRecord(zoneFileModel *ZoneFileModel, delResourceRecord *Resource
 		return nil, err
 	}
 
-	belogs.Info("DelResourceRecord():will delResourceRecord :", jsonutil.MarshalJson(delResourceRecord))
+	belogs.Debug("DelResourceRecord():will delResourceRecord :", jsonutil.MarshalJson(delResourceRecord))
 	zfRrs := make([]*ResourceRecord, 0)
 	newDelResourceRecord = delResourceRecord
 	if delResourceRecord.RrClass == "ANY" || (delResourceRecord.RrClass != "ANY" && delResourceRecord.RrType == "ANY") {
@@ -131,7 +131,7 @@ func DelResourceRecord(zoneFileModel *ZoneFileModel, delResourceRecord *Resource
 		}
 	}
 	zoneFileModel.ResourceRecords = zfRrs
-	belogs.Info("DelResourceRecord(): found and delete, new zoneFileModel.ResourceRecords:", jsonutil.MarshalJson(zfRrs),
+	belogs.Debug("DelResourceRecord(): found and delete, new zoneFileModel.ResourceRecords:", jsonutil.MarshalJson(zfRrs),
 		"   newDelResourceRecord:", newDelResourceRecord)
 	return newDelResourceRecord, nil
 }
@@ -176,7 +176,7 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 	}
 	// set old rr's ttl as del specified ttl
 	oldResourceRecord.RrTtl = null.IntFrom(dnsutil.DSO_DEL_SPECIFIED_RESOURCE_RECORD_TTL)
-	belogs.Info("UpdateResourceRecord():  oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord),
+	belogs.Debug("UpdateResourceRecord():  oldResourceRecord :", jsonutil.MarshalJson(oldResourceRecord),
 		"  newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 
 	zoneFileModel.resourceRecordMutex.Lock()
@@ -184,7 +184,7 @@ func UpdateResourceRecord(zoneFileModel *ZoneFileModel, oldResourceRecord, newRe
 	for i := range zoneFileModel.ResourceRecords {
 		if EqualResourceRecord(zoneFileModel.ResourceRecords[i], oldResourceRecord) {
 			zoneFileModel.ResourceRecords[i] = newResourceRecord
-			belogs.Info("UpdateResourceRecord(): found and update ,new zoneFileModel.ResourceRecords:", jsonutil.MarshalJson(zoneFileModel.ResourceRecords))
+			belogs.Debug("UpdateResourceRecord(): found and update ,new zoneFileModel.ResourceRecords:", jsonutil.MarshalJson(zoneFileModel.ResourceRecords))
 			return nil
 		}
 	}
@@ -216,7 +216,7 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 	if len(newResourceRecord.RrDomain) == 0 {
 		newResourceRecord.RrDomain = newResourceRecord.RrName + "." + zoneFileModel.Origin
 	}
-	belogs.Info("AddResourceRecord():  afterResourceRecord :", afterResourceRecord,
+	belogs.Debug("AddResourceRecord():  afterResourceRecord :", afterResourceRecord,
 		"   newResourceRecord :", jsonutil.MarshalJson(newResourceRecord))
 	zoneFileModel.resourceRecordMutex.Lock()
 	defer zoneFileModel.resourceRecordMutex.Unlock()
@@ -235,7 +235,7 @@ func AddResourceRecord(zoneFileModel *ZoneFileModel, afterResourceRecord, newRes
 	} else {
 		zoneFileModel.ResourceRecords = append(zoneFileModel.ResourceRecords, newResourceRecord)
 	}
-	belogs.Info("AddResourceRecord(): add ,new zoneFileModel.ResourceRecords :", jsonutil.MarshalJson(zoneFileModel.ResourceRecords))
+	belogs.Debug("AddResourceRecord(): add ,new zoneFileModel.ResourceRecords :", jsonutil.MarshalJson(zoneFileModel.ResourceRecords))
 	return nil
 }
 
@@ -260,7 +260,7 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 	if len(rrType) == 0 {
 		rrType = "ANY"
 	}
-	belogs.Info("QueryResourceRecords(): queryResourceRecord:", jsonutil.MarshalJson(queryResourceRecord))
+	belogs.Debug("QueryResourceRecords(): queryResourceRecord:", jsonutil.MarshalJson(queryResourceRecord))
 
 	resourceRecords = make([]*ResourceRecord, 0)
 	zoneFileModel.resourceRecordMutex.RLock()
@@ -283,7 +283,7 @@ func QueryResourceRecords(zoneFileModel *ZoneFileModel, queryResourceRecord *Res
 			}
 		}
 	}
-	belogs.Info("QueryResourceRecords():queryResourceRecord:", jsonutil.MarshalJson(queryResourceRecord),
+	belogs.Debug("QueryResourceRecords():queryResourceRecord:", jsonutil.MarshalJson(queryResourceRecord),
 		"   resourceRecords :", jsonutil.MarshalJson(resourceRecords))
 	return resourceRecords, nil
 }

@@ -24,7 +24,7 @@ import (
 func GetRrdpSnapshot(snapshotUrl string) (snapshotModel SnapshotModel, err error) {
 	// get snapshot.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/41896/snapshot.xml"
-	belogs.Info("GetRrdpSnapshot():will get snapshotUrl:", snapshotUrl)
+	belogs.Debug("GetRrdpSnapshot():will get snapshotUrl:", snapshotUrl)
 	return GetRrdpSnapshotWithConfig(snapshotUrl, nil)
 }
 */
@@ -37,14 +37,14 @@ func GetRrdpSnapshotWithConfig(snapshotUrl string,
 	if httpClientConfig == nil {
 		httpClientConfig = httpclient.NewHttpClientConfig()
 	}
-	belogs.Info("GetRrdpSnapshotWithConfig():will get snapshotUrl:", snapshotUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	belogs.Debug("GetRrdpSnapshotWithConfig():will get snapshotUrl:", snapshotUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 
 	snapshotModel, err = getRrdpSnapshotImplWithConfig(snapshotUrl, httpClientConfig)
 	if err != nil {
 		belogs.Error("GetRrdpSnapshotWithConfig():getRrdpSnapshotImpl fail:", snapshotUrl, err)
 		return snapshotModel, err
 	}
-	belogs.Info("GetRrdpSnapshotWithConfig(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Since(start))
+	belogs.Debug("GetRrdpSnapshotWithConfig(): snapshotUrl ok:", snapshotUrl, "  time(s):", time.Since(start))
 	return snapshotModel, nil
 }
 
@@ -81,7 +81,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 			if resp != nil && (resp.StatusCode == http.StatusOK ||
 				resp.StatusCode == http.StatusPartialContent) {
 				downloadOk = true
-				belogs.Info("getRrdpSnapshotImplWithConfig():use range, GetHttpsWithConfig ok, snapshotUrl:", snapshotUrl,
+				belogs.Debug("getRrdpSnapshotImplWithConfig():use range, GetHttpsWithConfig ok, snapshotUrl:", snapshotUrl,
 					"   statusCode:", httpclient.GetStatusCode(resp), " supportRange:", supportRange, "   ipAddrs:", ipAddrs,
 					"   len(body):", len(body), "  downloadOk:", downloadOk, "  time(s):", time.Since(start))
 			}
@@ -108,7 +108,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 		httpClientConfig.IpType = "ipv4"
 		body, err = httpclient.GetByCurlWithConfig(snapshotUrl, httpClientConfig)
 		if err == nil {
-			belogs.Info("getRrdpSnapshotImplWithConfig(): use curl with ipv4 ok, GetByCurlWithConfig, snapshotUrl:", snapshotUrl,
+			belogs.Debug("getRrdpSnapshotImplWithConfig(): use curl with ipv4 ok, GetByCurlWithConfig, snapshotUrl:", snapshotUrl,
 				"    ipAddrs:", ipAddrs, "   len(body):", len(body),
 				"    body:", stringutil.OmitString(body, 100), "  time(s):", time.Since(start))
 		} else {
@@ -126,7 +126,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 					"    body:", stringutil.OmitString(body, 100), err, "  time(s):", time.Since(start))
 				return snapshotModel, errors.New("http error of " + snapshotUrl + " is " + err.Error())
 			}
-			belogs.Info("getRrdpSnapshotImplWithConfig(): use curl with ipv4ipv6 ok, GetByCurlWithConfig, snapshotUrl:", snapshotUrl,
+			belogs.Debug("getRrdpSnapshotImplWithConfig(): use curl with ipv4ipv6 ok, GetByCurlWithConfig, snapshotUrl:", snapshotUrl,
 				"    ipAddrs:", ipAddrs, "    len(body):", len(body),
 				"    body:", stringutil.OmitString(body, 100), "  time(s):", time.Since(start))
 		}
@@ -158,7 +158,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 	snapshotModel.Hash = hashutil.Sha256([]byte(body))
 	snapshotModel.SnapshotUrl = snapshotUrl
 
-	belogs.Info("getRrdpSnapshotImplWithConfig(): get from snapshotUrl ok", snapshotUrl,
+	belogs.Debug("getRrdpSnapshotImplWithConfig(): get from snapshotUrl ok", snapshotUrl,
 		"   len(snapshotModel.SnapshotPublishs):", len(snapshotModel.SnapshotPublishs), "  time(s):", time.Since(start))
 	return snapshotModel, nil
 }
@@ -182,7 +182,7 @@ func CheckRrdpSnapshot(snapshotModel *SnapshotModel, notificationModel *Notifica
 		}
 	}
 	if strings.ToLower(notificationModel.Snapshot.Hash) != strings.ToLower(snapshotModel.Hash) {
-		belogs.Info("CheckRrdpSnapshot(): snapshotModel.Hash:", snapshotModel.Hash,
+		belogs.Debug("CheckRrdpSnapshot(): snapshotModel.Hash:", snapshotModel.Hash,
 			"    notificationModel.Snapshot.Hash:", notificationModel.Snapshot.Hash, " but just continue")
 		//return errors.New("snapshot's hash is different from  notification's snapshot's hash")
 	}
@@ -225,18 +225,18 @@ func ConvertSnapshotToRrdpFiles(snapshotModel *SnapshotModel,
 			return nil, err
 		}
 		om.Set(uri, rrdpFile)
-		belogs.Info("ConvertSnapshotToRrdpFiles(): range SnapshotPublishs",
+		belogs.Debug("ConvertSnapshotToRrdpFiles(): range SnapshotPublishs",
 			"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl,
 			"    rrdpFile:", jsonutil.MarshalJson(rrdpFile))
 	}
-	belogs.Info("ConvertSnapshotToRrdpFiles(): after all, will get rrdpFiles",
+	belogs.Debug("ConvertSnapshotToRrdpFiles(): after all, will get rrdpFiles",
 		"   len(snapshotModel.SnapshotPublishs):", len(snapshotModel.SnapshotPublishs),
 		"   om.Len():", om.Len())
 	rrdpFilesAll = make([]*RrdpFile, 0, om.Len())
 	for pair := om.Oldest(); pair != nil; pair = pair.Next() {
 		rrdpFilesAll = append(rrdpFilesAll, pair.Value)
 	}
-	belogs.Info("ConvertSnapshotToRrdpFiles(): after range om, len(snapshotModel.SnapshotPublishs):", len(snapshotModel.SnapshotPublishs),
+	belogs.Debug("ConvertSnapshotToRrdpFiles(): after range om, len(snapshotModel.SnapshotPublishs):", len(snapshotModel.SnapshotPublishs),
 		"  om.Len():", om.Len(), " len(rrdpFilesAll):", len(rrdpFilesAll))
 	return rrdpFilesAll, nil
 }
@@ -324,7 +324,7 @@ func convertSnapshotPublishToRrdpFile(snapshotModel *SnapshotModel, snapshotPubl
 				len(bytes), "    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, err)
 			return nil, err
 		}
-		belogs.Info("ConvertSnapshotToRrdpFiles(): update filePathName:", filePathName,
+		belogs.Debug("ConvertSnapshotToRrdpFiles(): update filePathName:", filePathName,
 			"    snapshotModel.SnapshotUrl:", snapshotModel.SnapshotUrl, "  ok")
 		belogs.Debug("ConvertSnapshotToRrdpFiles(): save filePathName ", filePathName, "  ok")
 

@@ -148,7 +148,7 @@ func (ts *TcpServer) buildTLSConfig() (*tls.Config, error) {
 			if err != nil {
 				return fmt.Errorf("client cert verify fail: %w", err)
 			}
-			belogs.Info("Client cert verified, CN:", cert.Subject.CommonName)
+			belogs.Info("TcpServer.buildTLSConfig(): Client cert verified, CN:", cert.Subject.CommonName)
 			return nil
 		}
 	}
@@ -184,7 +184,8 @@ func (ts *TcpServer) Start(addr string) error {
 		}
 	}
 
-	belogs.Info("Server started, addr:", addr, " isTLS:", ts.isTLS)
+	belogs.Info("TcpServer.Start(): Server started, addr:", addr,
+		" isTLS:", ts.isTLS)
 
 	// 接收连接
 	go ts.acceptConnections()
@@ -205,7 +206,7 @@ func (ts *TcpServer) Start(addr string) error {
 	ts.closed = true
 	ts.mu.Unlock()
 
-	belogs.Info("Server stopped, addr:", addr)
+	belogs.Info("TcpServer.Start(): Server stopped, addr:", addr)
 
 	return nil
 }
@@ -271,7 +272,7 @@ func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 	ts.tcpConnsMutex.Lock()
 	ts.tcpConns[clientAddr] = conn
 	ts.tcpConnsMutex.Unlock()
-	belogs.Info("handleConn(): Add new connection, client:",
+	belogs.Info("TcpServer.handleConn(): Add new connection, client:",
 		clientAddr, " total connections:", ts.GetConnCount())
 
 	// 触发连接回调
@@ -301,19 +302,19 @@ func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 		if err != nil {
 			// 正常关闭不打印错误
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-				belogs.Info("handleConn(): read timeout so close", err)
+				belogs.Info("TcpServer.handleConn(): read timeout so close", err)
 				return
 			}
 			if !errors.Is(err, io.EOF) {
-				belogs.Error("handleConn(): read from client no io.EOF fail", err)
+				belogs.Error("TcpServer.handleConn(): read from client no io.EOF fail", err)
 				return
 			}
-			belogs.Error("handleConn(): read from client io.EOF fail", err)
+			belogs.Error("TcpServer.handleConn(): read from client io.EOF fail", err)
 			return
 		}
 
 		if n <= 0 {
-			belogs.Debug("handleConn(): read 0 bytes, n<=0, will return", n)
+			belogs.Debug("TcpServer.handleConn(): read 0 bytes, n<=0, will return", n)
 			return
 		}
 
@@ -323,7 +324,7 @@ func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 		// 业务处理回调
 		if ts.processFunc != nil {
 			if err := ts.processFunc.OnReceiveAndSend(conn, receiveData); err != nil {
-				belogs.Error("handleConn(): OnReceiveAndSend fail:", err)
+				belogs.Error("TcpServer.handleConn(): OnReceiveAndSend fail:", err)
 				return
 			}
 		}
@@ -604,7 +605,7 @@ func (ts *TcpServer) CloseAllConns() (int, error) {
 	closedCount := 0
 	var errMsg string
 	for addr, conn := range conns {
-		belogs.Info("Closing connection:", addr)
+		belogs.Info("TcpServer.CloseAllConns(): Closing connection:", addr)
 
 		// 触发业务回调
 		if ts.processFunc != nil {

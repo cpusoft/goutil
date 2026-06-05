@@ -102,11 +102,11 @@ func downloadTaskExecuteFunc(ctx context.Context, task *taskcycleutil.Task) (boo
 	for i := 0; i <= downloadTaskConfig.RetryCount; i++ {
 		savePath, err = downloadFile(ctx, url, downloadTaskConfig.SaveDir, downloadTaskConfig.Timeout)
 		if err == nil {
-			belogs.Info(fmt.Sprintf("download success: %s -> %s (retry: %d)", url, savePath, i))
+			belogs.Debug(fmt.Sprintf("download success: %s -> %s (retry: %d)", url, savePath, i))
 			successCount++
 			break
 		}
-		belogs.Info(fmt.Sprintf("download failed: %s (retry: %d): %v", url, i, err))
+		belogs.Debug(fmt.Sprintf("download failed: %s (retry: %d): %v", url, i, err))
 
 		// 最后一次重试失败，记录失败URL
 		if i == downloadTaskConfig.RetryCount {
@@ -331,11 +331,11 @@ func main() {
 
 	// ========== 6. 启动框架 ==========
 	framework.Start()
-	belogs.Info("task framework started, waiting for cycle execution...")
+	belogs.Debug("task framework started, waiting for cycle execution...")
 
 	// ========== 7. 批量添加任务 ==========
 	successCount, failedTasks := framework.AddTasks(tasks, downloadTaskExecuteFunc)
-	belogs.Info(fmt.Sprintf("add tasks result: success=%d, failed=%d", successCount, len(failedTasks)))
+	belogs.Debug(fmt.Sprintf("add tasks result: success=%d, failed=%d", successCount, len(failedTasks)))
 
 	// 打印失败任务信息
 	if len(failedTasks) > 0 {
@@ -347,19 +347,19 @@ func main() {
 	// ========== 8. 保持程序运行 ==========
 	// 示例：运行1小时后退出
 	runDuration := 1 * time.Hour
-	belogs.Info(fmt.Sprintf("framework will run for %v, press Ctrl+C to exit", runDuration))
+	belogs.Debug(fmt.Sprintf("framework will run for %v, press Ctrl+C to exit", runDuration))
 	time.Sleep(runDuration)
 
 	// ========== 9. 停止框架 ==========
 	framework.Stop()
-	belogs.Info("task framework stopped")
+	belogs.Debug("task framework stopped")
 
 	// ========== 10. 输出任务执行结果（可选） ==========
 	//framework.TasksMu.RLock() // 注：需将框架的tasksMu改为导出字段，或添加获取任务的方法
 	//defer framework.TasksMu.RUnlock()
 
 	//for key, task := range framework.Tasks {
-	//	belogs.Info(fmt.Sprintf("task %s result: %s, success count: %d, fail count: %d",
+	//	belogs.Debug(fmt.Sprintf("task %s result: %s, success count: %d, fail count: %d",
 	//		key, task.Result, task.SuccessCount, task.FailCount))
 	//}
 

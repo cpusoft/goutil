@@ -242,7 +242,7 @@ func ReceiveFile(c *gin.Context, dir string) (receiveFile string, err error) {
 		belogs.Error("ReceiveFile(): SaveUploadedFile fail:", receiveFile, err)
 		return "", err
 	}
-	belogs.Info("ReceiveFile(): ok, receiveFile:", receiveFile)
+	belogs.Debug("ReceiveFile(): ok, receiveFile:", receiveFile)
 	return receiveFile, nil
 
 	/*
@@ -307,7 +307,7 @@ func ReceiveFileAndUnmarshalJson(c *gin.Context, dir string, f interface{}) (rec
 			"   content:", string(bytes), err)
 		return receiveFile, err
 	}
-	belogs.Info("ReceiveFileAndUnmarshalJson():receiveFile:", receiveFile, "   f:", jsonutil.MarshalJson(f))
+	belogs.Debug("ReceiveFileAndUnmarshalJson():receiveFile:", receiveFile, "   f:", jsonutil.MarshalJson(f))
 	return receiveFile, nil
 }
 
@@ -335,7 +335,7 @@ func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 		return err
 	}
 
-	belogs.Info("ReceiveFileAndPostNewUrl():saveToTmpFile tmpFile:", tmpFile.Name(), "  newUrl:", newUrl)
+	belogs.Debug("ReceiveFileAndPostNewUrl():saveToTmpFile tmpFile:", tmpFile.Name(), "  newUrl:", newUrl)
 
 	hcc := httpclient.NewHttpClientConfigWithParam(5, 3, "all", false).
 		SetAuhthorization(GetAuthHeader(ctx))
@@ -355,7 +355,7 @@ func ReceiveFileAndPostNewUrl(c *gin.Context, newUrl string) (err error) {
 		return errors.New(httpResponse.Msg)
 
 	}
-	belogs.Info("ReceiveFileAndPostNewUrl(): upload ok ", file.Filename, jsonutil.MarshalJson(httpResponse))
+	belogs.Debug("ReceiveFileAndPostNewUrl(): upload ok ", file.Filename, jsonutil.MarshalJson(httpResponse))
 	return nil
 }
 
@@ -424,7 +424,7 @@ func GetClientIpPort(c *gin.Context) (clientIp, clientPort string, err error) {
 
 /*
 func getRemoteAddr(c *gin.Context) (remoteAddr string, err error) {
-	belogs.Info("getRemoteAddr(): RemoteAddr:", c.ClientIP())
+	belogs.Debug("getRemoteAddr(): RemoteAddr:", c.ClientIP())
 	remoteAddr = c.ClientIP()
 	if len(remoteAddr) == 0 {
 		belogs.Error("getRemoteAddr(): ClientIP fail, remoteAddr is empty:",

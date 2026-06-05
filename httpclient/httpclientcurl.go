@@ -55,7 +55,7 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 		ipType = "-6"
 	}
 
-	belogs.Info("GetByCurlWithConfig():will curl, url:", url, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig),
+	belogs.Debug("GetByCurlWithConfig():will curl, url:", url, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig),
 		"  httpClientConfig.TimeoutMins(m):", int64(httpClientConfig.TimeoutMins), "  timeout as seconds:", timeout,
 		"  retryCount:", retryCount, "  ipType:", ipType, "   tmpFile:", tmpFile.Name())
 

@@ -26,7 +26,7 @@ import (
 // deprecated: please use GetRrdpDeltasWithConfig
 
 	func GetRrdpDeltas(notificationModel *NotificationModel, lastSerial uint64) (deltaModels []DeltaModel, err error) {
-		belogs.Info("GetRrdpDeltas(): len(notificationModel.Deltas):", len(notificationModel.Deltas), "  lastSerial:", lastSerial)
+		belogs.Debug("GetRrdpDeltas(): len(notificationModel.Deltas):", len(notificationModel.Deltas), "  lastSerial:", lastSerial)
 		return GetRrdpDeltasWithConfig(notificationModel, lastSerial, nil)
 	}
 */
@@ -35,7 +35,7 @@ func GetRrdpDeltasWithConfig(notificationModel *NotificationModel, lastSerial ui
 	if httpClientConfig == nil {
 		httpClientConfig = httpclient.NewHttpClientConfig()
 	}
-	belogs.Info("GetRrdpDeltasWithConfig(): len(notificationModel.Deltas):", len(notificationModel.Deltas),
+	belogs.Debug("GetRrdpDeltasWithConfig(): len(notificationModel.Deltas):", len(notificationModel.Deltas),
 		"  lastSerial:", lastSerial, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 
 	var wg sync.WaitGroup
@@ -74,7 +74,7 @@ func GetRrdpDeltasWithConfig(notificationModel *NotificationModel, lastSerial ui
 	// sort, from newest to oldest
 	sort.Sort(DeltaModelsSort(deltaModels))
 
-	belogs.Info("GetRrdpDeltasWithConfig():len(deltaModels):", len(deltaModels),
+	belogs.Debug("GetRrdpDeltasWithConfig():len(deltaModels):", len(deltaModels),
 		"   len(notificationModel.Deltas) :", len(notificationModel.Deltas),
 		"   lastSerial:", lastSerial, "   time(s):", time.Since(start))
 
@@ -136,7 +136,7 @@ func GetRrdpDeltaWithConfig(deltaUrl string, httpClientConfig *httpclient.HttpCl
 		return deltaModel, err
 	}
 
-	belogs.Info("GetRrdpDeltaWithConfig(): deltaUrl ok:", deltaUrl, "  time(s):", time.Since(start))
+	belogs.Debug("GetRrdpDeltaWithConfig(): deltaUrl ok:", deltaUrl, "  time(s):", time.Since(start))
 	return deltaModel, nil
 }
 
@@ -216,7 +216,7 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 		deltaModel.DeltaWithdraws[i].Uri = uri
 	}
 	deltaModel.DeltaUrl = deltaUrl
-	belogs.Info("getRrdpDeltaImplWithConfig(): get from deltaUrl ok", deltaUrl,
+	belogs.Debug("getRrdpDeltaImplWithConfig(): get from deltaUrl ok", deltaUrl,
 		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
 		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws), "  time(s):", time.Since(start))
 	return deltaModel, nil
@@ -250,7 +250,7 @@ func CheckRrdpDelta(deltaModel *DeltaModel, notificationModel *NotificationModel
 	for i := range notificationModel.Deltas {
 		if notificationModel.Deltas[i].Serial == deltaModel.Serial {
 			if deltaModel.Hash != notificationModel.Deltas[i].Hash {
-				belogs.Info("CheckRrdpDelta(): deltaModel.Hash is not equal to notificationModel.Deltas[i].Hash,",
+				belogs.Debug("CheckRrdpDelta(): deltaModel.Hash is not equal to notificationModel.Deltas[i].Hash,",
 					"   deltaModel.Serial:", deltaModel.Serial, "    deltaModel.Hash:", deltaModel.Hash,
 					"   notificationModel.Deltas[i].Hash:", notificationModel.Deltas[i].Hash, " but just continue")
 			}
@@ -299,7 +299,7 @@ func ConvertDeltasToRrdpFiles(deltaModels []DeltaModel, notifyUrl, destPath stri
 	for pair := om.Oldest(); pair != nil; pair = pair.Next() {
 		rrdpFilesAll = append(rrdpFilesAll, pair.Value)
 	}
-	belogs.Info("ConvertDeltasToRrdpFiles(): after range om, len(deltaModels):", len(deltaModels),
+	belogs.Debug("ConvertDeltasToRrdpFiles(): after range om, len(deltaModels):", len(deltaModels),
 		"  om.Len():", om.Len(), " len(rrdpFilesAll):", len(rrdpFilesAll),
 		"  notifyUrl:", notifyUrl, "  destPath:", destPath)
 	belogs.Debug("ConvertDeltasToRrdpFiles(): rrdpFilesAll:", jsonutil.MarshalJson(rrdpFilesAll))
@@ -317,7 +317,7 @@ func convertDeltasToRrdpFiles(deltaModel *DeltaModel, om *goorderedmap.OrderedMa
 			jsonutil.MarshalJson(deltaModel), "   repoPath:", repoPath)
 		return nil
 	}
-	belogs.Info("convertDeltasToRrdpFiles():serial:", deltaModel.Serial,
+	belogs.Debug("convertDeltasToRrdpFiles():serial:", deltaModel.Serial,
 		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
 		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
 		"   om.Len():", om.Len(), "    repoPath:", repoPath)
@@ -327,7 +327,7 @@ func convertDeltasToRrdpFiles(deltaModel *DeltaModel, om *goorderedmap.OrderedMa
 		uri := deltaModel.DeltaWithdraws[i].Uri
 		belogs.Debug("convertDeltasToRrdpFiles(): range DeltaWithdraws, uri:", uri)
 		if existRrdpFile, ok := om.Get(uri); ok {
-			belogs.Info("convertDeltasToRrdpFiles(): range DeltaWithdraws, find uri:", uri,
+			belogs.Debug("convertDeltasToRrdpFiles(): range DeltaWithdraws, find uri:", uri,
 				"    this:", jsonutil.MarshalJson(deltaModel.DeltaWithdraws[i]),
 				"    last:", jsonutil.MarshalJson(existRrdpFile))
 			om.Delete(uri)
@@ -338,11 +338,11 @@ func convertDeltasToRrdpFiles(deltaModel *DeltaModel, om *goorderedmap.OrderedMa
 			return err
 		}
 		om.Set(uri, rrdpFile)
-		belogs.Info("convertDeltasToRrdpFiles(): range DeltaWithdraws",
+		belogs.Debug("convertDeltasToRrdpFiles(): range DeltaWithdraws",
 			"    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
 			"    rrdpFile:", jsonutil.MarshalJson(rrdpFile))
 	}
-	belogs.Info("convertDeltasToRrdpFiles():after DeltaWithdraws", len(deltaModel.DeltaWithdraws),
+	belogs.Debug("convertDeltasToRrdpFiles():after DeltaWithdraws", len(deltaModel.DeltaWithdraws),
 		"   om.Len():", om.Len())
 
 	// seconde, save publish files
@@ -350,7 +350,7 @@ func convertDeltasToRrdpFiles(deltaModel *DeltaModel, om *goorderedmap.OrderedMa
 		uri := deltaModel.DeltaPublishs[i].Uri
 		belogs.Debug("convertDeltasToRrdpFiles(): range DeltaPublishs, uri:", uri)
 		if existRrdpFile, ok := om.Get(uri); ok {
-			belogs.Info("convertDeltasToRrdpFiles(): range DeltaPublishs, find uri:", uri,
+			belogs.Debug("convertDeltasToRrdpFiles(): range DeltaPublishs, find uri:", uri,
 				"    this:", jsonutil.MarshalJson(deltaModel.DeltaPublishs[i]),
 				"    last:", jsonutil.MarshalJson(existRrdpFile))
 			om.Delete(uri)
@@ -361,11 +361,11 @@ func convertDeltasToRrdpFiles(deltaModel *DeltaModel, om *goorderedmap.OrderedMa
 			return err
 		}
 		om.Set(uri, rrdpFile)
-		belogs.Info("convertDeltasToRrdpFiles(): range DeltaPublishs",
+		belogs.Debug("convertDeltasToRrdpFiles(): range DeltaPublishs",
 			"    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
 			"    rrdpFile:", jsonutil.MarshalJson(rrdpFile))
 	}
-	belogs.Info("convertDeltasToRrdpFiles(): after all, will get rrdpFiles, len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
+	belogs.Debug("convertDeltasToRrdpFiles(): after all, will get rrdpFiles, len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
 		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
 		"   om.Len():", om.Len())
 	return nil
@@ -407,7 +407,7 @@ func convertDeltaWithdrawToRrdpFile(deltaModel *DeltaModel, deltaWithdraw *Delta
 			return nil, errors.New("DeltaWithdraw file name is too long")
 		}
 		files, err := os.ReadDir(dir)
-		belogs.Info("convertDeltasToRrdpFiles():DeltaWithdraws will remove filePathName, uri:", uri,
+		belogs.Debug("convertDeltasToRrdpFiles():DeltaWithdraws will remove filePathName, uri:", uri,
 			"  	filePathName:", filePathName, "   dir:", dir,
 			"   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
 			"   err:", err)

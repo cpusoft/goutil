@@ -43,7 +43,7 @@ func StartDnsUdpServer(serverProtocol string, serverPort string) (err error) {
 			err)
 		return err
 	}
-	belogs.Info("StartDnsUdpServer(): start serverProtocol:", serverProtocol, "   serverPort:", serverPort)
+	belogs.Debug("StartDnsUdpServer(): start serverProtocol:", serverProtocol, "   serverPort:", serverPort)
 	return nil
 }
 

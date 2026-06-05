@@ -120,7 +120,7 @@ func VerifyCerByX509(fatherCertFile string, childCertFile string) (result string
 	}
 	result, err = VerifyCerByteByX509(fatherFileByte, childFileByte)
 	if err != nil {
-		belogs.Info("VerifyCerByX509():VerifyCerByteByX509 fail, fatherCertFile:", fatherCertFile, "    childCertFile:", childCertFile, "  err:", err)
+		belogs.Error("VerifyCerByX509():VerifyCerByteByX509 fail, fatherCertFile:", fatherCertFile, "    childCertFile:", childCertFile, "  err:", err)
 		return "fail", err
 	}
 	return result, nil
@@ -148,7 +148,7 @@ func VerifyEeCertByX509(fatherCertFile string, mftRoaFile string, eeCertStart, e
 	b := mftRoaFileByte[eeCertStart:eeCertEnd]
 	result, err = VerifyCerByteByX509(fatherFileByte, b)
 	if err != nil {
-		belogs.Info("VerifyEeCertByX509():VerifyCerByteByX509 fail, fatherCertFile:", fatherCertFile, "    mftRoaFile:", mftRoaFile,
+		belogs.Error("VerifyEeCertByX509():VerifyCerByteByX509 fail, fatherCertFile:", fatherCertFile, "    mftRoaFile:", mftRoaFile,
 			"   eeCertStart, eeCertEnd:", eeCertStart, eeCertEnd, "  err:", err)
 		return "fail", err
 	}
@@ -165,7 +165,7 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 
 	faterCert, err := x509.ParseCertificate(fatherCertByte)
 	if err != nil {
-		belogs.Info("VerifyCerByteByX509():parse fatherCertFile fail, ParseCertificate err:", err)
+		belogs.Error("VerifyCerByteByX509():parse fatherCertFile fail, ParseCertificate err:", err)
 		return "fail", fmt.Errorf("failed to parse father certificate: %w", err)
 	}
 	faterCert.UnhandledCriticalExtensions = make([]asn1.ObjectIdentifier, 0)
@@ -175,7 +175,7 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 
 	childCert, err := x509.ParseCertificate(childCertByte)
 	if err != nil {
-		belogs.Info("VerifyCerByteByX509():parse childCertFile fail:  father issuer:", faterCert.Issuer.String(), " ParseCertificate err:", err)
+		belogs.Error("VerifyCerByteByX509():parse childCertFile fail:  father issuer:", faterCert.Issuer.String(), " ParseCertificate err:", err)
 		return "fail", fmt.Errorf("failed to parse child certificate: %w", err)
 	}
 	childCert.UnhandledCriticalExtensions = make([]asn1.ObjectIdentifier, 0)
@@ -245,20 +245,20 @@ func VerifyCerByteByX509(fatherCertByte []byte, childCertByte []byte) (result st
 				// 仍然记录警告，但返回ok
 				return "ok", nil
 			} else {
-				belogs.Info("VerifyCerByteByX509():Verify fail, subject and issuer mismatch:",
+				belogs.Error("VerifyCerByteByX509():Verify fail, subject and issuer mismatch:",
 					"   father subject:`"+faterCert.Subject.String()+"`",
 					"   child issuer:`"+childCert.Issuer.String()+"`",
 					"   Verify err:", err)
 				return "fail", fmt.Errorf("issuer/subject mismatch: %w", err)
 			}
 		} else if strings.Contains(err.Error(), "certificate has expired or is not yet valid") {
-			belogs.Info("VerifyCerByteByX509():Verify fail, certificate has expired or is not yet valid. ",
+			belogs.Error("VerifyCerByteByX509():Verify fail, certificate has expired or is not yet valid. ",
 				"   Now:", convert.Time2StringZone(time.Now()),
 				"   child NotBefore:", convert.Time2StringZone(childCert.NotBefore),
 				"   child NotAfter:", convert.Time2StringZone(childCert.NotAfter), "   Verify err:", err)
 			return "fail", fmt.Errorf("certificate validity error: %w", err)
 		} else {
-			belogs.Info("VerifyCerByteByX509():Verify fail ",
+			belogs.Error("VerifyCerByteByX509():Verify fail ",
 				"   father subject:`"+faterCert.Subject.String()+"`",
 				"   child issuer:`"+childCert.Issuer.String()+"`",
 				"   Verify err:", err)
@@ -333,8 +333,8 @@ func VerifyRootCerByOpenssl(rootFile string) (result string, err error) {
 	}
 
 	out := string(output)
-	if !strings.Contains(out, "OK") {
-		belogs.Info("VerifyRootCerByOpenssl(): verify pem fail: output: ", out, rootFile)
+	if !strings.Contains(strings.ToUpper(out), "OK") {
+		belogs.Error("VerifyRootCerByOpenssl(): verify pem fail: output: ", out, rootFile)
 		return "fail", fmt.Errorf("openssl verify failed: %s", out)
 	}
 
@@ -365,7 +365,7 @@ func VerifyCrlByX509(cerFile, crlFile string) (result string, err error) {
 	// 核心修改：替换废弃的 CheckCRLSignature 为 CheckSignatureFrom
 	err = crl.CheckSignatureFrom(cer)
 	if err != nil {
-		belogs.Info("VerifyCrlByX509(): CheckSignatureFrom fail: err: ", err, cerFile, crlFile)
+		belogs.Error("VerifyCrlByX509(): CheckSignatureFrom fail: err: ", err, cerFile, crlFile)
 		return "fail", fmt.Errorf("CRL signature verification failed: %w", err)
 	}
 

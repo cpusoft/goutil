@@ -475,7 +475,7 @@ func TestJwt(t *testing.T) {
 		auth.POST("/work", Work)
 	}
 	g.Go(func() error {
-		//	belogs.Info("startRpServer(): server run http on :", serverHttpPort)
+		//	belogs.Debug("startRpServer(): server run http on :", serverHttpPort)
 		err := engine.Run(":" + serverHttpPort)
 		return err
 	})
@@ -484,7 +484,7 @@ func TestJwt(t *testing.T) {
 		//belogs.Error("startRpServer(): fail, will exit, err:", err)
 		fmt.Println("startRpServer(): fail, will exit,", "port", serverHttpPort, " err:", err)
 	}
-	//belogs.Info("startRpServer(): server end, time(s):", time.Since(start))
+	//belogs.Debug("startRpServer(): server end, time(s):", time.Since(start))
 	fmt.Println("startRpServer(): server end", "time(s)", time.Since(start))
 
 }

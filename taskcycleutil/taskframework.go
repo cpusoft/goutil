@@ -17,7 +17,6 @@ const (
 	AddTaskModeRecursive = "recursive" // 递归模式：从成功任务生成新任务并立即执行, 用于从tal递归读取
 	AddTaskModeExternal  = "external"  // 外部模式：外部注入任务，待下周期执行，用于precept动态感知一次性导入
 
-	
 	DefaultCycleInterval = 1800 * time.Second
 	DefaultCheckInterval = 600 * time.Second
 	DefaultMaxTimeout    = 4199 * time.Second // 2*1800+600-1（避免正好70分钟超时）
@@ -234,7 +233,7 @@ func (f *TaskFramework) executeTask(task *Task) {
 		task.TaskResult.ResultReason = "framework stopped"
 		task.TaskResult.ResultCount++
 		f.mu.Unlock()
-		belogs.Info("executeTask(): framework stopped for task ", task.Key)
+		belogs.Debug("executeTask(): framework stopped for task ", task.Key)
 
 	case <-ctx.Done():
 		// 任务超时（需求3）
@@ -246,7 +245,7 @@ func (f *TaskFramework) executeTask(task *Task) {
 		task.TaskResult.ResultReason = fmt.Sprintf("timeout (max %v): %v", f.taskFrameworkConfig.MaxTimeout, ctx.Err())
 		task.TaskResult.ResultCount++
 		f.mu.Unlock()
-		belogs.Info("executeTask(): timeout for task ", task.Key, ": ", task.TaskResult.ResultReason)
+		belogs.Debug("executeTask(): timeout for task ", task.Key, ": ", task.TaskResult.ResultReason)
 
 	case taskExecutionResult := <-resultChan:
 		// 任务执行完成（需求2）
@@ -258,7 +257,7 @@ func (f *TaskFramework) executeTask(task *Task) {
 			task.TaskResult.Result = TaskResultOK
 			task.TaskResult.ResultTime = now
 			task.TaskResult.ResultCount++
-			belogs.Info("executeTask(): success for task ", task.Key)
+			belogs.Debug("executeTask(): success for task ", task.Key)
 
 			// 递归模式：生成新任务（需求4.2）
 			if f.taskFrameworkConfig.AddTaskMode == AddTaskModeRecursive && f.generateFunc != nil {
@@ -278,7 +277,7 @@ func (f *TaskFramework) executeTask(task *Task) {
 			task.TaskResult.ResultTime = now
 			task.TaskResult.ResultReason = taskExecutionResult.Err
 			task.TaskResult.ResultCount++
-			belogs.Info("executeTask(): fail for task ", task.Key, ": ", taskExecutionResult.Err)
+			belogs.Debug("executeTask(): fail for task ", task.Key, ": ", taskExecutionResult.Err)
 		}
 		f.mu.Unlock()
 	}
@@ -290,14 +289,14 @@ func (f *TaskFramework) Start() {
 	// 启动周期执行器
 	f.cycleCount = 0
 	go f.cycleExecutor()
-	belogs.Info("TaskFramework started: ", jsonutil.MarshalJson(f.taskFrameworkConfig))
+	belogs.Debug("TaskFramework started: ", jsonutil.MarshalJson(f.taskFrameworkConfig))
 }
 
 // Stop 停止框架（优雅退出）
 func (f *TaskFramework) Stop() {
 	f.executorCancel()
 	f.wg.Wait()
-	belogs.Info("TaskFramework stopped gracefully")
+	belogs.Debug("TaskFramework stopped gracefully")
 }
 
 // cycleExecutor 周期执行器（每30分钟触发一次）
@@ -312,7 +311,7 @@ func (f *TaskFramework) cycleExecutor() {
 	for {
 		select {
 		case <-f.executorCtx.Done():
-			belogs.Info("cycleExecutor stopped")
+			belogs.Debug("cycleExecutor stopped")
 			return
 		case <-ticker.C:
 			f.runCycle()
@@ -331,7 +330,7 @@ func (f *TaskFramework) runCycle() {
 	f.cycleStartTime = time.Now()
 	f.mu.Unlock()
 
-	belogs.Info("runCycle(): start new cycle,cycleCount:", f.cycleCount, " cycleStartTime:", f.cycleStartTime)
+	belogs.Debug("runCycle(): start new cycle,cycleCount:", f.cycleCount, " cycleStartTime:", f.cycleStartTime)
 
 	// 1. 收集所有待处理的任务：pending + completed（排除禁止key和running）
 	f.mu.RLock()
@@ -348,7 +347,7 @@ func (f *TaskFramework) runCycle() {
 		}
 	}
 	f.mu.RUnlock()
-	belogs.Info("runCycle(): found len(tasksToRun):", len(tasksToRun), " tasks to run (pending/completed)")
+	belogs.Debug("runCycle(): found len(tasksToRun):", len(tasksToRun), " tasks to run (pending/completed)")
 
 	// 2. 将任务改为 running 并异步执行
 	for _, task := range tasksToRun {
@@ -374,13 +373,13 @@ func (f *TaskFramework) runCycle() {
 
 // checkCycleTasks 周期内检查任务状态（需求1.3.2）
 func (f *TaskFramework) checkCycleTasks(cycleStart time.Time) {
-	belogs.Info("checkCycleTasks(): check tasks for cycle at ", cycleStart)
+	belogs.Debug("checkCycleTasks(): check tasks for cycle at ", cycleStart)
 
 	// 1. 检查运行中任务：未完成则无需处理（下周期自动执行）
 	f.mu.RLock()
 	for _, task := range f.tasks {
 		if task.TaskState == TaskStateRunning {
-			belogs.Info("checkCycleTasks(): task still running: ", task.Key)
+			belogs.Debug("checkCycleTasks(): task still running: ", task.Key)
 		}
 	}
 	f.mu.RUnlock()

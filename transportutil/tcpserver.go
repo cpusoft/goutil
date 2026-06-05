@@ -128,7 +128,7 @@ func (ts *TcpServer) StartTcpServer(port string) (err error) {
 		belogs.Error("StartTcpServer(): tcpserver  NewFromTcpListener fail, port:", port, err)
 		return err
 	}
-	belogs.Info("StartTcpServer(): tcpserver  create server ok, port:", port, "  will accept client")
+	belogs.Debug("StartTcpServer(): tcpserver  create server ok, port:", port, "  will accept client")
 
 	go ts.waitBusinessToConnMsg()
 
@@ -223,7 +223,7 @@ func (ts *TcpServer) StartTlsServer(port string) (err error) {
 		belogs.Error("StartTlsServer(): tlsserver  NewFromTlsListener fail, port: ", port, err)
 		return err
 	}
-	belogs.Info("StartTlsServer(): tlsserver  create server ok, port:", port, "  will accept client")
+	belogs.Debug("StartTlsServer(): tlsserver  create server ok, port:", port, "  will accept client")
 
 	go ts.waitBusinessToConnMsg()
 
@@ -242,7 +242,7 @@ func (ts *TcpServer) acceptNewConn() {
 		if err != nil {
 			select {
 			case <-ts.closeGraceful:
-				belogs.Info("TcpServer.acceptNewConn(): Accept remote fail and closeGraceful, will return: ", err)
+				belogs.Debug("TcpServer.acceptNewConn(): Accept remote fail and closeGraceful, will return: ", err)
 				return
 			default:
 				belogs.Error("TcpServer.acceptNewConn(): Accept remote fail: ", err)
@@ -250,7 +250,7 @@ func (ts *TcpServer) acceptNewConn() {
 			}
 
 		}
-		belogs.Info("TcpServer.acceptNewConn():  Accept remote: ", tcpConn.RemoteAddr().String())
+		belogs.Debug("TcpServer.acceptNewConn():  Accept remote: ", tcpConn.RemoteAddr().String())
 
 		ts.onConnect(tcpConn)
 		// call func to process tcpConn
@@ -289,7 +289,7 @@ func (ts *TcpServer) receiveAndSend(tcpConn *TcpConn) {
 		if err != nil {
 			if err == io.EOF {
 				// is not error, just client close
-				belogs.Info("TcpServer.receiveAndSend(): Read io.EOF, client close, tcpConn:", tcpConn.RemoteAddr().String(),
+				belogs.Debug("TcpServer.receiveAndSend(): Read io.EOF, client close, tcpConn:", tcpConn.RemoteAddr().String(),
 					"   length:", length, " time(s):", time.Since(start), err)
 				return
 			}
@@ -314,7 +314,7 @@ func (ts *TcpServer) receiveAndSend(tcpConn *TcpConn) {
 
 		if nextConnectPolicy == NEXT_CONNECT_POLICY_CLOSE_GRACEFUL ||
 			nextConnectPolicy == NEXT_CONNECT_POLICY_CLOSE_FORCIBLE {
-			belogs.Info("TcpServer.receiveAndSend(): nextConnectPolicy close,  return : ", tcpConn.RemoteAddr().String(), nextConnectPolicy)
+			belogs.Debug("TcpServer.receiveAndSend(): nextConnectPolicy close,  return : ", tcpConn.RemoteAddr().String(), nextConnectPolicy)
 			return
 		}
 		// check state
@@ -341,7 +341,7 @@ func (ts *TcpServer) onConnect(tcpConn *TcpConn) {
 	ts.tcpConns[connKey] = tcpConn
 	belogs.Debug("TcpServer.onConnect(): tcpConn: ", tcpConn.RemoteAddr().String(), ", connKey:", connKey, "  ts.tcpConns: ", ts.tcpConns)
 	ts.tcpServerProcess.OnConnectProcess(tcpConn)
-	belogs.Info("TcpServer.onConnect(): add tcpConn: ", tcpConn.RemoteAddr().String(), "   len(tcpConns): ", len(ts.tcpConns), "   time(s):", time.Since(start).Seconds())
+	belogs.Debug("TcpServer.onConnect(): add tcpConn: ", tcpConn.RemoteAddr().String(), "   len(tcpConns): ", len(ts.tcpConns), "   time(s):", time.Since(start).Seconds())
 
 }
 
@@ -366,7 +366,7 @@ func (ts *TcpServer) onClose(tcpConn *TcpConn) {
 	belogs.Debug("TcpServer.onClose(): will close old tcpConns, tcpConn: ", tcpConn.RemoteAddr().String(), "   old len(tcpConns): ", len(ts.tcpConns))
 	delete(ts.tcpConns, GetTcpConnKey(tcpConn))
 	ts.tcpServerProcess.OnCloseProcess(tcpConn)
-	belogs.Info("TcpServer.onClose(): new len(tcpConns): ", len(ts.tcpConns), "  time(s):", time.Since(start).Seconds())
+	belogs.Debug("TcpServer.onClose(): new len(tcpConns): ", len(ts.tcpConns), "  time(s):", time.Since(start).Seconds())
 }
 
 func (ts *TcpServer) SendBusinessToConnMsg(businessToConnMsg *BusinessToConnMsg) {
@@ -379,7 +379,7 @@ func (ts *TcpServer) SendBusinessToConnMsg(businessToConnMsg *BusinessToConnMsg)
 // BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE
 func (ts *TcpServer) SendMsgForCloseConnect(businessToConnMsgType string, serverConnKey string) {
 	// send channel, and wait listener and conns end itself process and close loop
-	belogs.Info("TcpServer.SendMsgForCloseConnect(): will close, businessToConnMsgType:", businessToConnMsgType, "  serverConnKey:", serverConnKey)
+	belogs.Debug("TcpServer.SendMsgForCloseConnect(): will close, businessToConnMsgType:", businessToConnMsgType, "  serverConnKey:", serverConnKey)
 	businessToConnMsg := &BusinessToConnMsg{
 		BusinessToConnMsgType: businessToConnMsgType,
 		ServerConnKey:         serverConnKey,
@@ -392,12 +392,12 @@ func (ts *TcpServer) waitBusinessToConnMsg() {
 	for {
 		select {
 		case businessToConnMsg := <-ts.businessToConnMsg:
-			belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))
+			belogs.Debug("TcpServer.waitBusinessToConnMsg(): businessToConnMsg:", jsonutil.MarshalJson(businessToConnMsg))
 
 			switch businessToConnMsg.BusinessToConnMsgType {
 			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE:
 				// ignore conns's writing/reading, just close
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE")
+				belogs.Debug("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_FORCIBLE")
 				// just close
 				ts.state = SERVER_STATE_CLOSING
 				ts.tcpListener.Close()
@@ -405,14 +405,14 @@ func (ts *TcpServer) waitBusinessToConnMsg() {
 					ts.onClose(ts.tcpConns[connKey])
 				}
 				close(ts.closeGraceful)
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): will close server forcible, will return waitBusinessToConnMsg:")
+				belogs.Debug("TcpServer.waitBusinessToConnMsg(): will close server forcible, will return waitBusinessToConnMsg:")
 				// end for/select
 				ts.state = SERVER_STATE_CLOSED
 				// will return, close waitBusinessToConnMsg
 				return
 			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_GRACEFUL:
 				// close and wait connect.Read and Accept
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_GRACEFUL")
+				belogs.Debug("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_GRACEFUL")
 				ts.state = SERVER_STATE_CLOSING
 				close(ts.closeGraceful)
 				time.Sleep(5 * time.Second)
@@ -420,28 +420,28 @@ func (ts *TcpServer) waitBusinessToConnMsg() {
 				for connKey := range ts.tcpConns {
 					ts.onClose(ts.tcpConns[connKey])
 				}
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): will close server graceful, will return waitBusinessToConnMsg:")
+				belogs.Debug("TcpServer.waitBusinessToConnMsg(): will close server graceful, will return waitBusinessToConnMsg:")
 				// end for/select
 				ts.state = SERVER_STATE_CLOSED
 				// will return, close waitBusinessToConnMsg
 				return
 			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL:
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL")
+				belogs.Debug("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_GRACEFUL")
 				fallthrough
 			case BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE:
 				// close and wait connect.Read and Accept
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE")
+				belogs.Debug("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_SERVER_CLOSE_ONE_CONNECT_FORCIBLE")
 				if len(businessToConnMsg.ServerConnKey) > 0 {
 					ts.onClose(ts.tcpConns[businessToConnMsg.ServerConnKey])
 				}
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): close connect, serverConnKey:", businessToConnMsg.ServerConnKey)
+				belogs.Debug("TcpServer.waitBusinessToConnMsg(): close connect, serverConnKey:", businessToConnMsg.ServerConnKey)
 				// close one connect, no return
 				// return
 			case BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA:
 
 				serverConnKey := businessToConnMsg.ServerConnKey
 				sendData := businessToConnMsg.SendData
-				belogs.Info("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
+				belogs.Debug("TcpServer.waitBusinessToConnMsg(): businessToConnMsgType is BUSINESS_TO_CONN_MSG_TYPE_COMMON_SEND_DATA, serverConnKey:", serverConnKey,
 					"  len(sendData):", len(sendData))
 				err := ts.activeSend(serverConnKey, sendData)
 				if err != nil {
@@ -450,7 +450,7 @@ func (ts *TcpServer) waitBusinessToConnMsg() {
 					// err, no return
 					// return
 				} else {
-					belogs.Info("TcpServer.waitBusinessToConnMsg(): activeSend ok, serverConnKey:", serverConnKey,
+					belogs.Debug("TcpServer.waitBusinessToConnMsg(): activeSend ok, serverConnKey:", serverConnKey,
 						"  len(sendData):", len(sendData))
 				}
 			}
@@ -484,11 +484,11 @@ func (ts *TcpServer) activeSend(connKey string, sendData []byte) (err error) {
 					"   time(s):", time.Since(startOne), err)
 				continue
 			} else {
-				belogs.Info("TcpServer.activeSend(): server to all, tcpConn.Write ok, tcpConn:", ts.tcpConns[i].RemoteAddr().String(),
+				belogs.Debug("TcpServer.activeSend(): server to all, tcpConn.Write ok, tcpConn:", ts.tcpConns[i].RemoteAddr().String(),
 					"   n:", n, "  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "   len(sendDataNew):", length, "   time(s):", time.Since(startOne))
 			}
 		}
-		belogs.Info("TcpServer.activeSend(): send to all clients ok, tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "  len(sendDataNew):", length, "   len(tcpConns): ", len(ts.tcpConns),
+		belogs.Debug("TcpServer.activeSend(): send to all clients ok, tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "  len(sendDataNew):", length, "   len(tcpConns): ", len(ts.tcpConns),
 			"  time(s):", time.Since(start).Seconds())
 		return
 	} else {
@@ -504,14 +504,14 @@ func (ts *TcpServer) activeSend(connKey string, sendData []byte) (err error) {
 					"   n:", n, "  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration,
 					"   sendDataNew:", convert.PrintBytesOneLine(sendDataNew), "   time(s):", time.Since(startOne), err)
 			} else {
-				belogs.Info("TcpServer.activeSend(): to ", connKey, " tcpConn.Write ok, tcpConn:", tcpConn.RemoteAddr().String(),
+				belogs.Debug("TcpServer.activeSend(): to ", connKey, " tcpConn.Write ok, tcpConn:", tcpConn.RemoteAddr().String(),
 					"   n:", n, "  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "   len(sendDataNew):", length, "   time(s):", time.Since(startOne))
 			}
 		} else {
 			belogs.Error("TcpServer.activeSend(): not found connKey: ", connKey, " fail: tcpConn:", tcpConn,
 				"  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "   sendDataNew:", convert.PrintBytesOneLine(sendDataNew))
 		}
-		belogs.Info("TcpServer.activeSend(): send to connKey ok,  len(sendDataNew):", length, "   connKey: ", connKey,
+		belogs.Debug("TcpServer.activeSend(): send to connKey ok,  len(sendDataNew):", length, "   connKey: ", connKey,
 			"  tcptlsLengthDeclaration:", ts.tcptlsLengthDeclaration, "  time(s):", time.Since(start).Seconds())
 		return
 	}
