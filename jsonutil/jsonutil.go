@@ -76,7 +76,13 @@ var user1 = User{}
 UnmarshalJson(body1, &user1)
 */
 func UnmarshalJson(str string, f interface{}) error {
-	return UnmarshalJsonBytes([]byte(str), f)
+	if f == nil {
+		return errors.New("UnmarshalJson(): target object is nil")
+	}
+	if len(str) == 0 {
+		return errors.New("UnmarshalJson(): input data is empty")
+	}
+	return sonic.UnmarshalString(str, f) //UnmarshalJson([]byte(str), f)
 }
 func UnmarshalJsonBytes(data []byte, f interface{}) error {
 	if f == nil {
