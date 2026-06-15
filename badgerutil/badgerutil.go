@@ -218,6 +218,62 @@ func View[T any](key string) (T, bool, error) {
 	return result, true, err
 }
 
+// ViewBatch 批量读取多个 key，在一个 View 事务中完成
+// 返回值按 keys 顺序一一对应：values[i] 是 keys[i] 的值，exists[i] 表示是否找到
+func ViewBatch[T any](keys []string) ([]T, []bool, error) {
+	var zeroT T
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return nil, nil, errors.New("badgerDB is not initialized")
+	}
+	if len(keys) == 0 {
+		return []T{}, []bool{}, nil
+	}
+
+	values := make([]T, len(keys))
+	exists := make([]bool, len(keys))
+
+	err := badgerDB.View(func(txn *badger.Txn) error {
+		for i, key := range keys {
+			item, err := txn.Get([]byte(key))
+			if err != nil {
+				if err == badger.ErrKeyNotFound {
+					exists[i] = false
+					values[i] = zeroT
+					continue
+				}
+				belogs.Error("ViewBatch(): txn.Get fail, key:", key, "index:", i, err)
+				return err
+			}
+
+			val, err := item.ValueCopy(nil)
+			if err != nil {
+				belogs.Error("ViewBatch(): ValueCopy fail, key:", key, "index:", i, err)
+				return err
+			}
+			if len(val) == 0 {
+				exists[i] = false
+				values[i] = zeroT
+				continue
+			}
+
+			var result T
+			if err := jsonutil.UnmarshalJsonBytes(val, &result); err != nil {
+				belogs.Error("ViewBatch(): UnmarshalJsonBytes fail, key:", key,
+					"value:", string(val), err)
+				return err
+			}
+			values[i] = result
+			exists[i] = true
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, nil, err
+	}
+	return values, exists, nil
+}
+
 // Exists 判断key是否存在，不读取value，高性能
 func Exists(key string) (bool, error) {
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
