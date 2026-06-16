@@ -33,6 +33,8 @@ func Init(dbPath string) error {
 	var opts badger.Options
 	if dbPath == "memory" {
 		opts = badger.DefaultOptions("").WithInMemory(true) // 开启内存模式
+		opts = opts.WithValueThreshold(5 * 1024 * 1024)     // 5MB
+
 	} else {
 		err = os.MkdirAll(dbPath, os.ModePerm)
 		if err != nil {
@@ -42,12 +44,12 @@ func Init(dbPath string) error {
 			return err
 		}
 		opts = badger.DefaultOptions(dbPath)
+		opts = opts.WithValueThreshold(256 * 1024) // 磁盘模式保持 256KB
 	}
 	opts = opts.WithNumVersionsToKeep(1)
 	opts = opts.WithValueLogFileSize(256 << 20) // 256MB 单个文件日志文件 缩小 vlog 文件大小，便于后续 GC 回收
 	opts = opts.WithCompactL0OnClose(true)
 	opts = opts.WithCompression(options.Snappy) //(options.ZSTD)  Snappy比ZSTD 快 5-10 倍，压缩率稍低
-	opts = opts.WithValueThreshold(256 * 1024)  // 256KB以下的值内联存储
 	opts = opts.WithBlockCacheSize(2 << 30)     // 2GB块缓存
 	opts = opts.WithIndexCacheSize(512 << 20)   // 512MB索引缓存
 
