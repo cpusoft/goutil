@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/dgraph-io/badger/v4/options"
@@ -218,9 +219,12 @@ func View[T any](key string) (T, bool, error) {
 	return result, true, err
 }
 
-// ViewBatch 批量读取多个 key，在一个 View 事务中完成
+// []T 需要少于65535，如果大于，则调用ViewBatchPaged
+//
+// # ViewBatch 批量读取多个 key，在一个 View 事务中完成
+//
 // 返回值按 keys 顺序一一对应：values[i] 是 keys[i] 的值，exists[i] 表示是否找到
-func ViewBatch[T any](keys []string) ([]T, []bool, error) {
+func viewBatchImpl[T any](keys []string) ([]T, []bool, error) {
 	var zeroT T
 	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
 		return nil, nil, errors.New("badgerDB is not initialized")
@@ -241,13 +245,13 @@ func ViewBatch[T any](keys []string) ([]T, []bool, error) {
 					values[i] = zeroT
 					continue
 				}
-				belogs.Error("ViewBatch(): txn.Get fail, key:", key, "index:", i, err)
+				belogs.Error("viewBatchImpl(): txn.Get fail, key:", key, "index:", i, err)
 				return err
 			}
 
 			val, err := item.ValueCopy(nil)
 			if err != nil {
-				belogs.Error("ViewBatch(): ValueCopy fail, key:", key, "index:", i, err)
+				belogs.Error("viewBatchImpl(): ValueCopy fail, key:", key, "index:", i, err)
 				return err
 			}
 			if len(val) == 0 {
@@ -258,7 +262,7 @@ func ViewBatch[T any](keys []string) ([]T, []bool, error) {
 
 			var result T
 			if err := jsonutil.UnmarshalJsonBytes(val, &result); err != nil {
-				belogs.Error("ViewBatch(): UnmarshalJsonBytes fail, key:", key,
+				belogs.Error("viewBatchImpl(): UnmarshalJsonBytes fail, key:", key,
 					"value:", string(val), err)
 				return err
 			}
@@ -271,6 +275,37 @@ func ViewBatch[T any](keys []string) ([]T, []bool, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	return values, exists, nil
+}
+
+// ViewBatchPaged 分页批量读取，避免单事务大于65535
+//
+// 注意：返回的已经是全部值
+func ViewBatch[T any](keys []string) ([]T, []bool, error) {
+	pageSize := conf.DefaultInt("cache::badgerPageSize", 5000)
+	if pageSize <= 0 {
+		pageSize = 5000
+	}
+
+	values := make([]T, 0, len(keys))
+	exists := make([]bool, 0, len(keys))
+
+	for i := 0; i < len(keys); i += pageSize {
+		end := i + pageSize
+		if end > len(keys) {
+			end = len(keys)
+		}
+
+		pageValues, pageExists, err := ViewBatch[T](keys[i:end])
+		if err != nil {
+			belogs.Error("ViewBatch(): ViewBatch fail, page:", i/pageSize,
+				"range:", i, "-", end, err)
+			return nil, nil, err
+		}
+		values = append(values, pageValues...)
+		exists = append(exists, pageExists...)
+	}
+
 	return values, exists, nil
 }
 
