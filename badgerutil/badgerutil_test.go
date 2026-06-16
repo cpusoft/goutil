@@ -13,7 +13,7 @@ import (
 
 func TestKey(t *testing.T) {
 	Close()
-	err := Init("/root/rpki/data/cache")
+	err := Init("memory") //"/root/rpki/data/cache")
 	assert.NoError(t, err)
 	defer Close()
 

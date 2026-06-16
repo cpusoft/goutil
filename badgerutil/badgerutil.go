@@ -33,7 +33,7 @@ func Init(dbPath string) error {
 	var opts badger.Options
 	if dbPath == "memory" {
 		opts = badger.DefaultOptions("").WithInMemory(true) // 开启内存模式
-		opts = opts.WithValueThreshold(5 * 1024 * 1024)     // 5MB
+		opts = opts.WithValueThreshold(1048576)             // 1MB
 
 	} else {
 		err = os.MkdirAll(dbPath, os.ModePerm)
