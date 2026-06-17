@@ -298,9 +298,9 @@ func ViewBatch[T any](keys []string) ([]T, []bool, error) {
 			end = len(keys)
 		}
 
-		pageValues, pageExists, err := ViewBatch[T](keys[i:end])
+		pageValues, pageExists, err := viewBatchImpl[T](keys[i:end])
 		if err != nil {
-			belogs.Error("ViewBatch(): ViewBatch fail, page:", i/pageSize,
+			belogs.Error("ViewBatch(): viewBatchImpl fail, page:", i/pageSize,
 				"range:", i, "-", end, err)
 			return nil, nil, err
 		}
