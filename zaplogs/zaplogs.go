@@ -227,56 +227,82 @@ func appendInterface(ctx context.Context) (args []interface{}) {
 
 // Debug in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
 func DebugFields(ctx context.Context, msg string, fields ...Field) {
+	if !sugaredLogger.Desugar().Core().Enabled(zap.DebugLevel) {
+		return
+	}
 	fields = append(fields, appendZap(ctx)...)
 	logger.Debug(msg, fields...)
 }
 
 // Debug in Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
 func DebugArgs(ctx context.Context, msg string, args ...interface{}) {
+	// SugaredLogger 通常有 Level() 方法或可以直接检查
+	if !sugaredLogger.Desugar().Core().Enabled(zap.DebugLevel) {
+		return
+	}
+	args = append(args, appendInterface(ctx)...)
 	len := len(args) % 2
 	if len != 0 {
 		args = append(args, " ")
 	}
-	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Debugw(msg, args...)
 }
 
 // Debug in Line("msg","aaa","bbb", "id",33) -> msg aaa bbb id  33
 func DebugLine(ctx context.Context, msg string, args ...interface{}) {
+	// SugaredLogger 通常有 Level() 方法或可以直接检查
+	if !sugaredLogger.Desugar().Core().Enabled(zap.DebugLevel) {
+		return
+	}
 	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Debugw(msg + " " + convert.Interfaces2String(args))
 }
 
 // Warn in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
 func WarnFields(ctx context.Context, msg string, fields ...Field) {
+	if !sugaredLogger.Desugar().Core().Enabled(zap.WarnLevel) {
+		return
+	}
 	fields = append(fields, appendZap(ctx)...)
 	logger.Warn(msg, fields...)
 }
 
 // Warn in Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
 func WarnArgs(ctx context.Context, msg string, args ...interface{}) {
+	if !sugaredLogger.Desugar().Core().Enabled(zap.WarnLevel) {
+		return
+	}
+	args = append(args, appendInterface(ctx)...)
 	len := len(args) % 2
 	if len != 0 {
 		args = append(args, " ")
 	}
-	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Warnw(msg, args...)
 }
 
 // Warn in Line("msg","aaa","bbb", "id",33) -> msg aaa bbb id  33
 func WarnLine(ctx context.Context, msg string, args ...interface{}) {
+	if !sugaredLogger.Desugar().Core().Enabled(zap.WarnLevel) {
+		return
+	}
 	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Warnw(msg + " " + convert.Interfaces2String(args))
 }
 
 // Info in zapFields("msg", zap.String("aa","bb"), zap.Int("id",33)) -> ["aa","bb","id",33]
 func InfoFields(ctx context.Context, msg string, fields ...Field) {
+	if !sugaredLogger.Desugar().Core().Enabled(zap.InfoLevel) {
+		return
+	}
 	fields = append(fields, appendZap(ctx)...)
 	logger.Info(msg, fields...)
 }
 
 // Info wit Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
 func InfoArgs(ctx context.Context, msg string, args ...interface{}) {
+	if !sugaredLogger.Desugar().Core().Enabled(zap.InfoLevel) {
+		return
+	}
 	args = append(args, appendInterface(ctx)...)
 	len := len(args) % 2
 	if len != 0 {
@@ -287,6 +313,9 @@ func InfoArgs(ctx context.Context, msg string, args ...interface{}) {
 
 // Info in Line("msg","aaa","bbb", "id",33) -> msg aaa bbb id 33
 func InfoLine(ctx context.Context, msg string, args ...interface{}) {
+	if !sugaredLogger.Desugar().Core().Enabled(zap.InfoLevel) {
+		return
+	}
 	args = append(args, appendInterface(ctx)...)
 	sugaredLogger.Infow(msg + " " + convert.Interfaces2String(args))
 }
@@ -299,6 +328,9 @@ func ErrorFields(ctx context.Context, msg string, fields ...Field) {
 
 // Error wit Args("msg", "aaa","bbb", "id",33) -> ["aa","bb","id",33]
 func ErrorArgs(ctx context.Context, msg string, args ...interface{}) {
+	if !sugaredLogger.Desugar().Core().Enabled(zap.ErrorLevel) {
+		return
+	}
 	args = append(args, appendInterface(ctx)...)
 	len := len(args) % 2
 	if len != 0 {
