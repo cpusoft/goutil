@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/conf"
 	"github.com/cpusoft/goutil/jsonutil"
@@ -221,23 +222,54 @@ func View[T any](key string) (T, bool, error) {
 	return result, true, err
 }
 
-// []T 需要少于65535，如果大于，则调用ViewBatchPaged
+// 内部调用viewBatchImpl 分页批量读取，避免单事务过大
 //
-// # ViewBatch 批量读取多个 key，在一个 View 事务中完成
-//
-// 返回值按 keys 顺序一一对应：values[i] 是 keys[i] 的值，exists[i] 表示是否找到
-func viewBatchImpl[T any](keys []string) ([]T, []bool, error) {
-	var zeroT T
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return nil, nil, errors.New("badgerDB is not initialized")
-	}
+// 注意：返回的已经是全部值
+func ViewBatch[T any](keys []string) ([]T, []bool, error) {
+
 	if len(keys) == 0 {
 		return []T{}, []bool{}, nil
+	}
+	pageSize := conf.DefaultInt("cache::badgerPageSize", 500)
+	if pageSize <= 0 {
+		pageSize = 5000
 	}
 
 	values := make([]T, len(keys))
 	exists := make([]bool, len(keys))
 
+	for i := 0; i < len(keys); i += pageSize {
+		end := min(i+pageSize, len(keys))
+
+		err := viewBatchImpl(keys[i:end], values[i:end], exists[i:end])
+		if err != nil {
+			belogs.Error("ViewBatch(): viewBatchImpl fail, page:", i/pageSize,
+				"range:", i, "-", end, err)
+			return nil, nil, err
+		}
+	}
+
+	return values, exists, nil
+}
+
+var sonicCfg = sonic.ConfigStd
+
+// # 被ViewBatch调用， 批量读取多个 key，在一个 View 事务中完成
+//
+// 返回值按 keys 顺序一一对应：values[i] 是 keys[i] 的值，exists[i] 表示是否找到
+func viewBatchImpl[T any](keys []string, values []T, exists []bool) error {
+	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+		return errors.New("badgerDB is not initialized")
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+	if len(keys) != len(values) || len(keys) != len(exists) {
+		return errors.New("keys/values/exists length mismatch")
+	}
+
+	var zeroT T
+	rawValues := make([][]byte, len(keys))
 	err := badgerDB.View(func(txn *badger.Txn) error {
 		for i, key := range keys {
 			item, err := txn.Get([]byte(key))
@@ -262,53 +294,31 @@ func viewBatchImpl[T any](keys []string) ([]T, []bool, error) {
 				continue
 			}
 
-			var result T
-			if err := jsonutil.UnmarshalJsonBytes(val, &result); err != nil {
-				belogs.Error("viewBatchImpl(): UnmarshalJsonBytes fail, key:", key,
-					"value:", string(val), err)
-				return err
-			}
-			values[i] = result
+			// 只保存原始 bytes，不在事务内做 JSON 解析
+			rawValues[i] = val
 			exists[i] = true
 		}
 		return nil
 	})
-
 	if err != nil {
-		return nil, nil, err
-	}
-	return values, exists, nil
-}
-
-// ViewBatchPaged 分页批量读取，避免单事务大于65535
-//
-// 注意：返回的已经是全部值
-func ViewBatch[T any](keys []string) ([]T, []bool, error) {
-	pageSize := conf.DefaultInt("cache::badgerPageSize", 5000)
-	if pageSize <= 0 {
-		pageSize = 5000
+		belogs.Error("viewBatchImpl(): badgerDB.View fail", err)
+		return err
 	}
 
-	values := make([]T, 0, len(keys))
-	exists := make([]bool, 0, len(keys))
-
-	for i := 0; i < len(keys); i += pageSize {
-		end := i + pageSize
-		if end > len(keys) {
-			end = len(keys)
+	for i, raw := range rawValues {
+		if !exists[i] || len(raw) == 0 {
+			// 已在事务内处理过（KeyNotFound 或空值），跳过
+			continue
 		}
 
-		pageValues, pageExists, err := viewBatchImpl[T](keys[i:end])
-		if err != nil {
-			belogs.Error("ViewBatch(): viewBatchImpl fail, page:", i/pageSize,
-				"range:", i, "-", end, err)
-			return nil, nil, err
+		if err := sonicCfg.Unmarshal(raw, &values[i]); err != nil {
+			belogs.Error("viewBatchImpl(): sonicCfg.Unmarshal fail, key:", keys[i],
+				"value:", string(raw), err)
+			return err
 		}
-		values = append(values, pageValues...)
-		exists = append(exists, pageExists...)
+		rawValues[i] = nil
 	}
-
-	return values, exists, nil
+	return nil
 }
 
 // Exists 判断key是否存在，不读取value，高性能
