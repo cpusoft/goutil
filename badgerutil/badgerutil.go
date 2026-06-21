@@ -51,12 +51,12 @@ func Init(dbPath string) error {
 	opts = opts.WithValueLogFileSize(256 << 20) // 256MB 单个文件日志文件 缩小 vlog 文件大小，便于后续 GC 回收
 	opts = opts.WithCompactL0OnClose(true)
 	opts = opts.WithCompression(options.Snappy) //(options.ZSTD)  Snappy比ZSTD 快 5-10 倍，压缩率稍低
-	opts = opts.WithBlockCacheSize(2 << 30)     // 2GB块缓存
-	opts = opts.WithIndexCacheSize(512 << 20)   // 512MB索引缓存
+	opts = opts.WithBlockCacheSize(256 << 20)   // 256MB块缓存
+	opts = opts.WithIndexCacheSize(128 << 20)   // 128MB索引缓存
+	opts = opts.WithMemTableSize(64 << 20)      // 64MB内存表, <=小于系统内存/4
+	opts = opts.WithNumMemtables(4)             // cpunum个内存表
+	opts = opts.WithNumCompactors(3)            // 增加压缩器数量
 
-	opts = opts.WithMemTableSize(256 * 1024 * 1024) // 256MB内存表, <=小于系统内存/4
-	opts = opts.WithNumMemtables(runtime.NumCPU())  // cpunum个内存表
-	opts = opts.WithNumCompactors(runtime.NumCPU()) // 增加压缩器数量
 	opts = opts.WithSyncWrites(false)               // 关闭同步写，提升性能
 	opts = opts.WithNumLevelZeroTables(10)          // 增大L0表阈值，减少压缩触发
 	opts = opts.WithNumLevelZeroTablesStall(20)     // 增大stall阈值，避免写阻塞
