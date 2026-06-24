@@ -460,31 +460,45 @@ func FillAddressPrefixWithZero(addressPrefix string, ipType int) (addressPrefixF
 // fill address with zero:
 // 192.168 --> 192.168.0.0  2803:d380 --> 2803:d380::
 func FillAddressWithZero(address string, ipType int) (addressFill string, err error) {
+	belogs.Debug("FillAddressWithZero(): address:", address, "  ipType:", ipType)
 	if ipType == Ipv4Type {
+		// 修复：去掉末尾多余的 "."，避免 "192.168." 这种情况
+		address = strings.TrimSuffix(address, ".")
+
 		countComma := strings.Count(address, ".")
 		if countComma > 3 { // 新增：处理段数超过3的非法情况
 			return "", errors.New("ipv4 address has too many segments")
 		} else if countComma == 3 {
 			addressFill = address
 		} else if countComma < 3 {
-			addressFill = address + strings.Repeat(".0", net.IPv4len-countComma-1)
+			parts := strings.Split(address, ".")
+			missingParts := net.IPv4len - len(parts)
+			addressFill = address + strings.Repeat(".0", missingParts)
 		}
 		// 新增：校验填充后的IPv4是否合法
 		if net.ParseIP(addressFill).To4() == nil {
+			belogs.Error("FillAddressWithZero(): after is not ipv4, addressFill:", addressFill, "  address:", address, "  ipType:", ipType)
 			return "", errors.New("invalid ipv4 address after fill zero")
 		}
+		belogs.Debug("FillAddressWithZero(): after is ipv4, addressFill:", addressFill, "  address:", address, "  ipType:", ipType)
 		return addressFill, nil
 	} else if ipType == Ipv6Type {
 		// 修复：先补全不全的IPv6段为标准格式，再解析
 		addressCompleted := completeIPv6(address)
 		addr, err := netip.ParseAddr(addressCompleted)
 		if err != nil {
+			belogs.Error("FillAddressWithZero(): ParseAddr fail, addressCompleted:", addressCompleted,
+				"  address:", address, "  ipType:", ipType, err)
 			return "", err
 		}
 		if !addr.Is6() {
+			belogs.Error("FillAddressWithZero(): isnot ipv6, addressCompleted:", addressCompleted,
+				"   addr", addr, "  address:", address, "  ipType:", ipType)
 			return "", errors.New("invalid ipv6 address")
 		}
 		addressFill = addr.StringExpanded() // 转为全段格式（无压缩）
+		belogs.Debug("FillAddressWithZero(): StringExpanded,addressFill", addressFill,
+			" addressCompleted:", addressCompleted, "  address:", address, "  ipType:", ipType)
 		return addressFill, nil
 	} else {
 		return "", errors.New("illegal ipType")

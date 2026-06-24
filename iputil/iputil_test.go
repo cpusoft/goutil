@@ -176,11 +176,14 @@ func TestFillAddressWithZero(t *testing.T) {
 	}{
 		// IPv4 场景
 		{"IPv4 2 segments", "192.168", Ipv4Type, "192.168.0.0", false},
+		{"IPv4 2. segments", "192.168.", Ipv4Type, "192.168.0.0", false},
+		{"IPv4 2.0 segments", "173.27.100.0", Ipv4Type, "173.27.100.0", false},
 		{"IPv4 3 segments", "10.1.2", Ipv4Type, "10.1.2.0", false},
 		{"IPv4 full", "255.255.255.255", Ipv4Type, "255.255.255.255", false},
 		{"IPv4 over segments", "192.168.1.2.3", Ipv4Type, "", true},
 		// IPv6 场景
 		{"IPv6 2 segments", "2803:d380", Ipv6Type, "2803:d380:0000:0000:0000:0000:0000:0000", false},
+		{"IPv6 2:: segments", "2602:80f:9008::", Ipv6Type, "2602:080f:9008:0000:0000:0000:0000:0000", false},
 		{"IPv6 compressed", "::", Ipv6Type, "0000:0000:0000:0000:0000:0000:0000:0000", false},
 		{"IPv6 invalid", "2001:db8::g", Ipv6Type, "", true},
 		// 非法IP类型
