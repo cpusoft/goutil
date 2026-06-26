@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"runtime"
-	"sync/atomic"
 	"time"
 
 	"github.com/bytedance/sonic"
@@ -16,19 +15,14 @@ import (
 )
 
 var (
-	badgerDB    *badger.DB
-	initialized uint32
-	batchSize   = 1000 // 批量写入的大小
+// badgerDb *badger.DB
 )
 
 // if dbPath=="memory"，则使用内存模式;
 //
 // if dbPath!="memory"，则使用文件模式，路径为绝对路径dbPath
-func Init(dbPath string) error {
-	if !atomic.CompareAndSwapUint32(&initialized, 0, 1) {
-		return errors.New("badgerDB is already initialized")
-	}
-	var err error
+func Init(dbPath string) (badgerDb *badger.DB, err error) {
+
 	// 优化配置以适应高并发场景
 	// 如果 dbPath 是关键字 "memory"，则切换为纯内存模式
 	var opts badger.Options
@@ -40,9 +34,7 @@ func Init(dbPath string) error {
 		err = os.MkdirAll(dbPath, os.ModePerm)
 		if err != nil {
 			belogs.Error("Init(): MkdirAll fail, dbPath:", dbPath, err)
-			atomic.StoreUint32(&initialized, 0)
-			badgerDB = nil
-			return err
+			return nil, err
 		}
 		opts = badger.DefaultOptions(dbPath)
 		opts = opts.WithValueThreshold(256 * 1024) // 磁盘模式保持 256KB
@@ -62,56 +54,49 @@ func Init(dbPath string) error {
 	opts = opts.WithNumLevelZeroTablesStall(20)     // 增大stall阈值，避免写阻塞
 	opts = opts.WithNumGoroutines(runtime.NumCPU()) // 增加并发goroutine数量
 
-	badgerDB, err = badger.Open(opts)
+	badgerDb, err = badger.Open(opts)
 	if err != nil {
 		belogs.Error("Init(): Open with options fail, opts:", opts, err)
-		atomic.StoreUint32(&initialized, 0)
-		badgerDB = nil
-		return err
+		return nil, err
 	}
 
 	go func() {
 		ticker := time.NewTicker(30 * time.Minute)
 		defer ticker.Stop()
 		for range ticker.C {
-			if atomic.LoadUint32(&initialized) == 0 {
-				//return ticker
-				belogs.Debug("badgerDB.init(): close RunValueLogGC ticker")
-				return
-			}
-			if badgerDB == nil {
-				continue
+			if badgerDb == nil {
+				break
 			}
 			// 循环 GC 直到没有可回收文件
 			for {
-				err := badgerDB.RunValueLogGC(0.5) // 丢弃率 50%
+				err := badgerDb.RunValueLogGC(0.5) // 丢弃率 50%
 				if err == badger.ErrNoRewrite {
 					break // 无文件可GC
 				}
 				if err != nil {
-					belogs.Error("badgerDB.init(): RunValueLogGC fail", err)
+					belogs.Error("badgerDb.init(): RunValueLogGC fail", err)
 					break
 				}
 			}
 		}
 	}()
 
+	return badgerDb, nil
+}
+
+func Close(badgerDb *badger.DB) {
+	if badgerDb != nil {
+		badgerDb.RunValueLogGC(0.5)
+		badgerDb.Close()
+		badgerDb = nil
+	}
+}
+
+func DropAll(badgerDb *badger.DB) error {
+	if badgerDb != nil {
+		return badgerDb.DropAll()
+	}
 	return nil
-}
-
-func Close() {
-	if badgerDB != nil {
-		badgerDB.RunValueLogGC(0.5)
-		badgerDB.Close()
-	}
-	atomic.StoreUint32(&initialized, 0)
-}
-
-func DropAll() error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
-	}
-	return badgerDB.DropAll()
 }
 
 // //////////////////////////////////////////////////
@@ -119,11 +104,13 @@ func DropAll() error {
 // ///////////////////////////////////////////////////
 
 // expire: 过期时间（<=0表示永不过期）
-func Update[T any](key string, value T, expire time.Duration) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
+func Update[T any](badgerDb *badger.DB, key string, value T, expire time.Duration) error {
+	if badgerDb == nil {
+		return errors.New("badgerDb is not initialized")
 	}
-
+	if len(key) == 0 {
+		return errors.New("key is empty")
+	}
 	valueBytes := jsonutil.MarshalJsonBytes(value)
 	if valueBytes == nil {
 		return errors.New("failed to marshal value to JSON bytes")
@@ -132,7 +119,7 @@ func Update[T any](key string, value T, expire time.Duration) error {
 	if expire > 0 {
 		expireAt = uint64(time.Now().Add(expire).Unix())
 	}
-	return badgerDB.Update(func(txn *badger.Txn) error {
+	return badgerDb.Update(func(txn *badger.Txn) error {
 		entry := &badger.Entry{
 			Key:       []byte(key),
 			Value:     valueBytes,
@@ -145,12 +132,14 @@ func Update[T any](key string, value T, expire time.Duration) error {
 
 // updateWithTxn 内部方法：使用外部传入的事务更新数据，不对外暴露
 // 注意：此函数不会提交事务，仅在事务内执行设置操作，由调用方负责提交/回滚
-func UpdateWithTxn[T any](txn *badger.Txn, key string,
+func UpdateWithTxn[T any](badgerDb *badger.DB, txn *badger.Txn, key string,
 	value T, expireAt uint64) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || txn == nil {
-		return errors.New("badgerDB is not initialized")
+	if badgerDb == nil || txn == nil {
+		return errors.New("badgerDb is not initialized")
 	}
-
+	if len(key) == 0 {
+		return errors.New("key is empty")
+	}
 	valueBytes := jsonutil.MarshalJsonBytes(value)
 	if valueBytes == nil {
 		return errors.New("failed to marshal value to JSON bytes")
@@ -164,11 +153,13 @@ func UpdateWithTxn[T any](txn *badger.Txn, key string,
 }
 
 // UpdateWithBatch 内部方法：使用 WriteBatch 进行更新
-func UpdateWithBatch[T any](batch *badger.WriteBatch, key string, value T, expireAt uint64) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || batch == nil {
-		return errors.New("badgerDB is not initialized")
+func UpdateWithBatch[T any](badgerDb *badger.DB, batch *badger.WriteBatch, key string, value T, expireAt uint64) error {
+	if badgerDb == nil || batch == nil {
+		return errors.New("badgerDb or batch is not initialized")
 	}
-
+	if len(key) == 0 {
+		return errors.New("key is empty")
+	}
 	valueBytes := jsonutil.MarshalJsonBytes(value)
 	if valueBytes == nil {
 		return errors.New("failed to marshal value to JSON bytes")
@@ -184,13 +175,17 @@ func UpdateWithBatch[T any](batch *badger.WriteBatch, key string, value T, expir
 }
 
 // 返回值：value、是否找到、错误
-func View[T any](key string) (T, bool, error) {
+func View[T any](badgerDb *badger.DB, key string) (T, bool, error) {
 	var zero T
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return zero, false, errors.New("badgerDB is not initialized")
+	if badgerDb == nil {
+		return zero, false, errors.New("badgerDb is not initialized")
 	}
+	if len(key) == 0 {
+		return zero, false, errors.New("key is empty")
+	}
+
 	var value []byte
-	err := badgerDB.View(func(txn *badger.Txn) error {
+	err := badgerDb.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(key))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
@@ -225,8 +220,12 @@ func View[T any](key string) (T, bool, error) {
 // 内部调用viewBatchImpl 分页批量读取，避免单事务过大
 //
 // 注意：返回的已经是全部值
-func ViewBatch[T any](keys []string) ([]T, []bool, error) {
-
+func ViewBatch[T any](badgerDb *badger.DB, keys []string) ([]T, []bool, error) {
+	var zeros []T
+	var bools []bool
+	if badgerDb == nil {
+		return zeros, bools, errors.New("badgerDb is not initialized")
+	}
 	if len(keys) == 0 {
 		return []T{}, []bool{}, nil
 	}
@@ -241,7 +240,7 @@ func ViewBatch[T any](keys []string) ([]T, []bool, error) {
 	for i := 0; i < len(keys); i += pageSize {
 		end := min(i+pageSize, len(keys))
 
-		err := viewBatchImpl(keys[i:end], values[i:end], exists[i:end])
+		err := viewBatchImpl(badgerDb, keys[i:end], values[i:end], exists[i:end])
 		if err != nil {
 			belogs.Error("ViewBatch(): viewBatchImpl fail, page:", i/pageSize,
 				"range:", i, "-", end, err)
@@ -257,9 +256,9 @@ var sonicCfg = sonic.ConfigStd
 // # 被ViewBatch调用， 批量读取多个 key，在一个 View 事务中完成
 //
 // 返回值按 keys 顺序一一对应：values[i] 是 keys[i] 的值，exists[i] 表示是否找到
-func viewBatchImpl[T any](keys []string, values []T, exists []bool) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
+func viewBatchImpl[T any](badgerDb *badger.DB, keys []string, values []T, exists []bool) error {
+	if badgerDb == nil {
+		return errors.New("badgerDb is not initialized")
 	}
 	if len(keys) == 0 {
 		return nil
@@ -270,7 +269,7 @@ func viewBatchImpl[T any](keys []string, values []T, exists []bool) error {
 
 	var zeroT T
 	rawValues := make([][]byte, len(keys))
-	err := badgerDB.View(func(txn *badger.Txn) error {
+	err := badgerDb.View(func(txn *badger.Txn) error {
 		for i, key := range keys {
 			item, err := txn.Get([]byte(key))
 			if err != nil {
@@ -301,7 +300,7 @@ func viewBatchImpl[T any](keys []string, values []T, exists []bool) error {
 		return nil
 	})
 	if err != nil {
-		belogs.Error("viewBatchImpl(): badgerDB.View fail", err)
+		belogs.Error("viewBatchImpl(): badgerDb.View fail", err)
 		return err
 	}
 
@@ -322,13 +321,17 @@ func viewBatchImpl[T any](keys []string, values []T, exists []bool) error {
 }
 
 // Exists 判断key是否存在，不读取value，高性能
-func Exists(key string) (bool, error) {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return false, errors.New("badgerDB is not initialized")
+func Exists(badgerDb *badger.DB, key string) (bool, error) {
+	if badgerDb == nil {
+		return false, errors.New("badgerDb is not initialized")
+	}
+
+	if len(key) == 0 {
+		return false, errors.New("key is empty")
 	}
 
 	var exists bool
-	err := badgerDB.View(func(txn *badger.Txn) error {
+	err := badgerDb.View(func(txn *badger.Txn) error {
 		_, err := txn.Get([]byte(key))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
@@ -344,41 +347,54 @@ func Exists(key string) (bool, error) {
 	return exists, err
 }
 
-func Delete(key string) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
+func Delete(badgerDb *badger.DB, key string) error {
+	if badgerDb == nil {
+		return errors.New("badgerDb is not initialized")
 	}
-	return badgerDB.Update(func(txn *badger.Txn) error {
+	if len(key) == 0 {
+		return errors.New("key is empty")
+	}
+	return badgerDb.Update(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(key))
 	})
 }
-func DeleteWithTxn(txn *badger.Txn, key string) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || txn == nil {
-		return errors.New("badgerDB is not initialized")
+func DeleteWithTxn(badgerDb *badger.DB, txn *badger.Txn, key string) error {
+	if badgerDb == nil || txn == nil {
+		return errors.New("badgerDb or txn is not initialized")
+	}
+	if len(key) == 0 {
+		return errors.New("key is empty")
 	}
 	return txn.Delete([]byte(key))
 }
 
 // DeleteWithBatch 内部方法：使用 WriteBatch 进行删除
-func DeleteWithBatch(batch *badger.WriteBatch, key string) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || batch == nil {
-		return errors.New("badgerDB is not initialized")
+func DeleteWithBatch(badgerDb *badger.DB, batch *badger.WriteBatch, key string) error {
+	if badgerDb == nil || batch == nil {
+		return errors.New("badgerDb or batch is not initialized")
 	}
-
+	if len(key) == 0 {
+		return errors.New("key is empty")
+	}
 	return batch.Delete([]byte(key))
 }
 
 // limit: <=0表示不限制返回数量
-func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return nil, errors.New("badgerDB is not initialized")
+func PrefixView[T any](badgerDb *badger.DB, prefixStr string, limit int) ([]T, error) {
+	if badgerDb == nil {
+		return nil, errors.New("badgerDb is not initialized")
 	}
+	if len(prefixStr) == 0 {
+		return nil, errors.New("prefix is empty")
+	}
+
 	results := make([]T, 0)
 	prefix := []byte(prefixStr)
-	err := badgerDB.View(func(txn *badger.Txn) error {
+	err := badgerDb.View(func(txn *badger.Txn) error {
 		// 构建前缀迭代器
 		opts := badger.DefaultIteratorOptions
-		opts.PrefetchSize = 100 // 预取大小，优化性能
+		opts.PrefetchSize = 100  // 预取大小，优化性能
+		opts.AllVersions = false // 不读历史版本
 		opts.Prefix = prefix
 		it := txn.NewIterator(opts)
 		defer it.Close() // 确保迭代器关闭
@@ -419,16 +435,21 @@ func PrefixView[T any](prefixStr string, limit int) ([]T, error) {
 }
 
 // limit: <=0表示不限制返回数量
-func ViewKeyByPrefix(prefixStr string, limit int) ([]string, error) {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return nil, errors.New("badgerDB is not initialized")
+func ViewKeyByPrefix(badgerDb *badger.DB, prefixStr string, limit int) ([]string, error) {
+	if badgerDb == nil {
+		return nil, errors.New("badgerDb is not initialized")
 	}
+	if len(prefixStr) == 0 {
+		return nil, errors.New("prefix is empty")
+	}
+
 	keys := make([]string, 0)
 	prefix := []byte(prefixStr)
-	err := badgerDB.View(func(txn *badger.Txn) error {
+	err := badgerDb.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = false // 关键优化：不读Value
 		opts.AllVersions = false    // 不读历史版本
+		opts.Prefix = prefix
 		count := 0
 		it := txn.NewIterator(opts)
 		defer it.Close()
@@ -445,21 +466,21 @@ func ViewKeyByPrefix(prefixStr string, limit int) ([]string, error) {
 	return keys, err
 }
 
-func NewBatch() (*badger.WriteBatch, error) {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return nil, errors.New("badgerDB is not initialized")
+func NewBatch(badgerDb *badger.DB) (*badger.WriteBatch, error) {
+	if badgerDb == nil {
+		return nil, errors.New("badgerDb is not initialized")
 	}
-	return badgerDB.NewWriteBatch(), nil
+	return badgerDb.NewWriteBatch(), nil
 }
-func BatchCancel(batch *badger.WriteBatch) {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
+func BatchCancel(badgerDb *badger.DB, batch *badger.WriteBatch) {
+	if badgerDb == nil || batch == nil {
 		return
 	}
 	batch.Cancel()
 }
-func BatchFlush(batch *badger.WriteBatch) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
+func BatchFlush(badgerDb *badger.DB, batch *badger.WriteBatch) error {
+	if badgerDb == nil || batch == nil {
+		return errors.New("badgerDb or batch is not initialized")
 	}
 	if err := batch.Flush(); err != nil {
 		//	belogs.Error("Flush(): Flush final batch fail, err:", err)
@@ -475,8 +496,8 @@ func BatchFlush(batch *badger.WriteBatch) error {
 // Append 追加功能：key存在则将value追加到列表，不存在则直接存储（自动转为数组）
 // expire: 过期时间（<=0表示永不过期）
 func Append[T any](key string, value T, expire time.Duration) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
+	if atomic.LoadUint32(&initialized) == 0 || badgerDb == nil {
+		return errors.New("badgerDb is not initialized")
 	}
 
 	expireAt := uint64(0)
@@ -484,7 +505,7 @@ func Append[T any](key string, value T, expire time.Duration) error {
 		expireAt = uint64(time.Now().Add(expire).Unix())
 	}
 
-	return badgerDB.Update(func(txn *badger.Txn) error {
+	return badgerDb.Update(func(txn *badger.Txn) error {
 		var values []T
 		// 1. 查询key是否存在
 		item, err := txn.Get([]byte(key))
@@ -531,8 +552,8 @@ func Append[T any](key string, value T, expire time.Duration) error {
 // 注意：此函数不会提交事务，仅在事务内执行读写，由调用方负责提交/回滚
 func AppendWithTxn[T any](txn *badger.Txn,
 	key string, value T, expireAt uint64) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || txn == nil {
-		return errors.New("badgerDB is not initialized")
+	if atomic.LoadUint32(&initialized) == 0 || badgerDb == nil || txn == nil {
+		return errors.New("badgerDb is not initialized")
 	}
 
 	var values []T
@@ -583,8 +604,8 @@ func AppendWithTxn[T any](txn *badger.Txn,
 func AppendWithBatch[T any](batch *badger.WriteBatch,
 	key string, value T, expireAt uint64) error {
 
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil || batch == nil {
-		return errors.New("badgerDB is not initialized")
+	if atomic.LoadUint32(&initialized) == 0 || badgerDb == nil || batch == nil {
+		return errors.New("badgerDb is not initialized")
 	}
 
 	var values []T
@@ -592,7 +613,7 @@ func AppendWithBatch[T any](batch *badger.WriteBatch,
 	// ==============================================
 	// 🔥 内部自动创建只读事务，外部完全不用传！
 	// ==============================================
-	txn := badgerDB.NewTransaction(false)
+	txn := badgerDb.NewTransaction(false)
 	defer txn.Discard()
 
 	// 1. 查询 key 是否存在（内部 txn 读取）
@@ -655,8 +676,8 @@ func BatchUpdateByMultiKeys[T any](datas []T, expire time.Duration, batchSize in
 	mainKeyFunc func(T) string,
 	outerUpdateKeyFunc func(T) []string,
 	outerAppendKeyFunc func(T) []string) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
+	if atomic.LoadUint32(&initialized) == 0 || badgerDb == nil {
+		return errors.New("badgerDb is not initialized")
 	}
 	if batchSize <= 0 {
 		return errors.New("batchSize must be greater than 0")
@@ -679,7 +700,7 @@ func BatchUpdateByMultiKeys[T any](datas []T, expire time.Duration, batchSize in
 		expireAt = uint64(time.Now().Add(expire).Unix())
 	}
 
-	batch := badgerDB.NewWriteBatch()
+	batch := badgerDb.NewWriteBatch()
 	defer batch.Cancel()
 
 	for dataIdx, value := range datas {
@@ -726,7 +747,7 @@ func BatchUpdateByMultiKeys[T any](datas []T, expire time.Duration, batchSize in
 				return err
 			}
 			batch.Cancel()
-			batch = badgerDB.NewWriteBatch()
+			batch = badgerDb.NewWriteBatch()
 		}
 	}
 
@@ -747,15 +768,15 @@ func BatchUpdateByMultiKeys[T any](datas []T, expire time.Duration, batchSize in
 // outerKey: 外部查询键
 // 返回值：查询到的Value指针、错误信息
 func ViewByMultiKeys[T any](outerKey string) (*T, error) {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return nil, errors.New("badgerDB is not initialized")
+	if atomic.LoadUint32(&initialized) == 0 || badgerDb == nil {
+		return nil, errors.New("badgerDb is not initialized")
 	}
 	if outerKey == "" {
 		return nil, errors.New("outerKey cannot be empty")
 	}
 
 	var result T
-	err := badgerDB.View(func(txn *badger.Txn) error {
+	err := badgerDb.View(func(txn *badger.Txn) error {
 		mainKeyItem, err := txn.Get([]byte(outerKey))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
@@ -811,11 +832,11 @@ func ViewByMultiKeys[T any](outerKey string) (*T, error) {
 // 2. 删除 mainKey 对应的真实 value 数据
 // 3. 遍历并删除所有 value = mainKey 的 outerKey（完整清理）
 func DeleteByMultiKeys(outerKey string) error {
-	if atomic.LoadUint32(&initialized) == 0 || badgerDB == nil {
-		return errors.New("badgerDB is not initialized")
+	if atomic.LoadUint32(&initialized) == 0 || badgerDb == nil {
+		return errors.New("badgerDb is not initialized")
 	}
 
-	return badgerDB.Update(func(txn *badger.Txn) error {
+	return badgerDb.Update(func(txn *badger.Txn) error {
 		mainKeyItem, err := txn.Get([]byte(outerKey))
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
