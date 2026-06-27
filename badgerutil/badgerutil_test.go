@@ -32,7 +32,7 @@ type TestConfig struct {
 // getTestDBPath 获取测试数据库路径
 func getTestDBPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(os.TempDir(), fmt.Sprintf("badger_test_%d_%d", time.Now().UnixNano(), t.Name()))
+	return filepath.Join(os.TempDir(), fmt.Sprintf("badger_test_%d_%s", time.Now().UnixNano(), t.Name()))
 }
 
 // cleanupTestDB 清理测试数据库
