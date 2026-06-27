@@ -1,6 +1,7 @@
 package xormdb
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net"
@@ -10,7 +11,9 @@ import (
 	"github.com/cpusoft/goutil/conf"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
+
+	//_ "github.com/mattn/go-sqlite3"
+	"modernc.org/sqlite"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 )
@@ -123,6 +126,8 @@ func InitSqliteParameter(sqliteFilePath string, maxidleconns, maxopenconns int) 
 		belogs.Error("InitSqliteParameter(): fail, maxidleconns or maxopenconns is negative, maxidleconns:", maxidleconns, " maxopenconns:", maxopenconns)
 		return nil, fmt.Errorf("maxidleconns or maxopenconns is negative")
 	}
+	// 将 modernc.org/sqlite 注册为 "sqlite3" 以兼容 xorm
+	sql.Register("sqlite3", &sqlite.Driver{})
 
 	// 连接数据库
 	engine, err = xorm.NewEngine("sqlite3", sqliteFilePath)
