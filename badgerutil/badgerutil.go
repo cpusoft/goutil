@@ -14,10 +14,6 @@ import (
 	"github.com/dgraph-io/badger/v4/options"
 )
 
-var (
-// badgerDb *badger.DB
-)
-
 // if dbPath=="memory"，则使用内存模式;
 //
 // if dbPath!="memory"，则使用文件模式，路径为绝对路径dbPath
