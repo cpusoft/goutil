@@ -3,14 +3,17 @@ package rrdputil
 import (
 	"errors"
 	"net/http"
+	"os"
 	"runtime"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/cpusoft/goutil/base64util"
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
+	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/hashutil"
 	"github.com/cpusoft/goutil/httpclient"
 	"github.com/cpusoft/goutil/jsonutil"
@@ -461,61 +464,222 @@ func convertDeltaPublishToRrdpFile(deltaModel *DeltaModel, deltaPublish *DeltaPu
 	belogs.Debug("convertDeltaPublishToRrdpFile(): rrdpFile:", jsonutil.MarshalJson(rrdpFile), "  deltaModel.DeltaUrl", deltaModel.DeltaUrl,
 		"    deltaPublish.Uri", deltaPublish.Uri)
 	return rrdpFile, nil
-	/*
-	   filePathName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
 
-	   	if err != nil {
-	   		belogs.Error("convertDeltasToRrdpFiles(): JoinPrefixPathAndUrlFileName fail, uri:",
-	   			uri, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)
-	   		return nil, err
-	   	}
+}
 
-	   	// if dir is notexist ,then mkdir
-	   	dir, file := osutil.Split(filePathName)
-	   	if !fileutil.CheckPathNameMaxLength(dir) {
-	   		belogs.Error("convertDeltasToRrdpFiles(): Publish CheckPathNameMaxLength fail,dir:", dir)
-	   		return nil, errors.New("Publish path name is too long")
-	   	}
-	   	if !fileutil.CheckFileNameMaxLength(file) {
-	   		belogs.Error("convertDeltasToRrdpFiles(): Publish CheckFileNameMaxLength fail,file:", file)
-	   		return nil, errors.New("Publish file name is too long")
-	   	}
+// Deprecated: 兼容旧代码，不再添加新功能
+func SaveRrdpDeltasToRrdpFiles(deltaModels []DeltaModel, notifyUrl, destPath string) (rrdpFilesAll []RrdpFile, err error) {
 
-	   	isExist, err := osutil.IsExists(dir)
-	   	if err != nil {
-	   		belogs.Error("convertDeltasToRrdpFiles(): Publish ReadDir fail:", dir, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)
-	   		return nil, err
-	   	}
-	   	if !isExist {
-	   		err = os.MkdirAll(dir, os.ModePerm)
-	   		if err != nil {
-	   			belogs.Error("convertDeltasToRrdpFiles(): Publish MkdirAll fail:", dir, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
-	   				err)
-	   			return nil, err
-	   		}
-	   	}
+	rrdpFilesAll = make([]RrdpFile, 0)
+	rrdpUris := make(map[string]uint64, len(deltaModels)+20)
+	// from latest to oldest
+	// will use latest serial delta, and ignore same url files in older serial delta
+	for i := range deltaModels {
+		// save publish files and remove withdraw files
+		rrdpFiles, err := saveRrdpDeltaToRrdpFiles(&deltaModels[i], rrdpUris, destPath)
+		if err != nil {
+			belogs.Error("processRrdpDelta(): saveRrdpDeltaToRrdpFiles fail, notifyUrl:", notifyUrl,
+				"   deltaModels[i].SessionId:", deltaModels[i].SessionId,
+				"   deltaModels[i].Serial:", deltaModels[i].Serial, "   deltaModels[i].DeltaUrl:", deltaModels[i].DeltaUrl,
+				"   snapshotDeltaResult.DestPath: ", destPath, err)
+			return nil, err
+		}
+		// add to head
+		rrdpFilesAll = append(rrdpFiles, rrdpFilesAll...)
+	}
+	return rrdpFilesAll, nil
+}
 
-	   	// decode base65 to bytes
-	   	bytes, err := base64util.DecodeBase64(strings.TrimSpace(deltaModel.DeltaPublishs[i].Base64))
-	   	if err != nil {
-	   		belogs.Error("convertDeltasToRrdpFiles():Publish DecodeBase64 fail:",
-	   			"  deltaModel.Serial:", deltaModel.Serial,
-	   			"  deltaModel.DeltaPublishs[i].Uri:", uri,
-	   			"  deltaModel.DeltaPublishs[i].Base64:", deltaModel.DeltaPublishs[i].Base64,
-	   			"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)
-	   		return nil, err
-	   	}
+// Deprecated: 兼容旧代码，不再添加新功能
+//
+// repoPath --> conf.String("rrdp::reporrdp"): /root/rpki/data/reporrdp
+func saveRrdpDeltaToRrdpFiles(deltaModel *DeltaModel, rrdpUris map[string]uint64, repoPath string) (rrdpFiles []RrdpFile, err error) {
 
-	   	err = fileutil.WriteBytesToFile(filePathName, bytes)
-	   	if err != nil {
-	   		belogs.Error("convertDeltasToRrdpFiles():Publish WriteBytesToFile fail:",
-	   			"  deltaModel.Serial:", deltaModel.Serial,
-	   			"  deltaModel.DeltaPublishs[i].Uri:", uri,
-	   			"  filePathName:", filePathName,
-	   			"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
-	   			"  len(bytes):", len(bytes),
-	   			err)
-	   		return nil, err
-	   	}
-	*/
+	// delta may have no publishes and no withdraws
+	if deltaModel == nil || (len(deltaModel.DeltaPublishs) == 0 && len(deltaModel.DeltaWithdraws) == 0) {
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): len(snapshotModel.DeltaPublishs)==0 && len(deltaModel.DeltaWithdraws)==0, deltaModel:",
+			jsonutil.MarshalJson(deltaModel), "   repoPath:", repoPath)
+		return rrdpFiles, nil
+	}
+	belogs.Info("saveRrdpDeltaToRrdpFiles():serial:", deltaModel.Serial,
+		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
+		"   len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
+		"   len(rrdpUris):", len(rrdpUris), "    repoPath:", repoPath)
+	if len(deltaModel.DeltaWithdraws) > 0 {
+		belogs.Info("saveRrdpDeltaToRrdpFiles():len(deltaModel.DeltaWithdraws)>0, deltaModel:", jsonutil.MarshalJson(deltaModel))
+	}
+	rrdpFiles = make([]RrdpFile, 0, len(deltaModel.DeltaWithdraws)+len(deltaModel.DeltaPublishs))
+
+	// first , del withdraw files
+	for i := range deltaModel.DeltaWithdraws {
+		uri := deltaModel.DeltaWithdraws[i].Uri
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws, uri:", uri)
+		if v, ok := rrdpUris[uri]; ok {
+			belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws in rrdpUris , uri:", uri,
+				"    this:", jsonutil.MarshalJson(deltaModel.DeltaWithdraws[i]),
+				"    last:", jsonutil.MarshalJson(v))
+			continue
+		} else {
+			rrdpUris[uri] = deltaModel.Serial
+		}
+
+		filePathName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
+		if err != nil {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws JoinPrefixPathAndUrlFileName fail,uri:", uri, err)
+			return nil, err
+		}
+
+		// if in this dir, no more files, then del dir
+		// will ignore error
+		dir, file := osutil.Split(filePathName)
+		if !fileutil.CheckPathNameMaxLength(dir) {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws CheckPathNameMaxLength fail,dir:", dir)
+			return nil, errors.New("DeltaWithdraw path name is too long")
+		}
+		if !fileutil.CheckFileNameMaxLength(file) {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws CheckFileNameMaxLength fail,file:", file)
+			return nil, errors.New("DeltaWithdraw file name is too long")
+		}
+		files, err := os.ReadDir(dir)
+		belogs.Info("saveRrdpDeltaToRrdpFiles():DeltaWithdraws will remove filePathName, uri:", uri,
+			"  	filePathName:", filePathName, "   dir:", dir,
+			"   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+			"   err:", err)
+		exist, err := osutil.IsExists(filePathName)
+		if err != nil {
+			belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws IsExists filePathName fail:", filePathName,
+				"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+				"   err:", err)
+			// ignore return
+		}
+		if exist {
+			err = os.Remove(filePathName)
+			if err != nil {
+				belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws remove filePathName fail:", filePathName,
+					"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+					"   err:", err)
+				// ignore return
+			}
+		}
+		if len(files) == 0 {
+			err = os.RemoveAll(dir)
+			if err != nil {
+				belogs.Error("saveRrdpDeltaToRrdpFiles():DeltaWithdraws RemoveAll dir fail:", filePathName,
+					"   dir:", dir, "   files:", len(files), "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+					"   err:", err)
+				// ignore return
+			}
+		}
+
+		rrdpFile := RrdpFile{
+			FilePath:  dir,
+			FileName:  file,
+			FileUri:   uri,
+			SyncType:  "del",
+			SourceUrl: deltaModel.DeltaUrl,
+			Serial:    deltaModel.Serial,
+		}
+		belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws, del filePathName:", filePathName,
+			"    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+			"    rrdpFile:", jsonutil.MarshalJson(rrdpFile), "  ok")
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaWithdraws,  filePathName:", filePathName,
+			"   dir:", dir, "   rrdpFile:", jsonutil.MarshalJson(rrdpFile),
+			"   deltaModel.DeltaUrl:", deltaModel.DeltaUrl, "  ok")
+
+		rrdpFiles = append(rrdpFiles, rrdpFile)
+	}
+	belogs.Info("saveRrdpDeltaToRrdpFiles():after DeltaWithdraws, len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
+		"   len(rrdpFiles):", len(rrdpFiles), "   len(rrdpUris):", len(rrdpUris))
+
+	// seconde, save publish files
+	for i := range deltaModel.DeltaPublishs {
+		uri := deltaModel.DeltaPublishs[i].Uri
+		belogs.Debug("saveRrdpDeltaToRrdpFiles(): DeltaPublishs, uri:", uri)
+		if v, ok := rrdpUris[uri]; ok {
+			belogs.Info("saveRrdpDeltaToRrdpFiles(): DeltaPublishs in rrdpUris, uri:", uri,
+				"    this:", jsonutil.MarshalJson(deltaModel.DeltaPublishs[i]),
+				"    last:", jsonutil.MarshalJson(v))
+			continue
+		} else {
+			rrdpUris[uri] = deltaModel.Serial
+		}
+
+		// get absolute dir /dest/***/***/**.**
+		filePathName, err := urlutil.JoinPrefixPathAndUrlFileName(repoPath, uri)
+		if err != nil {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): JoinPrefixPathAndUrlFileName fail, uri:",
+				uri, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)
+			return nil, err
+		}
+
+		// if dir is notexist ,then mkdir
+		dir, file := osutil.Split(filePathName)
+		if !fileutil.CheckPathNameMaxLength(dir) {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): Publish CheckPathNameMaxLength fail,dir:", dir)
+			return nil, errors.New("Publish path name is too long")
+		}
+		if !fileutil.CheckFileNameMaxLength(file) {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): Publish CheckFileNameMaxLength fail,file:", file)
+			return nil, errors.New("Publish file name is too long")
+		}
+
+		isExist, err := osutil.IsExists(dir)
+		if err != nil {
+			belogs.Error("saveRrdpDeltaToRrdpFiles(): Publish ReadDir fail:", dir, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)
+			return nil, err
+		}
+		if !isExist {
+			err = os.MkdirAll(dir, os.ModePerm)
+			if err != nil {
+				belogs.Error("saveRrdpDeltaToRrdpFiles(): Publish MkdirAll fail:", dir, "    deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+					err)
+				return nil, err
+			}
+		}
+
+		// decode base65 to bytes
+		bytes, err := base64util.DecodeBase64(strings.TrimSpace(deltaModel.DeltaPublishs[i].Base64))
+		if err != nil {
+			belogs.Error("saveRrdpDeltaToRrdpFiles():Publish DecodeBase64 fail:",
+				"  deltaModel.Serial:", deltaModel.Serial,
+				"  deltaModel.DeltaPublishs[i].Uri:", uri,
+				"  deltaModel.DeltaPublishs[i].Base64:", deltaModel.DeltaPublishs[i].Base64,
+				"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl, err)
+			return nil, err
+		}
+
+		err = fileutil.WriteBytesToFile(filePathName, bytes)
+		if err != nil {
+			belogs.Error("saveRrdpDeltaToRrdpFiles():Publish WriteBytesToFile fail:",
+				"  deltaModel.Serial:", deltaModel.Serial,
+				"  deltaModel.DeltaPublishs[i].Uri:", uri,
+				"  filePathName:", filePathName,
+				"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+				"  len(bytes):", len(bytes),
+				err)
+			return nil, err
+		}
+
+		// some rrdp have no withdraw, only publish, so change to update to del old in db
+		rrdpFile := RrdpFile{
+			FilePath: dir,
+			FileName: file,
+			FileUri:  uri,
+			//SyncType: "add",
+			SyncType:  "update",
+			SourceUrl: deltaModel.DeltaUrl,
+			Serial:    deltaModel.Serial,
+		}
+		belogs.Info("saveRrdpDeltaToRrdpFiles(): Publish, update filePathName:", filePathName,
+			"  deltaModel.DeltaUrl:", deltaModel.DeltaUrl,
+			"  rrdpFile:", jsonutil.MarshalJson(rrdpFile), "  ok")
+		belogs.Debug("saveRrdpDeltaToRrdpFiles():Publish update rrdpFile ", jsonutil.MarshalJson(rrdpFile), "  ok")
+		rrdpFiles = append(rrdpFiles, rrdpFile)
+	}
+	belogs.Info("saveRrdpDeltaToRrdpFiles(): after all, len(deltaModel.DeltaWithdraws):", len(deltaModel.DeltaWithdraws),
+		"   len(deltaModel.DeltaPublishs):", len(deltaModel.DeltaPublishs),
+		"   len(rrdpFiles): ", len(rrdpFiles), "   len(rrdpUris):", len(rrdpUris))
+	belogs.Debug("saveRrdpDeltaToRrdpFiles(): save rrdpFiles: ", jsonutil.MarshalJson(rrdpFiles))
+	return rrdpFiles, nil
+
 }
