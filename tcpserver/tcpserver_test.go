@@ -24,6 +24,7 @@ func (spf *Server1ProcessFunc) OnConnect(conn *net.TCPConn) (err error) {
 func (spf *Server1ProcessFunc) PreCheckConn(conn *net.TCPConn) error {
 	// 这里可以添加连接前的检查逻辑，例如IP白名单、连接速率限制等
 	// 返回非nil错误将拒绝连接
+	fmt.Println("Server1ProcessFunc.PreCheckConn(): ok ", conn.RemoteAddr())
 	return nil
 }
 func (spf *Server1ProcessFunc) OnReceiveAndSend(conn *net.TCPConn, receiveData []byte) (err error) {

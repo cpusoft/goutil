@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"reflect"
 	"sync"
 	"time"
 
@@ -229,7 +230,7 @@ func (ts *TcpServer) acceptConnections() {
 		//tcpConn, ok := conn.(*net.TCPConn)
 		tcpConn, ok := getUnderlyingTCPConn(conn)
 		if !ok {
-			belogs.Error("Connection is not TCPConn")
+			belogs.Error("Connection is not TCPConn, type:", reflect.TypeOf(conn))
 			_ = conn.Close()
 			continue
 		}
@@ -249,7 +250,12 @@ func getUnderlyingTCPConn(conn net.Conn) (*net.TCPConn, bool) {
 		case *net.TCPConn:
 			return c, true
 		case *tls.Conn:
-			conn = c.NetConn()
+			inner := c.NetConn()
+			if tcpConn, ok := inner.(*net.TCPConn); ok {
+				return tcpConn, true
+			}
+			// 如果底层不是 TCPConn，尝试继续 unwrap（理论上不会发生）
+			conn = inner
 		default:
 			return nil, false
 		}
