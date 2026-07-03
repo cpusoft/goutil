@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"sync"
 	"time"
 
@@ -152,10 +153,10 @@ func (tc *TcpClient) Start(addr string) error {
 	}
 
 	// 转换为TCPConn
-	tcpConn, ok := conn.(*net.TCPConn)
+	tcpConn, ok := getUnderlyingTCPConn(conn)
 	if !ok {
 		conn.Close()
-		belogs.Error("TcpClient.Start(): connection is not TCPConn")
+		belogs.Error("TcpClient.Start(): connection is not TCPConn, type:", reflect.TypeOf(conn))
 		return fmt.Errorf("connection is not TCPConn")
 	}
 	tc.conn = tcpConn

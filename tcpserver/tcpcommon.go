@@ -3,7 +3,26 @@ package tcpserver
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 )
+
+func getUnderlyingTCPConn(conn net.Conn) (*net.TCPConn, bool) {
+	for {
+		switch c := conn.(type) {
+		case *net.TCPConn:
+			return c, true
+		case *tls.Conn:
+			inner := c.NetConn()
+			if tcpConn, ok := inner.(*net.TCPConn); ok {
+				return tcpConn, true
+			}
+			// 如果底层不是 TCPConn，尝试继续 unwrap（理论上不会发生）
+			conn = inner
+		default:
+			return nil, false
+		}
+	}
+}
 
 // 辅助函数：TLS版本转字符串
 func tlsVersionToString(version uint16) string {

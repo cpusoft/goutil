@@ -244,23 +244,6 @@ func (ts *TcpServer) acceptConnections() {
 		go ts.handleConn(tcpConn)
 	}
 }
-func getUnderlyingTCPConn(conn net.Conn) (*net.TCPConn, bool) {
-	for {
-		switch c := conn.(type) {
-		case *net.TCPConn:
-			return c, true
-		case *tls.Conn:
-			inner := c.NetConn()
-			if tcpConn, ok := inner.(*net.TCPConn); ok {
-				return tcpConn, true
-			}
-			// 如果底层不是 TCPConn，尝试继续 unwrap（理论上不会发生）
-			conn = inner
-		default:
-			return nil, false
-		}
-	}
-}
 
 // handleConnection 处理单个连接
 func (ts *TcpServer) preCheckConn(conn *net.TCPConn) error {
