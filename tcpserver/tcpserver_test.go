@@ -54,8 +54,8 @@ func (spf *Server1ProcessFunc) ActiveSend(conn *net.TCPConn, sendData []byte) (e
 func TestCreateTcpServer(t *testing.T) {
 	serverProcessFunc := new(Server1ProcessFunc)
 	tlsServerCfg := &ServerTLSConfig{
-		ServerCertFile: `/tmp/rtrclient.crt`,
-		ServerKeyFile:  `/tmp/rtrclient.key`,
+		ServerCertFile: `/tmp/rtrserver.crt`,
+		ServerKeyFile:  `/tmp/rtrserver.key`,
 		RootCAFile:     `/tmp/rtrca.crt`,
 		ClientAuth:     tls.RequestClientCert, //   tls.RequireAndVerifyClientCert, // tls.NoClientCert,
 	}
