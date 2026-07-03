@@ -1,4 +1,4 @@
-package tcpserver
+package tcptlsutil
 
 import (
 	"fmt"
@@ -11,9 +11,8 @@ import (
 type ClientProcessFunc struct {
 }
 
-func (cp *ClientProcessFunc) ActiveSend(conn *net.TCPConn, tcpClientProcessChan string) (err error) {
-
-	fmt.Println("ActiveSend ActiveSendAndReceive will write tcpClientProcessChan:", tcpClientProcessChan)
+func (cp *ClientProcessFunc) ActiveSend(conn net.Conn, tcpClientProcessChan string) (err error) {
+	fmt.Println("ActiveSend will write:", tcpClientProcessChan)
 	buffer := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x00, 0x00, 0x07, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x00, 0x00, 0x07,
 		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x00, 0x00, 0x07, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x00, 0x00, 0x07,
 		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x00, 0x00, 0x07, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x00, 0x00, 0x07,
@@ -178,9 +177,8 @@ func (cp *ClientProcessFunc) ActiveSend(conn *net.TCPConn, tcpClientProcessChan 
 	return nil
 }
 
-func (sq *ClientProcessFunc) OnReceive(conn *net.TCPConn, receiveData []byte) (err error) {
-
-	fmt.Println("OnReceive :", conn, convert.Bytes2String(receiveData))
+func (sq *ClientProcessFunc) OnReceive(conn net.Conn, receiveData []byte) (err error) {
+	fmt.Println("OnReceive :", conn.RemoteAddr(), convert.Bytes2String(receiveData))
 	return nil
 }
 
@@ -188,8 +186,15 @@ func TestCreateTcpClient(t *testing.T) {
 	clientProcessFunc := new(ClientProcessFunc)
 
 	//CreateTcpClient("127.0.0.1:9999", ClientProcess1)
-	tc := NewTcpClient(clientProcessFunc)
-	err := tc.Start("192.168.83.139:9999")
+	tlsClientCfg := &ClientTLSConfig{
+		ClientCertFile:     `/tmp/rtrclient.crt`,
+		ClientKeyFile:      `/tmp/rtrclient.key`,
+		RootCAFile:         `/tmp/rtrca.crt`,
+		InsecureSkipVerify: true, //   tls.RequireAndVerifyClientCert, // tls.NoClientCert,
+	}
+
+	tc := NewTcpClient(clientProcessFunc, WithClientTLS(tlsClientCfg))
+	err := tc.Start("127.0.0.1:9999")
 	fmt.Println("tc:", tc, err)
 	if err != nil {
 		return
