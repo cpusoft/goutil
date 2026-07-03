@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"reflect"
 	"sync"
 	"time"
 
@@ -17,11 +16,11 @@ import (
 
 // TcpServerProcessFunc 服务器业务回调接口
 type TcpServerProcessFunc interface {
-	OnConnect(conn *net.TCPConn) (err error)
-	PreCheckConn(conn *net.TCPConn) (err error)
-	OnReceiveAndSend(conn *net.TCPConn, receiveData []byte) (err error)
-	OnClose(conn *net.TCPConn)
-	ActiveSend(conn *net.TCPConn, sendData []byte) (err error)
+	OnConnect(conn net.Conn) (err error)
+	PreCheckConn(conn net.Conn) (err error)
+	OnReceiveAndSend(conn net.Conn, receiveData []byte) (err error)
+	OnClose(conn net.Conn)
+	ActiveSend(conn net.Conn, sendData []byte) (err error)
 }
 
 // ServerTLSConfig 服务端TLS配置
@@ -57,8 +56,8 @@ type TcpServer struct {
 	closed bool
 
 	// 新增：客户端连接管理
-	tcpConns      map[string]*net.TCPConn // key: 客户端地址(RemoteAddr().String())
-	tcpConnsMutex sync.RWMutex            // 读写锁，支持高并发读写
+	conns      map[string]net.Conn // 改为 net.Conn, key: 客户端地址(RemoteAddr().String())
+	connsMutex sync.RWMutex        // 读写锁，支持高并发读写
 }
 
 // NewTcpServer 创建服务器实例
@@ -69,7 +68,7 @@ func NewTcpServer(processFunc TcpServerProcessFunc, opts ...ServerOption) *TcpSe
 		readTimeout:  30 * time.Second,
 		writeTimeout: 30 * time.Second,
 		closed:       false,
-		tcpConns:     make(map[string]*net.TCPConn), // 初始化连接映射表
+		conns:        make(map[string]net.Conn), // 初始化连接映射表
 	}
 	for _, opt := range opts {
 		opt(ts)
@@ -226,29 +225,19 @@ func (ts *TcpServer) acceptConnections() {
 			}
 		}
 
-		// 转换为TCPConn
-		//tcpConn, ok := conn.(*net.TCPConn)
-		tcpConn, ok := getUnderlyingTCPConn(conn)
-		if !ok {
-			belogs.Error("Connection is not TCPConn, type:", reflect.TypeOf(conn))
-			_ = conn.Close()
-			continue
-		}
-		if err := ts.preCheckConn(tcpConn); err != nil {
+		// 不再解包，直接传递 net.Conn
+		if err := ts.preCheckConn(conn); err != nil {
 			belogs.Error("Connection preCheckConn failed:", err)
 			_ = conn.Close()
 			continue
 		}
 
-		// 处理连接
-		go ts.handleConn(tcpConn)
+		go ts.handleConn(conn)
 	}
 }
 
 // handleConnection 处理单个连接
-func (ts *TcpServer) preCheckConn(conn *net.TCPConn) error {
-
-	// 触发连接回调
+func (ts *TcpServer) preCheckConn(conn net.Conn) error {
 	if ts.processFunc != nil {
 		return ts.processFunc.PreCheckConn(conn)
 	}
@@ -256,15 +245,14 @@ func (ts *TcpServer) preCheckConn(conn *net.TCPConn) error {
 }
 
 // handleConnection 处理单个连接
-func (ts *TcpServer) handleConn(conn *net.TCPConn) {
+func (ts *TcpServer) handleConn(conn net.Conn) {
 	clientAddr := conn.RemoteAddr().String()
-	ts.tcpConnsMutex.Lock()
-	ts.tcpConns[clientAddr] = conn
-	ts.tcpConnsMutex.Unlock()
+	ts.connsMutex.Lock()
+	ts.conns[clientAddr] = conn
+	ts.connsMutex.Unlock()
 	belogs.Info("TcpServer.handleConn(): Add new connection, client:",
 		clientAddr, " total connections:", ts.GetConnCount())
 
-	// 触发连接回调
 	if ts.processFunc != nil {
 		ts.processFunc.OnConnect(conn)
 	}
@@ -272,11 +260,9 @@ func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 	buf := make([]byte, 4096)
 	defer func() {
 		conn.Close()
-
-		ts.tcpConnsMutex.Lock()
-		delete(ts.tcpConns, clientAddr)
-		ts.tcpConnsMutex.Unlock()
-
+		ts.connsMutex.Lock()
+		delete(ts.conns, clientAddr)
+		ts.connsMutex.Unlock()
 		if ts.processFunc != nil {
 			ts.processFunc.OnClose(conn)
 		}
@@ -284,12 +270,10 @@ func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 
 	for {
 		if ts.setReadTimeout {
-			//belogs.Debug("handleConn(): set read timeout ", ts.readTimeout)
 			conn.SetReadDeadline(time.Now().Add(ts.readTimeout))
 		}
 		n, err := conn.Read(buf)
 		if err != nil {
-			// 正常关闭不打印错误
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				belogs.Info("TcpServer.handleConn(): read timeout so close", err)
 				return
@@ -308,9 +292,8 @@ func (ts *TcpServer) handleConn(conn *net.TCPConn) {
 		}
 
 		receiveData := make([]byte, n)
-		copy(receiveData, buf[:n]) // 深拷贝避免数据覆盖
+		copy(receiveData, buf[:n])
 
-		// 业务处理回调
 		if ts.processFunc != nil {
 			if err := ts.processFunc.OnReceiveAndSend(conn, receiveData); err != nil {
 				belogs.Error("TcpServer.handleConn(): OnReceiveAndSend fail:", err)
@@ -333,7 +316,7 @@ func (ts *TcpServer) Stop() {
 }
 
 // ActiveSend 主动发送数据
-func (ts *TcpServer) ActiveSend(conn *net.TCPConn, sendData []byte) error {
+func (ts *TcpServer) ActiveSend(conn net.Conn, sendData []byte) error {
 	ts.mu.Lock()
 	if ts.closed {
 		ts.mu.Unlock()
@@ -348,21 +331,17 @@ func (ts *TcpServer) ActiveSend(conn *net.TCPConn, sendData []byte) error {
 	conn.SetWriteDeadline(time.Now().Add(ts.writeTimeout))
 	return ts.processFunc.ActiveSend(conn, sendData)
 }
-
-// 新增方法：获取当前连接数
 func (ts *TcpServer) GetConnCount() int {
-	ts.tcpConnsMutex.RLock()
-	defer ts.tcpConnsMutex.RUnlock()
-	return len(ts.tcpConns)
+	ts.connsMutex.RLock()
+	defer ts.connsMutex.RUnlock()
+	return len(ts.conns)
 }
 
-// 获取所有连接的客户端TcpConn（不去重）
-func (ts *TcpServer) GetAllConns() []*net.TCPConn {
-	ts.tcpConnsMutex.RLock()
-	defer ts.tcpConnsMutex.RUnlock()
-
-	conns := make([]*net.TCPConn, 0, len(ts.tcpConns))
-	for _, conn := range ts.tcpConns {
+func (ts *TcpServer) GetAllConns() []net.Conn {
+	ts.connsMutex.RLock()
+	defer ts.connsMutex.RUnlock()
+	conns := make([]net.Conn, 0, len(ts.conns))
+	for _, conn := range ts.conns {
 		conns = append(conns, conn)
 	}
 	return conns
@@ -371,8 +350,8 @@ func (ts *TcpServer) GetAllConns() []*net.TCPConn {
 // 获取所有连接的客户端IP地址（去重）
 func (ts *TcpServer) GetDistinctConnIps() []string {
 	ipMap := make(map[string]string)
-	ts.tcpConnsMutex.RLock()
-	for _, conn := range ts.tcpConns {
+	ts.connsMutex.RLock()
+	for _, conn := range ts.conns {
 		remoteAddr := conn.RemoteAddr().String()
 		host, _, err := net.SplitHostPort(remoteAddr)
 		if err != nil {
@@ -383,7 +362,7 @@ func (ts *TcpServer) GetDistinctConnIps() []string {
 			ipMap[host] = host
 		}
 	}
-	ts.tcpConnsMutex.RUnlock()
+	ts.connsMutex.RUnlock()
 	ips := make([]string, 0, len(ipMap))
 	for k := range ipMap {
 		ips = append(ips, k)
@@ -393,11 +372,11 @@ func (ts *TcpServer) GetDistinctConnIps() []string {
 
 /* use GetDistinctConnIps
 func (ts *TcpServer) GetAllClientIPs() []string {
-	ts.tcpConnsMutex.RLock()
-	defer ts.tcpConnsMutex.RUnlock()
+	ts.connsMutex.RLock()
+	defer ts.connsMutex.RUnlock()
 
 	ipSet := make(map[string]bool)
-	for _, conn := range ts.tcpConns {
+	for _, conn := range ts.conns {
 		host, _, err := net.SplitHostPort(conn.RemoteAddr().String())
 		if err == nil {
 			ipSet[host] = true
@@ -413,11 +392,11 @@ func (ts *TcpServer) GetAllClientIPs() []string {
 */
 
 // 新增方法：根据地址获取指定客户端连接
-func (ts *TcpServer) GetConnByAddr(clientAddr string) (*net.TCPConn, bool) {
-	ts.tcpConnsMutex.RLock()
-	defer ts.tcpConnsMutex.RUnlock()
+func (ts *TcpServer) GetConnByAddr(clientAddr string) (conn net.Conn, exists bool) {
+	ts.connsMutex.RLock()
+	defer ts.connsMutex.RUnlock()
 
-	conn, exists := ts.tcpConns[clientAddr]
+	conn, exists = ts.conns[clientAddr]
 	return conn, exists
 }
 
@@ -435,12 +414,12 @@ func (ts *TcpServer) Broadcast(sendData []byte) error {
 	}
 
 	// 遍历所有连接发送数据
-	ts.tcpConnsMutex.RLock()
-	conns := make([]*net.TCPConn, 0, len(ts.tcpConns))
-	for _, conn := range ts.tcpConns {
+	ts.connsMutex.RLock()
+	conns := make([]net.Conn, 0, len(ts.conns))
+	for _, conn := range ts.conns {
 		conns = append(conns, conn)
 	}
-	ts.tcpConnsMutex.RUnlock()
+	ts.connsMutex.RUnlock()
 
 	var errMsg string
 	for _, conn := range conns {
@@ -468,11 +447,11 @@ func (ts *TcpServer) CloseConnByIP(ip string) (int, error) {
 	}
 	ts.mu.Unlock()
 
-	ts.tcpConnsMutex.RLock()
+	ts.connsMutex.RLock()
 	// 先收集需要关闭的连接（避免遍历过程中map修改）
-	var connsToClose []*net.TCPConn
+	var connsToClose []net.Conn
 	var addrsToDelete []string
-	for addr, conn := range ts.tcpConns {
+	for addr, conn := range ts.conns {
 		// 解析地址中的IP部分（addr格式："IP:Port"）
 		remoteAddr := conn.RemoteAddr().String()
 		host, _, err := net.SplitHostPort(remoteAddr)
@@ -485,7 +464,7 @@ func (ts *TcpServer) CloseConnByIP(ip string) (int, error) {
 			addrsToDelete = append(addrsToDelete, addr)
 		}
 	}
-	ts.tcpConnsMutex.RUnlock()
+	ts.connsMutex.RUnlock()
 
 	if len(connsToClose) == 0 {
 		return 0, fmt.Errorf("no connection found for IP: %s", ip)
@@ -510,9 +489,9 @@ func (ts *TcpServer) CloseConnByIP(ip string) (int, error) {
 		}
 
 		// 从map中删除
-		ts.tcpConnsMutex.Lock()
-		delete(ts.tcpConns, addrsToDelete[i])
-		ts.tcpConnsMutex.Unlock()
+		ts.connsMutex.Lock()
+		delete(ts.conns, addrsToDelete[i])
+		ts.connsMutex.Unlock()
 	}
 
 	if errMsg != "" {
@@ -533,9 +512,9 @@ func (ts *TcpServer) CloseConnByIP(ip string) (int, error) {
 	ts.mu.Unlock()
 
 	shouldCloseAddres := make([]string, 0)
-	ts.tcpConnsMutex.Lock()
-	defer ts.tcpConnsMutex.Unlock()
-	for clientAddr := range ts.tcpConns {
+	ts.connsMutex.Lock()
+	defer ts.connsMutex.Unlock()
+	for clientAddr := range ts.conns {
 		// clientAddr: 客户端完整地址（如 "192.168.1.100:8080"），关闭192.168.1.100的所有连接（后缀匹配）
 		clientHost, _, _ := net.SplitHostPort(clientAddr)
 		if clientHost == ip {
@@ -548,7 +527,7 @@ func (ts *TcpServer) CloseConnByIP(ip string) (int, error) {
 	closedCount := 0
 	var errMsg string
 	for _, addr := range shouldCloseAddres {
-		conn := ts.tcpConns[addr]
+		conn := ts.conns[addr]
 		// 先触发OnClose回调
 		if ts.processFunc != nil {
 			ts.processFunc.OnClose(conn)
@@ -560,7 +539,7 @@ func (ts *TcpServer) CloseConnByIP(ip string) (int, error) {
 			closedCount++
 		}
 		// 删除映射（需要写锁）
-		delete(ts.tcpConns, addr)
+		delete(ts.conns, addr)
 		//	return true, nil
 	}
 	if errMsg != "" {
@@ -579,13 +558,13 @@ func (ts *TcpServer) CloseAllConns() (int, error) {
 	}
 	ts.mu.Unlock()
 
-	ts.tcpConnsMutex.RLock()
+	ts.connsMutex.RLock()
 	// 复制所有连接信息，避免遍历中修改map
-	conns := make(map[string]*net.TCPConn)
-	for addr, conn := range ts.tcpConns {
+	conns := make(map[string]net.Conn)
+	for addr, conn := range ts.conns {
 		conns[addr] = conn
 	}
-	ts.tcpConnsMutex.RUnlock()
+	ts.connsMutex.RUnlock()
 
 	if len(conns) == 0 {
 		return 0, nil
@@ -609,9 +588,9 @@ func (ts *TcpServer) CloseAllConns() (int, error) {
 		}
 
 		// 从map中删除
-		ts.tcpConnsMutex.Lock()
-		delete(ts.tcpConns, addr)
-		ts.tcpConnsMutex.Unlock()
+		ts.connsMutex.Lock()
+		delete(ts.conns, addr)
+		ts.connsMutex.Unlock()
 	}
 
 	if errMsg != "" {

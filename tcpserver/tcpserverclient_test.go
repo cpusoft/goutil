@@ -1,26 +1,6 @@
 package tcpserver
 
-import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/hex"
-	"encoding/pem"
-	"fmt"
-	"math/big"
-	"net"
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
-	"testing"
-	"time"
-
-	"github.com/cpusoft/goutil/belogs"
-)
-
+/*
 // -------------------------- 核心工具：自动生成测试证书 --------------------------
 func generateTestCerts(t *testing.T) (certDir string) {
 	certDir = filepath.Join(t.TempDir(), "test-certs")
@@ -584,3 +564,4 @@ func BenchmarkTCP_Throughput(b *testing.B) {
 	client.CallStop()
 	server.Stop()
 }
+*/

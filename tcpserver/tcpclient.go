@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"reflect"
 	"sync"
 	"time"
 
@@ -15,8 +14,8 @@ import (
 
 // TcpClientProcessFunc 客户端业务回调接口
 type TcpClientProcessFunc interface {
-	ActiveSend(conn *net.TCPConn, processChan string) error
-	OnReceive(conn *net.TCPConn, receiveData []byte) error
+	ActiveSend(conn net.Conn, processChan string) error
+	OnReceive(conn net.Conn, receiveData []byte) error
 }
 
 // ClientTLSConfig 客户端TLS配置
@@ -33,23 +32,15 @@ type ClientOption func(*TcpClient)
 
 // TcpClient TCP/TLS客户端核心结构体
 type TcpClient struct {
-	stopChan chan struct{}
-
-	// 业务回调
-	processFunc TcpClientProcessFunc
-
-	// TLS相关
+	stopChan        chan struct{}
+	processFunc     TcpClientProcessFunc
 	isTLS           bool
 	clientTLSConfig *ClientTLSConfig
-	conn            *net.TCPConn
-
-	// 超时配置
-	readTimeout  time.Duration
-	writeTimeout time.Duration
-
-	// 并发安全
-	mu     sync.Mutex
-	closed bool
+	conn            net.Conn // 改为 net.Conn
+	readTimeout     time.Duration
+	writeTimeout    time.Duration
+	mu              sync.Mutex
+	closed          bool
 }
 
 // NewTcpClient 创建客户端实例
@@ -128,42 +119,30 @@ func (tc *TcpClient) Start(addr string) error {
 		return fmt.Errorf("client already closed")
 	}
 	tc.mu.Unlock()
-	belogs.Debug("TcpClient.Start(): connecting to:", addr)
+
 	var conn net.Conn
 	var err error
 
-	// 建立连接
 	if tc.isTLS {
 		tlsCfg, err := tc.buildTLSConfig()
 		if err != nil {
-			belogs.Error("TcpClient.Start(): build TLS config fail:", err)
 			return fmt.Errorf("build TLS config fail: %w", err)
 		}
 		conn, err = tls.Dial("tcp", addr, tlsCfg)
 		if err != nil {
-			belogs.Error("TcpClient.Start(): TLS dial fail:", err)
 			return fmt.Errorf("TLS dial fail: %w", err)
 		}
 	} else {
 		conn, err = net.Dial("tcp", addr)
 		if err != nil {
-			belogs.Error("TcpClient.Start(): TCP dial fail:", err)
 			return fmt.Errorf("TCP dial fail: %w", err)
 		}
 	}
 
-	// 转换为TCPConn
-	tcpConn, ok := getUnderlyingTCPConn(conn)
-	if !ok {
-		conn.Close()
-		belogs.Error("TcpClient.Start(): connection is not TCPConn, type:", reflect.TypeOf(conn))
-		return fmt.Errorf("connection is not TCPConn")
-	}
-	tc.conn = tcpConn
+	tc.conn = conn // 直接保存，不再解包
 
 	belogs.Info("TcpClient.Start(): connected to:", addr)
 
-	// 启动独立goroutine处理读循环和stopChan（核心修复：避免Start阻塞）
 	go func() {
 		defer func() {
 			tc.mu.Lock()
@@ -174,10 +153,7 @@ func (tc *TcpClient) Start(addr string) error {
 			belogs.Info("TcpClient.Start(): Client disconnected from:", addr)
 		}()
 
-		// 启动读循环
 		go tc.readLoop()
-
-		// 等待停止信号
 		<-tc.stopChan
 	}()
 
@@ -202,7 +178,6 @@ func (tc *TcpClient) readLoop() {
 			continue
 		}
 
-		// 业务回调
 		if tc.processFunc != nil {
 			receiveData := make([]byte, n)
 			copy(receiveData, buf[:n])
@@ -214,12 +189,10 @@ func (tc *TcpClient) readLoop() {
 	}
 }
 
-// CallProcessFunc 调用发送数据方法
 func (tc *TcpClient) CallProcessFunc(data string) error {
 	tc.mu.Lock()
 	if tc.closed || tc.conn == nil {
 		tc.mu.Unlock()
-		belogs.Error("TcpClient.CallProcessFunc(): client not connected")
 		return fmt.Errorf("client not connected")
 	}
 	tc.mu.Unlock()
@@ -231,7 +204,6 @@ func (tc *TcpClient) CallProcessFunc(data string) error {
 	return tc.processFunc.ActiveSend(tc.conn, data)
 }
 
-// CallStop 停止客户端
 func (tc *TcpClient) CallStop() {
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
