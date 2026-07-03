@@ -1,6 +1,7 @@
 package tcpserver
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"os"
@@ -52,8 +53,16 @@ func (spf *Server1ProcessFunc) ActiveSend(conn *net.TCPConn, sendData []byte) (e
 
 func TestCreateTcpServer(t *testing.T) {
 	serverProcessFunc := new(Server1ProcessFunc)
+	tlsServerCfg := &ServerTLSConfig{
+		ServerCertFile: `/tmp/rtrclient.crt`,
+		ServerKeyFile:  `/tmp/rtrclient.key`,
+		RootCAFile:     `/tmp/rtrca.crt`,
+		ClientAuth:     tls.RequestClientCert, //   tls.RequireAndVerifyClientCert, // tls.NoClientCert,
+	}
+
 	// 创建服务端，设置读写超时
-	ts := NewTcpServer(serverProcessFunc, WithReadWriteTimeout(true, 30*time.Second, 10*time.Second))
+	ts := NewTcpServer(serverProcessFunc, WithReadWriteTimeout(true, 30*time.Second, 10*time.Second),
+		WithServerTLS(tlsServerCfg))
 
 	// 监听退出信号
 	sigChan := make(chan os.Signal, 1)
