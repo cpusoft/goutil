@@ -188,8 +188,15 @@ func TestCreateTcpClient(t *testing.T) {
 	clientProcessFunc := new(ClientProcessFunc)
 
 	//CreateTcpClient("127.0.0.1:9999", ClientProcess1)
-	tc := NewTcpClient(clientProcessFunc)
-	err := tc.Start("192.168.83.139:9999")
+	tlsClientCfg := &ClientTLSConfig{
+		ClientCertFile:     `/tmp/rtrclient.crt`,
+		ClientKeyFile:      `/tmp/rtrclient.key`,
+		RootCAFile:         `/tmp/rtrca.crt`,
+		InsecureSkipVerify: true, //   tls.RequireAndVerifyClientCert, // tls.NoClientCert,
+	}
+
+	tc := NewTcpClient(clientProcessFunc, WithClientTLS(tlsClientCfg))
+	err := tc.Start("10.1.135.22:8083")
 	fmt.Println("tc:", tc, err)
 	if err != nil {
 		return

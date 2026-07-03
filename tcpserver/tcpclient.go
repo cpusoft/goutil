@@ -127,7 +127,7 @@ func (tc *TcpClient) Start(addr string) error {
 		return fmt.Errorf("client already closed")
 	}
 	tc.mu.Unlock()
-
+	belogs.Debug("TcpClient.Start(): connecting to:", addr)
 	var conn net.Conn
 	var err error
 
@@ -135,15 +135,18 @@ func (tc *TcpClient) Start(addr string) error {
 	if tc.isTLS {
 		tlsCfg, err := tc.buildTLSConfig()
 		if err != nil {
+			belogs.Error("TcpClient.Start(): build TLS config fail:", err)
 			return fmt.Errorf("build TLS config fail: %w", err)
 		}
 		conn, err = tls.Dial("tcp", addr, tlsCfg)
 		if err != nil {
+			belogs.Error("TcpClient.Start(): TLS dial fail:", err)
 			return fmt.Errorf("TLS dial fail: %w", err)
 		}
 	} else {
 		conn, err = net.Dial("tcp", addr)
 		if err != nil {
+			belogs.Error("TcpClient.Start(): TCP dial fail:", err)
 			return fmt.Errorf("TCP dial fail: %w", err)
 		}
 	}
@@ -152,6 +155,7 @@ func (tc *TcpClient) Start(addr string) error {
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
 		conn.Close()
+		belogs.Error("TcpClient.Start(): connection is not TCPConn")
 		return fmt.Errorf("connection is not TCPConn")
 	}
 	tc.conn = tcpConn
@@ -187,9 +191,9 @@ func (tc *TcpClient) readLoop() {
 		n, err := tc.conn.Read(buf)
 		if err != nil {
 			if err == net.ErrClosed || err.Error() == "EOF" {
-				belogs.Debug("Server closed connection")
+				belogs.Debug("TcpClient.readLoop(): connection closed")
 			} else {
-				belogs.Error("Client read fail:", err)
+				belogs.Error("TcpClient.readLoop(): read fail:", err)
 			}
 			return
 		}
@@ -202,7 +206,7 @@ func (tc *TcpClient) readLoop() {
 			receiveData := make([]byte, n)
 			copy(receiveData, buf[:n])
 			if err := tc.processFunc.OnReceive(tc.conn, receiveData); err != nil {
-				belogs.Error("OnReceive fail:", err)
+				belogs.Error("TcpClient.readLoop(): OnReceive fail:", err)
 				return
 			}
 		}
@@ -214,6 +218,7 @@ func (tc *TcpClient) CallProcessFunc(data string) error {
 	tc.mu.Lock()
 	if tc.closed || tc.conn == nil {
 		tc.mu.Unlock()
+		belogs.Error("TcpClient.CallProcessFunc(): client not connected")
 		return fmt.Errorf("client not connected")
 	}
 	tc.mu.Unlock()
@@ -230,7 +235,7 @@ func (tc *TcpClient) CallStop() {
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
 	if tc.closed {
-		belogs.Warn("Client already stopped")
+		belogs.Warn("TcpClient.CallStop(): Client already stopped")
 		return
 	}
 	close(tc.stopChan)
