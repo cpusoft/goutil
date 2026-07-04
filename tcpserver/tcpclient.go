@@ -126,6 +126,7 @@ func (tc *TcpClient) Start(addr string) error {
 	tc.mu.Lock()
 	if tc.closed {
 		tc.mu.Unlock()
+		belogs.Error("TcpClient.Start(): client already closed")
 		return fmt.Errorf("client already closed")
 	}
 	tc.mu.Unlock()
@@ -135,7 +136,7 @@ func (tc *TcpClient) Start(addr string) error {
 
 	conn, err = net.Dial("tcp", addr)
 	if err != nil {
-		belogs.Error("TcpClient.Start(): TCP dial fail:", err)
+		belogs.Error("TcpClient.Start(): TCP dial fail, addr:", addr, err)
 		return fmt.Errorf("TCP dial fail: %w", err)
 	}
 

@@ -163,6 +163,7 @@ func (ts *TcpServer) Start(addr string) error {
 	ts.mu.Lock()
 	if ts.closed {
 		ts.mu.Unlock()
+		belogs.Error("TcpServer.Start(): server already closed")
 		return fmt.Errorf("server already closed")
 	}
 	ts.mu.Unlock()
@@ -171,6 +172,7 @@ func (ts *TcpServer) Start(addr string) error {
 
 	ts.listener, err = net.Listen("tcp", addr)
 	if err != nil {
+		belogs.Error("TcpServer.Start(): server Listen fail", err)
 		return fmt.Errorf("TCP listen fail: %w", err)
 	}
 

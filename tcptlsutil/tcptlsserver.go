@@ -161,6 +161,7 @@ func (ts *TcpTlsServer) Start(addr string) error {
 	ts.mu.Lock()
 	if ts.closed {
 		ts.mu.Unlock()
+		belogs.Error("TcpTlsServer.Start(): server already closed")
 		return fmt.Errorf("server already closed")
 	}
 	ts.mu.Unlock()
@@ -171,15 +172,18 @@ func (ts *TcpTlsServer) Start(addr string) error {
 	if ts.isTLS {
 		tlsCfg, err := ts.buildTLSConfig()
 		if err != nil {
+			belogs.Error("TcpTlsServer.Start(): buildTLSConfig fail", err)
 			return fmt.Errorf("build TLS config fail: %w", err)
 		}
 		ts.listener, err = tls.Listen("tcp", addr, tlsCfg)
 		if err != nil {
+			belogs.Error("TcpTlsServer.Start(): TLS listen fail, addr:", addr, err)
 			return fmt.Errorf("TLS listen fail: %w", err)
 		}
 	} else {
 		ts.listener, err = net.Listen("tcp", addr)
 		if err != nil {
+			belogs.Error("TcpTlsServer.Start(): TCP listen fail, addr:", addr, err)
 			return fmt.Errorf("TCP listen fail: %w", err)
 		}
 	}

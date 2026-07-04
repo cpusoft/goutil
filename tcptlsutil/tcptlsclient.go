@@ -116,6 +116,7 @@ func (tc *TcpTlsClient) Start(addr string) error {
 	tc.mu.Lock()
 	if tc.closed {
 		tc.mu.Unlock()
+		belogs.Error("TcpTlsClient.Start(): client already closed")
 		return fmt.Errorf("client already closed")
 	}
 	tc.mu.Unlock()
@@ -126,15 +127,18 @@ func (tc *TcpTlsClient) Start(addr string) error {
 	if tc.isTLS {
 		tlsCfg, err := tc.buildTLSConfig()
 		if err != nil {
+			belogs.Error("TcpTlsClient.Start(): buildTLSConfig fail", err)
 			return fmt.Errorf("build TLS config fail: %w", err)
 		}
 		conn, err = tls.Dial("tcp", addr, tlsCfg)
 		if err != nil {
+			belogs.Error("TcpTlsClient.Start(): Dial tls fail, addr:", addr, err)
 			return fmt.Errorf("TLS dial fail: %w", err)
 		}
 	} else {
 		conn, err = net.Dial("tcp", addr)
 		if err != nil {
+			belogs.Error("TcpTlsClient.Start(): Dial tcp fail, addr:", addr, err)
 			return fmt.Errorf("TCP dial fail: %w", err)
 		}
 	}
