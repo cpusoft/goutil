@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/fileutil"
@@ -28,7 +29,25 @@ func RunServer(engine *gin.Engine, port string) (server *http.Server, err error)
 	if port == "" {
 		return nil, errors.New("port is empty")
 	}
-	server = &http.Server{Addr: port, Handler: engine}
+	server = &http.Server{
+		Addr:    port,
+		Handler: engine,
+		// 【关键】读取请求头的总超时，防御 Slowloris（慢头攻击）
+		ReadHeaderTimeout: 5 * time.Second,
+
+		// 读取整个请求（含 Body）的超时，防御 Slow POST / RUDY（慢体攻击）, body上传文件可以120s
+		ReadTimeout: 120 * time.Second,
+
+		// 写入响应的超时，防御 Slow Read（客户端读极慢）
+		WriteTimeout: 30 * time.Second,
+
+		// Keep-Alive 连接空闲超时，防止空闲连接长期占用
+		IdleTimeout: 120 * time.Second,
+
+		// 限制请求头大小，避免内存被超大头部耗尽
+		MaxHeaderBytes: 1 << 20, // 1 MB
+
+	}
 	err = server.ListenAndServe()
 	return server, err
 }
@@ -69,7 +88,25 @@ func RunTlsServer(engine *gin.Engine, port, certFile, keyFile string) (server *h
 	}
 
 	// 将router 赋值给 Hander，源码中也是这么干的
-	server = &http.Server{Addr: port, Handler: engine, TLSConfig: tlsconf}
+	server = &http.Server{
+		Addr:      port,
+		Handler:   engine,
+		TLSConfig: tlsconf,
+		// 【关键】读取请求头的总超时，防御 Slowloris（慢头攻击）
+		ReadHeaderTimeout: 5 * time.Second,
+
+		// 读取整个请求（含 Body）的超时，防御 Slow POST / RUDY（慢体攻击）, body上传文件可以120s
+		ReadTimeout: 120 * time.Second,
+
+		// 写入响应的超时，防御 Slow Read（客户端读极慢）
+		WriteTimeout: 30 * time.Second,
+
+		// Keep-Alive 连接空闲超时，防止空闲连接长期占用
+		IdleTimeout: 120 * time.Second,
+
+		// 限制请求头大小，避免内存被超大头部耗尽
+		MaxHeaderBytes: 1 << 20, // 1 MB
+	}
 	err = server.ListenAndServeTLS(certFile, keyFile)
 	return server, err
 }
