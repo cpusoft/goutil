@@ -179,6 +179,11 @@ func (tc *TcpClient) readLoop() {
 		tc.conn.SetReadDeadline(time.Now().Add(tc.readTimeout))
 		n, err := tc.conn.Read(buf)
 		if err != nil {
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				belogs.Debug("TcpTlsClient.readLoop(): read timeout, continue waiting")
+				continue
+			}
+
 			if err == net.ErrClosed || err.Error() == "EOF" {
 				belogs.Debug("TcpClient.readLoop(): connection closed")
 			} else {
