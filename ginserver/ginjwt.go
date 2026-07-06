@@ -92,7 +92,7 @@ func SetToContextWithValue(c *gin.Context, keyInHeader string) context.Context {
 	// 从gin.Context中获取JWT_CTX_CustomClaims_Infos并存入上下文，供后续处理使用
 	m, exists := c.Get(string(JWT_CTX_CustomClaims_Infos))
 	if !exists {
-		belogs.Error("SetToContextWithValue(): get JWT_CTX_CustomClaims_Infos from gin.Context fail, JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos)
+		belogs.Debug("SetToContextWithValue(): get JWT_CTX_CustomClaims_Infos from gin.Context fail, JWT_CTX_CustomClaims_Infos:", JWT_CTX_CustomClaims_Infos)
 		// 使用请求上下文作为父上下文，而非空上下文
 		m = make(map[string]interface{})
 	}
