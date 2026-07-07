@@ -7,7 +7,7 @@ require (
 	github.com/beevik/ntp v1.5.0
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/bytedance/sonic v1.15.2
-	github.com/dgraph-io/badger/v4 v4.9.2
+	github.com/dgraph-io/badger/v4 v4.9.3
 	github.com/edsrzf/mmap-go v1.2.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-sql-driver/mysql v1.10.0
@@ -44,7 +44,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dgraph-io/ristretto/v2 v2.4.0 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.4.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elazarl/goproxy v1.8.4 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
@@ -98,10 +98,10 @@ require (
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/text v0.39.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.73.5 // indirect
+	modernc.org/libc v1.74.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	moul.io/http2curl/v2 v2.3.0 // indirect
