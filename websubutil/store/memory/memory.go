@@ -71,10 +71,9 @@ func (s *Store) All(topic string) ([]model.Subscription, error) {
 	if subs, ok := s.topics[topic]; ok {
 		for _, sub := range subs {
 			if now.Before(sub.Expires) {
-				continue
+				//	continue
+				subscriptions = append(subscriptions, sub)
 			}
-
-			subscriptions = append(subscriptions, sub)
 		}
 	} else {
 		return nil, store.ErrNotFound
@@ -152,7 +151,7 @@ func (s *Store) Remove(sub model.Subscription) error {
 	var found bool
 
 	for i, s := range subs {
-		if s.Topic == sub.Topic && s.Callback == s.Callback {
+		if s.Topic == sub.Topic && s.Callback == sub.Callback {
 			subs = append(subs[:i], subs[i+1:]...)
 			found = true
 			break

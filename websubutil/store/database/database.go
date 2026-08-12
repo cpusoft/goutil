@@ -86,7 +86,10 @@ func (s *Store) All(topic string) ([]model.Subscription, error) {
 
 		subscriptions = append(subscriptions, sub)
 	}
-
+	// 新增：检查迭代过程中是否发生错误
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return subscriptions, nil
 }
 
@@ -115,7 +118,10 @@ func (s *Store) For(callback string) ([]model.Subscription, error) {
 
 		ret = append(ret, sub)
 	}
-
+	// 新增：检查迭代过程中是否发生错误
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return ret, nil
 }
 
