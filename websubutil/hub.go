@@ -1,12 +1,9 @@
 package websubutil
 
 import (
-	"bytes"
-	"crypto/hmac"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"hash"
@@ -25,7 +22,6 @@ import (
 	"github.com/cpusoft/goutil/websubutil/store"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"github.com/jpillora/backoff"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -73,6 +69,11 @@ func WithContentProvider(provider ContentProvider) Option {
 
 // WithHasher lets you set other hmac hashers/types (like sha256, sha384, sha512, etc)
 func WithHasher(hasher string) Option {
+	switch hasher {
+	case "sha1", "sha256", "sha384", "sha512":
+	default:
+		hasher = "sha256"
+	}
 	return func(h *Hub) {
 		h.hasher = hasher
 	}
@@ -157,7 +158,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		u := &url.URL{
 			Scheme: proto,
 			Host:   r.Host,
-			Path:   r.RequestURI,
+			Path:   r.URL.Path, // 仅取路径，丢弃查询参数 r.RequestURI,
 		}
 
 		h.url = strings.TrimRight(u.String(), "/")
@@ -225,7 +226,7 @@ func (h *Hub) HandleSubscribe(req model.SubscribeRequest) error {
 	}
 
 	// Default lease
-	leaseDuration := 240 * time.Hour
+	leaseDuration := h.maxLease //240 * time.Hour
 
 	if req.LeaseSeconds > 0 {
 		if req.LeaseSeconds < 60 || time.Duration(req.LeaseSeconds)*time.Second > h.maxLease {
@@ -236,10 +237,11 @@ func (h *Hub) HandleSubscribe(req model.SubscribeRequest) error {
 	}
 
 	sub := model.Subscription{
-		Topic:    req.Topic,
-		Callback: req.Callback,
-		Secret:   req.Secret,
-		Expires:  time.Now().Add(leaseDuration),
+		Topic:     req.Topic,
+		Callback:  req.Callback,
+		Secret:    req.Secret,
+		Expires:   time.Now().Add(leaseDuration),
+		LeaseTime: leaseDuration, // 设置 LeaseTime
 	}
 
 	if h.validator != nil {
@@ -258,10 +260,20 @@ func (h *Hub) HandleSubscribe(req model.SubscribeRequest) error {
 		// Update existingSub instead.
 		// TODO: Can Secret be updated?
 		sub = *existingSub
+		sub.LeaseTime = leaseDuration // 续订更新时也同步更新 LeaseTime
 		sub.Expires = time.Now().Add(leaseDuration)
+		if req.Secret != "" {
+			sub.Secret = req.Secret // 允许更新 Secret
+		}
 	}
 
 	go func(hubMode string, sub model.Subscription) {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("panic in subscribe verification: %v", r)
+			}
+		}()
+
 		err := h.Verify(hubMode, sub)
 
 		if err != nil {
@@ -302,6 +314,11 @@ func (h *Hub) HandleUnsubscribe(req model.UnsubscribeRequest) error {
 	}
 
 	go func(hubMode string, sub model.Subscription) {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("panic in unsubscribe verification: %v", r)
+			}
+		}()
 		err := h.Verify(hubMode, sub)
 
 		if err != nil {
@@ -345,12 +362,13 @@ func (h *Hub) Verify(mode string, sub model.Subscription) error {
 	req.Header.Set("User-Agent", "Go WebSub 1.0 ("+runtime.Version()+")")
 
 	res, err := h.client.Do(req)
-
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
-	if res.StatusCode != 200 {
+	//if res.StatusCode != 200 {
+	if res.StatusCode < 200 || res.StatusCode > 299 {
 		// Uh oh!
 		return errors.New("unexpected status code")
 	}
@@ -365,15 +383,12 @@ func (h *Hub) Verify(mode string, sub model.Subscription) error {
 	// Read max of challenge size bytes
 	data := make([]byte, len(challenge))
 
-	read, err := io.ReadFull(res.Body, data)
-
-	if err != nil && err != io.ErrUnexpectedEOF {
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
 		return err
 	}
 
-	data = data[0:read]
-
-	if string(data) != challenge {
+	if string(body) != challenge {
 		// Nope.
 		return errors.New(fmt.Sprint("verification: challenge did not match for "+u.Host+", expected: ", challenge, " actual: ", string(data)))
 	}
@@ -410,7 +425,11 @@ func (h *Hub) Publish(topic, contentType string, data []byte) error {
 	subs, err := h.store.All(topic)
 
 	if err != nil {
-		return err
+		if err == store.ErrNotFound {
+			subs = []model.Subscription{} // 无订阅者视为正常空状态
+		} else {
+			return err // 仅真实错误（如数据库连接失败）才向上返回
+		}
 	}
 
 	h.Call(&Publish{
@@ -436,58 +455,6 @@ func (h *Hub) Publish(topic, contentType string, data []byte) error {
 	return nil
 }
 
-// callCallback sends a request to the specified URL with the publish data.
-func (h *Hub) callCallback(job PublishJob) bool {
-	req, err := http.NewRequest("POST", job.Subscription.Callback, bytes.NewReader(job.Data))
-
-	if err != nil {
-		return false
-	}
-
-	if job.Subscription.Secret != "" {
-		mac := hmac.New(NewHasher(h.hasher), []byte(job.Subscription.Secret))
-		mac.Write(job.Data)
-		req.Header.Set("X-Hub-Signature", h.hasher+"="+hex.EncodeToString(mac.Sum(nil)))
-	}
-
-	req.Header.Set("Content-Type", job.ContentType)
-	req.Header.Set("Link", fmt.Sprintf("<%s>; rel=\"hub\", <%s>; rel=\"self\"", h.url, job.Subscription.Topic))
-
-	b := &backoff.Backoff{
-		Min:    100 * time.Millisecond,
-		Max:    10 * time.Minute,
-		Factor: 2,
-		Jitter: false,
-	}
-
-	var attempts int
-
-	for {
-		res, err := h.client.Do(req)
-
-		if err == nil {
-			res.Body.Close()
-
-			if res.StatusCode >= 200 && res.StatusCode <= 299 {
-				return true
-			} else if res.StatusCode == http.StatusGone {
-				h.store.Remove(job.Subscription)
-				return false
-			}
-		}
-
-		attempts++
-
-		if attempts >= 3 {
-			break
-		}
-
-		<-time.After(b.Duration())
-	}
-
-	return false
-}
-
 // NewHasher takes a string and returns a hash.Hash based on type.
 func NewHasher(hasher string) func() hash.Hash {
 	switch hasher {
@@ -499,9 +466,10 @@ func NewHasher(hasher string) func() hash.Hash {
 		return sha512.New384
 	case "sha512":
 		return sha512.New
+	default:
+		return sha256.New
 	}
 
-	panic("Invalid hasher type supplied")
 }
 
 // DecodeForm decodes a request form into a struct using the mapstructure package.

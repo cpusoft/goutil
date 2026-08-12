@@ -18,5 +18,5 @@ type UnsubscribeRequest struct {
 
 // PublishRequest represents a form request for a publish.
 type PublishRequest struct {
-	Topic string `form:"hub.topic" validation:"required"`
+	Topic string `form:"hub.topic" validate:"required"`
 }

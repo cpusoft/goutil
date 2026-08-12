@@ -53,7 +53,8 @@ func (s *Store) Cleanup() {
 				err := json.Unmarshal(v, &s)
 
 				if err != nil {
-					return err
+					b.Delete(k)
+					return nil
 				}
 
 				if s.Expires.Before(now) {
@@ -85,7 +86,8 @@ func (s *Store) All(topic string) ([]model.Subscription, error) {
 			err := json.Unmarshal(v, &s)
 
 			if err != nil {
-				return err
+				return nil
+				//return err  // cannot stop, will continue next
 			}
 
 			if now.Before(s.Expires) {
@@ -103,14 +105,15 @@ func (s *Store) All(topic string) ([]model.Subscription, error) {
 func (s *Store) For(callback string) ([]model.Subscription, error) {
 	ret := make([]model.Subscription, 0)
 
-	err := s.db.Update(func(tx *bolt.Tx) error {
+	err := s.db.View(func(tx *bolt.Tx) error { // ← Update 改为 View
 		return tx.ForEach(func(topic []byte, b *bolt.Bucket) error {
 			return b.ForEach(func(k, v []byte) error {
 				var s model.Subscription
 				err := json.Unmarshal(v, &s)
 
 				if err != nil {
-					return err
+					return nil
+					//return err  // cannot stop, will continue next
 				}
 
 				if s.Callback != callback {

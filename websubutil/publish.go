@@ -13,31 +13,29 @@ import (
 )
 
 func Notify(client *http.Client, job PublishJob) (bool, error) {
-	req, err := http.NewRequest(http.MethodPost, job.Subscription.Callback, bytes.NewReader(job.Data))
-
-	if err != nil {
-		return false, err
-	}
-
-	if job.Subscription.Secret != "" {
-		mac := hmac.New(NewHasher(job.Hub.Hasher), []byte(job.Subscription.Secret))
-		mac.Write(job.Data)
-		req.Header.Set("X-Hub-Signature", job.Hub.Hasher+"="+hex.EncodeToString(mac.Sum(nil)))
-	}
-
-	req.Header.Set("Content-Type", job.ContentType)
-	req.Header.Set("Link", fmt.Sprintf("<%s>; rel=\"hub\", <%s>; rel=\"self\"", job.Hub.URL, job.Subscription.Topic))
-
 	b := &backoff.Backoff{
 		Min:    100 * time.Millisecond,
 		Max:    10 * time.Minute,
 		Factor: 2,
 		Jitter: false,
 	}
-
 	var attempts int
-
 	for {
+		// 每次重试都重新创建 req，避免 Body 被耗尽
+		req, err := http.NewRequest(http.MethodPost, job.Subscription.Callback, bytes.NewReader(job.Data))
+		if err != nil {
+			return false, err
+		}
+
+		if job.Subscription.Secret != "" {
+			mac := hmac.New(NewHasher(job.Hub.Hasher), []byte(job.Subscription.Secret))
+			mac.Write(job.Data)
+			req.Header.Set("X-Hub-Signature", job.Hub.Hasher+"="+hex.EncodeToString(mac.Sum(nil)))
+		}
+
+		req.Header.Set("Content-Type", job.ContentType)
+		req.Header.Set("Link", fmt.Sprintf("<%s>; rel=\"hub\", <%s>; rel=\"self\"", job.Hub.URL, job.Subscription.Topic))
+
 		res, err := client.Do(req)
 
 		if err == nil {

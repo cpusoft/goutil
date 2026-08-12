@@ -22,7 +22,7 @@ func NewGoWorker(h *Hub, workerCount int) *GoWorker {
 	return &GoWorker{
 		hub:         h,
 		workerCount: workerCount,
-		jobCh:       make(chan PublishJob),
+		jobCh:       make(chan PublishJob, 1000),
 	}
 }
 

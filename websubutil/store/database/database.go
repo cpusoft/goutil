@@ -58,7 +58,10 @@ func (s *Store) All(topic string) ([]model.Subscription, error) {
 	var topicID int64
 
 	if err := topicRow.Scan(&topicID); err != nil {
-		return nil, store.ErrNotFound
+		if err == sql.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
 	}
 
 	rows, err := s.db.Query("SELECT id, callback, secret, lease, expires_at FROM subscriptions WHERE topic_id = ?", topicID)
@@ -150,7 +153,7 @@ func (s *Store) findOrCreateTopic(topic string) (int64, error) {
 		return topicID, nil
 	}
 
-	topicRes, err := s.db.Exec("INSERT INTO topics (`topic`) VALUES (?)", topic)
+	topicRes, err := s.db.Exec("INSERT IGNORE INTO topics (`topic`) VALUES (?)", topic)
 
 	if err != nil {
 		return -1, err
@@ -173,7 +176,13 @@ func (s *Store) Add(sub model.Subscription) error {
 		return err
 	}
 
-	res, err := s.db.Exec("INSERT INTO subscriptions(`topic_id`, `callback`, `secret`, `lease`, `expires_at`) VALUES (?, ?, ?, ?, ?)",
+	res, err := s.db.Exec(`
+		INSERT INTO subscriptions(topic_id, callback, secret, lease, expires_at)
+		VALUES (?, ?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE
+			secret = VALUES(secret),
+			lease = VALUES(lease),
+			expires_at = VALUES(expires_at)`,
 		topicID, sub.Callback, sub.Secret, sub.LeaseTime/time.Second, sub.Expires)
 
 	if err != nil {
@@ -207,6 +216,9 @@ func (s *Store) Get(topic, callback string) (*model.Subscription, error) {
 	var leaseSeconds int
 
 	if err := row.Scan(&sub.ID, &sub.Callback, &sub.Secret, &leaseSeconds, &sub.Expires); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
 		return nil, err
 	}
 
@@ -217,20 +229,20 @@ func (s *Store) Get(topic, callback string) (*model.Subscription, error) {
 
 // Remove removes a subscription from the database for the specified topic and callback.
 func (s *Store) Remove(sub model.Subscription) error {
+	var err error
 	if sub.ID > 0 {
-		_, err := s.db.Exec("DELETE FROM subscriptions WHERE id = ?", sub.ID)
+		_, err = s.db.Exec("DELETE FROM subscriptions WHERE id = ?", sub.ID)
 
-		return err
+	} else {
+
+		topicID, err := s.findTopic(sub.Topic)
+
+		if err != nil {
+			return err
+		}
+
+		_, err = s.db.Exec("DELETE FROM subscriptions WHERE topic_id = ? AND callback = ?", topicID, sub.Callback)
 	}
-
-	topicID, err := s.findTopic(sub.Topic)
-
-	if err != nil {
-		return err
-	}
-
-	_, err = s.db.Exec("DELETE FROM subscriptions WHERE topic_id = ? AND callback = ?", topicID, sub.Callback)
-
 	if err != nil {
 		return err
 	}

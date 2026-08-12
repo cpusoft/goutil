@@ -103,20 +103,18 @@ func (s *Store) For(callback string) ([]model.Subscription, error) {
 // Add stores a subscription in the bucket for the specified topic.
 func (s *Store) Add(sub model.Subscription) error {
 	s.topicLock.Lock()
+	defer s.topicLock.Unlock()
 
-	if list, ok := s.topics[sub.Topic]; ok {
-		list = append(list, sub)
-
-		s.topics[sub.Topic] = list
-		s.topicLock.Unlock()
-
-		s.Call(&store.Added{Subscription: sub})
-		return nil
+	subs := s.topics[sub.Topic]
+	for i, existing := range subs {
+		if existing.Callback == sub.Callback {
+			subs[i] = sub // 替换为新的（更新过期时间等）
+			s.Call(&store.Added{Subscription: sub})
+			return nil
+		}
 	}
 
 	s.topics[sub.Topic] = []model.Subscription{sub}
-	s.topicLock.Unlock()
-
 	s.Call(&store.Added{Subscription: sub})
 	return nil
 }
@@ -132,9 +130,9 @@ func (s *Store) Get(topic, callback string) (*model.Subscription, error) {
 		return nil, store.ErrNotFound
 	}
 
-	for _, sub := range subs {
-		if sub.Callback == callback {
-			return &sub, nil
+	for i := range subs {
+		if subs[i].Callback == callback {
+			return &subs[i], nil // ← 使用索引访问，所有 Go 版本安全
 		}
 	}
 

@@ -14,7 +14,7 @@ create table subscriptions
 create index subscriptions_topic_index
     on subscriptions (topic_id);
 
-create index subscriptions_topic_callback_index
+create unique index subscriptions_topic_callback_index
     on subscriptions (topic_id, callback);
 
 create table topics

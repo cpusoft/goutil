@@ -5,7 +5,7 @@ type slabEntry struct {
 	index int
 }
 
-func (entry slabEntry) isInvalid() bool {
+func (entry slabEntry) isFree() bool {
 	return entry.index != -1
 }
 
