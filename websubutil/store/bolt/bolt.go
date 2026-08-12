@@ -94,7 +94,7 @@ func (s *Store) All(topic string) ([]model.Subscription, error) {
 				subscriptions = append(subscriptions, s)
 			}
 
-			return err
+			return nil
 		})
 	})
 
@@ -165,7 +165,7 @@ func (s *Store) Get(topic, callback string) (*model.Subscription, error) {
 		b := tx.Bucket([]byte(topic))
 
 		if b == nil {
-			return nil
+			return store.ErrNotFound
 		}
 
 		data := b.Get([]byte(callback))

@@ -249,14 +249,22 @@ func (h *Hub) HandleSubscribe(req model.SubscribeRequest) error {
 
 		if err != nil {
 			sub.Reason = err
-
-			return h.Verify(model.ModeDenied, sub)
+			go func(sub model.Subscription) {
+				// 同样增加 panic 保护
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("panic in denied verify: %v", r)
+					}
+				}()
+				h.Verify(model.ModeDenied, sub)
+			}(sub)
+			return nil
 		}
 	}
 
 	existingSub, err := h.store.Get(req.Topic, req.Callback)
 
-	if existingSub != nil && err == nil {
+	if err == nil && existingSub != nil {
 		// Update existingSub instead.
 		// TODO: Can Secret be updated?
 		sub = *existingSub
@@ -308,8 +316,16 @@ func (h *Hub) HandleUnsubscribe(req model.UnsubscribeRequest) error {
 
 		if err != nil {
 			sub.Reason = err
-
-			return h.Verify(model.ModeDenied, sub)
+			go func(sub model.Subscription) {
+				// 同样增加 panic 保护
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("panic in denied verify: %v", r)
+					}
+				}()
+				h.Verify(model.ModeDenied, sub)
+			}(sub)
+			return nil
 		}
 	}
 
@@ -373,16 +389,12 @@ func (h *Hub) Verify(mode string, sub model.Subscription) error {
 		return errors.New("unexpected status code")
 	}
 
-	defer res.Body.Close()
-
 	if mode == model.ModeDenied {
 		io.Copy(io.Discard, res.Body)
 		return nil
 	}
 
 	// Read max of challenge size bytes
-	data := make([]byte, len(challenge))
-
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
@@ -390,7 +402,8 @@ func (h *Hub) Verify(mode string, sub model.Subscription) error {
 
 	if string(body) != challenge {
 		// Nope.
-		return errors.New(fmt.Sprint("verification: challenge did not match for "+u.Host+", expected: ", challenge, " actual: ", string(data)))
+		return errors.New(fmt.Sprint("verification: challenge did not match for "+u.Host+", expected: ",
+			challenge, " actual: ", string(body)))
 	}
 
 	if mode == model.ModeSubscribe {

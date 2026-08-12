@@ -114,7 +114,7 @@ func (s *Store) Add(sub model.Subscription) error {
 		}
 	}
 
-	s.topics[sub.Topic] = []model.Subscription{sub}
+	s.topics[sub.Topic] = append(subs, sub) // append 而不是覆盖 []model.Subscription{sub}
 	s.Call(&store.Added{Subscription: sub})
 	return nil
 }
@@ -148,8 +148,8 @@ func (s *Store) Remove(sub model.Subscription) error {
 
 	var found bool
 
-	for i, s := range subs {
-		if s.Topic == sub.Topic && s.Callback == sub.Callback {
+	for i, item := range subs {
+		if item.Topic == sub.Topic && item.Callback == sub.Callback {
 			subs = append(subs[:i], subs[i+1:]...)
 			found = true
 			break

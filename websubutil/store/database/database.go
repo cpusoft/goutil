@@ -164,7 +164,10 @@ func (s *Store) findOrCreateTopic(topic string) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-
+	if topicID == 0 {
+		// 有重复topic时，不会报错，但topicID==0，此时记录已存在，重新查询获取真实 ID
+		return s.findTopic(topic)
+	}
 	return topicID, nil
 }
 
@@ -194,7 +197,12 @@ func (s *Store) Add(sub model.Subscription) error {
 	if err != nil {
 		return err
 	}
-
+	// 更新时 LastInsertId() 返回 0，如果业务后续依赖 sub.ID，尝试获取已存在的记录 ID
+	if sub.ID == 0 {
+		if existing, err := s.Get(sub.Topic, sub.Callback); err == nil {
+			sub.ID = existing.ID
+		}
+	}
 	s.Call(&store.Added{Subscription: sub})
 	return nil
 }
@@ -235,10 +243,10 @@ func (s *Store) Remove(sub model.Subscription) error {
 
 	} else {
 
-		topicID, err := s.findTopic(sub.Topic)
+		topicID, err1 := s.findTopic(sub.Topic)
 
-		if err != nil {
-			return err
+		if err1 != nil {
+			return err1
 		}
 
 		_, err = s.db.Exec("DELETE FROM subscriptions WHERE topic_id = ? AND callback = ?", topicID, sub.Callback)
