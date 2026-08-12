@@ -10,6 +10,7 @@ require (
 	github.com/dgraph-io/badger/v4 v4.9.6
 	github.com/edsrzf/mmap-go v1.2.0
 	github.com/gin-gonic/gin v1.12.0
+	github.com/go-playground/validator/v10 v10.30.3
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/goccy/go-json v0.10.6
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -17,18 +18,21 @@ require (
 	github.com/gorilla/context v1.1.2
 	github.com/gorilla/sessions v1.4.0
 	github.com/guregu/null/v6 v6.0.0
+	github.com/jpillora/backoff v1.0.0
 	github.com/lib/pq v1.12.3
 	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260809012320-907400bb3023
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/orisano/gosax v1.1.4
 	github.com/panjf2000/ants/v2 v2.12.1
 	github.com/parnurzeal/gorequest v0.2.17
+	github.com/pkg/errors v0.9.1
 	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
 	github.com/wenzhenxi/gorsa v0.0.0-20230530123828-0320cce15d81
 	github.com/wk8/go-ordered-map/v2 v2.1.8
+	go.etcd.io/bbolt v1.5.0
 	go.uber.org/zap v1.28.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	modernc.org/sqlite v1.56.0
@@ -55,7 +59,6 @@ require (
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.30.3 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
@@ -74,7 +77,6 @@ require (
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.42.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20260805114148-88456608a4f6 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect

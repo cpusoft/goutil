@@ -4,16 +4,13 @@
 *.dll
 *.so
 *.dylib
-
-# Test binary, build with `go test -c`
 *.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+/.idea
+/.vscode
 /transportutil/conf
 /transportutil/log
 /grpcutil/cert
-/.vscode
 /whyall.txt
 /graph.txt
 /update_all_mod.bat
