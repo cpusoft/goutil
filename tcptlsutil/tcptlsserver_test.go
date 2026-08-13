@@ -71,8 +71,8 @@ func TestCreateTestCreateTcpTlsServer(t *testing.T) {
 	}()
 
 	// 启动服务
-	fmt.Println("Starting TCP server on 0.0.0.0:9999")
-	if err := ts.Start("0.0.0.0:9999"); err != nil {
+	fmt.Println("Starting TCP server on 0.0.0.0:8082")
+	if err := ts.Start("0.0.0.0:8082"); err != nil {
 		t.Fatal("Server start failed:", err)
 	}
 	fmt.Println("Server stopped")

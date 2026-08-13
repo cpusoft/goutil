@@ -25,6 +25,7 @@ require (
 	github.com/orisano/gosax v1.1.4
 	github.com/panjf2000/ants/v2 v2.12.1
 	github.com/parnurzeal/gorequest v0.2.17
+	github.com/pires/go-proxyproto v0.15.0
 	github.com/pkg/errors v0.9.1
 	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02

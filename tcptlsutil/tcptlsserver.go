@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/pires/go-proxyproto"
 )
 
 // TcpTlsServerProcessFunc 服务器业务回调接口
@@ -58,6 +59,10 @@ type TcpTlsServer struct {
 	// 新增：客户端连接管理
 	conns      map[string]net.Conn // 改为 net.Conn, key: 客户端地址(RemoteAddr().String())
 	connsMutex sync.RWMutex        // 读写锁，支持高并发读写
+
+	// proxy protocol 相关配置
+	enableProxyProtocol bool          // 是否启用 proxy protocol
+	proxyTimeout        time.Duration // 读取 proxy header 超时
 }
 
 // NewTcpTlsServer 创建服务器实例
@@ -156,6 +161,91 @@ func (ts *TcpTlsServer) buildTLSConfig() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
+// WithProxyProtocol 启用 Proxy Protocol 支持
+func WithProxyProtocol(enabled bool, timeout time.Duration) ServerOption {
+	return func(ts *TcpTlsServer) {
+		ts.enableProxyProtocol = enabled
+		if timeout > 0 {
+			ts.proxyTimeout = timeout
+		} else {
+			ts.proxyTimeout = 10 * time.Second
+		}
+	}
+}
+func (ts *TcpTlsServer) Start(addr string) error {
+	ts.mu.Lock()
+	if ts.closed {
+		ts.mu.Unlock()
+		return fmt.Errorf("server already closed")
+	}
+	ts.mu.Unlock()
+
+	var err error
+
+	// ===== 统一先创建底层 TCP Listener =====
+	tcpListener, err := net.Listen("tcp", addr)
+	if err != nil {
+		belogs.Error("TcpTlsServer.Start(): TCP listen fail, addr:", addr, err)
+		return fmt.Errorf("TCP listen fail: %w", err)
+	}
+
+	// ===== 如果启用 proxy protocol，先包装 TCP Listener =====
+	if ts.enableProxyProtocol {
+		tcpListener = &proxyproto.Listener{
+			Listener: tcpListener,
+			Policy: func(upstream net.Addr) (proxyproto.Policy, error) {
+				/*
+					// 安全建议：只允许信任来源（如 nginx）发送 proxy header
+					// upstream 是 nginx 的连接地址
+					host, _, _ := net.SplitHostPort(upstream.String())
+					if host == "127.0.0.1" || host == "::1" {
+						return proxyproto.REQUIRE, nil // 必须收到 header
+					}
+					// 非信任来源直接拒绝，防止伪造
+					return proxyproto.REJECT, nil
+				*/
+				return proxyproto.REQUIRE, nil // 必须收到 header
+			},
+			ReadHeaderTimeout: ts.proxyTimeout,
+		}
+		belogs.Info("TcpTlsServer.Start(): ProxyProtocol enabled")
+	}
+
+	// ===== 再包装 TLS（如果是 TLS 模式）=====
+	if ts.isTLS {
+		tlsCfg, err := ts.buildTLSConfig()
+		if err != nil {
+			_ = tcpListener.Close()
+			belogs.Error("TcpTlsServer.Start(): buildTLSConfig fail", err)
+			return fmt.Errorf("build TLS config fail: %w", err)
+		}
+		// 注意：tls.NewListener 包装在 proxyproto 外层
+		ts.listener = tls.NewListener(tcpListener, tlsCfg)
+		belogs.Info("TcpTlsServer.Start(): TLS listener wrapped, addr:", addr)
+	} else {
+		ts.listener = tcpListener
+	}
+
+	belogs.Info("TcpTlsServer.Start(): Server started, addr:", addr, " isTLS:", ts.isTLS)
+
+	// 后续逻辑完全不变
+	go ts.acceptConnections()
+	<-ts.stopChan
+
+	if ts.listener != nil {
+		_ = ts.listener.Close()
+	}
+	ts.CloseAllConns()
+
+	ts.mu.Lock()
+	ts.closed = true
+	ts.mu.Unlock()
+
+	belogs.Info("TcpTlsServer.Start(): Server stopped, addr:", addr)
+	return nil
+}
+
+/*
 // Start 启动服务器
 func (ts *TcpTlsServer) Start(addr string) error {
 	ts.mu.Lock()
@@ -214,6 +304,7 @@ func (ts *TcpTlsServer) Start(addr string) error {
 
 	return nil
 }
+*/
 
 // acceptConnections 接收客户端连接
 func (ts *TcpTlsServer) acceptConnections() {
