@@ -29,13 +29,13 @@ const (
 )
 
 type ServerConfig struct {
-	HeaderTimeout int `json:"headerTimeout"`
-	ReadTimeout   int `json:"readTimeout"`
-	WriteTimeout  int `json:"writeTimeout"`
-	IdleTimeout   int `json:"idleTimeout"`
+	HeaderTimeout uint `json:"headerTimeout"`
+	ReadTimeout   uint `json:"readTimeout"`
+	WriteTimeout  uint `json:"writeTimeout"`
+	IdleTimeout   uint `json:"idleTimeout"`
 }
 
-func NewServerConfig(headerTimeout, readTimeout, writeTimeout, idleTimeout int) *ServerConfig {
+func NewServerConfig(headerTimeout, readTimeout, writeTimeout, idleTimeout uint) *ServerConfig {
 	return &ServerConfig{
 		HeaderTimeout: headerTimeout,
 		ReadTimeout:   readTimeout,
