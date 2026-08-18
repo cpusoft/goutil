@@ -22,34 +22,61 @@ import (
 )
 
 const (
-	default_header_timeout = 5
-	default_read_timeout   = 300
-	default_write_timeout  = 300
-	default_idle_timeout   = 120
+	DefaultHeaderTimeout = 5
+	DefaultReadTimeout   = 300
+	DefaultWriteTimeout  = 300
+	DefaultIdleTimeout   = 120
 )
+
+type ServerConfig struct {
+	HeaderTimeout int `json:"headerTimeout"`
+	ReadTimeout   int `json:"readTimeout"`
+	WriteTimeout  int `json:"writeTimeout"`
+	IdleTimeout   int `json:"idleTimeout"`
+}
+
+func NewServerConfig(headerTimeout, readTimeout, writeTimeout, idleTimeout int) *ServerConfig {
+	return &ServerConfig{
+		HeaderTimeout: headerTimeout,
+		ReadTimeout:   readTimeout,
+		WriteTimeout:  writeTimeout,
+		IdleTimeout:   idleTimeout,
+	}
+}
 
 // port: ":8080"
 func RunServer(engine *gin.Engine, port string) (server *http.Server, err error) {
+	return RunServerWithConfig(engine, port, nil)
+}
+
+// port: ":8080"
+func RunServerWithConfig(engine *gin.Engine, port string,
+	config *ServerConfig) (server *http.Server, err error) {
 	if engine == nil {
 		return nil, errors.New("engine is empty")
 	}
 	if port == "" {
 		return nil, errors.New("port is empty")
 	}
+	if config == nil {
+		config = NewServerConfig(DefaultHeaderTimeout, DefaultReadTimeout, DefaultWriteTimeout, DefaultIdleTimeout)
+	}
+	belogs.Debug("RunServerWithConfig(): port:", port, "  config:", jsonutil.MarshalJson(config))
+
 	server = &http.Server{
 		Addr:    port,
 		Handler: engine,
 		// 【关键】读取请求头的总超时，防御 Slowloris（慢头攻击）
-		ReadHeaderTimeout: default_header_timeout * time.Second,
+		ReadHeaderTimeout: time.Duration(config.HeaderTimeout) * time.Second,
 
 		// 读取整个请求（含 Body）的超时，防御 Slow POST / RUDY（慢体攻击）, body上传文件可以120s
-		ReadTimeout: default_read_timeout * time.Second,
+		ReadTimeout: time.Duration(config.ReadTimeout) * time.Second,
 
 		// 写入响应的超时，防御 Slow Read（客户端读极慢）
-		WriteTimeout: default_write_timeout * time.Second,
+		WriteTimeout: time.Duration(config.WriteTimeout) * time.Second,
 
 		// Keep-Alive 连接空闲超时，防止空闲连接长期占用
-		IdleTimeout: default_idle_timeout * time.Second,
+		IdleTimeout: time.Duration(config.IdleTimeout) * time.Second,
 
 		// 限制请求头大小，避免内存被超大头部耗尽
 		MaxHeaderBytes: 1 << 20, // 1 MB
@@ -61,6 +88,12 @@ func RunServer(engine *gin.Engine, port string) (server *http.Server, err error)
 
 // port: ":8443"
 func RunTlsServer(engine *gin.Engine, port, certFile, keyFile string) (server *http.Server, err error) {
+	return RunTlsServerWithConfig(engine, port, certFile, keyFile, nil)
+}
+
+// port: ":8443"
+func RunTlsServerWithConfig(engine *gin.Engine, port, certFile, keyFile string,
+	config *ServerConfig) (server *http.Server, err error) {
 	if engine == nil {
 		return nil, errors.New("engine is empty")
 	}
@@ -70,6 +103,10 @@ func RunTlsServer(engine *gin.Engine, port, certFile, keyFile string) (server *h
 	if certFile == "" || keyFile == "" {
 		return nil, errors.New("certFile or keyFile is empty")
 	}
+	if config == nil {
+		config = NewServerConfig(DefaultHeaderTimeout, DefaultReadTimeout, DefaultWriteTimeout, DefaultIdleTimeout)
+	}
+	belogs.Debug("RunServerWithConfig(): port:", port, "  config:", jsonutil.MarshalJson(config))
 
 	// tls cipher suites
 	tlsconf := &tls.Config{
@@ -102,16 +139,16 @@ func RunTlsServer(engine *gin.Engine, port, certFile, keyFile string) (server *h
 		Handler:   engine,
 		TLSConfig: tlsconf,
 		// 【关键】读取请求头的总超时，防御 Slowloris（慢头攻击）
-		ReadHeaderTimeout: default_header_timeout * time.Second,
+		ReadHeaderTimeout: time.Duration(config.HeaderTimeout) * time.Second,
 
 		// 读取整个请求（含 Body）的超时，防御 Slow POST / RUDY（慢体攻击）, body上传文件可以120s
-		ReadTimeout: default_read_timeout * time.Second,
+		ReadTimeout: time.Duration(config.ReadTimeout) * time.Second,
 
 		// 写入响应的超时，防御 Slow Read（客户端读极慢）
-		WriteTimeout: default_write_timeout * time.Second,
+		WriteTimeout: time.Duration(config.WriteTimeout) * time.Second,
 
 		// Keep-Alive 连接空闲超时，防止空闲连接长期占用
-		IdleTimeout: default_idle_timeout * time.Second,
+		IdleTimeout: time.Duration(config.IdleTimeout) * time.Second,
 
 		// 限制请求头大小，避免内存被超大头部耗尽
 		MaxHeaderBytes: 1 << 20, // 1 MB
