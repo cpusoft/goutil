@@ -106,7 +106,7 @@ func RunTlsServerWithConfig(engine *gin.Engine, port, certFile, keyFile string,
 	if config == nil {
 		config = NewServerConfig(DefaultHeaderTimeout, DefaultReadTimeout, DefaultWriteTimeout, DefaultIdleTimeout)
 	}
-	belogs.Debug("RunServerWithConfig(): port:", port, "  config:", jsonutil.MarshalJson(config))
+	belogs.Debug("RunTlsServerWithConfig(): port:", port, "  config:", jsonutil.MarshalJson(config))
 
 	// tls cipher suites
 	tlsconf := &tls.Config{
