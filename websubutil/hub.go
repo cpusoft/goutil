@@ -9,6 +9,7 @@ import (
 	"hash"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -114,7 +115,7 @@ func New(store store.Store, opts ...Option) *Hub {
 		store:           store,
 		contentProvider: HttpContent,
 		hasher:          "sha256",
-		maxLease:        24 * time.Hour,
+		maxLease:        time.Duration(math.MaxInt64), // 292 年,    24 * time.Hour,
 	}
 
 	for _, opt := range opts {

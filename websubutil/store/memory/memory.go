@@ -167,3 +167,9 @@ func (s *Store) Remove(sub model.Subscription) error {
 	s.Call(&store.Removed{Subscription: sub})
 	return nil
 }
+
+// PublishResult implements [store.Store].
+func (s *Store) PublishResult(sub model.Subscription, data []byte, errorMsg string) error {
+	// do nothing
+	return nil
+}

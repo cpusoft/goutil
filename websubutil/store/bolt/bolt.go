@@ -200,3 +200,9 @@ func (s *Store) Remove(sub model.Subscription) error {
 
 	return err
 }
+
+// PublishResult implements [store.Store].
+func (s *Store) PublishResult(sub model.Subscription, data []byte, errorMsg string) error {
+	// do nothing
+	return nil
+}

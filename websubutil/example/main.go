@@ -6,8 +6,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/cpusoft/goutil/websubutil/store/bolt"
 	websub "github.com/cpusoft/goutil/websubutil"
+	"github.com/cpusoft/goutil/websubutil/store/bolt"
 )
 
 func main() {

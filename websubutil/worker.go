@@ -1,6 +1,9 @@
 package websubutil
 
-import "github.com/cpusoft/goutil/websubutil/model"
+import (
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/websubutil/model"
+)
 
 // PublishJob represents a job to publish data to a subscription.
 type PublishJob struct {
@@ -36,11 +39,13 @@ type GoWorker struct {
 
 // Add will add a job to the queue.
 func (w *GoWorker) Add(job PublishJob) {
+	belogs.Debug("GoWorker.Add(): adding job:", job)
 	w.jobCh <- job
 }
 
 // Start will start the worker routines.
 func (w *GoWorker) Start() {
+	belogs.Debug("GoWorker.Start(): starting workers, workerCount:", w.workerCount)
 	for i := 0; i < w.workerCount; i++ {
 		go w.run()
 	}
@@ -49,6 +54,7 @@ func (w *GoWorker) Start() {
 // Stop will close the job channel, causing each worker routine to exit.
 func (w *GoWorker) Stop() {
 	close(w.jobCh)
+	belogs.Debug("GoWorker.Stop(): jobCh closed")
 }
 
 // run pulls jobs off the job channel and processes them.
@@ -57,6 +63,7 @@ func (w *GoWorker) run() {
 		job, ok := <-w.jobCh
 
 		if !ok {
+			belogs.Debug("GoWorker.run(): jobCh closed, exiting")
 			return
 		}
 
@@ -64,12 +71,16 @@ func (w *GoWorker) run() {
 
 		// TODO: Log errors
 		if err != nil {
+			belogs.Error("GoWorker.run(): Notify failed, err:", err, "job:", job)
+			w.hub.store.PublishResult(job.Subscription, job.Data, err.Error())
 			continue
 		}
+		belogs.Debug("GoWorker.run(): Notify no error, sent:", sent, "job:", job)
+		w.hub.store.PublishResult(job.Subscription, job.Data, "")
 
 		// Remove failed subscriptions
-		if !sent {
-			w.hub.store.Remove(job.Subscription)
-		}
+		//if !sent {
+		//	w.hub.store.Remove(job.Subscription)
+		//}
 	}
 }

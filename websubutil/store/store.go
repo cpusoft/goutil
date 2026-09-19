@@ -26,4 +26,6 @@ type Store interface {
 
 	// Remove removes a subscription from the store.
 	Remove(sub model.Subscription) error
+
+	PublishResult(sub model.Subscription, data []byte, errorMsg string) error
 }
