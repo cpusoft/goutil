@@ -2,6 +2,7 @@ package websubutil
 
 import (
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/websubutil/model"
 )
 
@@ -67,16 +68,16 @@ func (w *GoWorker) run() {
 			return
 		}
 
-		sent, err := Notify(w.hub.client, job)
+		publishResponse, err := Notify(w.hub.client, job)
 
 		// TODO: Log errors
 		if err != nil {
-			belogs.Error("GoWorker.run(): Notify failed, err:", err, "job:", job)
-			w.hub.store.PublishResult(job.Subscription, job.Data, err.Error())
+			belogs.Error("GoWorker.run(): Notify fail, publishResponse:", jsonutil.MarshalJson(publishResponse), "job:", job, err)
+			w.hub.store.PublishResult(job.Subscription, job.Data, publishResponse)
 			continue
 		}
-		belogs.Debug("GoWorker.run(): Notify no error, sent:", sent, "job:", job)
-		w.hub.store.PublishResult(job.Subscription, job.Data, "")
+		belogs.Debug("GoWorker.run(): Notify ok, publishResponse:", jsonutil.MarshalJson(publishResponse), "job:", job)
+		w.hub.store.PublishResult(job.Subscription, job.Data, publishResponse)
 
 		// Remove failed subscriptions
 		//if !sent {

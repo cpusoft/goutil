@@ -3,7 +3,7 @@ package model
 import "time"
 
 type Subscription struct {
-	ID        int64         `json:"id"`
+	ID        int64         `json:"id"` // LabRpkiWebSubHub.Id
 	Topic     string        `json:"topic"`
 	Callback  string        `json:"callback"`
 	Secret    string        `json:"secret"`
