@@ -9,6 +9,7 @@ import (
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/jsonutil"
+	"github.com/cpusoft/goutil/langutil"
 	"github.com/cpusoft/goutil/osutil"
 	"github.com/guregu/null/v6"
 )
@@ -118,7 +119,10 @@ func WhoisAsnAddressPrefixByCymru(query string, whoisConfig *WhoisConfig) (whois
 		return nil, err
 	}
 
-	outputStr := string(output)
+	//	outputStr := string(output)
+	outputStr, codec := langutil.TryDecodeToUTF8(output)
+	belogs.Debug("WhoisAsnAddressPrefixByCymru(): decode outputStr:", outputStr, " codec:", codec)
+
 	tmps := strings.Split(outputStr, osutil.GetNewLineSep())
 	belogs.Debug("WhoisAsnAddressPrefixByCymru(): outputStr:", outputStr, "   tmps:", jsonutil.MarshalJson(tmps))
 
