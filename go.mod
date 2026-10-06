@@ -28,6 +28,7 @@ require (
 	github.com/pires/go-proxyproto v0.15.0
 	github.com/pkg/errors v0.9.1
 	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b
+	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.12.1
@@ -35,6 +36,7 @@ require (
 	github.com/wk8/go-ordered-map/v2 v2.1.8
 	go.etcd.io/bbolt v1.5.0
 	go.uber.org/zap v1.28.0
+	golang.org/x/text v0.42.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	modernc.org/sqlite v1.59.0
 	xorm.io/xorm v1.4.1
@@ -100,7 +102,6 @@ require (
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/libc v1.77.1 // indirect
