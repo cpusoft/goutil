@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/websubutil/handler"
 	"github.com/cpusoft/goutil/websubutil/model"
 	"github.com/cpusoft/goutil/websubutil/store"
@@ -57,6 +58,7 @@ var (
 // WithValidator sets the subscription validator.
 func WithValidator(validator Validator) Option {
 	return func(h *Hub) {
+		belogs.Debug("WithValidator(): setting validator:", validator)
 		h.validator = validator
 	}
 }
@@ -64,6 +66,7 @@ func WithValidator(validator Validator) Option {
 // WithContentProvider sets the content provider for external hub.mode=publish requests.
 func WithContentProvider(provider ContentProvider) Option {
 	return func(h *Hub) {
+		belogs.Debug("WithContentProvider(): setting content provider:", provider)
 		h.contentProvider = provider
 	}
 }
@@ -76,6 +79,7 @@ func WithHasher(hasher string) Option {
 		hasher = "sha256"
 	}
 	return func(h *Hub) {
+		belogs.Debug("WithHasher(): setting hasher:", hasher)
 		h.hasher = hasher
 	}
 }
@@ -84,6 +88,7 @@ func WithHasher(hasher string) Option {
 // This can be done with any number of systems, such as Amazon SQS, Beanstalk, etc.
 func WithWorker(worker Worker) Option {
 	return func(h *Hub) {
+		belogs.Debug("WithWorker(): setting worker:", worker)
 		h.worker = worker
 	}
 }
@@ -92,6 +97,7 @@ func WithWorker(worker Worker) Option {
 // By default, this is auto detected on first request for ease of use.
 func WithURL(url string) Option {
 	return func(h *Hub) {
+		belogs.Debug("WithURL(): setting hub url:", url)
 		h.url = url
 	}
 }
@@ -100,6 +106,7 @@ func WithURL(url string) Option {
 // By default, this is 24 hours.
 func WithMaxLease(maxLease time.Duration) Option {
 	return func(h *Hub) {
+		belogs.Debug("WithMaxLease(): setting max lease:", maxLease)
 		h.maxLease = maxLease
 	}
 }
@@ -133,17 +140,20 @@ func New(store store.Store, opts ...Option) *Hub {
 // ServeHTTP is a generic webserver handler for websub.
 // It takes in "hub.mode" from the form, and passes it to the appropriate handlers.
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	belogs.Debug("ServeHTTP(): handling request")
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	hubMode := r.FormValue("hub.mode")
-
+	belogs.Debug("ServeHTTP(): hub.mode:", hubMode, "url:", r.URL.String(), "form:", r.Form)
 	if hubMode == "" {
 		http.Error(w, "missing hub.mode parameter", http.StatusBadRequest)
+		belogs.Debug("ServeHTTP(): missing hub.mode parameter")
 		return
 	}
+	belogs.Debug("ServeHTTP(): will detect hub url:", h.url)
 
 	// If url is not set, set to something we can "guess"
 	if h.url == "" {
@@ -161,21 +171,21 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Host:   r.Host,
 			Path:   r.URL.Path, // 仅取路径，丢弃查询参数 r.RequestURI,
 		}
-
 		h.url = strings.TrimRight(u.String(), "/")
+		belogs.Debug("ServeHTTP(): auto detected hub url:", h.url)
 	}
 
 	switch hubMode {
 	case model.ModeSubscribe:
 		var req model.SubscribeRequest
-
 		if err := DecodeForm(r, &req); err != nil {
+			belogs.Error("ServeHTTP(): DecodeForm fail, err:", err, "url:", r.URL.String(), "form:", r.Form)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		belogs.Debug("ServeHTTP(): handling subscribe request: subreq", req)
 
 		err := h.HandleSubscribe(req)
-
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -215,6 +225,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusAccepted)
 	default:
+		belogs.Debug("ServeHTTP(): hub.mode not recognized:", hubMode)
 		http.Error(w, "hub.mode not recognized", http.StatusBadRequest)
 	}
 }
@@ -223,12 +234,12 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *Hub) HandleSubscribe(req model.SubscribeRequest) error {
 	// validate for required fields
 	if err := v.Struct(req); err != nil {
+		belogs.Error("HandleSubscribe(): validation fail, err:", err, "req:", req)
 		return err
 	}
 
 	// Default lease
 	leaseDuration := h.maxLease //240 * time.Hour
-
 	if req.LeaseSeconds > 0 {
 		if req.LeaseSeconds < 60 || time.Duration(req.LeaseSeconds)*time.Second > h.maxLease {
 			return errors.New("invalid hub.lease_seconds value")
@@ -236,7 +247,7 @@ func (h *Hub) HandleSubscribe(req model.SubscribeRequest) error {
 			leaseDuration = time.Duration(req.LeaseSeconds) * time.Second
 		}
 	}
-
+	belogs.Debug("HandleSubscribe(): leaseDuration:", leaseDuration, "maxLease:", h.maxLease, "req.LeaseSeconds:", req.LeaseSeconds)
 	sub := model.Subscription{
 		Topic:     req.Topic,
 		Callback:  req.Callback,
@@ -244,11 +255,14 @@ func (h *Hub) HandleSubscribe(req model.SubscribeRequest) error {
 		Expires:   time.Now().Add(leaseDuration),
 		LeaseTime: leaseDuration, // 设置 LeaseTime
 	}
+	belogs.Debug("HandleSubscribe(): will handle subscribe request: sub", sub)
 
 	if h.validator != nil {
-		err := h.validator(sub)
+		belogs.Debug("HandleSubscribe(): will validate subscription:", sub)
 
+		err := h.validator(sub)
 		if err != nil {
+			belogs.Error("HandleSubscribe(): validation failed, err:", err, "sub:", sub)
 			sub.Reason = err
 			go func(sub model.Subscription) {
 				// 同样增加 panic 保护
@@ -349,37 +363,35 @@ func (h *Hub) HandleUnsubscribe(req model.UnsubscribeRequest) error {
 // Verify sends a response to a subscription model with the specified data.
 // If the subscription failed, Reason can be set to send hub.reason in the callback.
 func (h *Hub) Verify(mode string, sub model.Subscription) error {
+	belogs.Debug("Hub.Verify(): mode", mode, "sub", sub, "sub.Callback", sub.Callback)
 	u, err := url.Parse(sub.Callback)
-
 	if err != nil {
+		belogs.Error("Hub.Verify(): failed to parse callback URL", sub.Callback, err)
 		return err
 	}
 
 	challenge := uuid.New().String()
-
 	q := u.Query()
 	q.Set("hub.mode", mode)
 	q.Set("hub.topic", sub.Topic)
-
 	if mode != model.ModeDenied {
 		q.Set("hub.challenge", challenge)
 		q.Set("hub.lease_seconds", strconv.Itoa(int(sub.LeaseTime/time.Second)))
 	} else if sub.Reason != nil {
 		q.Set("hub.reason", sub.Reason.Error())
 	}
-
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequest("GET", u.String(), nil)
-
 	if err != nil {
+		belogs.Error("Hub.Verify(): failed to create request", u.String(), err)
 		return err
 	}
 
 	req.Header.Set("User-Agent", "Go WebSub 1.0 ("+runtime.Version()+")")
-
 	res, err := h.client.Do(req)
 	if err != nil {
+		belogs.Error("Hub.Verify(): failed to send request", u.String(), err)
 		return err
 	}
 	defer res.Body.Close()
@@ -387,10 +399,12 @@ func (h *Hub) Verify(mode string, sub model.Subscription) error {
 	//if res.StatusCode != 200 {
 	if res.StatusCode < 200 || res.StatusCode > 299 {
 		// Uh oh!
+		belogs.Error("Hub.Verify(): url, unexpected status code", u.String(), res.StatusCode)
 		return errors.New("unexpected status code")
 	}
 
 	if mode == model.ModeDenied {
+		belogs.Debug("Hub.Verify(): mode is denied, no need to check challenge, url:", u.String())
 		io.Copy(io.Discard, res.Body)
 		return nil
 	}
@@ -398,11 +412,13 @@ func (h *Hub) Verify(mode string, sub model.Subscription) error {
 	// Read max of challenge size bytes
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		belogs.Error("Hub.Verify(): ReadAll fail", res.Body, err)
 		return err
 	}
 
 	if string(body) != challenge {
 		// Nope.
+		belogs.Error("Hub.Verify(): challenge did not match", u.String(), "expected:", challenge, "actual:", string(body))
 		return errors.New(fmt.Sprint("verification: challenge did not match for "+u.Host+", expected: ",
 			challenge, " actual: ", string(body)))
 	}
@@ -410,35 +426,44 @@ func (h *Hub) Verify(mode string, sub model.Subscription) error {
 	if mode == model.ModeSubscribe {
 		// Update the subscription and set it as verified
 		// time.Now().Add(time.Duration(leaseSeconds) * time.Second), topic, callback
+		belogs.Debug("Hub.Verify(): mode is subscribe, adding subscription to store, url:", u.String(), sub)
 		err = h.store.Add(sub)
 	} else if mode == model.ModeUnsubscribe {
 		// Delete the subscription
+		belogs.Debug("Hub.Verify(): mode is unsubscribe, removing subscription from store, url:", u.String(), sub)
 		err = h.store.Remove(sub)
 	}
-
-	return err
+	if err != nil {
+		belogs.Error("Hub.Verify(): store operation failed, url:", u.String(), "mode:", mode, "sub:", sub, err)
+		return err
+	}
+	belogs.Info("Hub.Verify(): verification successful, url:", u.String(), "mode:", mode, "sub:", sub)
+	return nil
 }
 
 // HandlePublish handles a request to publish from a publisher.
 func (h *Hub) HandlePublish(req model.PublishRequest) error {
+	belogs.Debug("Hub.HandlePublish(): req", req)
 	if err := v.Struct(req); err != nil {
 		return err
 	}
 
 	data, contentType, err := h.contentProvider(req.Topic)
-
 	if err != nil {
+		belogs.Error("Hub.HandlePublish(): contentProvider fail, err:", err, "req.Topic:", req.Topic)
 		return err
 	}
-
+	belogs.Debug("Hub.HandlePublish(): will h.Publish,req.Topic:", req.Topic, " len(data)", len(data), "contentType:", contentType)
 	return h.Publish(req.Topic, contentType, data)
 }
 
 // Publish queues responses to the worker for a publish.
 func (h *Hub) Publish(topic, contentType string, data []byte) error {
-	subs, err := h.store.All(topic)
+	belogs.Debug("Hub.Publish(): topic:", topic, " contentType:", contentType, " data length:", len(data))
 
+	subs, err := h.store.All(topic)
 	if err != nil {
+		belogs.Error("Hub.Publish(): store.All fail, err:", err, "topic:", topic)
 		if err == store.ErrNotFound {
 			subs = []model.Subscription{} // 无订阅者视为正常空状态
 		} else {
@@ -446,6 +471,7 @@ func (h *Hub) Publish(topic, contentType string, data []byte) error {
 		}
 	}
 
+	belogs.Debug("Hub.Publish(): will call publish, topic:", topic, "contentType:", contentType, "data length:", len(data))
 	h.Call(&Publish{
 		Topic:       topic,
 		ContentType: contentType,
@@ -456,8 +482,9 @@ func (h *Hub) Publish(topic, contentType string, data []byte) error {
 		Hasher: h.hasher,
 		URL:    h.url,
 	}
-
+	belogs.Debug("Hub.Publish(): will add publish jobs to worker, hub:", hub, "subs:", subs)
 	for _, sub := range subs {
+		belogs.Debug("Hub.Publish(): adding publish job to worker, hub:", hub, "sub:", sub)
 		h.worker.Add(PublishJob{
 			Hub:          hub,
 			Subscription: sub,

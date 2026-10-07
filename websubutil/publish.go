@@ -16,6 +16,7 @@ import (
 )
 
 func Notify(client *http.Client, job PublishJob) (publishResponse model.PublishResponse, err error) {
+	belogs.Debug("Notify(): job:", job)
 	b := &backoff.Backoff{
 		Min:    100 * time.Millisecond,
 		Max:    10 * time.Minute,

@@ -67,10 +67,9 @@ func (w *GoWorker) run() {
 			belogs.Debug("GoWorker.run(): jobCh closed, exiting")
 			return
 		}
+		belogs.Debug("GoWorker.run(): get job from jobCh:", job)
 
 		publishResponse, err := Notify(w.hub.client, job)
-
-		// TODO: Log errors
 		if err != nil {
 			belogs.Error("GoWorker.run(): Notify fail, publishResponse:", jsonutil.MarshalJson(publishResponse), "job:", job, err)
 			w.hub.store.PublishResult(job.Subscription, job.Data, publishResponse)
