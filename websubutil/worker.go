@@ -2,6 +2,7 @@ package websubutil
 
 import (
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/websubutil/model"
 )
@@ -12,6 +13,15 @@ type PublishJob struct {
 	Subscription model.Subscription `json:"subscription"`
 	ContentType  string             `json:"contentType"`
 	Data         []byte             `json:"data"`
+}
+
+func (c PublishJob) String() string {
+	m := make(map[string]string)
+	m["Hub.URL"] = c.Hub.URL
+	m["Subscription"] = c.Subscription.String()
+	m["ContentType"] = c.ContentType
+	m["len(Data)"] = convert.ToString(len(c.Data))
+	return jsonutil.MarshalJson(m)
 }
 
 // Worker is an interface to allow other types of workers to be created.
@@ -40,7 +50,7 @@ type GoWorker struct {
 
 // Add will add a job to the queue.
 func (w *GoWorker) Add(job PublishJob) {
-	belogs.Debug("GoWorker.Add(): adding job:", job)
+	belogs.Debug("GoWorker.Add(): adding job:", jsonutil.MarshalJson(job.Hub), jsonutil.MarshalJson(job.Subscription), "to jobCh")
 	w.jobCh <- job
 }
 
@@ -67,7 +77,8 @@ func (w *GoWorker) run() {
 			belogs.Debug("GoWorker.run(): jobCh closed, exiting")
 			return
 		}
-		belogs.Debug("GoWorker.run(): get job from jobCh:", job)
+		belogs.Debug("GoWorker.run(): get job from jobCh:", jsonutil.MarshalJson(job.Hub), jsonutil.MarshalJson(job.Subscription),
+			len(job.Data), "contentType:", job.ContentType)
 
 		publishResponse, err := Notify(w.hub.client, job)
 		if err != nil {
@@ -75,7 +86,7 @@ func (w *GoWorker) run() {
 			w.hub.store.PublishResult(job.Subscription, job.Data, publishResponse)
 			continue
 		}
-		belogs.Debug("GoWorker.run(): Notify ok, publishResponse:", jsonutil.MarshalJson(publishResponse), "job:", job)
+		belogs.Debug("GoWorker.run(): Notify ok, publishResponse:", jsonutil.MarshalJson(publishResponse), "job:", jsonutil.MarshalJson(job.Hub), jsonutil.MarshalJson(job.Subscription))
 		w.hub.store.PublishResult(job.Subscription, job.Data, publishResponse)
 
 		// Remove failed subscriptions

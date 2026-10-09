@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"log"
 	"math"
 	"net/http"
 	"net/url"
@@ -19,6 +18,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/websubutil/handler"
 	"github.com/cpusoft/goutil/websubutil/model"
 	"github.com/cpusoft/goutil/websubutil/store"
@@ -255,20 +255,20 @@ func (h *Hub) HandleSubscribe(req model.SubscribeRequest) error {
 		Expires:   time.Now().Add(leaseDuration),
 		LeaseTime: leaseDuration, // 设置 LeaseTime
 	}
-	belogs.Debug("HandleSubscribe(): will handle subscribe request: sub", sub)
+	belogs.Debug("HandleSubscribe(): will handle subscribe request: sub", jsonutil.MarshalJson(sub))
 
 	if h.validator != nil {
-		belogs.Debug("HandleSubscribe(): will validate subscription:", sub)
+		belogs.Debug("HandleSubscribe(): will validate subscription:", jsonutil.MarshalJson(sub))
 
 		err := h.validator(sub)
 		if err != nil {
-			belogs.Error("HandleSubscribe(): validation failed, err:", err, "sub:", sub)
+			belogs.Error("HandleSubscribe(): validation failed, err:", err, "sub:", jsonutil.MarshalJson(sub))
 			sub.Reason = err
 			go func(sub model.Subscription) {
 				// 同样增加 panic 保护
 				defer func() {
 					if r := recover(); r != nil {
-						log.Printf("panic in denied verify: %v", r)
+						belogs.Error("HandleSubscribe(): Verify panic in denied verify: %v", r)
 					}
 				}()
 				h.Verify(model.ModeDenied, sub)
@@ -293,7 +293,7 @@ func (h *Hub) HandleSubscribe(req model.SubscribeRequest) error {
 	go func(hubMode string, sub model.Subscription) {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("panic in subscribe verification: %v", r)
+				belogs.Error("HandleSubscribe(): panic in subscribe verification: %v", r)
 			}
 		}()
 
@@ -335,7 +335,7 @@ func (h *Hub) HandleUnsubscribe(req model.UnsubscribeRequest) error {
 				// 同样增加 panic 保护
 				defer func() {
 					if r := recover(); r != nil {
-						log.Printf("panic in denied verify: %v", r)
+						belogs.Error("HandleUnsubscribe(): panic in denied verify: %v", r)
 					}
 				}()
 				h.Verify(model.ModeDenied, sub)
@@ -347,13 +347,13 @@ func (h *Hub) HandleUnsubscribe(req model.UnsubscribeRequest) error {
 	go func(hubMode string, sub model.Subscription) {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("panic in unsubscribe verification: %v", r)
+				belogs.Error("HandleUnsubscribe(): panic in unsubscribe verification: %v", r)
 			}
 		}()
 		err := h.Verify(hubMode, sub)
 
 		if err != nil {
-			log.Println("Error:", err)
+			belogs.Error("HandleUnsubscribe():Verify fail", err)
 		}
 	}(req.Mode, sub)
 
@@ -426,18 +426,18 @@ func (h *Hub) Verify(mode string, sub model.Subscription) error {
 	if mode == model.ModeSubscribe {
 		// Update the subscription and set it as verified
 		// time.Now().Add(time.Duration(leaseSeconds) * time.Second), topic, callback
-		belogs.Debug("Hub.Verify(): mode is subscribe, adding subscription to store, url:", u.String(), sub)
+		belogs.Debug("Hub.Verify(): mode is subscribe, adding subscription to store, url:", u.String(), jsonutil.MarshalJson(sub))
 		err = h.store.Add(sub)
 	} else if mode == model.ModeUnsubscribe {
 		// Delete the subscription
-		belogs.Debug("Hub.Verify(): mode is unsubscribe, removing subscription from store, url:", u.String(), sub)
+		belogs.Debug("Hub.Verify(): mode is unsubscribe, removing subscription from store, url:", u.String(), jsonutil.MarshalJson(sub))
 		err = h.store.Remove(sub)
 	}
 	if err != nil {
-		belogs.Error("Hub.Verify(): store operation failed, url:", u.String(), "mode:", mode, "sub:", sub, err)
+		belogs.Error("Hub.Verify(): store operation failed, url:", u.String(), "mode:", mode, "sub:", jsonutil.MarshalJson(sub), err)
 		return err
 	}
-	belogs.Info("Hub.Verify(): verification successful, url:", u.String(), "mode:", mode, "sub:", sub)
+	belogs.Info("Hub.Verify(): verification successful, url:", u.String(), "mode:", mode, "sub:", jsonutil.MarshalJson(sub))
 	return nil
 }
 
@@ -445,6 +445,7 @@ func (h *Hub) Verify(mode string, sub model.Subscription) error {
 func (h *Hub) HandlePublish(req model.PublishRequest) error {
 	belogs.Debug("Hub.HandlePublish(): req", req)
 	if err := v.Struct(req); err != nil {
+		belogs.Error("Hub.HandlePublish(): Struct fail", err)
 		return err
 	}
 
@@ -545,6 +546,7 @@ func DecodeForm(r *http.Request, dest interface{}) error {
 	})
 
 	if err != nil {
+		belogs.Error("DecodeForm(): NewDecoder fail", err)
 		return err
 	}
 

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/cpusoft/goutil/belogs"
+	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/websubutil/handler"
 	"github.com/cpusoft/goutil/websubutil/model"
 	"github.com/cpusoft/goutil/websubutil/store"
@@ -176,6 +178,7 @@ func (s *Store) Add(sub model.Subscription) error {
 	topicID, err := s.findOrCreateTopic(sub.Topic)
 
 	if err != nil {
+		belogs.Error("Add(): findOrCreateTopic fail", sub.Topic, err)
 		return err
 	}
 
@@ -189,12 +192,13 @@ func (s *Store) Add(sub model.Subscription) error {
 		topicID, sub.Callback, sub.Secret, sub.LeaseTime/time.Second, sub.Expires)
 
 	if err != nil {
+		belogs.Error("Add(): INSERT INTO subscriptions fail", jsonutil.MarshalJson(sub), err)
 		return err
 	}
 
 	sub.ID, err = res.LastInsertId()
-
 	if err != nil {
+		belogs.Error("Add(): LastInsertId fail", jsonutil.MarshalJson(sub), err)
 		return err
 	}
 	// 更新时 LastInsertId() 返回 0，如果业务后续依赖 sub.ID，尝试获取已存在的记录 ID
