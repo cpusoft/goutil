@@ -75,3 +75,17 @@ func LookupIpByUrl(urlStr string) []net.IP { // 变量名改为urlStr，避免�
 	}
 	return ipAddrs
 }
+
+func IpsToStrings(ips []net.IP) []string {
+	if len(ips) == 0 {
+		return make([]string, 0)
+	}
+	res := make([]string, 0, len(ips))
+	for _, ip := range ips {
+		res = append(res, ip.String())
+	}
+	return res
+}
+func LookupIpByUrlToStrs(urlStr string) []string {
+	return IpsToStrings(LookupIpByUrl(urlStr))
+}
