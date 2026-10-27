@@ -15,7 +15,7 @@ import (
 	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/hashutil"
-	"github.com/cpusoft/goutil/httpclient"
+	"github.com/cpusoft/goutil/httpclient2"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/netutil"
 	"github.com/cpusoft/goutil/osutil"
@@ -33,11 +33,9 @@ import (
 		return GetRrdpDeltasWithConfig(notificationModel, lastSerial, nil)
 	}
 */
-func GetRrdpDeltasWithConfig(notificationModel *NotificationModel, lastSerial uint64, httpClientConfig *httpclient.HttpClientConfig) (deltaModels []DeltaModel, err error) {
+func GetRrdpDeltasWithConfig(notificationModel *NotificationModel, lastSerial uint64, httpClientConfig *httpclient2.HttpClientConfig) (deltaModels []DeltaModel, err error) {
 	start := time.Now()
-	if httpClientConfig == nil {
-		httpClientConfig = httpclient.NewHttpClientConfig()
-	}
+
 	belogs.Debug("GetRrdpDeltasWithConfig(): len(notificationModel.Deltas):", len(notificationModel.Deltas),
 		"  lastSerial:", lastSerial, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 
@@ -84,7 +82,7 @@ func GetRrdpDeltasWithConfig(notificationModel *NotificationModel, lastSerial ui
 	return deltaModels, nil
 }
 
-func getRrdpDeltasImplWithConfig(notificationModel *NotificationModel, i int, httpClientConfig *httpclient.HttpClientConfig,
+func getRrdpDeltasImplWithConfig(notificationModel *NotificationModel, i int, httpClientConfig *httpclient2.HttpClientConfig,
 	deltaModelCh chan DeltaModel, errorMsgCh chan string,
 	countCh chan int, wg *sync.WaitGroup) {
 	defer func() {
@@ -124,11 +122,11 @@ func GetRrdpDelta(deltaUrl string) (deltaModel DeltaModel, err error) {
 	belogs.Debug("GetRrdpDelta(): deltaUrl:", deltaUrl)
 	return GetRrdpDeltaWithConfig(deltaUrl, nil)
 }
-func GetRrdpDeltaWithConfig(deltaUrl string, httpClientConfig *httpclient.HttpClientConfig) (deltaModel DeltaModel, err error) {
+func GetRrdpDeltaWithConfig(deltaUrl string, httpClientConfig *httpclient2.HttpClientConfig) (deltaModel DeltaModel, err error) {
 
 	start := time.Now()
 	if httpClientConfig == nil {
-		httpClientConfig = httpclient.NewHttpClientConfig()
+		httpClientConfig = httpclient2.NewHttpClientConfig()
 	}
 	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
@@ -143,23 +141,23 @@ func GetRrdpDeltaWithConfig(deltaUrl string, httpClientConfig *httpclient.HttpCl
 	return deltaModel, nil
 }
 
-func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.HttpClientConfig) (deltaModel DeltaModel, err error) {
+func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient2.HttpClientConfig) (deltaModel DeltaModel, err error) {
 
 	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
 	belogs.Debug("getRrdpDeltaImplWithConfig(): deltaUrl:", deltaUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	deltaUrl = strings.TrimSpace(deltaUrl)
 	start := time.Now()
-	resp, body, err := httpclient.GetHttpsWithConfig(deltaUrl, httpClientConfig)
-	defer httpclient.CloseResponseBody(resp)
+	resp, body, err := httpclient2.GetHttpWithConfig(deltaUrl, httpClientConfig)
+	defer httpclient2.CloseResponseBody(resp)
 	if err == nil {
 		if resp == nil || resp.StatusCode != http.StatusOK {
 			belogs.Error("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl, is not StatusOK:", deltaUrl,
-				"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body)
-			return deltaModel, errors.New("http status code of " + deltaUrl + " is " + convert.ToString(httpclient.GetStatusCode(resp)))
+				"   statusCode:", httpclient2.GetStatusCode(resp), "    body:", body)
+			return deltaModel, errors.New("http status code of " + deltaUrl + " is " + convert.ToString(httpclient2.GetStatusCode(resp)))
 		} else {
 			belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl ok:", deltaUrl,
-				"   statusCode:", httpclient.GetStatusCode(resp),
+				"   statusCode:", httpclient2.GetStatusCode(resp),
 				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 				"   len(body):", len(body), "  time(s):", time.Since(start))
 		}
@@ -170,7 +168,7 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 		// then try using curl
 		start = time.Now()
 		httpClientConfig.IpType = "ipv4"
-		body, err = httpclient.GetByCurlWithConfig(deltaUrl, httpClientConfig)
+		body, err = httpclient2.GetByCurlWithConfig(deltaUrl, httpClientConfig)
 		if err != nil {
 			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl fail:", deltaUrl, "   resp:", resp,
 				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
@@ -178,7 +176,7 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient.Ht
 			// then try again using curl, using all
 			start = time.Now()
 			httpClientConfig.IpType = "all"
-			body, err = httpclient.GetByCurlWithConfig(deltaUrl, httpClientConfig)
+			body, err = httpclient2.GetByCurlWithConfig(deltaUrl, httpClientConfig)
 			if err != nil {
 				belogs.Error("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is all, fail:", deltaUrl,
 					"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl), "   resp:", resp,

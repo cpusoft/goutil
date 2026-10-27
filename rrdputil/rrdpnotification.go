@@ -10,7 +10,7 @@ import (
 
 	"github.com/cpusoft/goutil/belogs"
 	"github.com/cpusoft/goutil/convert"
-	"github.com/cpusoft/goutil/httpclient"
+	"github.com/cpusoft/goutil/httpclient2"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/netutil"
 	"github.com/cpusoft/goutil/xmlutil"
@@ -24,7 +24,7 @@ import (
 		return GetRrdpNotificationWithConfig(notificationUrl, nil)
 	}
 */
-func GetRrdpNotificationWithConfig(notificationUrl string, httpClientConfig *httpclient.HttpClientConfig) (notificationModel NotificationModel, err error) {
+func GetRrdpNotificationWithConfig(notificationUrl string, httpClientConfig *httpclient2.HttpClientConfig) (notificationModel NotificationModel, err error) {
 	start := time.Now()
 	// get notification.xml
 	// "https://rrdp.apnic.net/notification.xml"
@@ -60,21 +60,21 @@ func GetRrdpNotificationWithConfig(notificationUrl string, httpClientConfig *htt
 	return notificationModel, nil
 }
 
-func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig *httpclient.HttpClientConfig) (notificationModel NotificationModel, err error) {
+func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig *httpclient2.HttpClientConfig) (notificationModel NotificationModel, err error) {
 
 	belogs.Debug("getRrdpNotificationImplWithConfig(): notificationUrl:", notificationUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	start := time.Now()
 	notificationUrl = strings.TrimSpace(notificationUrl)
-	resp, body, err := httpclient.GetHttpsWithConfig(notificationUrl, httpClientConfig)
-	defer httpclient.CloseResponseBody(resp)
+	resp, body, err := httpclient2.GetHttpWithConfig(notificationUrl, httpClientConfig)
+	defer httpclient2.CloseResponseBody(resp)
 	if err == nil {
 		if resp == nil || resp.StatusCode != http.StatusOK {
 			belogs.Error("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
-				"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body)
-			return notificationModel, errors.New("http status code of " + notificationUrl + " is " + convert.ToString(httpclient.GetStatusCode(resp)))
+				"   statusCode:", httpclient2.GetStatusCode(resp), "    body:", body)
+			return notificationModel, errors.New("http status code of " + notificationUrl + " is " + convert.ToString(httpclient2.GetStatusCode(resp)))
 		} else {
 			belogs.Debug("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl:", notificationUrl,
-				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   statusCode:", httpclient.GetStatusCode(resp),
+				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   statusCode:", httpclient2.GetStatusCode(resp),
 				"   len(body):", len(body),
 				"   time(s):", time.Since(start))
 		}
@@ -85,7 +85,7 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 
 		// then try using curl
 		start = time.Now()
-		body, err = httpclient.GetByCurlWithConfig(notificationUrl, httpClientConfig)
+		body, err = httpclient2.GetByCurlWithConfig(notificationUrl, httpClientConfig)
 		if err != nil {
 			belogs.Debug("getRrdpNotificationImplWithConfig(): GetByCurlWithConfig notificationUrl, iptype is ipv4, fail:", notificationUrl,
 				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp:", resp,
@@ -94,7 +94,7 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 			// then try again using curl, using all
 			start = time.Now()
 			httpClientConfig.IpType = "all"
-			body, err = httpclient.GetByCurlWithConfig(notificationUrl, httpClientConfig)
+			body, err = httpclient2.GetByCurlWithConfig(notificationUrl, httpClientConfig)
 			if err != nil {
 				belogs.Error("getRrdpNotificationImplWithConfig(): GetByCurlWithConfig notificationUrl, iptype is all, fail:", notificationUrl,
 					"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp:", resp,
@@ -127,20 +127,20 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 	return notificationModel, nil
 }
 
-func RrdpNotificationTestConnectWithConfig(notificationUrl string, httpClientConfig *httpclient.HttpClientConfig) (err error) {
+func RrdpNotificationTestConnectWithConfig(notificationUrl string, httpClientConfig *httpclient2.HttpClientConfig) (err error) {
 	start := time.Now()
 	belogs.Debug("RrdpNotificationTestConnectWithConfig(): notificationUrl:", notificationUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 
 	// test http connect
-	resp, body, err := httpclient.GetHttpsWithConfig(notificationUrl, httpClientConfig)
-	defer httpclient.CloseResponseBody(resp)
+	resp, body, err := httpclient2.GetHttpWithConfig(notificationUrl, httpClientConfig)
+	defer httpclient2.CloseResponseBody(resp)
 	if err != nil {
 		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig fail, notificationUrl:", notificationUrl, err, "  time(s):", time.Since(start))
 		return errors.New("http error of " + notificationUrl + " is " + err.Error())
 	}
 	if resp == nil || resp.StatusCode != http.StatusOK {
 		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
-			"   statusCode:", httpclient.GetStatusCode(resp), "    body:", body, "   time(s):", time.Since(start))
+			"   statusCode:", httpclient2.GetStatusCode(resp), "    body:", body, "   time(s):", time.Since(start))
 		return errors.New("http status code of " + notificationUrl + " is " + resp.Status)
 	}
 	belogs.Debug("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig ok, notificationUrl:", notificationUrl,
@@ -182,7 +182,7 @@ func CheckRrdpNotification(notificationModel *NotificationModel) (err error) {
 	return nil
 }
 
-func GetAndCheckRrdpNotificationWithConfig(notifyUrl string, httpClientConfig *httpclient.HttpClientConfig) (notificationModel NotificationModel, err error) {
+func GetAndCheckRrdpNotificationWithConfig(notifyUrl string, httpClientConfig *httpclient2.HttpClientConfig) (notificationModel NotificationModel, err error) {
 	start := time.Now()
 	belogs.Debug("GetAndCheckRrdpNotificationWithConfig(): notifyUrl :", notifyUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	// get nofiy.xmlm

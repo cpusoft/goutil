@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/httpclient"
+	"github.com/cpusoft/goutil/httpclient2"
 	"github.com/cpusoft/goutil/rrdputil"
 	"github.com/cpusoft/goutil/rsyncutil"
 )
@@ -17,8 +17,15 @@ func TestRepoConnect(repoUrl string, timeoutMins uint64) (state string, Duration
 	if strings.HasPrefix(repoUrl, "https://") {
 		belogs.Debug("TestRepoConnect(): rrdp repoUrl:", repoUrl, " timeoutMins:", timeoutMins)
 		start := time.Now()
-		err := rrdputil.RrdpNotificationTestConnectWithConfig(repoUrl,
-			httpclient.NewHttpClientConfigWithParam(uint64(timeoutMins), 1, "all", true))
+		cfg := httpclient2.NewHttpClientConfig(
+			httpclient2.WithAllTimeoutSeconds(30),
+			httpclient2.WithTlsHandshakeTimeoutSeconds(5),
+			httpclient2.WithConnectionTimeoutSeconds(3),
+			httpclient2.WithRetryCount(2),
+			httpclient2.WithIpType("ipv4"),
+			httpclient2.WithVerifyHttps(true),
+		)
+		err := rrdputil.RrdpNotificationTestConnectWithConfig(repoUrl, cfg)
 		if err != nil {
 			belogs.Error("TestRepoConnect(): RrdpNotificationTestConnectWithConfig fail, repoUrl:", repoUrl, err)
 			return "invalid", time.Since(start), err

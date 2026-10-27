@@ -385,18 +385,19 @@ func TestGetOutputStr_Truncation(t *testing.T) {
 // ---------------- 配置构造 ----------------
 
 func TestHttpClientConfig_Setters(t *testing.T) {
-	cfg := (&HttpClientConfig{}).
-		SetAllTimeoutSeconds(30).
-		SetTlsHandshakeTimeoutSeconds(5).
-		SetConnectionTimeoutSeconds(3).
-		SetRetryCount(2).
-		SetIpType("ipv4").
-		SetVerifyHttps(true).
-		SetRootFile("/tmp/ca.pem").
-		SetKeyFile("/tmp/client.key").
-		SetCrtFile("/tmp/client.crt").
-		SetContentType("application/json").
-		SetAuthorization("Bearer xxx")
+	cfg := NewHttpClientConfig(
+		WithAllTimeoutSeconds(30),
+		WithTlsHandshakeTimeoutSeconds(5),
+		WithConnectionTimeoutSeconds(3),
+		WithRetryCount(2),
+		WithIpType("ipv4"),
+		WithVerifyHttps(true),
+		WithRootFile("/tmp/ca.pem"),
+		WithKeyFile("/tmp/client.key"),
+		WithCrtFile("/tmp/client.crt"),
+		WithContentType("application/json"),
+		WithAuthorization("Bearer xxx"),
+	)
 
 	checks := []struct {
 		name string

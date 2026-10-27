@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cpusoft/goutil/httpclient"
+	"github.com/cpusoft/goutil/httpclient2"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/xmlutil"
 )
@@ -56,7 +56,8 @@ func TestGetRrdpDelta(t *testing.T) {
 }
 
 func TestGetRrdpNotification(t *testing.T) {
-	notificationModel, err := GetRrdpNotificationWithConfig("https://rpki.idnic.net/rrdp/notify.xml", httpclient.NewHttpClientConfig())
+	cfg := httpclient2.NewHttpClientConfig()
+	notificationModel, err := GetRrdpNotificationWithConfig("https://rpki.idnic.net/rrdp/notify.xml", cfg)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -72,7 +73,8 @@ func TestGetRrdpNotification(t *testing.T) {
 func TestGetRrdpSnapshot(t *testing.T) {
 	url := `https://rpki-repo.registro.br/rrdp/49582cf3-79ba-4cba-a1a9-14e966177268/147100/65979eb2b415672b/snapshot.xml`
 	fmt.Println("will get snapshot:", url)
-	snapshotModel, err := GetRrdpSnapshotWithConfig(url, httpclient.NewHttpClientConfig())
+	cft := httpclient2.NewHttpClientConfig()
+	snapshotModel, err := GetRrdpSnapshotWithConfig(url, cft)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -218,23 +220,20 @@ func TestGetHttpsVerifySupportRangeWithConfig(t *testing.T) {
 		"https://x-0100000000000011.p.u9sv.com/notification.xml",
 		"https://x-8011.p.u9sv.com/notification.xml",
 	}
-	h := httpclient.NewHttpClientConfigWithParam(5, 3, "all", true)
+	cfg := httpclient2.NewHttpClientConfig()
 	supportUrls := make([]string, 0, len(urls))
 	for _, url := range urls {
-		n, err := GetRrdpNotificationWithConfig(url, h)
+		n, err := GetRrdpNotificationWithConfig(url, cfg)
 		if err != nil {
 			fmt.Println("fail, url:", url, err)
 			continue
 		}
 		snapshotUrl := n.Snapshot.Uri
-		_, supportRange, contentLength, err := httpclient.GetHttpsSupportRangeWithConfig(snapshotUrl, h)
+		resp, _, err := httpclient2.GetHttpWithConfig(snapshotUrl, cfg)
+		defer httpclient2.CloseResponseBody(resp)
 		if err != nil {
 			fmt.Println("fail, url:", url, snapshotUrl, err)
 			continue
-		}
-		if supportRange && contentLength > 10000000 {
-			fmt.Println("support: ", url, snapshotUrl, contentLength)
-			supportUrls = append(supportUrls, url)
 		}
 	}
 	fmt.Println(jsonutil.MarshalJson(supportUrls))
