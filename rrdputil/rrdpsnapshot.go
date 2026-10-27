@@ -89,7 +89,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 	// if not support range, or download fail, will call curl download
 	if !downloadOk {
 		// if not support range, will call curl download
-		belogs.Debug("getRrdpSnapshotImplWithConfig(): not support range,or download with range fail, will use curl, snapshotUrl:", snapshotUrl)
+		belogs.Debug("getRrdpSnapshotImplWithConfig(): httpclient2 download snapshot fail, will use curl, snapshotUrl:", snapshotUrl)
 
 		start = time.Now()
 		httpClientConfig.IpType = "ipv4"
