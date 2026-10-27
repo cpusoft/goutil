@@ -804,7 +804,7 @@ func TestSnapshotByHttpclient2(t *testing.T) {
 	url := `https://rrdp.arin.net/4a394319-7460-4141-a416-1addb69284ff/202818/snapshot-7a4fcc751ab5027e7b4552fa26e83e32c7e8847eaa5c834c8f5bc5f7ededf602.xml`
 	start := time.Now()
 	cfg := httpclient2.NewHttpClientConfig(
-		httpclient2.WithAllTimeoutSeconds(300),
+		httpclient2.WithAllTimeoutSeconds(1800),
 		httpclient2.WithTlsHandshakeTimeoutSeconds(60),
 		httpclient2.WithConnectionTimeoutSeconds(60),
 		httpclient2.WithRetryCount(2),
@@ -825,7 +825,7 @@ func TestSnapshotByCurl(t *testing.T) {
 	url := `https://rrdp.arin.net/4a394319-7460-4141-a416-1addb69284ff/202818/snapshot-7a4fcc751ab5027e7b4552fa26e83e32c7e8847eaa5c834c8f5bc5f7ededf602.xml`
 	start := time.Now()
 	cfg := httpclient2.NewHttpClientConfig(
-		httpclient2.WithAllTimeoutSeconds(300),
+		httpclient2.WithAllTimeoutSeconds(1800),
 		httpclient2.WithTlsHandshakeTimeoutSeconds(60),
 		httpclient2.WithConnectionTimeoutSeconds(60),
 		httpclient2.WithRetryCount(2),
