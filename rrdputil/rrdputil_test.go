@@ -812,9 +812,14 @@ func TestSnapshot2(t *testing.T) {
 		httpclient2.WithVerifyHttps(true))
 
 	snapshot, err := GetRrdpSnapshotWithConfig(url, cfg)
-	fmt.Println(jsonutil.MarshalJson(snapshot), err)
-	fmt.Println(time.Since(start))
-	if err == nil {
-		t.Error(err)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("request failed after %v: %v", elapsed, err)
 	}
+	if snapshot == nil {
+		t.Fatal("snapshot is nil")
+	}
+	t.Logf("serial: %d, publishes: %d, elapsed: %v",
+		snapshot.Serial, len(snapshot.SnapshotPublishs), elapsed)
 }
