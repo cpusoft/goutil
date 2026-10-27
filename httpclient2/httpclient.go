@@ -99,6 +99,9 @@ func buildClientForConfig(parsedURL *url.URL, cfg *HttpClientConfig, defaultJson
 			if connTimeout > 0 {
 				d.Timeout = connTimeout
 			}
+			if cfg.AllTimeoutSeconds > 0 {
+				d.KeepAlive = time.Duration(cfg.AllTimeoutSeconds) * time.Second
+			}
 			return d.DialContext(ctx, network, addr)
 		})
 	}
@@ -142,7 +145,8 @@ func buildClientForConfig(parsedURL *url.URL, cfg *HttpClientConfig, defaultJson
 		client.SetCommonRetryCount(int(cfg.RetryCount))
 	}
 	client.SetCommonHeader("User-Agent", DefaultUserAgent)
-	client.SetCommonHeader("Referer", parsedURL.Scheme+"://"+parsedURL.Host)
+	// no referer
+	//client.SetCommonHeader("Referer", parsedURL.Scheme+"://"+parsedURL.Host)
 
 	return client, nil
 }

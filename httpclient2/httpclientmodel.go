@@ -1,10 +1,11 @@
 package httpclient2
 
 const (
-	DefaultUserAgent           = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36 RPSTIR2"
+	DefaultUserAgent           = "RPSTIR2/1.0"
 	DefaultAllTimeout          = 300
 	DefaultConnectionTimeout   = 10
 	DefaultTlsHandshakeTimeout = 10
+	DefaultKeepalive           = 30
 	DefaultIpType              = "all"
 	DefaultRangeLength         = uint64(10000000)
 	DefaultRetryCount          = 3
@@ -17,14 +18,16 @@ type HttpClientConfig struct {
 	AllTimeoutSeconds          uint64 `json:"allTimeoutSeconds"`
 	TlsHandshakeTimeoutSeconds uint64 `json:"tlsHandshakeTimeoutSeconds"`
 	ConnectionTimeoutSeconds   uint64 `json:"connectionTimeoutSeconds"`
-	RetryCount                 uint64 `json:"retryCount"`
-	IpType                     string `json:"ipType"`
-	VerifyHttps                bool   `json:"verifyHttps"`
-	RootFile                   string `json:"rootFile"`
-	KeyFile                    string `json:"keyFile"`
-	CrtFile                    string `json:"crtFile"`
-	ContentType                string `json:"contentType"`
-	Authorization              string `json:"authorization"`
+	KeepAliveSeconds           uint64 `json:"keepAliveSeconds"`
+
+	RetryCount    uint64 `json:"retryCount"`
+	IpType        string `json:"ipType"`
+	VerifyHttps   bool   `json:"verifyHttps"`
+	RootFile      string `json:"rootFile"`
+	KeyFile       string `json:"keyFile"`
+	CrtFile       string `json:"crtFile"`
+	ContentType   string `json:"contentType"`
+	Authorization string `json:"authorization"`
 }
 
 func NewHttpClientConfig(opts ...Option) *HttpClientConfig {
@@ -32,6 +35,7 @@ func NewHttpClientConfig(opts ...Option) *HttpClientConfig {
 		AllTimeoutSeconds:          DefaultAllTimeout,
 		ConnectionTimeoutSeconds:   DefaultConnectionTimeout,
 		TlsHandshakeTimeoutSeconds: DefaultTlsHandshakeTimeout,
+		KeepAliveSeconds:           DefaultKeepalive,
 		RetryCount:                 DefaultRetryCount,
 		IpType:                     DefaultIpType,
 		VerifyHttps:                true,
@@ -69,6 +73,10 @@ func WithTlsHandshakeTimeoutSeconds(v uint64) Option {
 func WithConnectionTimeoutSeconds(v uint64) Option {
 	return func(c *HttpClientConfig) { c.ConnectionTimeoutSeconds = v }
 }
+func WithKeepAliveSeconds(v uint64) Option {
+	return func(c *HttpClientConfig) { c.KeepAliveSeconds = v }
+}
+
 func WithRetryCount(v uint64) Option {
 	return func(c *HttpClientConfig) { c.RetryCount = v }
 }
