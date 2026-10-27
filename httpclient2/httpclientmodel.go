@@ -24,7 +24,7 @@ type HttpClientConfig struct {
 	KeyFile                    string `json:"keyFile"`
 	CrtFile                    string `json:"crtFile"`
 	ContentType                string `json:"contentType"`
-	Authorization              string `json:"Authorization"`
+	Authorization              string `json:"authorization"`
 }
 
 func NewHttpClientConfig(opts ...Option) *HttpClientConfig {
