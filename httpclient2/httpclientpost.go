@@ -43,7 +43,10 @@ func PostHttpWithConfig(urlStr string, postJson string,
 	r := client.R()
 	// SetBodyJsonString：直接发送原始 JSON 字符串，不会二次序列化 / 转义
 	r.SetBodyJsonString(postJson)
-
+	if cfg.ContentType != "" {
+		// Request 级覆盖，优先级高于 SetBodyJsonString 的默认值
+		r.SetContentType(cfg.ContentType)
+	}
 	start := time.Now()
 	resp, err = r.Post(urlStr)
 	if err != nil {
@@ -90,6 +93,10 @@ func PostHttpUnmarshalStructWithConfig(urlStr, postJson string, responseStruct i
 
 	r := client.R()
 	r.SetBodyJsonString(postJson)
+	if cfg.ContentType != "" {
+		// Request 级覆盖，优先级高于 SetBodyJsonString 的默认值
+		r.SetContentType(cfg.ContentType)
+	}
 	r.SetSuccessResult(responseStruct) // 2xx 时自动反序列化 JSON body 到 response
 
 	start := time.Now()

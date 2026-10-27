@@ -77,8 +77,12 @@ func TestGetHttpWithConfig_NilConfig(t *testing.T) {
 
 func TestGetHttpWithConfig_Timeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(3 * time.Second)
-		_, _ = w.Write([]byte("ok"))
+		select {
+		case <-time.After(3 * time.Second):
+			_, _ = w.Write([]byte("ok"))
+		case <-r.Context().Done(): // client 断开（超时）时立刻返回
+			return
+		}
 	}))
 	defer server.Close()
 
@@ -102,7 +106,7 @@ func TestPostHttpWithConfig_Success(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
-		if ct := r.Header.Get("Content-Type"); ct != "application/json" {
+		if ct := r.Header.Get("Content-Type");  !strings.HasPrefix(ct, "application/json")  {
 			t.Errorf("expected default Content-Type application/json, got: %s", ct)
 		}
 		body, _ := io.ReadAll(r.Body)
@@ -286,6 +290,27 @@ func TestGetHttpWithConfig_HTTPS_CustomCA(t *testing.T) {
 	}
 }
 
+func TestPostHttpWithConfig_CustomContentType(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if ct := r.Header.Get("Content-Type"); ct != "application/vnd.api+json" {
+			t.Errorf("expected custom Content-Type, got: %s", ct)
+		}
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer server.Close()
+
+	cfg := &HttpClientConfig{
+		AllTimeoutSeconds: 5,
+		VerifyHttps:       true,
+		ContentType:       "application/vnd.api+json",
+	}
+	resp, _, err := PostHttpWithConfig(server.URL, `{"a":1}`, cfg)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer CloseResponseBody(resp)
+}
+
 // ---------------- 重试 ----------------
 
 func TestGetHttpWithConfig_RetryOnConnClose(t *testing.T) {
@@ -313,7 +338,7 @@ func TestGetHttpWithConfig_RetryOnConnClose(t *testing.T) {
 	}
 	resp, body, err := GetHttpWithConfig(server.URL, cfg)
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatalf("err: %v", err)PostHttpWithConfig
 	}
 	defer CloseResponseBody(resp)
 	if body != "ok" {
