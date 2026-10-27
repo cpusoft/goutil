@@ -802,8 +802,10 @@ func TestGetRrdpNotification_Timeout(t *testing.T) {
 
 func TestSnapshot2(t *testing.T) {
 	url := `https://rrdp.arin.net/4a394319-7460-4141-a416-1addb69284ff/202818/snapshot-7a4fcc751ab5027e7b4552fa26e83e32c7e8847eaa5c834c8f5bc5f7ededf602.xml`
+	start := time.Now()
 	snapshot, err := GetRrdpSnapshotWithConfig(url, httpclient2.NewHttpClientConfig())
 	fmt.Println(jsonutil.MarshalJson(snapshot), err)
+	fmt.Println(time.Since(start))
 	if err == nil {
 		t.Error(err)
 	}
