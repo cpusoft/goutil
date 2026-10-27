@@ -1,8 +1,14 @@
 package rrdputil
 
 import (
+	"encoding/base64"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/cpusoft/goutil/httpclient2"
 	"github.com/cpusoft/goutil/jsonutil"
@@ -248,4 +254,548 @@ func TestGetHttpsVerifySupportRangeWithConfig(t *testing.T) {
 		]
 
 	*/
+}
+
+// =========================================================
+// 公共辅助
+// =========================================================
+
+const testSessionID = "test-session-001"
+
+func b64(s string) string { return base64.StdEncoding.EncodeToString([]byte(s)) }
+
+func newTestHttpClientConfig() *httpclient2.HttpClientConfig {
+	return &httpclient2.HttpClientConfig{
+		AllTimeoutSeconds:          5,
+		ConnectionTimeoutSeconds:   3,
+		TlsHandshakeTimeoutSeconds: 3,
+		VerifyHttps:                true,
+		RetryCount:                 1,
+		IpType:                     "all",
+	}
+}
+
+// newRRDPTestServer 启动 mock RRDP 服务
+// 返回 notification URL、snapshot URL、delta URL map
+func newRRDPTestServer(t *testing.T) (notifURL, snapshotURL string, deltaURLs map[uint64]string) {
+	t.Helper()
+
+	notificationXML := `<?xml version="1.0" encoding="UTF-8"?>
+<notification xmlns="http://www.ripe.net/rpki/rrdp" version="1" session_id="` + testSessionID + `" serial="3">
+  <snapshot uri="snapshot.xml" hash="snap-hash"/>
+  <delta serial="3" uri="delta-3.xml" hash="hash-3"/>
+  <delta serial="2" uri="delta-2.xml" hash="hash-2"/>
+  <delta serial="1" uri="delta-1.xml" hash="hash-1"/>
+</notification>`
+
+	snapshotXML := `<?xml version="1.0" encoding="UTF-8"?>
+<snapshot xmlns="http://www.ripe.net/rpki/rrdp" version="1" session_id="` + testSessionID + `" serial="3">
+  <publish uri="file-a.cer">` + b64("file-a-content") + `</publish>
+  <publish uri="file-b.cer">` + b64("file-b-content") + `</publish>
+</snapshot>`
+
+	deltasXML := map[uint64]string{
+		1: `<?xml version="1.0" encoding="UTF-8"?>
+<delta xmlns="http://www.ripe.net/rpki/rrdp" version="1" session_id="` + testSessionID + `" serial="1">
+  <publish uri="file-c.cer">` + b64("file-c-content") + `</publish>
+  <withdraw uri="file-b.cer" hash="hash-b"/>
+</delta>`,
+		2: `<?xml version="1.0" encoding="UTF-8"?>
+<delta xmlns="http://www.ripe.net/rpki/rrdp" version="1" session_id="` + testSessionID + `" serial="2">
+  <publish uri="file-d.cer">` + b64("file-d-content") + `</publish>
+</delta>`,
+		3: `<?xml version="1.0" encoding="UTF-8"?>
+<delta xmlns="http://www.ripe.net/rpki/rrdp" version="1" session_id="` + testSessionID + `" serial="3">
+  <publish uri="file-e.cer">` + b64("file-e-content") + `</publish>
+</delta>`,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/notification.xml", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(notificationXML))
+	})
+	mux.HandleFunc("/snapshot.xml", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(snapshotXML))
+	})
+	for serial, xmlStr := range deltasXML {
+		s, x := serial, xmlStr
+		mux.HandleFunc(fmt.Sprintf("/delta-%d.xml", s), func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte(x))
+		})
+	}
+
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+
+	deltaURLs = make(map[uint64]string, len(deltasXML))
+	for serial := range deltasXML {
+		deltaURLs[serial] = fmt.Sprintf("%s/delta-%d.xml", server.URL, serial)
+	}
+	return server.URL + "/notification.xml", server.URL + "/snapshot.xml", deltaURLs
+}
+
+// =========================================================
+// Notification
+// =========================================================
+
+func TestGetRrdpNotificationWithConfig_Success(t *testing.T) {
+	notifURL, _, _ := newRRDPTestServer(t)
+	cfg := newTestHttpClientConfig()
+
+	nm, err := GetRrdpNotificationWithConfig(notifURL, cfg)
+	if err != nil {
+		t.Fatalf("GetRrdpNotificationWithConfig err: %v", err)
+	}
+	if nm.SessionId != testSessionID {
+		t.Errorf("session id mismatch: got %q", nm.SessionId)
+	}
+	if nm.Serial != 3 {
+		t.Errorf("serial mismatch: got %d", nm.Serial)
+	}
+	if len(nm.Deltas) != 3 {
+		t.Errorf("expected 3 deltas, got %d", len(nm.Deltas))
+	}
+	// 降序：3, 2, 1
+	if nm.Deltas[0].Serial != 3 || nm.Deltas[1].Serial != 2 || nm.Deltas[2].Serial != 1 {
+		t.Errorf("deltas not sorted desc: %+v", nm.Deltas)
+	}
+	if nm.MaxSerial != 3 || nm.MinSerial != 1 {
+		t.Errorf("MaxSerial/MinSerial wrong: %d/%d", nm.MaxSerial, nm.MinSerial)
+	}
+	if len(nm.MapSerialDeltas) != 3 {
+		t.Errorf("MapSerialDeltas size wrong: %d", len(nm.MapSerialDeltas))
+	}
+	if nm.NotificationUrl != notifURL {
+		t.Errorf("NotificationUrl mismatch: %s", nm.NotificationUrl)
+	}
+}
+
+func TestGetAndCheckRrdpNotification_Success(t *testing.T) {
+	notifURL, _, _ := newRRDPTestServer(t)
+	cfg := newTestHttpClientConfig()
+
+	nm, err := GetAndCheckRrdpNotificationWithConfig(notifURL, cfg)
+	if err != nil {
+		t.Fatalf("GetAndCheckRrdpNotificationWithConfig err: %v", err)
+	}
+	if nm.Serial != 3 {
+		t.Errorf("serial mismatch: %d", nm.Serial)
+	}
+}
+
+func TestGetRrdpNotification_404(t *testing.T) {
+	notifURL, _, _ := newRRDPTestServer(t)
+	cfg := newTestHttpClientConfig()
+
+	badURL := strings.Replace(notifURL, "/notification.xml", "/does-not-exist.xml", 1)
+	_, err := GetRrdpNotificationWithConfig(badURL, cfg)
+	if err == nil {
+		t.Fatal("expected error for 404")
+	}
+}
+
+func TestCheckRrdpNotification_ValidAndInvalid(t *testing.T) {
+	valid := &NotificationModel{
+		Version:         "1",
+		SessionId:       testSessionID,
+		Serial:          3,
+		MapSerialDeltas: map[uint64]uint64{3: 3},
+	}
+	if err := CheckRrdpNotification(valid); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// 版本错
+	bad := *valid
+	bad.Version = "0"
+	if err := CheckRrdpNotification(&bad); err == nil {
+		t.Error("expected version error")
+	}
+
+	// session 空
+	bad = *valid
+	bad.SessionId = ""
+	if err := CheckRrdpNotification(&bad); err == nil {
+		t.Error("expected empty session error")
+	}
+
+	// serial 为 0
+	bad = *valid
+	bad.Serial = 0
+	if err := CheckRrdpNotification(&bad); err == nil {
+		t.Error("expected serial=0 error")
+	}
+
+	// serial 不在 map 中
+	bad = *valid
+	bad.Serial = 999
+	if err := CheckRrdpNotification(&bad); err == nil {
+		t.Error("expected serial not in map error")
+	}
+}
+
+// =========================================================
+// Snapshot
+// =========================================================
+
+func TestGetRrdpSnapshotWithConfig_Success(t *testing.T) {
+	_, snapshotURL, _ := newRRDPTestServer(t)
+	cfg := newTestHttpClientConfig()
+
+	sm, err := GetRrdpSnapshotWithConfig(snapshotURL, cfg)
+	if err != nil {
+		t.Fatalf("GetRrdpSnapshotWithConfig err: %v", err)
+	}
+	if sm.SessionId != testSessionID {
+		t.Errorf("session mismatch: %q", sm.SessionId)
+	}
+	if sm.Serial != 3 {
+		t.Errorf("serial mismatch: got %d", sm.Serial)
+	}
+	if len(sm.SnapshotPublishs) != 2 {
+		t.Errorf("expected 2 publish, got %d", len(sm.SnapshotPublishs))
+	}
+	if sm.Hash == "" {
+		t.Error("hash should not be empty")
+	}
+	if sm.SnapshotUrl != snapshotURL {
+		t.Errorf("SnapshotUrl mismatch: %s", sm.SnapshotUrl)
+	}
+}
+
+func TestCheckRrdpSnapshot_ValidAndInvalid(t *testing.T) {
+	valid := &SnapshotModel{
+		Version:   "1",
+		SessionId: testSessionID,
+		Serial:    3,
+	}
+	nm := &NotificationModel{
+		SessionId:       testSessionID,
+		Serial:          3,
+		MapSerialDeltas: map[uint64]uint64{3: 3, 2: 2, 1: 1},
+	}
+	if err := CheckRrdpSnapshot(valid, nm); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// 版本错
+	sm := *valid
+	sm.Version = "0"
+	if err := CheckRrdpSnapshot(&sm, nm); err == nil {
+		t.Error("expected version error")
+	}
+
+	// session 不一致
+	sm = *valid
+	sm.SessionId = "other-session"
+	if err := CheckRrdpSnapshot(&sm, nm); err == nil {
+		t.Error("expected session mismatch error")
+	}
+
+	// serial 不在 map 中
+	sm = *valid
+	sm.Serial = 100
+	if err := CheckRrdpSnapshot(&sm, nm); err == nil {
+		t.Error("expected serial not found error")
+	}
+}
+
+// =========================================================
+// Delta
+// =========================================================
+
+func TestGetRrdpDeltaWithConfig_Success(t *testing.T) {
+	_, _, deltaURLs := newRRDPTestServer(t)
+	cfg := newTestHttpClientConfig()
+
+	dm, err := GetRrdpDeltaWithConfig(deltaURLs[1], cfg)
+	if err != nil {
+		t.Fatalf("GetRrdpDeltaWithConfig err: %v", err)
+	}
+	if dm.Serial != 1 {
+		t.Errorf("serial mismatch: got %d", dm.Serial)
+	}
+	if dm.SessionId != testSessionID {
+		t.Errorf("session mismatch: %q", dm.SessionId)
+	}
+	if len(dm.DeltaPublishs) != 1 {
+		t.Errorf("expected 1 publish, got %d", len(dm.DeltaPublishs))
+	}
+	if len(dm.DeltaWithdraws) != 1 {
+		t.Errorf("expected 1 withdraw, got %d", len(dm.DeltaWithdraws))
+	}
+	if dm.DeltaUrl != deltaURLs[1] {
+		t.Errorf("DeltaUrl mismatch")
+	}
+}
+
+func TestGetRrdpDeltasWithConfig_All(t *testing.T) {
+	notifURL, _, _ := newRRDPTestServer(t)
+	cfg := newTestHttpClientConfig()
+
+	nm, err := GetAndCheckRrdpNotificationWithConfig(notifURL, cfg)
+	if err != nil {
+		t.Fatalf("get notification err: %v", err)
+	}
+
+	// lastSerial = 0：拉取全部 1,2,3
+	dms, err := GetRrdpDeltasWithConfig(&nm, 0, cfg)
+	if err != nil {
+		t.Fatalf("GetRrdpDeltasWithConfig err: %v", err)
+	}
+	if len(dms) != 3 {
+		t.Fatalf("expected 3 deltas, got %d", len(dms))
+	}
+	// 返回是升序
+	if dms[0].Serial != 1 || dms[1].Serial != 2 || dms[2].Serial != 3 {
+		t.Errorf("deltas order wrong: %v", []uint64{dms[0].Serial, dms[1].Serial, dms[2].Serial})
+	}
+}
+
+func TestGetRrdpDeltasWithConfig_Since(t *testing.T) {
+	notifURL, _, _ := newRRDPTestServer(t)
+	cfg := newTestHttpClientConfig()
+
+	nm, err := GetAndCheckRrdpNotificationWithConfig(notifURL, cfg)
+	if err != nil {
+		t.Fatalf("get notification err: %v", err)
+	}
+
+	// lastSerial = 2：只拉取 3
+	dms, err := GetRrdpDeltasWithConfig(&nm, 2, cfg)
+	if err != nil {
+		t.Fatalf("GetRrdpDeltasWithConfig err: %v", err)
+	}
+	if len(dms) != 1 || dms[0].Serial != 3 {
+		t.Errorf("expected only serial=3, got: %+v", dms)
+	}
+}
+
+func TestCheckRrdpDelta_ValidAndInvalid(t *testing.T) {
+	nm := &NotificationModel{
+		SessionId:       testSessionID,
+		Serial:          3,
+		MapSerialDeltas: map[uint64]uint64{3: 3, 2: 2, 1: 1},
+	}
+
+	// 有效
+	dm := &DeltaModel{Version: "1", SessionId: testSessionID, Serial: 2}
+	if err := CheckRrdpDelta(dm, nm); err != nil {
+		t.Errorf("unexpected err: %v", err)
+	}
+
+	// 版本错
+	dm.Version = "0"
+	if err := CheckRrdpDelta(dm, nm); err == nil {
+		t.Error("expected version error")
+	}
+
+	// session 不一致
+	dm.Version = "1"
+	dm.SessionId = "other"
+	if err := CheckRrdpDelta(dm, nm); err == nil {
+		t.Error("expected session mismatch")
+	}
+
+	// serial 不在 map
+	dm.SessionId = testSessionID
+	dm.Serial = 100
+	if err := CheckRrdpDelta(dm, nm); err == nil {
+		t.Error("expected serial not found")
+	}
+}
+
+// =========================================================
+// XML 解析
+// =========================================================
+
+func TestParseXmlToSnapshotModel(t *testing.T) {
+	xmlData := []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<snapshot xmlns="http://www.ripe.net/rpki/rrdp" version="1" session_id="` + testSessionID + `" serial="42">
+  <publish uri="foo/bar.cer">` + b64("hello") + `</publish>
+  <publish uri="baz.cer">` + b64("world") + `</publish>
+</snapshot>`)
+
+	sm, err := parseXmlToSnapshotModel(xmlData)
+	if err != nil {
+		t.Fatalf("parseXmlToSnapshotModel err: %v", err)
+	}
+	if sm.Serial != 42 {
+		t.Errorf("serial mismatch: %d", sm.Serial)
+	}
+	if sm.SessionId != testSessionID {
+		t.Errorf("session mismatch: %s", sm.SessionId)
+	}
+	if len(sm.SnapshotPublishs) != 2 {
+		t.Fatalf("expected 2 publishes, got %d", len(sm.SnapshotPublishs))
+	}
+	if sm.SnapshotPublishs[0].Uri != "foo/bar.cer" || sm.SnapshotPublishs[0].Base64 != b64("hello") {
+		t.Errorf("first publish mismatch: %+v", sm.SnapshotPublishs[0])
+	}
+	if sm.SnapshotPublishs[1].Uri != "baz.cer" || sm.SnapshotPublishs[1].Base64 != b64("world") {
+		t.Errorf("second publish mismatch: %+v", sm.SnapshotPublishs[1])
+	}
+}
+
+// =========================================================
+// Convert：snapshot / delta -> RrdpFile
+// =========================================================
+
+func TestConvertSnapshotToRrdpFiles(t *testing.T) {
+	sm := &SnapshotModel{
+		Version:   "1",
+		SessionId: testSessionID,
+		Serial:    3,
+		SnapshotPublishs: []SnapshotPublish{
+			{Uri: "a/b.cer", Base64: b64("b-content")},
+			{Uri: "c.cer", Base64: b64("c-content")},
+		},
+		SnapshotUrl: "http://example/snapshot.xml",
+	}
+	repoPath := t.TempDir()
+
+	files, err := ConvertSnapshotToRrdpFiles(sm, repoPath)
+	if err != nil {
+		t.Fatalf("ConvertSnapshotToRrdpFiles err: %v", err)
+	}
+	if len(files) != 2 {
+		t.Fatalf("expected 2 rrdp files, got %d", len(files))
+	}
+	for _, f := range files {
+		if f.SyncType != "add" {
+			t.Errorf("SyncType should be add, got %s", f.SyncType)
+		}
+		if f.Serial != 3 {
+			t.Errorf("serial mismatch: %d", f.Serial)
+		}
+		if f.SourceUrl != "http://example/snapshot.xml" {
+			t.Errorf("SourceUrl mismatch: %s", f.SourceUrl)
+		}
+	}
+	// 第一条应是 a/b.cer（goorderedmap 保持插入顺序）
+	if files[0].FileUri != "a/b.cer" {
+		t.Errorf("first uri mismatch: %s", files[0].FileUri)
+	}
+	if !strings.HasSuffix(files[0].FilePath, filepath.FromSlash("a")) {
+		t.Errorf("first FilePath wrong: %s", files[0].FilePath)
+	}
+	if files[0].FileName != "b.cer" {
+		t.Errorf("first FileName wrong: %s", files[0].FileName)
+	}
+}
+
+func TestConvertSnapshotToRrdpFiles_Empty(t *testing.T) {
+	_, err := ConvertSnapshotToRrdpFiles(nil, t.TempDir())
+	if err == nil {
+		t.Error("expected error for nil snapshot")
+	}
+
+	sm := &SnapshotModel{SnapshotPublishs: nil}
+	_, err = ConvertSnapshotToRrdpFiles(sm, t.TempDir())
+	if err == nil {
+		t.Error("expected error for empty publishes")
+	}
+}
+
+func TestConvertDeltasToRrdpFiles(t *testing.T) {
+	dms := []DeltaModel{
+		{
+			Version:   "1",
+			SessionId: testSessionID,
+			Serial:    1,
+			DeltaPublishs: []DeltaPublish{
+				{Uri: "x1.cer", Base64: b64("x1")},
+			},
+			DeltaWithdraws: []DeltaWithdraw{
+				{Uri: "y1.cer"},
+			},
+			DeltaUrl: "http://example/delta-1.xml",
+		},
+		{
+			Version:   "1",
+			SessionId: testSessionID,
+			Serial:    2,
+			DeltaPublishs: []DeltaPublish{
+				{Uri: "x2.cer", Base64: b64("x2")},
+			},
+			DeltaWithdraws: []DeltaWithdraw{
+				{Uri: "x1.cer"}, // 撤回旧文件
+			},
+			DeltaUrl: "http://example/delta-2.xml",
+		},
+	}
+	repoPath := t.TempDir()
+
+	files, err := ConvertDeltasToRrdpFiles(dms, "http://example/notification.xml", repoPath)
+	if err != nil {
+		t.Fatalf("ConvertDeltasToRrdpFiles err: %v", err)
+	}
+	// 最终结果：x1 被撤（del），y1 被撤（del），x2 新增（add）
+	if len(files) != 3 {
+		t.Fatalf("expected 3 rrdp files, got %d: %+v", len(files), files)
+	}
+	got := make(map[string]string, len(files))
+	for _, f := range files {
+		got[f.FileUri] = f.SyncType
+	}
+	if got["y1.cer"] != "del" {
+		t.Errorf("y1 should be del, got %s", got["y1.cer"])
+	}
+	if got["x1.cer"] != "del" {
+		t.Errorf("x1 should be del (withdrawn later), got %s", got["x1.cer"])
+	}
+	if got["x2.cer"] != "add" {
+		t.Errorf("x2 should be add, got %s", got["x2.cer"])
+	}
+}
+
+func TestConvertDeltasToRrdpFiles_Empty(t *testing.T) {
+	files, err := ConvertDeltasToRrdpFiles(nil, "http://example/notification.xml", t.TempDir())
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if len(files) != 0 {
+		t.Errorf("expected 0 files, got %d", len(files))
+	}
+
+	// 空 delta（无 publish、无 withdraw）
+	dms := []DeltaModel{
+		{Version: "1", SessionId: testSessionID, Serial: 1},
+	}
+	files, err = ConvertDeltasToRrdpFiles(dms, "http://example/notification.xml", t.TempDir())
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if len(files) != 0 {
+		t.Errorf("expected 0 files for empty delta, got %d", len(files))
+	}
+}
+
+// =========================================================
+// 超时测试
+// =========================================================
+
+func TestGetRrdpNotification_Timeout(t *testing.T) {
+	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(3 * time.Second):
+			_, _ = w.Write([]byte("<notification/>"))
+		case <-r.Context().Done():
+			return
+		}
+	}))
+	defer slow.Close()
+
+	cfg := newTestHttpClientConfig()
+	cfg.AllTimeoutSeconds = 1
+
+	start := time.Now()
+	_, err := GetRrdpNotificationWithConfig(slow.URL+"/notification.xml", cfg)
+	elapsed := time.Since(start)
+	if err == nil {
+		t.Error("expected timeout error")
+	}
+	if elapsed > 3*time.Second {
+		t.Errorf("timeout took too long: %v", elapsed)
+	}
 }
