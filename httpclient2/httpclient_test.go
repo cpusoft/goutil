@@ -106,7 +106,7 @@ func TestPostHttpWithConfig_Success(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
-		if ct := r.Header.Get("Content-Type");  !strings.HasPrefix(ct, "application/json")  {
+		if ct := r.Header.Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
 			t.Errorf("expected default Content-Type application/json, got: %s", ct)
 		}
 		body, _ := io.ReadAll(r.Body)
@@ -338,7 +338,7 @@ func TestGetHttpWithConfig_RetryOnConnClose(t *testing.T) {
 	}
 	resp, body, err := GetHttpWithConfig(server.URL, cfg)
 	if err != nil {
-		t.Fatalf("err: %v", err)PostHttpWithConfig
+		t.Fatalf("err: %v", err)
 	}
 	defer CloseResponseBody(resp)
 	if body != "ok" {
