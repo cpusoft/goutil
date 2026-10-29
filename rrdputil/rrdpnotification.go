@@ -200,7 +200,8 @@ func GetAndCheckRrdpNotificationWithConfig(notifyUrl string, httpClientConfig *h
 			notifyUrl, jsonutil.MarshalJson(notificationModel), err, "  time(s):", time.Since(start))
 		return notificationModel, err
 	}
-	belogs.Debug("GetAndCheckRrdpNotificationWithConfig(): ok, notifyUrl :", notifyUrl, "  notificationModel:", jsonutil.MarshalJson(notificationModel), "  time(s):", time.Since(start))
-	belogs.Debug("GetAndCheckRrdpNotificationWithConfig(): ok, notifyUrl :", notifyUrl, "  time(s):", time.Since(start))
+	belogs.Debug("GetAndCheckRrdpNotificationWithConfig(): ok, notifyUrl :", notifyUrl, "  notificationModel:", jsonutil.MarshalJson(notificationModel),
+		"  time(s):", time.Since(start))
+	belogs.Info("GetAndCheckRrdpNotificationWithConfig(): ok, notifyUrl :", notifyUrl, "  time(s):", time.Since(start))
 	return notificationModel, nil
 }
