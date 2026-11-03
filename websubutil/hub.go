@@ -155,6 +155,12 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	belogs.Debug("ServeHTTP(): will detect hub url:", h.url)
 
+	if isInWhitelist := h.store.CheckWhitelist(r.RemoteAddr); !isInWhitelist {
+		http.Error(w, "ip("+r.RemoteAddr+") is not in whitelist", http.StatusBadRequest)
+		belogs.Debug("ServeHTTP(): ip is not in whitelist", r.RemoteAddr, "url:", r.URL.String(), "form:", r.Form)
+		return
+	}
+
 	// If url is not set, set to something we can "guess"
 	if h.url == "" {
 		proto := "http"
@@ -183,6 +189,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		req.CallbackRemoteAddr = r.RemoteAddr
 		belogs.Debug("ServeHTTP(): handling subscribe request: subreq", req)
 
 		err := h.HandleSubscribe(req)
@@ -249,11 +256,12 @@ func (h *Hub) HandleSubscribe(req model.SubscribeRequest) error {
 	}
 	belogs.Debug("HandleSubscribe(): leaseDuration:", leaseDuration, "maxLease:", h.maxLease, "req.LeaseSeconds:", req.LeaseSeconds)
 	sub := model.Subscription{
-		Topic:     req.Topic,
-		Callback:  req.Callback,
-		Secret:    req.Secret,
-		Expires:   time.Now().Add(leaseDuration),
-		LeaseTime: leaseDuration, // 设置 LeaseTime
+		Topic:              req.Topic,
+		Callback:           req.Callback,
+		CallbackRemoteAddr: req.CallbackRemoteAddr,
+		Secret:             req.Secret,
+		Expires:            time.Now().Add(leaseDuration),
+		LeaseTime:          leaseDuration, // 设置 LeaseTime
 	}
 	belogs.Debug("HandleSubscribe(): will handle subscribe request: sub", jsonutil.MarshalJson(sub))
 

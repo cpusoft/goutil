@@ -28,4 +28,5 @@ type Store interface {
 	Remove(sub model.Subscription) error
 
 	PublishResult(sub model.Subscription, data []byte, publishResponse model.PublishResponse) error
+	CheckWhitelist(remoteAddr string) bool
 }

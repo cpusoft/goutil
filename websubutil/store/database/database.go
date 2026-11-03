@@ -268,3 +268,6 @@ func (s *Store) PublishResult(sub model.Subscription, data []byte, publishRespon
 	// do nothing
 	return nil
 }
+func (s *Store) CheckWhitelist(remoteAddr string) bool {
+	return true
+}
