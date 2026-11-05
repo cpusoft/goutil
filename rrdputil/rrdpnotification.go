@@ -68,7 +68,7 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 	resp, body, err := httpclient2.GetHttpWithConfig(notificationUrl, httpClientConfig)
 	defer httpclient2.CloseResponseBody(resp)
 	if err == nil {
-		if resp == nil || resp.StatusCode != http.StatusOK {
+		if resp == nil || httpclient2.GetStatusCode(resp) != http.StatusOK {
 			belogs.Error("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
 				"   statusCode:", httpclient2.GetStatusCode(resp), "    body:", body)
 			return notificationModel, errors.New("http status code of " + notificationUrl + " is " + convert.ToString(httpclient2.GetStatusCode(resp)))
@@ -138,10 +138,10 @@ func RrdpNotificationTestConnectWithConfig(notificationUrl string, httpClientCon
 		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig fail, notificationUrl:", notificationUrl, err, "  time(s):", time.Since(start))
 		return errors.New("http error of " + notificationUrl + " is " + err.Error())
 	}
-	if resp == nil || resp.StatusCode != http.StatusOK {
+	if resp == nil || httpclient2.GetStatusCode(resp) != http.StatusOK {
 		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
 			"   statusCode:", httpclient2.GetStatusCode(resp), "    body:", body, "   time(s):", time.Since(start))
-		return errors.New("http status code of " + notificationUrl + " is " + resp.Status)
+		return errors.New("http status code of " + notificationUrl + " is " + httpclient2.GetStatus(resp))
 	}
 	belogs.Debug("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig ok, notificationUrl:", notificationUrl,
 		"  time(s):", time.Since(start))

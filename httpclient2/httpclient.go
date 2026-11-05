@@ -6,26 +6,27 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/cpusoft/goutil/stringutil"
-	"github.com/imroc/req/v3"
+	"github.com/go-resty/resty/v2"
 )
 
-func GetStatusCode(resp *req.Response) int {
+func GetStatusCode(resp *resty.Response) int {
 	if resp == nil {
 		return 0
 	}
-	return resp.GetStatusCode()
+	return resp.StatusCode()
 }
-func IsSuccessState(resp *req.Response) bool {
+func IsSuccessState(resp *resty.Response) bool {
 	if resp == nil {
 		return false
 	}
-	return resp.IsSuccessState()
+	return resp.IsSuccess()
 }
 func GetOutputStr(output []byte) string {
 	var outputStr string
@@ -36,9 +37,9 @@ func GetOutputStr(output []byte) string {
 	}
 	return stringutil.TrimNewLine(outputStr)
 }
-func CloseResponseBody(resp *req.Response) {
-	if resp != nil && resp.Body != nil {
-		resp.Body.Close()
+func CloseResponseBody(resp *resty.Response) {
+	if resp != nil && resp.RawResponse != nil && resp.RawResponse.Body != nil {
+		resp.RawResponse.Body.Close()
 	}
 }
 
@@ -69,17 +70,21 @@ func loadRootCAsWithSystem(pemFiles ...string) (*x509.CertPool, error) {
 
 	return pool, nil
 }
-func buildClientForConfig(parsedURL *url.URL, cfg *HttpClientConfig, defaultJsonContentType string) (*req.Client, error) {
-	client := req.C()
+func buildClientForConfig(parsedURL *url.URL, cfg *HttpClientConfig, defaultJsonContentType string) (*resty.Client, error) {
+	client := resty.New()
+
+	// 使用克隆的 Transport，避免修改全局 http.DefaultTransport
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	client.SetTransport(transport)
 
 	// 1) 整体超时
 	if cfg.AllTimeoutSeconds > 0 {
 		client.SetTimeout(time.Duration(cfg.AllTimeoutSeconds) * time.Second)
 	}
 
-	// 2) TLS 握手超时
+	// 2) TLS 握手超时 —— 直接设置在 Transport 上
 	if cfg.TlsHandshakeTimeoutSeconds > 0 {
-		client.SetTLSHandshakeTimeout(time.Duration(cfg.TlsHandshakeTimeoutSeconds) * time.Second)
+		transport.TLSHandshakeTimeout = time.Duration(cfg.TlsHandshakeTimeoutSeconds) * time.Second
 	}
 
 	// 3) 连接超时 & IP 协议类型
@@ -94,7 +99,7 @@ func buildClientForConfig(parsedURL *url.URL, cfg *HttpClientConfig, defaultJson
 		case "all":
 			network = "tcp"
 		}
-		client.SetDial(func(ctx context.Context, _, addr string) (net.Conn, error) {
+		transport.DialContext = func(ctx context.Context, _, addr string) (net.Conn, error) {
 			d := &net.Dialer{}
 			if connTimeout > 0 {
 				d.Timeout = connTimeout
@@ -103,7 +108,7 @@ func buildClientForConfig(parsedURL *url.URL, cfg *HttpClientConfig, defaultJson
 				d.KeepAlive = time.Duration(cfg.AllTimeoutSeconds) * time.Second
 			}
 			return d.DialContext(ctx, network, addr)
-		})
+		}
 	}
 
 	// 4) HTTPS 相关：校验开关 / 根证书 / 客户端证书，统一放进同一个 tls.Config
@@ -130,23 +135,27 @@ func buildClientForConfig(parsedURL *url.URL, cfg *HttpClientConfig, defaultJson
 		client.SetTLSClientConfig(tlsConfig)
 	}
 
-	// 5) 公共 Header 与重试（原 applyCommonHeaders 的等价 Client 级写法）
+	// 5) 公共 Header 与重试
 	if cfg.ContentType != "" {
-		client.SetCommonHeader("Content-Type", cfg.ContentType)
+		client.SetHeader("Content-Type", cfg.ContentType)
 	} else {
 		if defaultJsonContentType != "" {
-			client.SetCommonHeader("Content-Type", defaultJsonContentType)
+			client.SetHeader("Content-Type", defaultJsonContentType)
 		}
 	}
 	if cfg.Authorization != "" {
-		client.SetCommonHeader("Authorization", cfg.Authorization)
+		client.SetHeader("Authorization", cfg.Authorization)
 	}
 	if cfg.RetryCount > 0 {
-		client.SetCommonRetryCount(int(cfg.RetryCount))
+		client.SetRetryCount(int(cfg.RetryCount))
 	}
-	client.SetCommonHeader("User-Agent", DefaultUserAgent)
-	// no referer
-	//client.SetCommonHeader("Referer", parsedURL.Scheme+"://"+parsedURL.Host)
+	client.SetHeader("User-Agent", DefaultUserAgent)
 
 	return client, nil
+}
+func GetStatus(resp *resty.Response) string {
+	if resp == nil {
+		return ""
+	}
+	return resp.Status()
 }

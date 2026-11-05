@@ -35,8 +35,8 @@ func TestGetHttpWithConfig_Success(t *testing.T) {
 	}
 	defer CloseResponseBody(resp)
 
-	if resp.GetStatusCode() != http.StatusOK {
-		t.Errorf("unexpected status: %d", resp.GetStatusCode())
+	if GetStatusCode(resp) != http.StatusOK {
+		t.Errorf("unexpected status: %d", GetStatusCode(resp))
 	}
 	if body != `{"hello":"world"}` {
 		t.Errorf("unexpected body: %s", body)
@@ -125,8 +125,8 @@ func TestPostHttpWithConfig_Success(t *testing.T) {
 	}
 	defer CloseResponseBody(resp)
 
-	if resp.GetStatusCode() != http.StatusOK {
-		t.Errorf("unexpected status: %d", resp.GetStatusCode())
+	if GetStatusCode(resp) != http.StatusOK {
+		t.Errorf("unexpected status: %d", GetStatusCode(resp))
 	}
 	if body != `{"code":0,"msg":"ok"}` {
 		t.Errorf("unexpected body: %s", body)
@@ -209,8 +209,8 @@ func TestPostHttpUnmarshalStruct_Non2xx_ShouldNotUnmarshal(t *testing.T) {
 	}
 	defer CloseResponseBody(resp)
 
-	if resp.GetStatusCode() != http.StatusUnauthorized {
-		t.Errorf("unexpected status: %d", resp.GetStatusCode())
+	if GetStatusCode(resp) != http.StatusUnauthorized {
+		t.Errorf("unexpected status: %d", GetStatusCode(resp))
 	}
 	// SetSuccessResult 仅在 2xx 时反序列化，非 2xx 应保持零值
 	if lr.Code != 0 || lr.Token != "" || lr.Msg != "" {

@@ -19,6 +19,7 @@ type HttpClientConfig struct {
 	TlsHandshakeTimeoutSeconds uint64 `json:"tlsHandshakeTimeoutSeconds"`
 	ConnectionTimeoutSeconds   uint64 `json:"connectionTimeoutSeconds"`
 	KeepAliveSeconds           uint64 `json:"keepAliveSeconds"`
+	TryCurl                    bool   `json:"tryCurl"` // if http fail, will try curl
 
 	RetryCount    uint64 `json:"retryCount"`
 	IpType        string `json:"ipType"`
@@ -36,6 +37,7 @@ func NewHttpClientConfig(opts ...Option) *HttpClientConfig {
 		ConnectionTimeoutSeconds:   DefaultConnectionTimeout,
 		TlsHandshakeTimeoutSeconds: DefaultTlsHandshakeTimeout,
 		KeepAliveSeconds:           DefaultKeepalive,
+		TryCurl:                    false,
 		RetryCount:                 DefaultRetryCount,
 		IpType:                     DefaultIpType,
 		VerifyHttps:                true,
@@ -75,6 +77,9 @@ func WithConnectionTimeoutSeconds(v uint64) Option {
 }
 func WithKeepAliveSeconds(v uint64) Option {
 	return func(c *HttpClientConfig) { c.KeepAliveSeconds = v }
+}
+func WithTryCurl(v bool) Option {
+	return func(c *HttpClientConfig) { c.TryCurl = v }
 }
 
 func WithRetryCount(v uint64) Option {

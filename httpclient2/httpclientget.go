@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/imroc/req/v3"
+	"github.com/go-resty/resty/v2"
 )
 
 // should use: defer CloseResponseBody(resp)
-func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp *req.Response, body string, err error) {
+func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp *resty.Response,
+	body string, err error) {
 	if strings.TrimSpace(urlStr) == "" {
 		return nil, "", errors.New("urlStr is empty")
 	}
@@ -36,9 +37,21 @@ func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp 
 	resp, err = client.R().Get(urlStr)
 	if err != nil {
 		belogs.Error("GetHttpWithConfig(): r.Get fail", urlStr, "err", err, "time(s)", time.Since(start))
+		if cfg.TryCurl {
+			belogs.Debug("GetHttpWithConfig(): r.Get fail, will try curl, urlStr:", urlStr)
+			startCurl := time.Now()
+			body, err = GetByCurlWithConfig(urlStr, cfg)
+			if err != nil {
+				belogs.Error("GetHttpWithConfig(): trycurl GetByCurlWithConfig fail", urlStr, "err", err,
+					"time(s)", time.Since(startCurl))
+				return nil, "", err
+			}
+			belogs.Debug("GetHttpWithConfig(): trycurl GetByCurlWithConfig ok", urlStr, "time(s)", time.Since(startCurl))
+			return nil, body, nil
+		}
 		return nil, "", err
 	}
-	belogs.Debug("GetHttpWithConfig(): r.Get ok", urlStr, "statusCode:", resp.GetStatusCode(),
+	belogs.Debug("GetHttpWithConfig(): r.Get ok", urlStr, "statusCode:", GetStatusCode(resp),
 		"time(s)", time.Since(start))
 	return resp, resp.String(), nil
 }
