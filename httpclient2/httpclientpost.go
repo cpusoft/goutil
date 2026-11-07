@@ -14,6 +14,7 @@ import (
 // ---------------------------------------------------------------
 // 1) 纯提交 POST JSON
 // should use: defer CloseResponseBody(resp)
+// 2) postJson can be empty
 // ---------------------------------------------------------------
 func PostHttpWithConfig(urlStr string, postJson string,
 	httpClientConfig *HttpClientConfig) (resp *resty.Response, body string, err error) {
@@ -21,9 +22,9 @@ func PostHttpWithConfig(urlStr string, postJson string,
 	if strings.TrimSpace(urlStr) == "" {
 		return nil, "", errors.New("urlStr is empty")
 	}
-	if strings.TrimSpace(postJson) == "" {
-		return nil, "", errors.New("postJson is empty")
-	}
+	//if strings.TrimSpace(postJson) == "" {
+	//	return nil, "", errors.New("postJson is empty")
+	//}
 	if httpClientConfig == nil {
 		return nil, "", errors.New("httpClientConfig is empty")
 	}
