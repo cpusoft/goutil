@@ -13,6 +13,22 @@ import (
 	"time"
 )
 
+// ///////////////////
+func TestSimplePost(t *testing.T) {
+	url := `https://127.0.0.1:8071/chainvalidate/start`
+	resp, body, err := PostHttpWithConfig(url, ``, &HttpClientConfig{AllTimeoutSeconds: 5, VerifyHttps: false})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer CloseResponseBody(resp)
+
+	if GetStatusCode(resp) != http.StatusOK {
+		t.Errorf("unexpected status: %d", GetStatusCode(resp))
+	}
+	t.Log(string(body))
+
+}
+
 // ---------------- GET ----------------
 
 func TestGetHttpWithConfig_Success(t *testing.T) {
