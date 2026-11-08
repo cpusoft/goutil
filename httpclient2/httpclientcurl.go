@@ -22,7 +22,19 @@ func GetByCurlWithConfig(url string, httpClientConfig *HttpClientConfig) (result
 }
 
 // PostByCurlWithConfig post 请求，通过 curl 实现
+// 注意：postBody 可以为空。此时不会发送请求体，
+// 且在未显式设置 ContentType 时也不会默认加 "Content-Type: application/json"。
+// 若接口要求“JSON 语义”，请改用 PostJsonByCurlWithConfig。
 func PostByCurlWithConfig(url, postJson string, httpClientConfig *HttpClientConfig) (result string, err error) {
+	return doCurlWithConfig("POST", url, postJson, httpClientConfig)
+}
+
+// PostJsonByCurlWithConfig 严格 JSON 语义的 POST：
+// postJson 为空（或纯空白）时，自动转为 "{}"，保证请求体是合法 JSON。
+func PostJsonByCurlWithConfig(url, postJson string, httpClientConfig *HttpClientConfig) (result string, err error) {
+	if strings.TrimSpace(postJson) == "" {
+		postJson = "{}"
+	}
 	return doCurlWithConfig("POST", url, postJson, httpClientConfig)
 }
 
@@ -32,16 +44,16 @@ func doCurlWithConfig(method, url, postBody string, httpClientConfig *HttpClient
 
 	url = strings.TrimSpace(url)
 	if len(url) == 0 {
+		belogs.Error("doCurlWithConfig(): url is empty")
 		return "", errors.New("url is empty")
 	}
 	if httpClientConfig == nil {
+		belogs.Error("doCurlWithConfig(): httpClientConfig is empty")
 		return "", errors.New("httpClientConfig is empty")
-	}
-	if method == "POST" && strings.TrimSpace(postBody) == "" {
-		return "", errors.New("postBody is empty")
 	}
 
 	cfg := httpClientConfig
+	hasBody := strings.TrimSpace(postBody) != ""
 
 	var ctx context.Context
 	var cancel context.CancelFunc
@@ -88,17 +100,24 @@ func doCurlWithConfig(method, url, postBody string, httpClientConfig *HttpClient
 	if cfg.RetryCount > 0 {
 		args = append(args, "--retry", convert.ToString(cfg.RetryCount))
 	}
+
+	// ---- Content-Type 处理 ----
+	// 规则：
+	//   1) 显式设置了 cfg.ContentType：始终使用它（调用方自行负责语义正确）；
+	//   2) 未设置且是 POST 且有请求体：默认 application/json；
+	//   3) 未设置且 POST 无请求体：不添加 Content-Type，避免"声明 JSON 却无 body"。
 	if cfg.ContentType != "" {
 		args = append(args, "-H", "Content-Type: "+cfg.ContentType)
-	} else if method == "POST" {
+	} else if method == "POST" && hasBody {
 		args = append(args, "-H", "Content-Type: application/json")
 	}
+
 	if cfg.Authorization != "" {
 		args = append(args, "-H", "Authorization: "+cfg.Authorization)
 	}
 
 	// ---- 请求体处理 (POST) ----
-	if method == "POST" {
+	if method == "POST" && hasBody {
 		bodyFile, err := os.CreateTemp("", "_tmp_body_")
 		if err != nil {
 			belogs.Error("doCurlWithConfig(): TempBodyFile fail", err)
@@ -114,7 +133,7 @@ func doCurlWithConfig(method, url, postBody string, httpClientConfig *HttpClient
 			belogs.Error("doCurlWithConfig(): WriteString to bodyFile fail", err)
 			return "", err
 		}
-		// 【关键修复】必须在 curl 读取前关闭文件，否则 Windows 下 curl 无法读取！
+		// 【关键】必须在 curl 读取前关闭文件，否则 Windows 下 curl 无法读取！
 		err = bodyFile.Close()
 		if err != nil {
 			belogs.Error("doCurlWithConfig(): bodyFile.Close fail", err)

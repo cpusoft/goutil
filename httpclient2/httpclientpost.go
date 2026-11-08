@@ -20,12 +20,14 @@ func PostHttpWithConfig(urlStr string, postJson string,
 	httpClientConfig *HttpClientConfig) (resp *resty.Response, body string, err error) {
 
 	if strings.TrimSpace(urlStr) == "" {
+		belogs.Error("PostHttpWithConfig(): urlStr is empty")
 		return nil, "", errors.New("urlStr is empty")
 	}
 	//if strings.TrimSpace(postJson) == "" {
 	//	return nil, "", errors.New("postJson is empty")
 	//}
 	if httpClientConfig == nil {
+		belogs.Error("PostHttpWithConfig(): httpClientConfig is empty")
 		return nil, "", errors.New("httpClientConfig is empty")
 	}
 	cfg := httpClientConfig
@@ -73,22 +75,26 @@ func PostHttpWithConfig(urlStr string, postJson string,
 }
 
 // ---------------------------------------------------------------
-// 2) POST JSON + 自动反序列化响应到 struct
+// 1) POST JSON + 自动反序列化响应到 struct
 // should use: defer CloseResponseBody(resp)
+// 2) postJson can be empty
 // ---------------------------------------------------------------
 func PostHttpUnmarshalStructWithConfig(urlStr, postJson string, responseStruct interface{},
 	httpClientConfig *HttpClientConfig) (resp *resty.Response, body string, err error) {
 
 	if strings.TrimSpace(urlStr) == "" {
+		belogs.Error("PostHttpUnmarshalStructWithConfig(): urlStr is empty")
 		return nil, "", errors.New("urlStr is empty")
 	}
-	if strings.TrimSpace(postJson) == "" {
-		return nil, "", errors.New("postJson is empty")
-	}
+	//	if strings.TrimSpace(postJson) == "" {
+	//		return nil, "", errors.New("postJson is empty")
+	//	}
 	if responseStruct == nil {
+		belogs.Error("PostHttpUnmarshalStructWithConfig(): responseStruct is empty")
 		return nil, "", errors.New("response is nil")
 	}
 	if httpClientConfig == nil {
+		belogs.Error("PostHttpUnmarshalStructWithConfig(): httpClientConfig is empty")
 		return nil, "", errors.New("httpClientConfig is empty")
 	}
 	cfg := httpClientConfig
