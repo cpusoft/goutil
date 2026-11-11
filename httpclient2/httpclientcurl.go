@@ -72,8 +72,10 @@ func doCurlWithConfig(method, url, postBody string, httpClientConfig *HttpClient
 		belogs.Error("doCurlWithConfig(): TempFile fail", err)
 		return "", err
 	}
-	defer tmpFile.Close()
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
+	}()
 
 	args := make([]string, 0)
 	args = append(args, "-X", method)
@@ -123,20 +125,15 @@ func doCurlWithConfig(method, url, postBody string, httpClientConfig *HttpClient
 			belogs.Error("doCurlWithConfig(): TempBodyFile fail", err)
 			return "", err
 		}
-		// 注意：这里不要 defer close，必须在执行 cmd 前主动 close
 		bodyFileName := bodyFile.Name()
-		defer os.Remove(bodyFileName) // 确保退出时删除
+		defer func() {
+			bodyFile.Close()
+			os.Remove(bodyFileName)
+		}()
 
 		_, err = bodyFile.WriteString(postBody)
 		if err != nil {
-			bodyFile.Close()
 			belogs.Error("doCurlWithConfig(): WriteString to bodyFile fail", err)
-			return "", err
-		}
-		// 【关键】必须在 curl 读取前关闭文件，否则 Windows 下 curl 无法读取！
-		err = bodyFile.Close()
-		if err != nil {
-			belogs.Error("doCurlWithConfig(): bodyFile.Close fail", err)
 			return "", err
 		}
 
@@ -162,14 +159,14 @@ func doCurlWithConfig(method, url, postBody string, httpClientConfig *HttpClient
 		belogs.Error("doCurlWithConfig(): exec.Command fail, method:", method, "  curl:", url, "  ipAddrs:", netutil.LookupIpByUrl(url),
 			"  tmpFile:", tmpFile.Name(), "  cfg:", jsonutil.MarshalJson(cfg),
 			"  len(output):", len(output), "  outputStr:", outputStr, "  time(s):", time.Since(start), "   err:", err)
-		return "", errors.New("Fail to " + method + " by curl. url is " + url + ". " + err.Error())
+		return "", err
 	}
 
 	b, err := fileutil.ReadFileToBytes(tmpFile.Name())
 	if err != nil {
 		belogs.Error("doCurlWithConfig(): ReadFileToBytes fail, url", url, "   tmpFile:", tmpFile.Name(),
 			"   err: ", err, "   output: "+string(output))
-		return "", errors.New("Fail to " + method + " by curl. Error is `" + err.Error() + "`. Output is `" + string(output) + "`")
+		return "", err
 	}
 	belogs.Debug("doCurlWithConfig(): ReadFileToBytes ok, url:", url, "   tmpFile:", tmpFile.Name(),
 		"  len(b):", len(b), "  time(s):", time.Since(start))

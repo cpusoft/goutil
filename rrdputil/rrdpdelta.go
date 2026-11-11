@@ -179,7 +179,7 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient2.H
 			body, err = httpclient2.GetByCurlWithConfig(deltaUrl, httpClientConfig)
 			if err != nil {
 				belogs.Error("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is all, fail:", deltaUrl,
-					"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl), "   resp:", resp,
+					"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
 					"   len(body):", len(body), "  time(s):", time.Since(start), err)
 				return deltaModel, errors.New("http error of " + deltaUrl + " is " + err.Error())
 			}

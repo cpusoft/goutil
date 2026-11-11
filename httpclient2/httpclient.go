@@ -104,8 +104,8 @@ func buildClientForConfig(parsedURL *url.URL, cfg *HttpClientConfig, defaultJson
 			if connTimeout > 0 {
 				d.Timeout = connTimeout
 			}
-			if cfg.AllTimeoutSeconds > 0 {
-				d.KeepAlive = time.Duration(cfg.AllTimeoutSeconds) * time.Second
+			if cfg.KeepAliveSeconds > 0 {
+				d.KeepAlive = time.Duration(cfg.KeepAliveSeconds) * time.Second
 			}
 			return d.DialContext(ctx, network, addr)
 		}

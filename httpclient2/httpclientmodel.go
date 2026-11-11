@@ -2,11 +2,11 @@ package httpclient2
 
 const (
 	DefaultUserAgent           = "RPSTIR2/1.0"
-	DefaultAllTimeout          = 300
-	DefaultConnectionTimeout   = 10
-	DefaultTlsHandshakeTimeout = 10
+	DefaultAllTimeout          = 1800
+	DefaultConnectionTimeout   = 30
+	DefaultTlsHandshakeTimeout = 30
 	DefaultKeepalive           = 30
-	DefaultIpType              = "all"
+	DefaultIpType              = "all" // all, ipv4, ipv6
 	DefaultRangeLength         = uint64(10000000)
 	DefaultRetryCount          = 3
 	RetryIntervalSeconds       = 5
