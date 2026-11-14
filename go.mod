@@ -21,7 +21,7 @@ require (
 	github.com/guregu/null/v6 v6.0.0
 	github.com/jpillora/backoff v1.1.0
 	github.com/lib/pq v1.12.3
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20261110072001-92e6a788d17c
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20261112022628-200f4cc7a645
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/orisano/gosax v1.1.4
 	github.com/panjf2000/ants/v2 v2.12.1
@@ -53,7 +53,7 @@ require (
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.4.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
-	github.com/elazarl/goproxy v1.9.3 // indirect
+	github.com/elazarl/goproxy v1.9.4 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.16 // indirect
 	github.com/gin-contrib/sse v1.2.1 // indirect
@@ -100,7 +100,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/arch v0.33.0 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
