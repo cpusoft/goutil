@@ -77,7 +77,7 @@ func TestGetRrdpNotification(t *testing.T) {
 	}
 }
 func TestGetRrdpSnapshot(t *testing.T) {
-	url := `https://rpki-repo.registro.br/rrdp/49582cf3-79ba-4cba-a1a9-14e966177268/147100/65979eb2b415672b/snapshot.xml`
+	url := `https://rrdp.lacnic.net/rrdp/66b09eea-03c7-435f-bb29-5bee810bd657/512875/d5167c8b7a7c375e/snapshot.xml`
 	fmt.Println("will get snapshot:", url)
 	cft := httpclient2.NewHttpClientConfig()
 	snapshotModel, err := GetRrdpSnapshotWithConfig(url, cft)
