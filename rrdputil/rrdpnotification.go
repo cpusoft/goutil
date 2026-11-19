@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/httpclient2"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/netutil"
@@ -64,32 +63,35 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 
 	belogs.Debug("getRrdpNotificationImplWithConfig(): notificationUrl:", notificationUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	start := time.Now()
+	downloadOk := false
 	notificationUrl = strings.TrimSpace(notificationUrl)
+	ipAddrs := netutil.LookupIpByUrl(notificationUrl)
+
 	resp, body, err := httpclient2.GetHttpWithConfig(notificationUrl, httpClientConfig)
 	defer httpclient2.CloseResponseBody(resp)
-	if err == nil {
-		if resp == nil || httpclient2.GetStatusCode(resp) != http.StatusOK {
-			belogs.Error("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
-				"   statusCode:", httpclient2.GetStatusCode(resp), "    body:", body)
-			return notificationModel, errors.New("http status code of " + notificationUrl + " is " + convert.ToString(httpclient2.GetStatusCode(resp)))
-		} else {
-			belogs.Debug("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl:", notificationUrl,
-				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   statusCode:", httpclient2.GetStatusCode(resp),
-				"   len(body):", len(body),
-				"   time(s):", time.Since(start))
-		}
+	if err == nil && httpclient2.GetStatusCode(resp) == http.StatusOK {
+		downloadOk = true
+		belogs.Debug("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig ok, notificationUrl:", notificationUrl,
+			"   ipAddrs:", ipAddrs, "   statusCode:", httpclient2.GetStatusCode(resp),
+			"   len(body):", len(body), "  downloadOk:", downloadOk, "ipAddrs", ipAddrs,
+			"   time(s):", time.Since(start))
 
 	} else {
 		belogs.Debug("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig notificationUrl fail, will use curl again:", notificationUrl, "   resp:",
 			resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
+	}
 
-		// then try using curl
+	// then try using curl
+	if !downloadOk {
+
 		start = time.Now()
+		httpClientConfig.IpType = "ipv4"
 		body, err = httpclient2.GetByCurlWithConfig(notificationUrl, httpClientConfig)
-		if err != nil {
-			belogs.Debug("getRrdpNotificationImplWithConfig(): GetByCurlWithConfig notificationUrl, iptype is ipv4, fail:", notificationUrl,
-				"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp:", resp,
+		if err == nil {
+			belogs.Debug("getRrdpNotificationImplWithConfig(): GetByCurlWithConfig notificationUrl, iptype is ipv4, ok:", notificationUrl,
+				"   ipAddrs:", ipAddrs,
 				"   len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
+		} else {
 
 			// then try again using curl, using all
 			start = time.Now()
@@ -97,21 +99,18 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 			body, err = httpclient2.GetByCurlWithConfig(notificationUrl, httpClientConfig)
 			if err != nil {
 				belogs.Error("getRrdpNotificationImplWithConfig(): GetByCurlWithConfig notificationUrl, iptype is all, fail:", notificationUrl,
-					"   ipAddrs:", netutil.LookupIpByUrl(notificationUrl), "   resp:", resp,
+					"   ipAddrs:", ipAddrs,
 					"   len(body):", len(body), "  time(s):", time.Since(start), err)
 				return notificationModel, errors.New("http error of " + notificationUrl + " is " + err.Error())
 			}
 			belogs.Debug("getRrdpNotificationImplWithConfig(): GetByCurlWithConfig notificationUrl, iptype is all, ok", notificationUrl, "    len(body):", len(body),
 				"  time(s):", time.Since(start))
-		} else {
-			belogs.Debug("getRrdpNotificationImplWithConfig(): GetByCurlWithConfig notificationUrl, iptype is ipv4, ok", notificationUrl, "    len(body):", len(body),
-				"  time(s):", time.Since(start))
 		}
 	}
 	// check if body is xml file
 	if !strings.Contains(body, `<notification`) {
-		belogs.Error("getRrdpNotificationImplWithConfig(): body is not xml file:", notificationUrl, "   resp:",
-			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
+		belogs.Error("getRrdpNotificationImplWithConfig(): body is not xml file:", notificationUrl,
+			"    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
 		return notificationModel, errors.New("body of " + notificationUrl + " is not xml")
 	}
 

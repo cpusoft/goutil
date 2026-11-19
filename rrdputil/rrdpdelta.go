@@ -12,7 +12,6 @@ import (
 
 	"github.com/cpusoft/goutil/base64util"
 	"github.com/cpusoft/goutil/belogs"
-	"github.com/cpusoft/goutil/convert"
 	"github.com/cpusoft/goutil/fileutil"
 	"github.com/cpusoft/goutil/hashutil"
 	"github.com/cpusoft/goutil/httpclient2"
@@ -146,55 +145,57 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient2.H
 	// get delta.xml
 	// "https://rrdp.apnic.net/4ea5d894-c6fc-4892-8494-cfd580a414e3/43230/delta.xml"
 	belogs.Debug("getRrdpDeltaImplWithConfig(): deltaUrl:", deltaUrl, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
-	deltaUrl = strings.TrimSpace(deltaUrl)
+
 	start := time.Now()
+	downloadOk := false
+	deltaUrl = strings.TrimSpace(deltaUrl)
+	ipAddrs := netutil.LookupIpByUrl(deltaUrl)
+
 	resp, body, err := httpclient2.GetHttpWithConfig(deltaUrl, httpClientConfig)
 	defer httpclient2.CloseResponseBody(resp)
-	if err == nil {
-		if resp == nil || httpclient2.GetStatusCode(resp) != http.StatusOK {
-			belogs.Error("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl, is not StatusOK:", deltaUrl,
-				"   statusCode:", httpclient2.GetStatusCode(resp), "    body:", body)
-			return deltaModel, errors.New("http status code of " + deltaUrl + " is " + convert.ToString(httpclient2.GetStatusCode(resp)))
-		} else {
-			belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl ok:", deltaUrl,
-				"   statusCode:", httpclient2.GetStatusCode(resp),
-				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
-				"   len(body):", len(body), "  time(s):", time.Since(start))
-		}
+	if err == nil && httpclient2.GetStatusCode(resp) == http.StatusOK {
+		downloadOk = true
+		belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl ok:", deltaUrl,
+			"   statusCode:", httpclient2.GetStatusCode(resp),
+			"   ipAddrs:", ipAddrs,
+			"   len(body):", len(body), "  time(s):", time.Since(start))
 	} else {
-		belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl fail, will use curl again:", deltaUrl, "   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
-			"   resp:", resp, "    len(body):", len(body), "  time(s):", time.Since(start), err)
+		belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl fail, will use curl again:", deltaUrl,
+			"   ipAddrs:", ipAddrs, "   resp:", resp, "    len(body):", len(body),
+			"  time(s):", time.Since(start), err)
+	}
 
+	if !downloadOk {
 		// then try using curl
 		start = time.Now()
 		httpClientConfig.IpType = "ipv4"
 		body, err = httpclient2.GetByCurlWithConfig(deltaUrl, httpClientConfig)
-		if err != nil {
-			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl fail:", deltaUrl, "   resp:", resp,
-				"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
-				"   len(body):", len(body), "  time(s):", time.Since(start), err)
+		if err == nil {
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is ipv4, ok", deltaUrl,
+				"   ipAddrs:", ipAddrs, "    len(body):", len(body), "  time(s):", time.Since(start))
+		} else {
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is ipv4, fail:", deltaUrl,
+				"   ipAddrs:", ipAddrs, "   len(body):", len(body), "  time(s):", time.Since(start), err)
 			// then try again using curl, using all
 			start = time.Now()
 			httpClientConfig.IpType = "all"
 			body, err = httpclient2.GetByCurlWithConfig(deltaUrl, httpClientConfig)
 			if err != nil {
 				belogs.Error("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is all, fail:", deltaUrl,
-					"   ipAddrs:", netutil.LookupIpByUrl(deltaUrl),
+					"   ipAddrs:", ipAddrs,
 					"   len(body):", len(body), "  time(s):", time.Since(start), err)
 				return deltaModel, errors.New("http error of " + deltaUrl + " is " + err.Error())
 			}
-			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is all, ok", deltaUrl, "    len(body):", len(body),
-				"  time(s):", time.Since(start))
-		} else {
-			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is ipv4, ok", deltaUrl, "    len(body):", len(body), "  time(s):", time.Since(start))
+			belogs.Debug("getRrdpDeltaImplWithConfig(): GetByCurlWithConfig deltaUrl, iptype is all, ok", deltaUrl,
+				"    len(body):", len(body), "  time(s):", time.Since(start))
 		}
 	}
 
 	// check if body is xml file
 	belogs.Debug("getRrdpDeltaImplWithConfig(): get body, deltaUrl:", deltaUrl, " len(body):", len(body))
 	if !strings.Contains(body, `<delta`) {
-		belogs.Error("getRrdpDeltaImplWithConfig(): body is not xml file:", deltaUrl, "   resp:",
-			resp, "    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
+		belogs.Error("getRrdpDeltaImplWithConfig(): body is not xml file:", deltaUrl,
+			"    len(body):", len(body), "       body:", body, "  time(s):", time.Since(start), err)
 		return deltaModel, errors.New("body of " + deltaUrl + " is not xml")
 	}
 

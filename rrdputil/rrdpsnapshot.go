@@ -65,19 +65,18 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 	// 2. if support range, will call range download
 	resp, body, err := httpclient2.GetHttpWithConfig(snapshotUrl, httpClientConfig)
 	defer httpclient2.CloseResponseBody(resp)
-	if err == nil {
-		if resp != nil && (httpclient2.GetStatusCode(resp) == http.StatusOK ||
-			httpclient2.GetStatusCode(resp) == http.StatusPartialContent) {
-			downloadOk = true
-			belogs.Debug("getRrdpSnapshotImplWithConfig():use range, GetHttpsWithConfig ok, snapshotUrl:", snapshotUrl,
-				"   statusCode:", httpclient2.GetStatusCode(resp), "   ipAddrs:", ipAddrs,
-				"   len(body):", len(body), "  downloadOk:", downloadOk, "  time(s):", time.Since(start))
-		}
+	if err == nil && httpclient2.GetStatusCode(resp) == http.StatusOK {
+		downloadOk = true
+		belogs.Debug("getRrdpSnapshotImplWithConfig(): GetHttpsWithConfig ok, snapshotUrl:", snapshotUrl,
+			"   statusCode:", httpclient2.GetStatusCode(resp), "   ipAddrs:", ipAddrs,
+			"   len(body):", len(body), "  downloadOk:", downloadOk, "  time(s):", time.Since(start))
+
+	} else {
+		belogs.Debug("getRrdpSnapshotImplWithConfig():  GetHttpWithConfig fail, snapshotUrl:", snapshotUrl,
+			"   statusCode:", httpclient2.GetStatusCode(resp), "   ipAddrs:", ipAddrs,
+			"   len(body):", len(body), "    body:", stringutil.OmitString(body, 100), "  downloadOk:", downloadOk,
+			err, "  time(s):", time.Since(start))
 	}
-	belogs.Debug("getRrdpSnapshotImplWithConfig(): use range, GetHttpWithConfig fail, snapshotUrl:", snapshotUrl,
-		"   statusCode:", httpclient2.GetStatusCode(resp), "   ipAddrs:", ipAddrs,
-		"   len(body):", len(body), "    body:", stringutil.OmitString(body, 100), "  downloadOk:", downloadOk,
-		err, "  time(s):", time.Since(start))
 	/*
 		// if not support range, or download fail, will call normal download
 		//start = time.Now()
@@ -95,11 +94,11 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 		httpClientConfig.IpType = "ipv4"
 		body, err = httpclient2.GetByCurlWithConfig(snapshotUrl, httpClientConfig)
 		if err == nil {
-			belogs.Debug("getRrdpSnapshotImplWithConfig(): use curl with ipv4 ok, GetByCurlWithConfig, snapshotUrl:", snapshotUrl,
+			belogs.Debug("getRrdpSnapshotImplWithConfig():GetByCurlWithConfig snapshotUrl, iptype is ipv4, ok:", snapshotUrl,
 				"    ipAddrs:", ipAddrs, "   len(body):", len(body),
 				"    body:", stringutil.OmitString(body, 100), "  time(s):", time.Since(start))
 		} else {
-			belogs.Debug("getRrdpSnapshotImplWithConfig(): use curl with ipv4 fail, will use GetByCurlWithConfig by ipv4ipv6 again, snapshotUrl:", snapshotUrl,
+			belogs.Debug("getRrdpSnapshotImplWithConfig():  GetByCurlWithConfig snapshotUrl, iptype is ipv4, fail", snapshotUrl,
 				"    ipAddrs:", ipAddrs, "   len(body):", len(body),
 				"    body:", stringutil.OmitString(body, 100), "  time(s):", time.Since(start), err)
 
@@ -108,12 +107,12 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 			httpClientConfig.IpType = "all"
 			body, err = httpclient2.GetByCurlWithConfig(snapshotUrl, httpClientConfig)
 			if err != nil {
-				belogs.Error("getRrdpSnapshotImplWithConfig(): use curl with ipv4ipv6 fail, GetByCurlWithConfig, snapshotUrl:", snapshotUrl,
+				belogs.Error("getRrdpSnapshotImplWithConfig(): GetByCurlWithConfig snapshotUrl, iptype is all, fail:", snapshotUrl,
 					"    ipAddrs:", ipAddrs, "   len(body):", len(body),
 					"    body:", stringutil.OmitString(body, 100), err, "  time(s):", time.Since(start))
 				return snapshotModel, errors.New("http error of " + snapshotUrl + " is " + err.Error())
 			}
-			belogs.Debug("getRrdpSnapshotImplWithConfig(): use curl with ipv4ipv6 ok, GetByCurlWithConfig, snapshotUrl:", snapshotUrl,
+			belogs.Debug("getRrdpSnapshotImplWithConfig():GetByCurlWithConfig snapshotUrl, iptype is all, ok:", snapshotUrl,
 				"    ipAddrs:", ipAddrs, "    len(body):", len(body),
 				"    body:", stringutil.OmitString(body, 100), "  time(s):", time.Since(start))
 		}
@@ -121,8 +120,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 
 	// check if body is xml file
 	if !strings.Contains(body, `<snapshot`) {
-		belogs.Error("getRrdpSnapshotImplWithConfig(): body is not xml file:", snapshotUrl, "   resp:",
-			resp, "    len(body):", len(body), "       body:", stringutil.OmitString(body, 100), "  time(s):", time.Since(start), err)
+		belogs.Error("getRrdpSnapshotImplWithConfig(): body is not xml file:", snapshotUrl, "    len(body):", len(body), "       body:", stringutil.OmitString(body, 100), "  time(s):", time.Since(start), err)
 		return snapshotModel, errors.New("body of " + snapshotUrl + " is not xml")
 	}
 
