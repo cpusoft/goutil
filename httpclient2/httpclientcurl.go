@@ -117,6 +117,9 @@ func doCurlWithConfig(method, url, postBody string, httpClientConfig *HttpClient
 	if cfg.Authorization != "" {
 		args = append(args, "-H", "Authorization: "+cfg.Authorization)
 	}
+	if cfg.KeepAliveSeconds > 0 {
+		args = append(args, "--keepalive-time", convert.ToString(cfg.KeepAliveSeconds))
+	}
 
 	// ---- 请求体处理 (POST) ----
 	if method == "POST" && hasBody {
