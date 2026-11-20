@@ -78,7 +78,7 @@ func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp 
 		return resp, body, nil
 	}
 	belogs.Error("GetHttpWithConfig(): trycurl try ipv4 fail", urlStr,
-		"cfg:", jsonutil.MarshalJson(httpClientConfig), "time(s)", time.Since(startCurl))
+		"cfg:", jsonutil.MarshalJson(httpClientConfig), "err", err, "time(s)", time.Since(startCurl))
 	return resp, "", err
 
 }
