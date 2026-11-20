@@ -3,7 +3,6 @@ package rrdputil
 import (
 	"errors"
 	"math"
-	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -69,7 +68,7 @@ func getRrdpNotificationImplWithConfig(notificationUrl string, httpClientConfig 
 
 	resp, body, err := httpclient2.GetHttpWithConfig(notificationUrl, httpClientConfig)
 	defer httpclient2.CloseResponseBody(resp)
-	if err == nil && httpclient2.GetStatusCode(resp) == http.StatusOK {
+	if err == nil { //&& httpclient2.GetStatusCode(resp) == http.StatusOK {
 		downloadOk = true
 		belogs.Debug("getRrdpNotificationImplWithConfig(): GetHttpsWithConfig ok, notificationUrl:", notificationUrl,
 			"   ipAddrs:", ipAddrs, "   statusCode:", httpclient2.GetStatusCode(resp),
@@ -137,11 +136,13 @@ func RrdpNotificationTestConnectWithConfig(notificationUrl string, httpClientCon
 		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig fail, notificationUrl:", notificationUrl, err, "  time(s):", time.Since(start))
 		return errors.New("http error of " + notificationUrl + " is " + err.Error())
 	}
-	if resp == nil || httpclient2.GetStatusCode(resp) != http.StatusOK {
-		belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
-			"   statusCode:", httpclient2.GetStatusCode(resp), "    body:", body, "   time(s):", time.Since(start))
-		return errors.New("http status code of " + notificationUrl + " is " + httpclient2.GetStatus(resp))
-	}
+	/*
+		if resp == nil || httpclient2.GetStatusCode(resp) != http.StatusOK {
+			belogs.Error("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig notificationUrl, is not StatusOK:", notificationUrl,
+				"   statusCode:", httpclient2.GetStatusCode(resp), "    body:", body, "   time(s):", time.Since(start))
+			return errors.New("http status code of " + notificationUrl + " is " + httpclient2.GetStatus(resp))
+		}
+	*/
 	belogs.Debug("RrdpNotificationTestConnectWithConfig(): GetHttpsWithConfig ok, notificationUrl:", notificationUrl,
 		"  time(s):", time.Since(start))
 

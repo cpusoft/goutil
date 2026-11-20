@@ -60,7 +60,7 @@ func GetHttpWithConfig(urlStr string, httpClientConfig *HttpClientConfig) (resp 
 	}
 
 	// when have err, try curl
-	belogs.Debug("GetHttpWithConfig(): r.Get fail, will try curl, urlStr:", urlStr,
+	belogs.Debug("GetHttpWithConfig(): r.Get fail, will try curl, urlStr:", urlStr, "err", err,
 		"cfg:", jsonutil.MarshalJson(httpClientConfig))
 	startCurl := time.Now()
 	body, err = GetByCurlWithConfig(urlStr, cfg)

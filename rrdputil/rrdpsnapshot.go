@@ -2,7 +2,6 @@ package rrdputil
 
 import (
 	"errors"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -65,7 +64,7 @@ func getRrdpSnapshotImplWithConfig(snapshotUrl string,
 	// 2. if support range, will call range download
 	resp, body, err := httpclient2.GetHttpWithConfig(snapshotUrl, httpClientConfig)
 	defer httpclient2.CloseResponseBody(resp)
-	if err == nil && httpclient2.GetStatusCode(resp) == http.StatusOK {
+	if err == nil { //&& httpclient2.GetStatusCode(resp) == http.StatusOK {
 		downloadOk = true
 		belogs.Debug("getRrdpSnapshotImplWithConfig(): GetHttpsWithConfig ok, snapshotUrl:", snapshotUrl,
 			"   statusCode:", httpclient2.GetStatusCode(resp), "   ipAddrs:", ipAddrs,

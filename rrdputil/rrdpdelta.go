@@ -2,7 +2,6 @@ package rrdputil
 
 import (
 	"errors"
-	"net/http"
 	"os"
 	"runtime"
 	"sort"
@@ -153,7 +152,7 @@ func getRrdpDeltaImplWithConfig(deltaUrl string, httpClientConfig *httpclient2.H
 
 	resp, body, err := httpclient2.GetHttpWithConfig(deltaUrl, httpClientConfig)
 	defer httpclient2.CloseResponseBody(resp)
-	if err == nil && httpclient2.GetStatusCode(resp) == http.StatusOK {
+	if err == nil { // && httpclient2.GetStatusCode(resp) == http.StatusOK {
 		downloadOk = true
 		belogs.Debug("getRrdpDeltaImplWithConfig(): GetHttpsWithConfig deltaUrl ok:", deltaUrl,
 			"   statusCode:", httpclient2.GetStatusCode(resp),
