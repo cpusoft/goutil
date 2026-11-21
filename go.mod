@@ -21,7 +21,7 @@ require (
 	github.com/guregu/null/v6 v6.0.0
 	github.com/jpillora/backoff v1.1.0
 	github.com/lib/pq v1.12.3
-	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20261112022628-200f4cc7a645
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20261121125702-cba49ef11b40
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/orisano/gosax v1.1.4
 	github.com/panjf2000/ants/v2 v2.12.1
@@ -106,7 +106,7 @@ require (
 	golang.org/x/sys v0.50.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.82.2 // indirect
+	modernc.org/libc v1.82.8 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.13.0 // indirect
 	moul.io/http2curl/v2 v2.3.0 // indirect

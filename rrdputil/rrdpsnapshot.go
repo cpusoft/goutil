@@ -195,8 +195,26 @@ func ConvertSnapshotToRrdpFiles(snapshotModel *SnapshotModel,
 	om := goorderedmap.New[string, *RrdpFile]()
 
 	for i := range snapshotModel.SnapshotPublishs {
+		// check every rrdp Publish fail, will use rsync download again
 		uri := snapshotModel.SnapshotPublishs[i].Uri
-		belogs.Debug("ConvertSnapshotToRrdpFiles(): range DeltaPublishs, uri:", uri)
+		base64 := snapshotModel.SnapshotPublishs[i].Base64
+		hash := ""
+		isDelta := false
+		belogs.Info("ConvertSnapshotToRrdpFiles(): will check every rrdp Publish, uri:", uri, " len(base64)", len(base64))
+		err = checkIsValidRrdp(uri, base64, hash, isDelta)
+		if err != nil {
+			belogs.Info("ConvertSnapshotToRrdpFiles(): check every rrdp Publish fail, will use rsync download again, uri:", uri)
+			newBase64, _, err := syncByRsyncAgain(uri)
+			if err != nil {
+				belogs.Error("ConvertSnapshotToRrdpFiles(): syncByRsyncAgain fail, will ignore this, uri:", uri, err)
+				continue
+			}
+			snapshotModel.SnapshotPublishs[i].Base64 = newBase64
+			belogs.Info("ConvertSnapshotToRrdpFiles(): rsync download again ok, use new data of bae64, uri:", uri)
+		}
+		belogs.Info("ConvertSnapshotToRrdpFiles(): check every rrdp Publish ok, no need rsync download again, uri:", uri, " len(base64)", len(base64))
+		// check every rrdp Publish fail, will use rsync download again
+
 		if existRrdpFile, ok := om.Get(uri); ok {
 			belogs.Debug("ConvertSnapshotToRrdpFiles(): range DeltaPublishs, find uri:", uri,
 				"    this:", jsonutil.MarshalJson(snapshotModel.SnapshotPublishs[i]),

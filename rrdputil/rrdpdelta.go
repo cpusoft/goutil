@@ -349,6 +349,27 @@ func convertDeltasToRrdpFiles(deltaModel *DeltaModel, om *goorderedmap.OrderedMa
 	// seconde, save publish files
 	for i := range deltaModel.DeltaPublishs {
 		uri := deltaModel.DeltaPublishs[i].Uri
+
+		// check every rrdp Publish fail, will use rsync download again
+		base64 := deltaModel.DeltaPublishs[i].Base64
+		hash := deltaModel.DeltaPublishs[i].Hash
+		isDelta := true
+		belogs.Info("convertDeltasToRrdpFiles(): will check every rrdp Publish, uri:", uri, " len(base64)", len(base64))
+		err = checkIsValidRrdp(uri, base64, hash, isDelta)
+		if err != nil {
+			belogs.Info("convertDeltasToRrdpFiles(): check every rrdp Publish fail, will use rsync download again, uri:", uri)
+			newBase64, newHash, err := syncByRsyncAgain(uri)
+			if err != nil {
+				belogs.Error("convertDeltasToRrdpFiles(): syncByRsyncAgain fail, will ignore this, uri:", uri, err)
+				continue
+			}
+			deltaModel.DeltaPublishs[i].Base64 = newBase64
+			deltaModel.DeltaPublishs[i].Hash = newHash
+			belogs.Info("convertDeltasToRrdpFiles(): rsync download again ok, use new data of bae64, uri:", uri)
+		}
+		belogs.Info("convertDeltasToRrdpFiles(): check every rrdp Publish ok, no need rsync download again, uri:", uri, " len(base64)", len(base64))
+		// check every rrdp Publish fail, will use rsync download again
+
 		belogs.Debug("convertDeltasToRrdpFiles(): range DeltaPublishs, uri:", uri)
 		if existRrdpFile, ok := om.Get(uri); ok {
 			belogs.Debug("convertDeltasToRrdpFiles(): range DeltaPublishs, find uri:", uri,

@@ -2,9 +2,15 @@ package rrdputil
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	xml "encoding/xml"
+	"errors"
 	"fmt"
 	"io"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -247,4 +253,99 @@ func parseXmlToSnapshotModel(xmlData []byte) (*SnapshotModel, error) {
 	}
 	belogs.Debug("parseXmlToSnapshotModel(): len(xml)", len(xmlData), "time(s)", time.Since(start))
 	return snapshot, nil
+}
+
+func syncByRsyncAgain(uri string) (newBase64, newHash string, err error) {
+	f, err := os.CreateTemp("", "rsync-*.tmp")
+	if err != nil {
+		belogs.Error("syncByRsyncAgain(): syncByRsyncAgain fail, rsyncUrl is :", uri, " err is :", err)
+		return "", "", err
+	}
+	tmpPath := f.Name()
+	// 关闭 fd，留给 rsync 写入
+	_ = f.Close()
+
+	// 退出清理
+	defer func() {
+		_ = os.Remove(tmpPath)
+	}()
+
+	// rsync 直接写入这个临时文件
+	// 在这里读取、校验 tmpPath
+	belogs.Debug("syncByRsyncAgain(): Command: rsync", "-Lirzts", "--del", "--timeout=120", "--contimeout=120",
+		"--no-motd", "-4", uri, tmpPath)
+	cmd := exec.Command("rsync", "-Lrzts", "--del", "--timeout=120", "--contimeout=120", "--no-motd", "-4", uri, tmpPath)
+	// if success, the len(output) will be zero
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		belogs.Error("syncByRsyncAgain(): exec.Command fail, rsyncUrl is :", uri, "   output is ", string(output), " err is :", err)
+		// some err detail in output
+		err = errors.New(string(output) + ", " + err.Error())
+		return "", "", err
+	}
+	belogs.Debug("syncByRsyncAgain(): rsync ok, save to tmpPath:", tmpPath, "  output:", string(output))
+	data, err := os.ReadFile(tmpPath)
+	if err != nil {
+		return "", "", err
+	}
+	newBase64 = base64.StdEncoding.EncodeToString(data)
+	h := sha256.New()
+	h.Write(data)
+
+	// sum 是 [32]byte 原始哈希
+	newHash = hex.EncodeToString(h.Sum(nil))
+	return newBase64, newHash, nil
+}
+
+func checkIsValidRrdp(uri, base64, hash string, isDelta bool) error {
+	if uri == "" {
+		belogs.Error("checkIsValidRrdp(): uri is empty")
+		return errors.New("uri is empty")
+	}
+	if base64 == "" {
+		belogs.Error("checkIsValidRrdp(): base64 is empty", "uri", uri)
+		return errors.New("base64 is empty")
+	}
+	data, hit, err := DecodeBase64(base64)
+	validB64 := err == nil
+
+	h := sha256.New()
+	h.Write(data)
+	newHash := hex.EncodeToString(h.Sum(nil))
+	hashMatch := newHash == hash
+	if validB64 && hashMatch || hit {
+		belogs.Info("checkIsValidRrdp(): check rrdp is ok,  uri:", uri)
+		return nil
+	}
+	belogs.Error("checkIsValidRrdp(): check rrdp fail, should use rsync download again", "uri", uri)
+	return errors.New("check rrdp fail, should use rsync download again")
+}
+
+func DecodeBase64(src string) ([]byte, bool, error) {
+	segments := strings.Split(src, "/")
+	var hit bool
+	for _, seg := range segments {
+		if len(seg) > 0 {
+			hit = true
+			break
+		}
+	}
+
+	b, err := base64.StdEncoding.DecodeString(src)
+	if err == nil {
+		return b, hit, nil
+	}
+	b, err = base64.RawStdEncoding.DecodeString(src)
+	if err == nil {
+		return b, hit, nil
+	}
+	b, err = base64.URLEncoding.DecodeString(src)
+	if err == nil {
+		return b, hit, nil
+	}
+	b, err = base64.RawURLEncoding.DecodeString(src)
+	if err == nil {
+		return b, hit, nil
+	}
+	return nil, hit, err
 }
