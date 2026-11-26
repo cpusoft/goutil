@@ -42,6 +42,8 @@ func GetRrdpDeltasWithConfig(notificationModel *NotificationModel, lastSerial ui
 	deltaModelCh := make(chan DeltaModel, len(notificationModel.Deltas))
 	countCh := make(chan int, runtime.NumCPU()*2)
 	// serial need from newest to oldest
+	belogs.Debug("GetRrdpDeltasWithConfig(): will download delta queue, len(notificationModel.Deltas) is", len(notificationModel.Deltas),
+		"  lastSerial:", lastSerial, "  httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
 	for i := 0; i < len(notificationModel.Deltas); i++ {
 		belogs.Debug("GetRrdpDeltasWithConfig(): i:", i, "   notificationModel.Deltas[i].Serial:", notificationModel.Deltas[i].Serial)
 		if notificationModel.Deltas[i].Serial <= lastSerial {
@@ -89,7 +91,8 @@ func getRrdpDeltasImplWithConfig(notificationModel *NotificationModel, i int, ht
 	}()
 
 	start := time.Now()
-	belogs.Debug("getRrdpDeltasImplWithConfig():will notificationModel.Deltas[i].Uri:", i, notificationModel.Deltas[i].Uri)
+	belogs.Debug("getRrdpDeltasImplWithConfig():will download rrdp delta, notificationModel.Deltas[i].Serial:", notificationModel.Deltas[i].Serial,
+		" notificationModel.Deltas[i].Uri:", notificationModel.Deltas[i].Uri)
 	deltaModel, err := GetRrdpDeltaWithConfig(notificationModel.Deltas[i].Uri, httpClientConfig)
 	if err != nil {
 		belogs.Error("getRrdpDeltasImplWithConfig(): GetRrdpDelta fail, delta.Uri :", i,
@@ -97,7 +100,8 @@ func getRrdpDeltasImplWithConfig(notificationModel *NotificationModel, i int, ht
 		errorMsgCh <- "get delta " + notificationModel.Deltas[i].Uri + " fail, error is " + err.Error()
 		return
 	}
-	belogs.Debug("getRrdpDeltasImplWithConfig():ok notificationModel.Deltas[i].Uri:", i, notificationModel.Deltas[i].Uri,
+	belogs.Debug("getRrdpDeltasImplWithConfig():download rrdp delta succeed, notificationModel.Deltas[i].Serial:", notificationModel.Deltas[i].Serial,
+		"   notificationModel.Deltas[i].Uri:", notificationModel.Deltas[i].Uri,
 		"   time(s):", time.Since(start))
 
 	err = CheckRrdpDelta(&deltaModel, notificationModel)

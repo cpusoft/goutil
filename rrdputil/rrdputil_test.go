@@ -7,12 +7,14 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/cpusoft/goutil/httpclient2"
 	"github.com/cpusoft/goutil/jsonutil"
 	"github.com/cpusoft/goutil/xmlutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetRrdpNotificationWithConfig(t *testing.T) {
@@ -26,6 +28,46 @@ func TestGetRrdpNotificationWithConfig(t *testing.T) {
 	fmt.Println(n, err)
 
 }
+
+// TestGetRrdpDeltasImplWithConfig 集成测试：getRrdpDeltasImplWithConfig
+// 前置：使用 https://rrdp-rps.arin.net/notification.xml 获取notificationModel，取第一个delta来测试
+func TestGetRrdpDeltasImplWithConfig(t *testing.T) {
+	notifyUrl := "https://rrdp-rps.arin.net/notification.xml"
+	// http配置，可按需调整
+	httpCfg := &httpclient2.HttpClientConfig{}
+
+	// 1. 获取并校验 notification
+	notifyModel, err := GetAndCheckRrdpNotificationWithConfig(notifyUrl, httpCfg)
+	assert.NoError(t, err, "GetAndCheckRrdpNotificationWithConfig fail")
+	assert.NotEmpty(t, notifyModel.Deltas, "notification deltas empty，无delta可测")
+
+	// 取第0个delta测试
+	i := 0
+
+	// 2. 初始化channel
+	deltaCh := make(chan DeltaModel, 1)
+	errCh := make(chan string, 1)
+	countCh := make(chan int, 1)
+	countCh <- 1 // 和原函数 defer <-countCh 匹配
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// 3. 执行目标函数
+	go getRrdpDeltasImplWithConfig(&notifyModel, i, httpCfg, deltaCh, errCh, countCh, &wg)
+	wg.Wait()
+
+	// 4. 结果判断
+	select {
+	case delta := <-deltaCh:
+		t.Logf("get delta success, uri=%s, publish count=%d, withdraw count=%d",
+			notifyModel.Deltas[i].Uri, len(delta.DeltaPublishs), len(delta.DeltaWithdraws))
+	case errMsg := <-errCh:
+		t.Fatalf("get delta fail: %s", errMsg)
+	default:
+		t.Fatal("no delta result and no error, unexpected")
+	}
+}
+
 func TestSnapshot(t *testing.T) {
 	// 解析 800MB XML
 	xml := `
