@@ -15,6 +15,17 @@ import (
 	"github.com/cpusoft/goutil/xmlutil"
 )
 
+func TestGetRrdpNotificationWithConfig(t *testing.T) {
+	cfg := httpclient2.NewHttpClientConfig(
+		httpclient2.WithAllTimeoutSeconds(uint64(1000)),
+		httpclient2.WithRetryCount(uint64(2)),
+		httpclient2.WithVerifyHttps(false),
+		httpclient2.WithTryCurl(true))
+	url := "https://rrdp.ripe.net/notification.xml"
+	n, err := GetRrdpNotificationWithConfig(url, cfg)
+	fmt.Println(n, err)
+
+}
 func TestSnapshot(t *testing.T) {
 	// 解析 800MB XML
 	xml := `

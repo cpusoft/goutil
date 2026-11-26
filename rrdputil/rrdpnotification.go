@@ -27,15 +27,18 @@ func GetRrdpNotificationWithConfig(notificationUrl string, httpClientConfig *htt
 	// get notification.xml
 	// "https://rrdp.apnic.net/notification.xml"
 	belogs.Debug("GetRrdpNotificationWithConfig(): will notificationUrl:", notificationUrl, "   httpClientConfig:", jsonutil.MarshalJson(httpClientConfig))
+	belogs.Debug("GetRrdpNotificationWithConfig(): will get delta queue of rrdp")
 	notificationModel, err = getRrdpNotificationImplWithConfig(notificationUrl, httpClientConfig)
 	if err != nil {
 		belogs.Error("GetRrdpNotificationWithConfig():getRrdpNotificationImplWithConfig fail:", notificationUrl, err)
 		return notificationModel, err
 	}
+	belogs.Debug("GetAndCheckRrdpNotificationWithConfig(): get delta queue of rrdp succeed, will sort deltas",
+		"time(s)", time.Since(start))
 
 	// will sort deltas from bigger to smaller
 	sort.Sort(NotificationDeltasSort(notificationModel.Deltas))
-	belogs.Debug("GetRrdpNotificationWithConfig(): after sort, len(notificationModel.Deltas):", len(notificationModel.Deltas))
+	belogs.Debug("GetRrdpNotificationWithConfig(): after sort deltas, len(notificationModel.Deltas):", len(notificationModel.Deltas))
 
 	// get maxserial and minserial, and set map[serial]serial
 	notificationModel.MapSerialDeltas = make(map[uint64]uint64, len(notificationModel.Deltas)+10)
@@ -50,9 +53,11 @@ func GetRrdpNotificationWithConfig(notificationUrl string, httpClientConfig *htt
 		if serial < min {
 			min = serial
 		}
+		belogs.Debug("GetRrdpNotificationWithConfig(): get delta url queue", "deltaurl", notificationModel.Deltas[i].Uri)
 	}
 	notificationModel.MaxSerial = max
 	notificationModel.MinSerial = min
+	belogs.Debug("GetRrdpNotificationWithConfig(): get delta url queue ok", "deltas", jsonutil.MarshalJson(notificationModel.Deltas))
 	belogs.Debug("GetRrdpNotificationWithConfig(): notificationUrl ok:", notificationUrl, " notificationModel.MaxSerial:", notificationModel.MaxSerial,
 		"   notificationModel.MinSerial:", notificationModel.MinSerial, "  time(s):", time.Since(start))
 	return notificationModel, nil
